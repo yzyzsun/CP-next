@@ -1,7 +1,8 @@
 const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  entry: './src/index.ts',
+  entry: './plground/index.ts',
   devtool: 'inline-source-map',
   module: {
     rules: [
@@ -10,11 +11,15 @@ module.exports = {
         use: 'ts-loader',
         exclude: /node_modules/,
       },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
     ],
   },
-  resolve: {
-    extensions: [ '.ts', '.js' ],
-  },
+  plugins: [
+    new HtmlWebpackPlugin({ template: './plground/index.html' }),
+  ],
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist'),
