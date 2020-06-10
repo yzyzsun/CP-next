@@ -1,0 +1,143 @@
+@precedence {
+  intersect @left,
+  arrow @left,
+  dot, at, rm, colon,
+  times @left,
+  plus  @left,
+  rel   @left,
+  equal @left,
+  and   @left,
+  or    @left,
+  merge @left,
+  forward @right
+}
+
+@top Program { ~conflict endBySemi<definition>* expression }
+
+definition { TypeDef | TermDef | PatternDef }
+
+TypeDef {
+  kw<"type"> TypeNameDef angles<TypeNameDef>* (kw<"extends"> typeApp)? "=" typeApp
+}
+
+TermDef {
+  kw<"override">? TermNameDef ~conflict typeParam* termParam* "=" expression
+}
+
+PatternDef {
+  kw<"override">? parens<TermNameDef termParam* SelfAnno?> "." TermDef
+}
+
+typeParam { TypeNameDef | parens<TypeNameDef "*" typeApp> }
+termParam { TermNameDef | parens<TermNameDef ":" typeApp> }
+SelfAnno { "[" TermNameDef ":" typeApp "]" }
+
+typeApp {
+  type // | typeApp type
+}
+
+type {
+  TypeName angles<typeSepByComma>* |
+  kW<"Num"> | kW<"String"> | kW<"Bool"> | kW<"Bot"> | kW<"Top"> |
+  ForallType { kw<"forall"> typeParam+ "." typeApp } |
+  ArrowType { typeApp !arrow TypeOp<"->"> typeApp } |
+  IntersectionType { typeApp !intersect TypeOp<"&"> typeApp } |
+  TraitType { kW<"Trait"> brackets<typeSepByComma> } |
+  RecordType { braces<sepByCommaOrSemi<LabelDecl ":" typeApp>?> } |
+  parens<typeApp>
+}
+
+expression {
+  term // | expression term
+}
+
+term {
+  TermName | Number | String | Boolean { kw<"true"> | kw<"false"> } |
+  Undefined { kw<"undefined"> } | Unit { "()" } | BinaryOp |
+  term !dot "." TermName | term !at "@" type |
+  term !rm "\\" RecordType | term !colon ":" typeApp |
+  Lambda { "\\" termParam+ "->" expression } |
+  BigLambda { "/\\" typeParam+ "." expression } |
+  Let { kw<"let"> TermNameDef "=" expression kw<"in"> expression } |
+  LetRec { kw<"letrec"> TermNameDef ":" typeApp "=" expression kw<"in"> expression } |
+  Open { kw<"open"> expression kw<"in"> expression } |
+  IfElse { kw<"if"> expression kw<"then"> expression kw<"else"> expression } |
+  New { kw<"new"> expression } |
+  Trait { kw<"trait"> SelfAnno? (kw<"implements"> typeApp)? (kw<"inherits"> expression)? "=>" expression } |
+  Record { braces<sepByCommaOrSemi<TermDef | PatternDef>?> } |
+  parens<expression>
+}
+
+BinaryOp {
+  term !times ArithOp<"*" | "/"> term |
+  term !plus (ArithOp<"+" "+"?> | minus) term |
+  term !rel compareRel term |
+  term !equal CompareOp<"==" | "!="> term |
+  term !and LogicOp<"&&"> term |
+  term !or LogicOp<"||"> term |
+  term !merge MergeOp term |
+  term !forward ForwardOp term
+}
+
+kw<word> { @specialize[name={word}]<lowerid, word> }
+kW<word> { @specialize[name={word}]<upperid, word> }
+
+braces<contents> { leftBrace contents "}" }
+parens<contents> { ~conflict "(" contents ")" }
+brackets<contents> { "[" contents "]" }
+angles<contents> { leftAngle contents ">" }
+
+endBySemi<stmt> { stmt ";" }
+sepByCommaOrSemi<stmt> { ~conflict (stmt ("," | ";"))* stmt ("," | ";")? }
+typeSepByComma { typeApp | typeApp "," typeApp }
+
+TypeName { upperid }
+TypeNameDef { upperid }
+TermName { lowerid }
+TermNameDef { ~conflict lowerid }
+LabelDecl { lowerid }
+
+@skip { whitespace | LineComment | BlockComment }
+
+@tokens {
+
+  whitespace { std.whitespace+ }
+
+  LineComment { "--" ![\n]* }
+
+  minus[name=ArithOp] { "-" }
+  @precedence { LineComment, minus }
+
+  BlockComment { "{-" blockCommentRest }
+  blockCommentRest { "-" blockCommentAfterHyphen | ![-] blockCommentRest }
+  blockCommentAfterHyphen { "}" | blockCommentRest }
+
+  leftBrace { "{" }
+  @precedence { BlockComment, leftBrace }
+
+  identifierChar { std.asciiLetter | std.digit | "'" }
+  lowerid { std.asciiLowercase identifierChar }
+  upperid { std.asciiUppercase identifierChar }
+
+  octit { $[0-7] }
+  hexit { std.digit | $[a-fA-F] }
+  Number {
+    std.digit+ ("." std.digit+)? (("e" | "E") ("+" | "-")? std.digit+)? |
+    "0x" hexit+ | "0X" hexit+ |
+    "0o" octit+ | "0O" octit+
+  }
+
+  String { '"' (![\\\n"] | "\\" _)* '"'? }
+
+  TypeOp<op> { op }
+  ArithOp<op> { op }
+  LogicOp<op> { op }
+  CompareOp<op> { op }
+  MergeOp { ",," }
+  ForwardOp { "^" }
+
+  compareRel { CompareOp<"<" "="? | ">" "="?> }
+  leftAngle { "<" }
+  @precedence { compareRel, leftAngle }
+
+}
