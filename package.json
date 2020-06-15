@@ -21,7 +21,10 @@
     "jquery": "^3.5.1",
     "lezer-generator": "^0.8.5",
     "popper.js": "^1.16.1",
+    "purescript": "^0.13.8",
+    "purs-loader": "^3.7.1",
     "raw-loader": "^4.0.1",
+    "spago": "^0.15.3",
     "style-loader": "^1.2.1",
     "webpack": "^4.43.0",
     "webpack-cli": "^3.3.11"
