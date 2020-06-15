@@ -11,7 +11,6 @@ import { bracketMatching } from '@codemirror/next/matchbrackets';
 import { closeBrackets } from '@codemirror/next/closebrackets';
 import { defaultHighlighter, styleTags } from '@codemirror/next/highlight';
 import { LezerSyntax, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/next/syntax';
-import { Subtree } from 'lezer';
 import { buildParser } from 'lezer-generator';
 import grammar from 'raw-loader!./zord.grammar';
 
@@ -28,8 +27,8 @@ const zordSyntax = new LezerSyntax(parser.withProps(
     Record: continuedIndent(),
   }),
   foldNodeProp.add({
-    RecordType(tree: Subtree) { return {from: tree.start + 1, to: tree.end - 1} },
-    Record(tree: Subtree) { return {from: tree.start + 1, to: tree.end - 1} },
+    RecordType(tree) { return {from: tree.start + 1, to: tree.end - 1} },
+    Record(tree) { return {from: tree.start + 1, to: tree.end - 1} },
   }),
   styleTags({
     'type extends let letrec override trait implements inherits': 'keyword definition',
@@ -71,8 +70,8 @@ const state = EditorState.create({
   ],
 });
 const view = new EditorView({ state });
-document.getElementById('editor')!.appendChild(view.dom);
+document.getElementById('editor').appendChild(view.dom);
 
-document.getElementById('run')!.onclick = () => {
-  document.getElementById('output')!.append('Run button clicked. ');
+document.getElementById('run').onclick = () => {
+  document.getElementById('output').append('Run button clicked. ');
 };
