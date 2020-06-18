@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { EditorView } from '@codemirror/next/view';
 import { EditorState, languageData } from '@codemirror/next/state';
 import { keymap } from '@codemirror/next/keymap';
-import { baseKeymap } from '@codemirror/next/commands';
+import { standardKeymap } from '@codemirror/next/commands';
 import { lineNumbers } from '@codemirror/next/gutter';
 import { foldGutter } from '@codemirror/next/fold';
 import { bracketMatching } from '@codemirror/next/matchbrackets';
@@ -31,9 +31,10 @@ const zordSyntax = new LezerSyntax(parser.withProps(
     Record(tree) { return {from: tree.start + 1, to: tree.end - 1} },
   }),
   styleTags({
-    'type extends let letrec override trait implements inherits': 'keyword definition',
+    'type extends def let letrec trait implements inherits': 'keyword definition',
     'if then else new open in forall': 'keyword',
-    'Num Bool String Top Bot Trait': 'keyword',
+    'override': 'modifier',
+    'Int Double Bool String Top Bot Trait': 'keyword',
     Boolean: 'atom',
     Undefined: 'null',
     Unit: 'unit',
@@ -49,6 +50,7 @@ const zordSyntax = new LezerSyntax(parser.withProps(
     LogicOp: 'logicOperator',
     CompareOp: 'compareOperator',
     MergeOp: 'operator',
+    TraitArrow : 'punctuation definition',
     '( )': 'paren',
     '{ }': 'brace',
     '[ ]': 'squareBracket',
@@ -60,7 +62,7 @@ const zordSyntax = new LezerSyntax(parser.withProps(
 
 const state = EditorState.create({
   extensions: [
-    keymap(baseKeymap),
+    keymap(standardKeymap),
     lineNumbers(),
     foldGutter(),
     bracketMatching(),
