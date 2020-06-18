@@ -1,5 +1,12 @@
 { name = "zord"
-, dependencies = [ "console", "effect", "psci-support" ]
+, dependencies =
+  [ "assert"
+  , "console"
+  , "debug"
+  , "effect"
+  , "parsing"
+  , "psci-support"
+  ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
 }
