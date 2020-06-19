@@ -11,10 +11,8 @@ import { bracketMatching } from '@codemirror/next/matchbrackets';
 import { closeBrackets } from '@codemirror/next/closebrackets';
 import { defaultHighlighter, styleTags } from '@codemirror/next/highlight';
 import { LezerSyntax, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/next/syntax';
-import { buildParser } from 'lezer-generator';
-import grammar from 'raw-loader!./zord.grammar';
+import { parser } from './zord';
 
-const parser = buildParser(grammar);
 const zordSyntax = new LezerSyntax(parser.withProps(
   languageData.add({
     Program: {

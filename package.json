@@ -4,7 +4,7 @@
   "description": "The Zord Programming Languages",
   "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "lezer-generator --noTerms --output plground/zord plground/zord.grammar && webpack --mode=development"
   },
   "repository": {
     "type": "git",
@@ -23,7 +23,6 @@
     "popper.js": "^1.16.1",
     "purescript": "^0.13.8",
     "purs-loader": "^3.7.1",
-    "raw-loader": "^4.0.1",
     "spago": "^0.15.3",
     "style-loader": "^1.2.1",
     "webpack": "^4.43.0",
