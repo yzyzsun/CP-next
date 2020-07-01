@@ -13,7 +13,7 @@ import Text.Parsing.Parser.Combinators (choice)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef)
-import Zord.Syntax (BinOp(..), Expr(..), Ty(..), UnOp(..))
+import Zord.Syntax (ArithOp(..), BinOp(..), CompOp(..), Expr(..), LogicOp(..), Ty(..), UnOp(..))
 
 type SParser a = Parser String a
 
@@ -34,23 +34,22 @@ operators :: OperatorTable Identity String Expr
 operators = [ [ Prefix (reservedOp "-" $> Unary Neg)
               , Prefix (reservedOp "!" $> Unary Not)
               ]
-            ,
-              [ Infix (reservedOp "*" $> Binary Mul) AssocLeft
-              , Infix (reservedOp "/" $> Binary Div) AssocLeft
-              , Infix (reservedOp "%" $> Binary Mod) AssocLeft
+            , [ Infix (reservedOp "*" $> Binary (Arith Mul)) AssocLeft
+              , Infix (reservedOp "/" $> Binary (Arith Div)) AssocLeft
+              , Infix (reservedOp "%" $> Binary (Arith Mod)) AssocLeft
               ]
-            , [ Infix (reservedOp "+" $> Binary Add) AssocLeft
-              , Infix (reservedOp "-" $> Binary Sub) AssocLeft
+            , [ Infix (reservedOp "+" $> Binary (Arith Add)) AssocLeft
+              , Infix (reservedOp "-" $> Binary (Arith Sub)) AssocLeft
               ]
-            , [ Infix (reservedOp "==" $> Binary Eql) AssocNone
-              , Infix (reservedOp "!=" $> Binary Neq) AssocNone
-              , Infix (reservedOp "<"  $> Binary Lt ) AssocNone
-              , Infix (reservedOp "<=" $> Binary Le ) AssocNone
-              , Infix (reservedOp ">"  $> Binary Gt ) AssocNone
-              , Infix (reservedOp ">=" $> Binary Ge ) AssocNone
+            , [ Infix (reservedOp "==" $> Binary (Comp Eql)) AssocNone
+              , Infix (reservedOp "!=" $> Binary (Comp Neq)) AssocNone
+              , Infix (reservedOp "<"  $> Binary (Comp Lt )) AssocNone
+              , Infix (reservedOp "<=" $> Binary (Comp Le )) AssocNone
+              , Infix (reservedOp ">"  $> Binary (Comp Gt )) AssocNone
+              , Infix (reservedOp ">=" $> Binary (Comp Ge )) AssocNone
               ]
-            , [ Infix (reservedOp "&&" $> Binary And) AssocRight ]
-            , [ Infix (reservedOp "||" $> Binary Or ) AssocRight ]
+            , [ Infix (reservedOp "&&" $> Binary (Logic And)) AssocRight ]
+            , [ Infix (reservedOp "||" $> Binary (Logic Or )) AssocRight ]
             ]
 
 lexpr :: SParser Expr -> SParser Expr
@@ -62,13 +61,13 @@ lambdaAbstraction :: SParser Expr
 lambdaAbstraction = do
   reservedOp "\\"
   reservedOp "("
-  name <- identifier
+  x <- identifier
   reservedOp ":"
   t <- ty
   reservedOp ")"
   reservedOp "->"
   e <- expr
-  pure $ Abs name t e
+  pure $ Abs x t e
 
 fexpr :: SParser Expr -> SParser Expr
 fexpr e = some (aexpr e) <#> foldl1 App
