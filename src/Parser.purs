@@ -50,24 +50,33 @@ operators = [ [ Prefix (reservedOp "-" $> Unary Neg)
               ]
             , [ Infix (reservedOp "&&" $> Binary (Logic And)) AssocRight ]
             , [ Infix (reservedOp "||" $> Binary (Logic Or )) AssocRight ]
+            , [ Infix (reservedOp ",," $> Merge) AssocLeft ]
             ]
 
 lexpr :: SParser Expr -> SParser Expr
-lexpr e = choice [ fexpr e
-                 , lambdaAbstraction
-                 ]
+lexpr e = choice [fexpr e, lambdaAbs, fixedPoint]
 
-lambdaAbstraction :: SParser Expr
-lambdaAbstraction = do
+lambdaAbs :: SParser Expr
+lambdaAbs = do
   reservedOp "\\"
-  reservedOp "("
   x <- identifier
-  reservedOp ":"
-  t <- ty
-  reservedOp ")"
   reservedOp "->"
   e <- expr
-  pure $ Abs x t e
+  case e of
+    Anno e' t -> case t of
+      Arr targ tret -> pure $ Abs x e' targ tret
+      _ -> unsafeCrashWith "Zord.Parser.lambdaAbs: expected an arrow type in the annotation"
+    _ -> unsafeCrashWith "Zord.Parser.lambdaAbs: must be annotated with a function type"
+
+fixedPoint :: SParser Expr
+fixedPoint = do
+  reserved "fix"
+  x <- identifier
+  reservedOp "->"
+  e <- expr
+  case e of
+    Anno e' t -> pure $ Fix x e' t
+    _ -> unsafeCrashWith "Zord.Parser.fixedPoint: must be annotated with a type"
 
 fexpr :: SParser Expr -> SParser Expr
 fexpr e = some (aexpr e) <#> foldl1 App
@@ -92,7 +101,9 @@ ty :: SParser Ty
 ty = fix \t -> buildExprParser toperators $ aty t
 
 toperators :: OperatorTable Identity String Ty
-toperators = [[ Infix (reservedOp "->" $> Arr) AssocRight ]]
+toperators = [ [ Infix (reservedOp "&" $> Intersect) AssocLeft ]
+             , [ Infix (reservedOp "->" $> Arr) AssocRight ]
+             ]
 
 aty :: SParser Ty -> SParser Ty
 aty t = choice [ reserved "Int"    $> Integer

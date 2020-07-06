@@ -18,6 +18,7 @@ data Ty = Integer
         | Top
         | Bot
         | Arr Ty Ty
+        | Intersect Ty Ty
 
 instance showTy :: Show Ty where
   show Integer = "Int"
@@ -27,6 +28,7 @@ instance showTy :: Show Ty where
   show Top     = "Top"
   show Bot     = "Bot"
   show (Arr t1 t2) = parens $ show t1 <+> "->" <+> show t2
+  show (Intersect t1 t2) = show t1 <+> "&" <+> show t2
 
 derive instance eqTy :: Eq Ty
 
@@ -40,9 +42,11 @@ data Expr = IntLit Int
           | Unary UnOp Expr
           | Binary BinOp Expr Expr
           | Var Name
-          | Abs Name Ty Expr
           | App Expr Expr
+          | Abs Name Expr Ty Ty
+          | Fix Name Expr Ty
           | Anno Expr Ty
+          | Merge Expr Expr
 
 instance showExpr :: Show Expr where
   show (IntLit i)    = show i
@@ -53,9 +57,12 @@ instance showExpr :: Show Expr where
   show (Unary op e)  = show op <> show e
   show (Binary op e1 e2) = parens $ show e1 <+> show op <+> show e2
   show (Var x) = x
-  show (Abs x t e) = parens $ "λ" <> x <+> ":" <+> show t <> ". " <> show e
   show (App e1 e2) = parens $ show e1 <+> show e2
+  show (Abs x e targ tret) = parens $
+    "λ" <> x <> ". " <> show e <+> ":" <+> show targ <+> "->" <+> show tret
+  show (Fix x e t) = parens $ "μ" <> x <> ". " <> show e <+> ":" <+> show t
   show (Anno e t)  = parens $ show e <+> ":" <+> show t
+  show (Merge e1 e2) = parens $ show e1 <+> ",," <+> show e2
 
 -- Operators --
 
