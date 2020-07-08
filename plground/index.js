@@ -1,25 +1,12 @@
 import 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import { EditorView } from '@codemirror/next/view';
-import { EditorState, languageData } from '@codemirror/next/state';
-import { keymap } from '@codemirror/next/keymap';
-import { standardKeymap } from '@codemirror/next/commands';
-import { lineNumbers } from '@codemirror/next/gutter';
-import { foldGutter } from '@codemirror/next/fold';
-import { bracketMatching } from '@codemirror/next/matchbrackets';
-import { closeBrackets } from '@codemirror/next/closebrackets';
-import { defaultHighlighter, styleTags } from '@codemirror/next/highlight';
+import { EditorState, EditorView, basicSetup } from '@codemirror/next/basic-setup';
+import { styleTags } from '@codemirror/next/highlight';
 import { LezerSyntax, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/next/syntax';
 import { parser } from './zord';
 
 const zordSyntax = new LezerSyntax(parser.withProps(
-  languageData.add({
-    Program: {
-      closeBrackets: { brackets: ['{', '(', '[', '<', '"'] },
-      commentTokens: { line: "--", block: { open: "{-", close: "-}" } },
-    }
-  }),
   indentNodeProp.add({
     RecordType: continuedIndent(),
     Record: continuedIndent(),
@@ -56,21 +43,20 @@ const zordSyntax = new LezerSyntax(parser.withProps(
     '.': 'derefOperator',
     ', ;': 'separator',
   })
-));
+), {
+  languageData: {
+    closeBrackets: { brackets: ['{', '(', '[', '<', '"'] },
+    commentTokens: { line: "--", block: { open: "{-", close: "-}" } },
+  }
+});
 
 const state = EditorState.create({
   extensions: [
-    keymap(standardKeymap),
-    lineNumbers(),
-    foldGutter(),
-    bracketMatching(),
-    closeBrackets,
-    defaultHighlighter,
+    basicSetup,
     zordSyntax.extension,
   ],
 });
-const view = new EditorView({ state });
-document.getElementById('editor').appendChild(view.dom);
+const view = new EditorView({ state, parent: document.getElementById('editor') });
 
 document.getElementById('run').onclick = () => {
   document.getElementById('output').append('Run button clicked. ');

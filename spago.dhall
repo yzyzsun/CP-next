@@ -1,9 +1,7 @@
 { name = "zord"
 , dependencies =
-  [ "assert"
-  , "console"
+  [ "console"
   , "debug"
-  , "effect"
   , "parsing"
   , "psci-support"
   ]
