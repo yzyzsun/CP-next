@@ -5,7 +5,8 @@ import Prelude
 import Data.List (List)
 import Data.Tuple (Tuple)
 
-type Name = String
+type Name   = String
+type Label  = String
 
 type Ctx = List (Tuple Name Ty)
 
@@ -19,6 +20,7 @@ data Ty = Integer
         | Bot
         | Arr Ty Ty
         | Intersect Ty Ty
+        | Rec Label Ty
 
 instance showTy :: Show Ty where
   show Integer = "Int"
@@ -29,6 +31,7 @@ instance showTy :: Show Ty where
   show Bot     = "Bot"
   show (Arr t1 t2) = parens $ show t1 <+> "->" <+> show t2
   show (Intersect t1 t2) = show t1 <+> "&" <+> show t2
+  show (Rec l t) = "{" <+> l <+> ":" <+> show t <+> "}"
 
 derive instance eqTy :: Eq Ty
 
@@ -47,6 +50,8 @@ data Expr = IntLit Int
           | Fix Name Expr Ty
           | Anno Expr Ty
           | Merge Expr Expr
+          | RecLit Label Expr
+          | RecPrj Expr Label
 
 instance showExpr :: Show Expr where
   show (IntLit i)    = show i
@@ -63,6 +68,8 @@ instance showExpr :: Show Expr where
   show (Fix x e t) = parens $ "μ" <> x <> ". " <> show e <+> ":" <+> show t
   show (Anno e t)  = parens $ show e <+> ":" <+> show t
   show (Merge e1 e2) = parens $ show e1 <+> ",," <+> show e2
+  show (RecLit l e) = "{" <+> l <+> "=" <+> show e <+> "}"
+  show (RecPrj e l) = show e <> "." <> l
 
 -- Operators --
 

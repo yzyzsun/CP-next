@@ -12,6 +12,7 @@ import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators (choice)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
+import Text.Parsing.Parser.String (char)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef)
 import Zord.Syntax (ArithOp(..), BinOp(..), CompOp(..), Expr(..), LogicOp(..), Ty(..), UnOp(..))
 
@@ -25,10 +26,63 @@ foldl1 f (Cons x xs) = foldl f x xs
 
 expr :: SParser Expr
 expr = fix $ \e -> opexpr e
-  >>= \e' -> Anno e' <$ reservedOp ":" <*> ty <|> pure e'
+  >>= \e' -> Anno e' <$ colon <*> ty <|> pure e'
 
 opexpr :: SParser Expr -> SParser Expr
 opexpr e = buildExprParser operators $ lexpr e
+
+lexpr :: SParser Expr -> SParser Expr
+lexpr e = fexpr e <|> lambdaAbs <|> fixedPoint
+
+fexpr :: SParser Expr -> SParser Expr
+fexpr e = some (dotexpr e) <#> foldl1 App
+
+dotexpr :: SParser Expr -> SParser Expr
+dotexpr e = aexpr e >>= \e' -> RecPrj e' <$ char '.' <*> identifier <|> pure e'
+
+aexpr :: SParser Expr -> SParser Expr
+aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
+                 , stringLiteral <#> StrLit
+                 , reserved "true" $> BoolLit true
+                 , reserved "false" $> BoolLit false
+                 , reservedOp "()" $> UnitLit
+                 , identifier <#> Var
+                 , recordLit
+                 , parens e
+                 ]
+
+lambdaAbs :: SParser Expr
+lambdaAbs = do
+  reservedOp "\\"
+  x <- identifier
+  reservedOp "->"
+  e <- expr
+  case e of
+    Anno e' t -> case t of
+      Arr targ tret -> pure $ Abs x e' targ tret
+      _ -> unsafeCrashWith "Zord.Parser.lambdaAbs: expected an arrow type in the annotation"
+    _ -> unsafeCrashWith "Zord.Parser.lambdaAbs: must be annotated with a function type"
+
+fixedPoint :: SParser Expr
+fixedPoint = do
+  reserved "fix"
+  x <- identifier
+  reservedOp "->"
+  e <- expr
+  case e of
+    Anno e' t -> pure $ Fix x e' t
+    _ -> unsafeCrashWith "Zord.Parser.fixedPoint: must be annotated with a type"
+
+recordLit :: SParser Expr
+recordLit = braces do
+  l <- identifier
+  reservedOp "="
+  e <- expr
+  pure $ RecLit l e
+
+fromIntOrNumber :: Either Int Number -> Expr
+fromIntOrNumber (Left int) = IntLit int
+fromIntOrNumber (Right number) = DoubleLit number
 
 operators :: OperatorTable Identity String Expr
 operators = [ [ Prefix (reservedOp "-" $> Unary Neg)
@@ -53,57 +107,10 @@ operators = [ [ Prefix (reservedOp "-" $> Unary Neg)
             , [ Infix (reservedOp ",," $> Merge) AssocLeft ]
             ]
 
-lexpr :: SParser Expr -> SParser Expr
-lexpr e = choice [fexpr e, lambdaAbs, fixedPoint]
-
-lambdaAbs :: SParser Expr
-lambdaAbs = do
-  reservedOp "\\"
-  x <- identifier
-  reservedOp "->"
-  e <- expr
-  case e of
-    Anno e' t -> case t of
-      Arr targ tret -> pure $ Abs x e' targ tret
-      _ -> unsafeCrashWith "Zord.Parser.lambdaAbs: expected an arrow type in the annotation"
-    _ -> unsafeCrashWith "Zord.Parser.lambdaAbs: must be annotated with a function type"
-
-fixedPoint :: SParser Expr
-fixedPoint = do
-  reserved "fix"
-  x <- identifier
-  reservedOp "->"
-  e <- expr
-  case e of
-    Anno e' t -> pure $ Fix x e' t
-    _ -> unsafeCrashWith "Zord.Parser.fixedPoint: must be annotated with a type"
-
-fexpr :: SParser Expr -> SParser Expr
-fexpr e = some (aexpr e) <#> foldl1 App
-
-aexpr :: SParser Expr -> SParser Expr
-aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
-                 , stringLiteral <#> StrLit
-                 , reserved "true" $> BoolLit true
-                 , reserved "false" $> BoolLit false
-                 , reservedOp "()" $> UnitLit
-                 , identifier <#> Var
-                 , parens e
-                 ]
-
-fromIntOrNumber :: Either Int Number -> Expr
-fromIntOrNumber (Left int) = IntLit int
-fromIntOrNumber (Right number) = DoubleLit number
-
 -- Types --
 
 ty :: SParser Ty
 ty = fix \t -> buildExprParser toperators $ aty t
-
-toperators :: OperatorTable Identity String Ty
-toperators = [ [ Infix (reservedOp "&" $> Intersect) AssocLeft ]
-             , [ Infix (reservedOp "->" $> Arr) AssocRight ]
-             ]
 
 aty :: SParser Ty -> SParser Ty
 aty t = choice [ reserved "Int"    $> Integer
@@ -112,8 +119,21 @@ aty t = choice [ reserved "Int"    $> Integer
                , reserved "Bool"   $> Bool
                , reserved "Top"    $> Top
                , reserved "Bot"    $> Bot
+               , recordTy
                , parens t
                ]
+
+recordTy :: SParser Ty
+recordTy = braces do
+  l <- identifier
+  _ <- colon
+  t <- ty
+  pure $ Rec l t
+
+toperators :: OperatorTable Identity String Ty
+toperators = [ [ Infix (reservedOp "&" $> Intersect) AssocLeft ]
+             , [ Infix (reservedOp "->" $> Arr) AssocRight ]
+             ]
 
 -- Lexer --
 
