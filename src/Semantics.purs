@@ -9,6 +9,7 @@ import Math ((%))
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax (ArithOp(..), BinOp(..), CompOp(..), Expr(..), LogicOp(..), Name, Ty(..), UnOp(..))
+import Zord.TypeCheck (tsubst)
 
 eval :: Expr -> Expr
 eval e | isValue e = e
@@ -31,6 +32,8 @@ step (Merge e1 e2) | isValue e1 = Merge e1 (step e2)
 step (RecLit l e) = RecLit l (step e)
 step (RecPrj e l) | isValue e = paraApp e (RecLit l UnitLit)
                   | otherwise = RecPrj (step e) l
+step (TyApp (TyAbs a _ e t) ta) = Anno (subst' a ta e) (tsubst a ta t)
+step (TyApp e ta) = TyApp (step e) ta
 step e = unsafeCrashWith $
   "Zord.Semantics.step: well-typed programs don't get stuck, but got " <> show e
 
@@ -70,6 +73,7 @@ isValue (UnitLit)     = true
 isValue (Abs _ _ _ _) = true
 isValue (Merge e1 e2) = isValue e1 && isValue e2
 isValue (RecLit _ e)  = isValue e
+isValue (TyAbs _ _ _ _) = true
 isValue _ = false
 
 subst :: Name -> Expr -> Expr -> Expr
@@ -84,7 +88,18 @@ subst x v (Anno e t) = Anno (subst x v e) t
 subst x v (Merge e1 e2) = Merge (subst x v e1) (subst x v e2)
 subst x v (RecLit l e) = RecLit l (subst x v e)
 subst x v (RecPrj e l) = RecPrj (subst x v e) l
+subst x v (TyApp e t) = TyApp (subst x v e) t
+subst x v (TyAbs a td e t) = TyAbs a td (subst x v e) t
 subst _ _ e = e
+
+subst' :: Name -> Ty -> Expr -> Expr
+subst' a s (Abs x e targ tret) = Abs x e (tsubst a s targ) (tsubst a s tret)
+subst' a s (Fix x e t) = Fix x e (tsubst a s t)
+subst' a s (Anno e t) = Anno e (tsubst a s t)
+subst' a s (TyApp e t) = TyApp e (tsubst a s t)
+subst' a s (TyAbs a' td e t) =
+  TyAbs a' (tsubst a s td) e (if a == a' then t else tsubst a s t)
+subst' _ _ e = e
 
 unop :: UnOp -> Expr -> Expr
 unop Neg (IntLit i)    = IntLit    (negate i)

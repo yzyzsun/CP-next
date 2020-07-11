@@ -5,10 +5,15 @@ import Prelude
 import Data.List (List)
 import Data.Tuple (Tuple)
 
-type Name   = String
-type Label  = String
+type Name  = String
+type Label = String
 
-type Ctx = List (Tuple Name Ty)
+-- Context --
+
+type Ctx = List (Tuple Name CtxEntry)
+
+data CtxEntry = TermEntry Ty  -- typing
+              | TypeEntry Ty  -- disjointness
 
 -- Types --
 
@@ -21,6 +26,8 @@ data Ty = Integer
         | Arr Ty Ty
         | Intersect Ty Ty
         | Rec Label Ty
+        | TyVar Name
+        | Forall Name Ty Ty
 
 instance showTy :: Show Ty where
   show Integer = "Int"
@@ -32,6 +39,9 @@ instance showTy :: Show Ty where
   show (Arr t1 t2) = parens $ show t1 <+> "->" <+> show t2
   show (Intersect t1 t2) = show t1 <+> "&" <+> show t2
   show (Rec l t) = "{" <+> l <+> ":" <+> show t <+> "}"
+  show (TyVar a) = a
+  show (Forall a td t) = parens $
+    "∀" <> a <+> "*" <+> show td <> "." <+> show t
 
 derive instance eqTy :: Eq Ty
 
@@ -52,6 +62,8 @@ data Expr = IntLit Int
           | Merge Expr Expr
           | RecLit Label Expr
           | RecPrj Expr Label
+          | TyApp Expr Ty
+          | TyAbs Name Ty Expr Ty
 
 instance showExpr :: Show Expr where
   show (IntLit i)    = show i
@@ -64,12 +76,15 @@ instance showExpr :: Show Expr where
   show (Var x) = x
   show (App e1 e2) = parens $ show e1 <+> show e2
   show (Abs x e targ tret) = parens $
-    "λ" <> x <> ". " <> show e <+> ":" <+> show targ <+> "->" <+> show tret
-  show (Fix x e t) = parens $ "μ" <> x <> ". " <> show e <+> ":" <+> show t
+    "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "->" <+> show tret
+  show (Fix x e t) = parens $ "μ" <> x <> "." <+> show e <+> ":" <+> show t
   show (Anno e t)  = parens $ show e <+> ":" <+> show t
   show (Merge e1 e2) = parens $ show e1 <+> ",," <+> show e2
   show (RecLit l e) = "{" <+> l <+> "=" <+> show e <+> "}"
   show (RecPrj e l) = show e <> "." <> l
+  show (TyApp e t) = parens $ show e <+> "@" <> show t
+  show (TyAbs a td e t) = parens $
+    "Λ" <> a <+> "*" <+> show td <> "." <+> show e <+> ":" <+> show t
 
 -- Operators --
 

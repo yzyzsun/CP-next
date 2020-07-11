@@ -6,7 +6,7 @@ import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
-import Data.List (List(..), foldl, some)
+import Data.List (List(..), foldl, many)
 import Partial.Unsafe (unsafeCrashWith)
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators (choice)
@@ -32,10 +32,11 @@ opexpr :: SParser Expr -> SParser Expr
 opexpr e = buildExprParser operators $ lexpr e
 
 lexpr :: SParser Expr -> SParser Expr
-lexpr e = fexpr e <|> lambdaAbs <|> fixedPoint
+lexpr e = fexpr e <|> lambdaAbs <|> fixedPoint <|> tyLambdaAbs
 
 fexpr :: SParser Expr -> SParser Expr
-fexpr e = some (dotexpr e) <#> foldl1 App
+fexpr e = dotexpr e >>= \e' -> foldl (#) e' <$>
+  many (flip TyApp <$ char '@' <*> aty ty <|> flip App <$> dotexpr e)
 
 dotexpr :: SParser Expr -> SParser Expr
 dotexpr e = aexpr e >>= \e' -> RecPrj e' <$ char '.' <*> identifier <|> pure e'
@@ -45,7 +46,7 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
                  , stringLiteral <#> StrLit
                  , reserved "true" $> BoolLit true
                  , reserved "false" $> BoolLit false
-                 , reservedOp "()" $> UnitLit
+                 , symbol "()" $> UnitLit
                  , identifier <#> Var
                  , recordLit
                  , parens e
@@ -72,6 +73,18 @@ fixedPoint = do
   case e of
     Anno e' t -> pure $ Fix x e' t
     _ -> unsafeCrashWith "Zord.Parser.fixedPoint: must be annotated with a type"
+
+tyLambdaAbs :: SParser Expr
+tyLambdaAbs = do
+  reservedOp "/\\"
+  a <- identifier
+  reservedOp "*"
+  td <- ty
+  _ <- dot
+  e <- expr
+  case e of
+    Anno e' t -> pure $ TyAbs a td e' t
+    _ -> unsafeCrashWith "Zord.Parser.tyLambdaAbs: must be annotated with a type"
 
 recordLit :: SParser Expr
 recordLit = braces do
@@ -110,7 +123,10 @@ operators = [ [ Prefix (reservedOp "-" $> Unary Neg)
 -- Types --
 
 ty :: SParser Ty
-ty = fix \t -> buildExprParser toperators $ aty t
+ty = fix \t -> buildExprParser toperators $ bty t
+
+bty :: SParser Ty -> SParser Ty
+bty t = aty t <|> forallTy
 
 aty :: SParser Ty -> SParser Ty
 aty t = choice [ reserved "Int"    $> Integer
@@ -119,9 +135,20 @@ aty t = choice [ reserved "Int"    $> Integer
                , reserved "Bool"   $> Bool
                , reserved "Top"    $> Top
                , reserved "Bot"    $> Bot
+               , identifier <#> TyVar
                , recordTy
                , parens t
                ]
+
+forallTy :: SParser Ty
+forallTy = do
+  reserved "forall"
+  a <- identifier
+  reservedOp "*"
+  td <- ty
+  _ <- dot
+  t <- ty
+  pure $ Forall a td t
 
 recordTy :: SParser Ty
 recordTy = braces do
@@ -160,6 +187,9 @@ stringLiteral = zord.stringLiteral
 
 naturalOrFloat :: SParser (Either Int Number)
 naturalOrFloat = zord.naturalOrFloat
+
+symbol :: String -> SParser String
+symbol = zord.symbol
 
 parens :: forall a. SParser a -> SParser a
 parens = zord.parens
