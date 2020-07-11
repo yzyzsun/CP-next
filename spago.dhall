@@ -1,7 +1,10 @@
 { name = "zord"
 , dependencies =
-  [ "console"
+  [ "ansi"
+  , "console"
   , "debug"
+  , "node-fs"
+  , "node-readline"
   , "parsing"
   , "psci-support"
   ]

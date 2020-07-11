@@ -6,6 +6,8 @@ import { styleTags } from '@codemirror/next/highlight';
 import { LezerSyntax, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/next/syntax';
 import { parser } from './zord';
 
+import Zord from '../src/Zord.purs';
+
 const zordSyntax = new LezerSyntax(parser.withProps(
   indentNodeProp.add({
     RecordType: continuedIndent(),
@@ -59,5 +61,12 @@ const state = EditorState.create({
 const view = new EditorView({ state, parent: document.getElementById('editor') });
 
 document.getElementById('run').onclick = () => {
-  document.getElementById('output').append('Run button clicked. ');
+  const output = document.getElementById('output');
+  const error = document.getElementById('error');
+  output.textContent = error.textContent = '';
+  try {
+    output.textContent = Zord.interpret(view.state.doc.toString())();
+  } catch (err) {
+    error.textContent = err;
+  }
 };
