@@ -30,7 +30,7 @@ module.exports = {
     ],
   },
   plugins: [
-    new HtmlWebpackPlugin({ template: './plground/index.html' }),
+    new HtmlWebpackPlugin({ template: './plground/index.html', inject: 'head' }),
   ],
   devtool: 'inline-source-map',
   output: {
