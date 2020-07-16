@@ -83,6 +83,4 @@ document.addEventListener("DOMContentLoaded", () => {
     ],
   });
   const view = new EditorView({ state, parent: document.getElementById('editor') });
-
-  document.getElementById('run').onclick = UIInterpret;
 });
