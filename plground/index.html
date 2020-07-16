@@ -1,12 +1,19 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>PL Ground</title>
   <style>
-    #editor { font-size: large; }
-    #error { color: red; }
+    #editor {
+      font-size: large;
+    }
+
+    #error {
+      color: red;
+    }
   </style>
 </head>
+
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <a class="navbar-brand" href="#">PL Ground</a>
@@ -16,11 +23,14 @@
       </li>
     </ul>
   </nav>
-  <div id="editor"></div>
-  <div class="mt-1 ml-1">
-    <button type="button" class="btn btn-primary" id="run">Run</button>
+  <div class="container">
+    <div id="editor"></div>
+    <div class="m-2">
+      <button type="button" class="btn btn-primary" id="run">Run</button>
+    </div>
+    <div class="m-4" id="output"></div>
+    <div class="m-4" id="error"></div>
   </div>
-  <div class="mt-4 ml-4" id="output"></div>
-  <div class="mt-4 ml-4" id="error"></div>
 </body>
+
 </html>

@@ -2,9 +2,11 @@ import 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import { EditorState, EditorView, basicSetup } from '@codemirror/next/basic-setup';
+import { ViewPlugin } from "@codemirror/next/view";
 import { styleTags } from '@codemirror/next/highlight';
 import { LezerSyntax, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/next/syntax';
 import { parser } from './zord';
+import { keymap } from "@codemirror/next/view";
 
 import Zord from '../src/Zord.purs';
 
@@ -14,8 +16,8 @@ const zordSyntax = new LezerSyntax(parser.withProps(
     Record: continuedIndent(),
   }),
   foldNodeProp.add({
-    RecordType(tree) { return {from: tree.start + 1, to: tree.end - 1} },
-    Record(tree) { return {from: tree.start + 1, to: tree.end - 1} },
+    RecordType(tree) { return { from: tree.start + 1, to: tree.end - 1 } },
+    Record(tree) { return { from: tree.start + 1, to: tree.end - 1 } },
   }),
   styleTags({
     'type extends def let letrec trait implements inherits': 'keyword definition',
@@ -37,7 +39,7 @@ const zordSyntax = new LezerSyntax(parser.withProps(
     LogicOp: 'logicOperator',
     CompareOp: 'compareOperator',
     MergeOp: 'operator',
-    TraitArrow : 'punctuation definition',
+    TraitArrow: 'punctuation definition',
     '( )': 'paren',
     '{ }': 'brace',
     '[ ]': 'squareBracket',
@@ -52,21 +54,35 @@ const zordSyntax = new LezerSyntax(parser.withProps(
   }
 });
 
-const state = EditorState.create({
-  extensions: [
-    basicSetup,
-    zordSyntax.extension,
-  ],
-});
-const view = new EditorView({ state, parent: document.getElementById('editor') });
-
-document.getElementById('run').onclick = () => {
+document.addEventListener("DOMContentLoaded", () => {
   const output = document.getElementById('output');
   const error = document.getElementById('error');
-  output.textContent = error.textContent = '';
-  try {
-    output.textContent = Zord.interpret(view.state.doc.toString())();
-  } catch (err) {
-    error.textContent = err;
-  }
-};
+
+  var UIInterpret = (state) => {
+    state = state || view.state;
+    output.textContent = error.textContent = '';
+    try {
+      output.textContent = Zord.interpret(state.doc.toString())();
+    } catch (err) {
+      error.textContent = err;
+    }
+  };
+
+  const state = EditorState.create({
+    extensions: [
+      basicSetup,
+      zordSyntax.extension,
+      keymap([{ key: "Ctrl-Enter", run() { UIInterpret(); } }]),
+      ViewPlugin.fromClass(class {
+        update(update) {
+          if (update.docChanged) {
+            UIInterpret(update.state);
+          }
+        }
+      }),
+    ],
+  });
+  const view = new EditorView({ state, parent: document.getElementById('editor') });
+
+  document.getElementById('run').onclick = UIInterpret;
+});
