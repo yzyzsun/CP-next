@@ -32,7 +32,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({ template: './plground/index.html', inject: 'head' }),
   ],
-  devtool: 'inline-source-map',
+  devtool: 'source-map',
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist'),
