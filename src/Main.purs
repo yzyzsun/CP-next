@@ -20,7 +20,7 @@ main = do
   setPrompt ":load " 6 interface
   prompt interface
   setLineHandler interface \f -> do
-    result <- try (readTextFile UTF8 f >>= interpret)
+    result <- try (readTextFile UTF8 f >>= interpret false)
     case result of
       Right output -> log output
       Left err -> error $ withGraphics (foreground Red) (message err)

@@ -15,6 +15,10 @@ eval :: Expr -> Expr
 eval e | isValue e = e
        | otherwise = eval $ step e
 
+tracedEval :: Expr -> String
+tracedEval e | isValue e = show e
+             | otherwise = show e <> "\n↓\n" <> tracedEval (step e)
+
 step :: Expr -> Expr
 step (Unary op e) | isValue e = unop op e
                   | otherwise = Unary op (step e)
@@ -28,7 +32,8 @@ step (Fix x e t) = Anno (subst x (Fix x e t) e) t
 step (Anno e t) | isValue e = unsafePartial (fromJust (typedReduce e t))
                 | otherwise = Anno (step e) t
 step (Merge e1 e2) | isValue e1 = Merge e1 (step e2)
-                   | otherwise  = Merge (step e1) e2
+                   | isValue e2 = Merge (step e1) e2
+                   | otherwise  = Merge (step e1) (step e2)
 step (RecLit l e) = RecLit l (step e)
 step (RecPrj e l) | isValue e = paraApp e (RecLit l UnitLit)
                   | otherwise = RecPrj (step e) l
