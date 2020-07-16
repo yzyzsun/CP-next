@@ -5,6 +5,7 @@ const isWebpackDevServer = process.argv.some(a => path.basename(a) === 'webpack-
 const isWatch = process.argv.some(a => a === '--watch');
 
 module.exports = {
+  mode: 'development',
   entry: './plground/index.js',
   module: {
     rules: [
