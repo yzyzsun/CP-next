@@ -7,7 +7,7 @@ import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), lookup)
 import Zord.Subtyping (isTopLike, (<:))
-import Zord.Syntax (BinOp(..), Ctx, CtxEntry(..), Expr(..), Name, Ty(..), UnOp(..))
+import Zord.Syntax (BinOp(..), Binding(..), Ctx, Expr(..), Name, Ty(..), UnOp(..))
 
 data TypeError = TypeError String
 
@@ -35,7 +35,7 @@ typeOf ctx (Binary (Arith _) e1 e2) = do
   case t1, t2 of Integer, Integer -> Right Integer
                  Double,  Double  -> Right Double
                  _,       _       -> Left <<< TypeError $ "\
-    \Arith is not defined between " <> show t1 <> " and " <> show t2
+    \ArithOp is not defined between " <> show t1 <> " and " <> show t2
 typeOf ctx (Binary (Comp _) e1 e2) = do
   t1 <- typeOf ctx e1
   t2 <- typeOf ctx e2
@@ -44,15 +44,15 @@ typeOf ctx (Binary (Comp _) e1 e2) = do
                  Str,     Str     -> Right Bool
                  Bool,    Bool    -> Right Bool
                  _,       _       -> Left <<< TypeError $ "\
-    \Comp is not defined between " <> show t1 <> " and " <> show t2
+    \CompOp is not defined between " <> show t1 <> " and " <> show t2
 typeOf ctx (Binary (Logic _) e1 e2) = do
   t1 <- typeOf ctx e1
   t2 <- typeOf ctx e2
   case t1, t2 of Bool, Bool -> Right Bool
                  _,    _    -> Left <<< TypeError $ "\
-    \Logic is not defined between " <> show t1 <> " and " <> show t2
+    \LogicOp is not defined between " <> show t1 <> " and " <> show t2
 typeOf ctx (Var x) = case lookup x ctx of
-  Just (TermEntry t) -> Right t
+  Just (TermBinding t) -> Right t
   _ -> Left <<< TypeError $ "Variable " <> show x <> " is not defined"
 typeOf ctx (App e1 e2) = do
   t1 <- typeOf ctx e1
@@ -61,11 +61,11 @@ typeOf ctx (App e1 e2) = do
 typeOf ctx (Abs x e targ tret) = typeOf ctx' e >>= \tret' ->
   if tret' <: tret then Right $ Arr targ tret else Left <<< TypeError $
     "The return type " <> show tret <> " is not a supertype of " <> show tret'
-  where ctx' = Tuple x (TermEntry targ) : ctx
+  where ctx' = Tuple x (TermBinding targ) : ctx
 typeOf ctx (Fix x e t) = typeOf ctx' e >>= \t' ->
   if t' <: t then Right t else Left <<< TypeError $
     "Fixpoint is annotated as " <> show t <> ", but got " <> show t'
-  where ctx' = Tuple x (TermEntry t) : ctx
+  where ctx' = Tuple x (TermBinding t) : ctx
 typeOf ctx (Anno e t) = typeOf ctx e >>= \t' ->
   if t' <: t then Right t else Left <<< TypeError $
     "The annotated type " <> show t <> " is not a supertype of " <> show t'
@@ -80,7 +80,29 @@ typeOf ctx (TyApp e ta) = typeOf ctx e >>= \tf -> appSS ctx tf ta
 typeOf ctx (TyAbs a td e t) = typeOf ctx' e >>= \t' ->
   if t' <: t then Right $ Forall a td t else Left <<< TypeError $
     "The return type " <> show t <> " is not a supertype of " <> show t'
-  where ctx' = Tuple a (TypeEntry td) : ctx
+  where ctx' = Tuple a (TypeBinding td) : ctx
+typeOf ctx (If e1 e2 e3) = do
+  t1 <- typeOf ctx e1
+  if t1 == Bool then do
+    t2 <- typeOf ctx e2
+    t3 <- typeOf ctx e3
+    if t2 == t3 then Right t2 else Left <<< TypeError $
+      "If branches expected the same type, but got " <>
+      show t2 <> " and " <> show t3
+  else Left <<< TypeError $
+    "If condition expected Bool, but got " <> show t1
+typeOf ctx (Let x e1 e2) = typeOf ctx e1 >>= \t1 ->
+  typeOf (Tuple x (TermBinding t1) : ctx) e2
+typeOf ctx (Open e1 e2) = do
+  t1 <- typeOf ctx e1
+  ctx' <- open t1
+  typeOf (ctx' <> ctx) e2
+  where open :: Ty -> Either TypeError Ctx
+        open (Rec l t) = Right $ Tuple l (TermBinding t) : Nil
+        open (Intersect t1 t2) = do ctx1 <- open t1
+                                    ctx2 <- open t2
+                                    Right $ ctx1 <> ctx2
+        open t = Left <<< TypeError $ show t <> " cannot be opened"
 
 appSS :: Ctx -> Ty -> Ty -> Either TypeError Ty
 appSS _ Top _ = Right Top
@@ -106,13 +128,13 @@ disjoint ctx t1 (Intersect t2 t3) = disjoint ctx (Intersect t2 t3) t1
 disjoint ctx (Rec l1 t1) (Rec l2 t2) | l1 == l2 = disjoint ctx t1 t2
                                      | otherwise = Right unit
 disjoint ctx (TyVar a) t = case lookup a ctx of
-  Just (TypeEntry t') -> if t' <: t then Right unit else Left <<< TypeError $
+  Just (TypeBinding t') -> if t' <: t then Right unit else Left <<< TypeError $
     "Type " <> show a <> " is not disjoint from " <> show t
   _ -> Left <<< TypeError $ "Type " <> show a <> " is not defined"
 disjoint ctx t (TyVar a) = disjoint ctx (TyVar a) t
 disjoint ctx (Forall a1 td1 t1) (Forall a2 td2 t2) =
   disjoint ctx' t1 (tsubst a2 (TyVar a1) t2)
-    where ctx' = Tuple a1 (TypeEntry (Intersect td1 td2)) : ctx
+    where ctx' = Tuple a1 (TypeBinding (Intersect td1 td2)) : ctx
 disjoint _ t1 t2 | t1 /= t2  = Right unit
                  | otherwise = Left <<< TypeError $
   show t1 <> " and " <> show t2 <> " are not disjoint"

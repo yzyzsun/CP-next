@@ -26,13 +26,14 @@ foldl1 f (Cons x xs) = foldl f x xs
 
 expr :: SParser Expr
 expr = fix $ \e -> opexpr e
-  >>= \e' -> Anno e' <$ colon <*> ty <|> pure e'
+  >>= \e' -> Anno e' <$ symbol ":" <*> ty <|> pure e'
 
 opexpr :: SParser Expr -> SParser Expr
 opexpr e = buildExprParser operators $ lexpr e
 
 lexpr :: SParser Expr -> SParser Expr
-lexpr e = fexpr e <|> lambdaAbs <|> fixedPoint <|> tyLambdaAbs
+lexpr e = fexpr e <|> lambdaAbs <|> fixedPoint <|> tyLambdaAbs <|>
+          ifThenElse <|> letIn <|> openIn
 
 fexpr :: SParser Expr -> SParser Expr
 fexpr e = dotexpr e >>= \e' -> foldl (#) e' <$>
@@ -54,9 +55,9 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
 
 lambdaAbs :: SParser Expr
 lambdaAbs = do
-  reservedOp "\\"
+  symbol "\\"
   x <- identifier
-  reservedOp "->"
+  symbol "->"
   e <- expr
   case e of
     Anno e' t -> case t of
@@ -68,7 +69,7 @@ fixedPoint :: SParser Expr
 fixedPoint = do
   reserved "fix"
   x <- identifier
-  reservedOp "->"
+  symbol "->"
   e <- expr
   case e of
     Anno e' t -> pure $ Fix x e' t
@@ -76,20 +77,48 @@ fixedPoint = do
 
 tyLambdaAbs :: SParser Expr
 tyLambdaAbs = do
-  reservedOp "/\\"
+  symbol "/\\"
   a <- identifier
-  reservedOp "*"
+  symbol "*"
   td <- ty
-  _ <- dot
+  symbol "."
   e <- expr
   case e of
     Anno e' t -> pure $ TyAbs a td e' t
     _ -> unsafeCrashWith "Zord.Parser.tyLambdaAbs: must be annotated with a type"
 
+ifThenElse :: SParser Expr
+ifThenElse = do
+  reserved "if"
+  e1 <- expr
+  reserved "then"
+  e2 <- expr
+  reserved "else"
+  e3 <- expr
+  pure $ If e1 e2 e3
+
+letIn :: SParser Expr
+letIn = do
+  reserved "let"
+  x <- identifier
+  symbol "="
+  e1 <- expr
+  reserved "in"
+  e2 <- expr
+  pure $ Let x e1 e2
+
+openIn :: SParser Expr
+openIn = do
+  reserved "open"
+  e1 <- expr
+  reserved "in"
+  e2 <- expr
+  pure $ Open e1 e2
+
 recordLit :: SParser Expr
 recordLit = braces do
   l <- identifier
-  reservedOp "="
+  symbol "="
   e <- expr
   pure $ RecLit l e
 
@@ -144,16 +173,16 @@ forallTy :: SParser Ty
 forallTy = do
   reserved "forall"
   a <- identifier
-  reservedOp "*"
+  symbol "*"
   td <- ty
-  _ <- dot
+  symbol "."
   t <- ty
   pure $ Forall a td t
 
 recordTy :: SParser Ty
 recordTy = braces do
   l <- identifier
-  _ <- colon
+  symbol ":"
   t <- ty
   pure $ Rec l t
 
@@ -165,10 +194,11 @@ toperators = [ [ Infix (reservedOp "&" $> Intersect) AssocLeft ]
 -- Lexer --
 
 zordDef :: LanguageDef
-zordDef = LanguageDef (unGenLanguageDef haskellStyle)
-            { reservedNames = []
-            , reservedOpNames = []
-            }
+zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
+  [ "true", "false", "fix", "if", "then", "else", "let", "open", "in"
+  , "forall", "Int", "Double", "String", "Bool", "Top", "Bot"
+  ]
+}
 
 zord :: TokenParser
 zord = makeTokenParser zordDef
@@ -179,6 +209,9 @@ identifier = zord.identifier
 reserved :: String -> SParser Unit
 reserved = zord.reserved
 
+operator :: SParser String
+operator = zord.operator
+
 reservedOp :: String -> SParser Unit
 reservedOp = zord.reservedOp
 
@@ -188,8 +221,8 @@ stringLiteral = zord.stringLiteral
 naturalOrFloat :: SParser (Either Int Number)
 naturalOrFloat = zord.naturalOrFloat
 
-symbol :: String -> SParser String
-symbol = zord.symbol
+symbol :: String -> SParser Unit
+symbol s = zord.symbol s $> unit
 
 parens :: forall a. SParser a -> SParser a
 parens = zord.parens
@@ -202,18 +235,6 @@ angles = zord.angles
 
 brackets :: forall a. SParser a -> SParser a
 brackets = zord.brackets
-
-semi :: SParser String
-semi = zord.semi
-
-comma :: SParser String
-comma = zord.comma
-
-colon :: SParser String
-colon = zord.colon
-
-dot :: SParser String
-dot = zord.dot
 
 semiSep :: forall a. SParser a -> SParser (List a)
 semiSep = zord.semiSep

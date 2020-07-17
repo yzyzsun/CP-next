@@ -10,10 +10,10 @@ type Label = String
 
 -- Context --
 
-type Ctx = List (Tuple Name CtxEntry)
+type Ctx = List (Tuple Name Binding)
 
-data CtxEntry = TermEntry Ty  -- typing
-              | TypeEntry Ty  -- disjointness
+data Binding = TermBinding Ty -- typing
+             | TypeBinding Ty -- disjointness
 
 -- Types --
 
@@ -64,6 +64,9 @@ data Expr = IntLit Int
           | RecPrj Expr Label
           | TyApp Expr Ty
           | TyAbs Name Ty Expr Ty
+          | If Expr Expr Expr
+          | Let Name Expr Expr
+          | Open Expr Expr
 
 instance showExpr :: Show Expr where
   show (IntLit i)    = show i
@@ -77,7 +80,7 @@ instance showExpr :: Show Expr where
   show (App e1 e2) = parens $ show e1 <+> show e2
   show (Abs x e targ tret) = parens $
     "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "->" <+> show tret
-  show (Fix x e t) = parens $ "μ" <> x <> "." <+> show e <+> ":" <+> show t
+  show (Fix x e t) = parens $ "fix" <+> x <> "." <+> show e <+> ":" <+> show t
   show (Anno e t)  = parens $ show e <+> ":" <+> show t
   show (Merge e1 e2) = parens $ show e1 <+> ",," <+> show e2
   show (RecLit l e) = "{" <+> l <+> "=" <+> show e <+> "}"
@@ -85,6 +88,11 @@ instance showExpr :: Show Expr where
   show (TyApp e t) = parens $ show e <+> "@" <> show t
   show (TyAbs a td e t) = parens $
     "Λ" <> a <+> "*" <+> show td <> "." <+> show e <+> ":" <+> show t
+  show (If e1 e2 e3) = parens $
+    "if" <+> show e1 <+> "then" <+> show e2 <+> "else" <+> show e3
+  show (Let x e1 e2) = parens $
+    "let" <+> x <+> "=" <+> show e1 <+> "in" <+> show e2
+  show (Open e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
 
 -- Operators --
 

@@ -37,8 +37,18 @@ step (Merge e1 e2) | isValue e1 = Merge e1 (step e2)
 step (RecLit l e) = RecLit l (step e)
 step (RecPrj e l) | isValue e = paraApp' e (Rec l Top)
                   | otherwise = RecPrj (step e) l
-step (TyApp e t) | isValue e = paraApp' e t
-                 | otherwise = TyApp (step e) t
+step (If (BoolLit true)  e2 e3) = e2
+step (If (BoolLit false) e2 e3) = e3
+step (If e1 e2 e3) = If (step e1) e2 e3
+step (Let x e1 e2) | isValue e1 = subst x e1 e2
+                   | otherwise  = Let x (step e1) e2
+step (Open e1 e2) | not (isValue e1) = Open (step e1) e2
+                  | otherwise = open e1 e2
+  where open :: Expr -> Expr -> Expr
+        open (RecLit l v) e  = subst l v e
+        open (Merge v1 v2) e = open v1 (open v2 e)
+        open v e = unsafeCrashWith $
+          "Zord.Semantics.step: impossible open " <> show v <> " in " <> show e
 step e = unsafeCrashWith $
   "Zord.Semantics.step: well-typed programs don't get stuck, but got " <> show e
 
@@ -101,6 +111,9 @@ subst x v (RecLit l e) = RecLit l (subst x v e)
 subst x v (RecPrj e l) = RecPrj (subst x v e) l
 subst x v (TyApp e t) = TyApp (subst x v e) t
 subst x v (TyAbs a td e t) = TyAbs a td (subst x v e) t
+subst x v (If e1 e2 e3) = If (subst x v e1) (subst x v e2) (subst x v e3)
+subst x v (Let x' e1 e2) = Let x' (subst x v e1) (subst x v e2)
+subst x v (Open e1 e2) = Open (subst x v e1) (subst x v e2)
 subst _ _ e = e
 
 subst' :: Name -> Ty -> Expr -> Expr
