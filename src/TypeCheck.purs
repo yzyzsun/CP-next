@@ -3,7 +3,7 @@ module Zord.TypeCheck where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.List ((:))
+import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), lookup)
 import Zord.Subtyping (isTopLike, (<:))
@@ -57,10 +57,7 @@ typeOf ctx (Var x) = case lookup x ctx of
 typeOf ctx (App e1 e2) = do
   t1 <- typeOf ctx e1
   t2 <- typeOf ctx e2
-  case appSS t1 t2 of
-    Just t  -> Right t
-    Nothing -> Left <<< TypeError $
-      show t1 <> " cannot be applied to " <> show t2
+  appSS Nil t1 t2
 typeOf ctx (Abs x e targ tret) = typeOf ctx' e >>= \tret' ->
   if tret' <: tret then Right $ Arr targ tret else Left <<< TypeError $
     "The return type " <> show tret <> " is not a supertype of " <> show tret'
@@ -78,25 +75,27 @@ typeOf ctx (Merge e1 e2) = do
   disjoint ctx t1 t2
   Right $ Intersect t1 t2
 typeOf ctx (RecLit l e) = Rec l <$> typeOf ctx e
-typeOf ctx (RecPrj e l) = typeOf ctx e >>= \t ->
-  case appSS t (Rec l Top) of
-    Just t' -> Right t'
-    Nothing -> Left <<< TypeError $ show t <> " has no label named " <> show l
-typeOf ctx (TyApp e ta) = typeOf ctx e >>= \tf -> case tf of
-  Forall a td t -> disjoint ctx ta td $> tsubst a ta t
-  _ -> Left <<< TypeError $ show tf <> " is not type-applicable"
+typeOf ctx (RecPrj e l) = typeOf ctx e >>= \t -> appSS Nil t (Rec l Top)
+typeOf ctx (TyApp e ta) = typeOf ctx e >>= \tf -> appSS ctx tf ta
 typeOf ctx (TyAbs a td e t) = typeOf ctx' e >>= \t' ->
   if t' <: t then Right $ Forall a td t else Left <<< TypeError $
     "The return type " <> show t <> " is not a supertype of " <> show t'
   where ctx' = Tuple a (TypeEntry td) : ctx
 
-appSS :: Ty -> Ty -> Maybe Ty
-appSS Top _ = Just Top
-appSS (Arr targ tret) t | t <: targ = Just tret
-appSS (Rec l t) (Rec l' _) | l == l' = Just t
-appSS (Intersect t1 t2) t | Just t1' <- appSS t1 t
-                          , Just t2' <- appSS t2 t = Just $ Intersect t1' t2'
-appSS _ _ = Nothing
+appSS :: Ctx -> Ty -> Ty -> Either TypeError Ty
+appSS _ Top _ = Right Top
+appSS _ f@(Arr targ tret) t | t <: targ = Right tret
+                            | otherwise = Left <<< TypeError $
+  show f <> " expected a subtype of its parameter type, but got " <> show t
+appSS _ r@(Rec l t) (Rec l' _) | l == l'   = Right t
+                               | otherwise = Left <<< TypeError $
+  show r <> " has no label named " <> show l'
+appSS ctx (Forall a td t) ta = disjoint ctx ta td $> tsubst a ta t
+appSS ctx (Intersect t1 t2) t = do
+  t1' <- appSS ctx t1 t
+  t2' <- appSS ctx t2 t
+  Right $ Intersect t1' t2'
+appSS _ t _ = Left <<< TypeError $ show t <> " is not applicable"
 
 disjoint :: Ctx -> Ty -> Ty -> Either TypeError Unit
 disjoint _ t _ | isTopLike t = Right unit

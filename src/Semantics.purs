@@ -35,10 +35,10 @@ step (Merge e1 e2) | isValue e1 = Merge e1 (step e2)
                    | isValue e2 = Merge (step e1) e2
                    | otherwise  = Merge (step e1) (step e2)
 step (RecLit l e) = RecLit l (step e)
-step (RecPrj e l) | isValue e = paraApp e (RecLit l UnitLit)
+step (RecPrj e l) | isValue e = paraApp' e (Rec l Top)
                   | otherwise = RecPrj (step e) l
-step (TyApp (TyAbs a _ e t) ta) = Anno (subst' a ta e) (tsubst a ta t)
-step (TyApp e ta) = TyApp (step e) ta
+step (TyApp e t) | isValue e = paraApp' e t
+                 | otherwise = TyApp (step e) t
 step e = unsafeCrashWith $
   "Zord.Semantics.step: well-typed programs don't get stuck, but got " <> show e
 
@@ -64,10 +64,16 @@ paraApp :: Expr -> Expr -> Expr
 paraApp UnitLit _ = UnitLit
 paraApp (Abs x e targ tret) v = Anno (subst x v' e) tret
   where v' = unsafePartial (fromJust (typedReduce v targ))
-paraApp (RecLit l v) (RecLit l' UnitLit) | l == l' = v
 paraApp (Merge v1 v2) v = Merge (paraApp v1 v) (paraApp v2 v)
 paraApp v1 v2 = unsafeCrashWith $
   "Zord.Semantics.paraApp: impossible application of " <> show v1 <> " to " <> show v2
+
+paraApp' :: Expr -> Ty -> Expr
+paraApp' (RecLit l v) (Rec l' _) | l == l' = v
+paraApp' (TyAbs a td e t) ta = Anno (subst' a ta e) (tsubst a ta t)
+paraApp' (Merge v1 v2) t = Merge (paraApp' v1 t) (paraApp' v2 t)
+paraApp' v t = unsafeCrashWith $
+  "Zord.Semantics.paraApp': impossible application of " <> show v <> " to " <> show t
 
 isValue :: Expr -> Boolean
 isValue (IntLit _)    = true
