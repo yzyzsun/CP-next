@@ -11,7 +11,7 @@ import Text.Parsing.Parser.String (eof)
 import Zord.Parser (expr)
 import Zord.Semantics (eval, tracedEval)
 import Zord.Syntax ((<+>))
-import Zord.TypeCheck (TypeError(..), typeOf)
+import Zord.Typing (TypeError(..), typeOf)
 
 interpret :: Boolean -> String -> Effect String
 interpret tracing input = case runParser input (expr <* eof) of
