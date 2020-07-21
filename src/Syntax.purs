@@ -2,18 +2,8 @@ module Zord.Syntax where
 
 import Prelude
 
-import Data.List (List)
-import Data.Tuple (Tuple)
-
 type Name  = String
 type Label = String
-
--- Context --
-
-type Ctx = List (Tuple Name Binding)
-
-data Binding = TmBinding Ty -- typing
-             | TyBinding Ty -- disjointness
 
 -- Types --
 

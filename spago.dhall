@@ -7,6 +7,7 @@
   , "node-readline"
   , "parsing"
   , "psci-support"
+  , "transformers"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
