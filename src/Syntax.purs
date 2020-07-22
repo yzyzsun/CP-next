@@ -5,6 +5,17 @@ import Prelude
 type Name  = String
 type Label = String
 
+-- Kinds --
+
+data Kind = KnStar
+          | KnArr Kind Kind
+
+instance showKind :: Show Kind where
+  show KnStar = "star"
+  show (KnArr k1 k2) = parens $ show k1 <+> "->" <+> show k2
+
+derive instance eqKind :: Eq Kind
+
 -- Types --
 
 data Ty = TyInt
@@ -18,6 +29,8 @@ data Ty = TyInt
         | TyRec Label Ty
         | TyVar Name
         | TyForall Name Ty Ty
+        | TyApp Ty Ty
+        | TyAbs Name Ty
 
 instance showTy :: Show Ty where
   show TyInt    = "Int"
@@ -32,6 +45,8 @@ instance showTy :: Show Ty where
   show (TyVar a) = a
   show (TyForall a td t) = parens $
     "∀" <> a <+> "*" <+> show td <> "." <+> show t
+  show (TyApp t1 t2) = parens $ show t1 <+> show t2
+  show (TyAbs a t) = parens $ "λ" <> a <> "." <+> show t
 
 derive instance eqTy :: Eq Ty
 

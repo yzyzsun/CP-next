@@ -3,8 +3,9 @@ module Zord.Typing where
 import Prelude
 
 import Zord.Context (Typing, addTmBind, addTyBind, emptyCtx, lookupTmBind, lookupTyBind, openRecInCtx, throwTypeError)
+import Zord.Kinding (tySubst, (===))
 import Zord.Subtyping (isTopLike, (<:))
-import Zord.Syntax (BinOp(..), Expr(..), Name, Ty(..), UnOp(..))
+import Zord.Syntax (BinOp(..), Expr(..), Ty(..), UnOp(..))
 
 typeOf :: Expr -> Typing Ty
 typeOf (TmInt _)    = pure TyInt
@@ -78,10 +79,10 @@ typeOf (TmTAbs a td e t) = do
     "The return type " <> show t <> " is not a supertype of " <> show t'
 typeOf (TmIf e1 e2 e3) = do
   t1 <- typeOf e1
-  if t1 == TyBool then do
+  if t1 === TyBool then do
     t2 <- typeOf e2
     t3 <- typeOf e3
-    if t2 == t3 then pure t2
+    if t2 === t3 then pure t2
     else throwTypeError $ "If-branches expected the same type, but got " <>
                           show t2 <> " and " <> show t3
   else throwTypeError $ "If-condition expected Bool, but got " <> show t1
@@ -125,12 +126,3 @@ disjoint (TyForall a1 td1 t1) (TyForall a2 td2 t2) =
 disjoint t1 t2 | t1 /= t2  = pure unit
                | otherwise = throwTypeError $
   show t1 <> " and " <> show t2 <> " are not disjoint"
-
-tySubst :: Name -> Ty -> Ty -> Ty
-tySubst a s (TyArr t1 t2) = TyArr (tySubst a s t1) (tySubst a s t2)
-tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
-tySubst a s (TyRec l t) = TyRec l (tySubst a s t)
-tySubst a s (TyVar a') = if a == a' then s else TyVar a'
-tySubst a s (TyForall a' td t) =
-  TyForall a' (tySubst a s td) (if a == a' then t else tySubst a s t)
-tySubst _ _ t = t

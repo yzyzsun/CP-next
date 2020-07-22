@@ -7,9 +7,9 @@ import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Math ((%))
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
+import Zord.Kinding (tyBReduce, tySubst)
 import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax (ArithOp(..), BinOp(..), CompOp(..), Expr(..), LogicOp(..), Name, Ty(..), UnOp(..))
-import Zord.Typing (tySubst)
 
 eval :: Expr -> Expr
 eval e | isValue e = e
@@ -26,11 +26,13 @@ step (TmBinary op e1 e2) | isValue e1 && isValue e2 = binop op e1 e2
                          | isValue e1 = TmBinary op e1 (step e2)
                          | otherwise  = TmBinary op (step e1) e2
 step (TmApp e1 e2) | isValue e1 && isValue e2 = paraApp e1 e2
-                 | isValue e1 = TmApp e1 (step e2)
-                 | otherwise  = TmApp (step e1) e2
+                   | isValue e1 = TmApp e1 (step e2)
+                   | otherwise  = TmApp (step e1) e2
 step (TmFix x e t) = TmAnno (tmSubst x (TmFix x e t) e) t
-step (TmAnno e t) | isValue e = unsafePartial (fromJust (typedReduce e t))
-                  | otherwise = TmAnno (step e) t
+step (TmAnno e t)
+  -- TODO: do type-level beta-reduction elsewhere
+  | isValue e = unsafePartial (fromJust (typedReduce e (tyBReduce t)))
+  | otherwise = TmAnno (step e) t
 step (TmMerge e1 e2) | isValue e1 = TmMerge e1 (step e2)
                      | isValue e2 = TmMerge (step e1) e2
                      | otherwise  = TmMerge (step e1) (step e2)

@@ -4,19 +4,20 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
+import Zord.Kinding (tyBReduce)
 import Zord.Syntax (Ty(..))
 
 subtype :: Ty -> Ty -> Boolean
-subtype TyBot _ = true
-subtype _ t | isTopLike t = true
-subtype t1 t2 | Just (Tuple t3 t4) <- split t2 = t1 <: t3 && t1 <: t4
-subtype (TyArr targ1 tret1) (TyArr targ2 tret2) = targ2 <: targ1 &&
-                                                  tret1 <: tret2
-subtype (TyAnd t1 t2) t3 = t1 <: t3 || t2 <: t3
-subtype (TyRec l1 t1) (TyRec l2 t2) | l1 == l2 = t1 <: t2
-subtype (TyForall _ td1 t1) (TyForall _ td2 t2) = td2 <: td1 && t1 <: t2
-subtype t1 t2 | t1 == t2  = true
-              | otherwise = false
+subtype l r = case tyBReduce l, tyBReduce r of
+  TyBot, _ -> true
+  _, t | isTopLike t -> true
+  t1, t2 | Just (Tuple t3 t4) <- split t2 -> t1 <: t3 && t1 <: t4
+  TyArr targ1 tret1, TyArr targ2 tret2 -> targ2 <: targ1 && tret1 <: tret2
+  TyAnd t1 t2, t3 -> t1 <: t3 || t2 <: t3
+  TyRec l1 t1, TyRec l2 t2 -> l1 == l2 && t1 <: t2
+  TyForall _ td1 t1, TyForall _ td2 t2 -> td2 <: td1 && t1 <: t2
+  t1, t2 | t1 == t2  -> true
+         | otherwise -> false
 
 infix 4 subtype as <:
 
