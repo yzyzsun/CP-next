@@ -2,6 +2,8 @@ module Zord.Syntax where
 
 import Prelude
 
+import Text.Parsing.Parser.Pos (Position)
+
 type Name  = String
 type Label = String
 
@@ -72,6 +74,7 @@ data Expr = TmInt Int
           | TmIf Expr Expr Expr
           | TmLet Name Expr Expr
           | TmOpen Expr Expr
+          | TmPos Position Expr
 
 instance showExpr :: Show Expr where
   show (TmInt i)    = show i
@@ -98,6 +101,25 @@ instance showExpr :: Show Expr where
   show (TmLet x e1 e2) = parens $
     "let" <+> x <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
+  show (TmPos p e) = show e
+
+stripPos :: Expr -> Expr
+stripPos (TmUnary op e) = TmUnary op (stripPos e)
+stripPos (TmBinary op e1 e2) = TmBinary op (stripPos e1) (stripPos e2)
+stripPos (TmApp e1 e2) = TmApp (stripPos e1) (stripPos e2)
+stripPos (TmAbs x e targ tret) = TmAbs x (stripPos e) targ tret
+stripPos (TmFix x e t) = TmFix x (stripPos e) t
+stripPos (TmAnno e t) = TmAnno (stripPos e) t
+stripPos (TmMerge e1 e2) = TmMerge (stripPos e1) (stripPos e2)
+stripPos (TmRec l e) = TmRec l (stripPos e)
+stripPos (TmPrj e l) = TmPrj (stripPos e) l
+stripPos (TmTApp e t) = TmTApp (stripPos e) t
+stripPos (TmTAbs a td e t) = TmTAbs a td (stripPos e) t
+stripPos (TmIf e1 e2 e3) = TmIf (stripPos e1) (stripPos e2) (stripPos e3)
+stripPos (TmLet x e1 e2) = TmLet x (stripPos e1) (stripPos e2)
+stripPos (TmOpen e1 e2) = TmOpen (stripPos e1) (stripPos e2)
+stripPos (TmPos _ e) = stripPos e
+stripPos e = e
 
 -- Operators --
 

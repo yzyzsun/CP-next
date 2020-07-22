@@ -9,15 +9,17 @@ import Math ((%))
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Zord.Kinding (tyBReduce, tySubst)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax (ArithOp(..), BinOp(..), CompOp(..), Expr(..), LogicOp(..), Name, Ty(..), UnOp(..))
+import Zord.Syntax (ArithOp(..), BinOp(..), CompOp(..), Expr(..), LogicOp(..), Name, Ty(..), UnOp(..), stripPos)
 
 eval :: Expr -> Expr
 eval e | isValue e = e
        | otherwise = eval $ step e
 
 tracedEval :: Expr -> String
-tracedEval e | isValue e = show e
-             | otherwise = show e <> "\n↓\n" <> tracedEval (step e)
+tracedEval = stripPos >>> trace
+  where trace :: Expr -> String
+        trace e | isValue e = show e
+                | otherwise = show e <> "\n↓\n" <> trace (step e)
 
 step :: Expr -> Expr
 step (TmUnary op e) | isValue e = unop op e
@@ -53,6 +55,7 @@ step (TmOpen e1 e2) | not (isValue e1) = TmOpen (step e1) e2
         open (TmMerge v1 v2) e = open v1 (open v2 e)
         open v e = unsafeCrashWith $
           "Zord.Semantics.step: impossible open " <> show v <> " in " <> show e
+step (TmPos _ e) = e
 step e = unsafeCrashWith $
   "Zord.Semantics.step: well-typed programs don't get stuck, but got " <> show e
 
@@ -119,6 +122,7 @@ tmSubst x v (TmIf e1 e2 e3) =
   TmIf (tmSubst x v e1) (tmSubst x v e2) (tmSubst x v e3)
 tmSubst x v (TmLet x' e1 e2) = TmLet x' (tmSubst x v e1) (tmSubst x v e2)
 tmSubst x v (TmOpen e1 e2) = TmOpen (tmSubst x v e1) (tmSubst x v e2)
+tmSubst x v (TmPos p e) = TmPos p (tmSubst x v e)
 tmSubst _ _ e = e
 
 tmTSubst :: Name -> Ty -> Expr -> Expr

@@ -24,8 +24,8 @@ const zordSyntax = new LezerSyntax(parser.withProps(
     'if then else new open in forall': 'keyword',
     'override': 'modifier',
     'Int Double Bool String Top Bot Trait': 'keyword',
-    Boolean: 'atom',
-    Undefined: 'null',
+    'true false': 'atom',
+    'undefined': 'null',
     Unit: 'unit',
     TermName: 'variableName',
     TermNameDef: 'variableName definition',
@@ -49,7 +49,7 @@ const zordSyntax = new LezerSyntax(parser.withProps(
   })
 ), {
   languageData: {
-    closeBrackets: { brackets: ['{', '(', '[', '<', '"'] },
+    closeBrackets: { brackets: ['{', '(', '[', '"'] },
     commentTokens: { line: "--", block: { open: "{-", close: "-}" } },
   }
 });
@@ -58,14 +58,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const output = document.getElementById('output');
   const error = document.getElementById('error');
 
+  const UIRefresh = (element, text) => {
+    element.textContent = text;
+    element.innerHTML = element.innerHTML.replace(/\n/g, '<br>');
+  }
+
   const UIInterpret = (tracing, state) => {
     state = state || view.state;
     output.textContent = error.textContent = '';
     try {
-      output.textContent = Zord.interpret(tracing)(state.doc.toString())();
-      output.innerHTML = output.innerHTML.replace(/\n/g, '<br>');
+      UIRefresh(output, Zord.interpret(tracing)(state.doc.toString())());
     } catch (err) {
-      error.textContent = err;
+      UIRefresh(error, err);
     }
   };
 

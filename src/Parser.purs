@@ -8,7 +8,7 @@ import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List(..), foldl, many)
 import Partial.Unsafe (unsafeCrashWith)
-import Text.Parsing.Parser (Parser)
+import Text.Parsing.Parser (Parser, position)
 import Text.Parsing.Parser.Combinators (choice)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
@@ -25,8 +25,10 @@ foldl1 f (Cons x xs) = foldl f x xs
 -- Expressions --
 
 expr :: SParser Expr
-expr = fix $ \e -> opexpr e
-  >>= \e' -> TmAnno e' <$ symbol ":" <*> ty <|> pure e'
+expr = fix $ \e -> position >>= \p -> TmPos p <$> colonexpr e
+
+colonexpr :: SParser Expr -> SParser Expr
+colonexpr e = opexpr e >>= \e' -> TmAnno e' <$ symbol ":" <*> ty <|> pure e'
 
 opexpr :: SParser Expr -> SParser Expr
 opexpr e = buildExprParser operators $ lexpr e
@@ -60,7 +62,7 @@ lambdaAbs = do
   symbol "->"
   e <- expr
   case e of
-    TmAnno e' t -> case t of
+    TmPos _ (TmAnno e' t) -> case t of
       TyArr targ tret -> pure $ TmAbs x e' targ tret
       _ -> unsafeCrashWith "Zord.Parser.lambdaAbs: expected an arrow type in the annotation"
     _ -> unsafeCrashWith "Zord.Parser.lambdaAbs: must be annotated with a function type"
@@ -72,7 +74,7 @@ fixedPoint = do
   symbol "->"
   e <- expr
   case e of
-    TmAnno e' t -> pure $ TmFix x e' t
+    TmPos _ (TmAnno e' t) -> pure $ TmFix x e' t
     _ -> unsafeCrashWith "Zord.Parser.fixedPoint: must be annotated with a type"
 
 tyLambdaAbs :: SParser Expr
@@ -84,7 +86,7 @@ tyLambdaAbs = do
   symbol "."
   e <- expr
   case e of
-    TmAnno e' t -> pure $ TmTAbs a td e' t
+    TmPos _ (TmAnno e' t) -> pure $ TmTAbs a td e' t
     _ -> unsafeCrashWith "Zord.Parser.tyLambdaAbs: must be annotated with a type"
 
 ifThenElse :: SParser Expr
