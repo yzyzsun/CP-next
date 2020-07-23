@@ -3,7 +3,7 @@ module Zord.Kinding where
 import Prelude
 
 import Zord.Context (Typing, addTyBind, lookupTyBind, throwTypeError)
-import Zord.Syntax (Kind(..), Name, Ty(..))
+import Zord.Syntax (Kind(..), Name, Ty(..), (<+>))
 
 kindOf :: Ty -> Typing Kind
 kindOf TyInt    = pure KnStar
@@ -29,7 +29,7 @@ kindOf (TyApp t1 t2) = do
   checkProperTy t2
   k1 <- kindOf t1
   case k1 of KnArr KnStar kret -> pure kret
-             _ -> throwTypeError $ show k1 <> " is not applicable"
+             _ -> throwTypeError $ show k1 <+> "is not applicable"
 kindOf (TyAbs a t) = do
   k <- addTyBind a TyTop $ kindOf t
   pure $ KnArr KnStar k
@@ -38,7 +38,7 @@ checkProperTy :: Ty -> Typing Unit
 checkProperTy t = do
   k <- kindOf t
   if k == KnStar then pure unit
-  else throwTypeError $ show t <> " is not a proper type"
+  else throwTypeError $ show t <+> "is not a proper type"
 
 tyAEq :: Ty -> Ty -> Boolean
 tyAEq l r = case tyBReduce l, tyBReduce r of
