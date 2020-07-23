@@ -148,7 +148,7 @@ operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
               ]
             , [ Infix (reservedOp "&&" $> TmBinary (Logic And)) AssocRight ]
             , [ Infix (reservedOp "||" $> TmBinary (Logic Or )) AssocRight ]
-            , [ Infix (reservedOp ",," $> TmMerge) AssocLeft ]
+            , [ Infix (reservedOp "," $> TmMerge) AssocLeft ]
             ]
 
 -- Types --

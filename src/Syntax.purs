@@ -90,7 +90,7 @@ instance showExpr :: Show Expr where
     "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "->" <+> show tret
   show (TmFix x e t) = parens $ "fix" <+> x <> "." <+> show e <+> ":" <+> show t
   show (TmAnno e t)  = parens $ show e <+> ":" <+> show t
-  show (TmMerge e1 e2) = parens $ show e1 <+> ",," <+> show e2
+  show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
   show (TmRec l e) = "{" <+> l <+> "=" <+> show e <+> "}"
   show (TmPrj e l) = show e <> "." <> l
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
