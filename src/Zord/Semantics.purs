@@ -9,7 +9,7 @@ import Math ((%))
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Zord.Kinding (tyBReduce, tySubst)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax (ArithOp(..), BinOp(..), CompOp(..), Expr(..), LogicOp(..), Name, Ty(..), UnOp(..), stripPos)
+import Zord.Syntax.Core (ArithOp(..), BinOp(..), CompOp(..), Expr(..), LogicOp(..), Name, Ty(..), UnOp(..), stripPos)
 
 eval :: Expr -> Expr
 eval e | isValue e = e

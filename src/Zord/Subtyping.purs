@@ -5,7 +5,7 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Zord.Kinding (tyBReduce)
-import Zord.Syntax (Ty(..))
+import Zord.Syntax.Core (Ty(..))
 
 subtype :: Ty -> Ty -> Boolean
 subtype l r = case tyBReduce l, tyBReduce r of

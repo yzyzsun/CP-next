@@ -14,7 +14,7 @@ import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildEx
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (char)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef)
-import Zord.Syntax (ArithOp(..), BinOp(..), CompOp(..), Expr(..), LogicOp(..), Ty(..), UnOp(..))
+import Zord.Syntax.Core (ArithOp(..), BinOp(..), CompOp(..), Expr(..), LogicOp(..), Ty(..), UnOp(..))
 
 type SParser a = Parser String a
 

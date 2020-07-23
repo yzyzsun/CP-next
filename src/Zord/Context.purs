@@ -9,7 +9,7 @@ import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), lookup)
 import Text.Parsing.Parser.Pos (Position)
-import Zord.Syntax (Expr, Name, Ty(..), (<+>))
+import Zord.Syntax.Core (Expr, Name, Ty(..), (<+>))
 
 type Ctx = { ctx :: Mapping
            , pos :: Pos

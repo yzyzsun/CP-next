@@ -5,7 +5,7 @@ import Prelude
 import Zord.Context (Pos(..), Typing, addTmBind, addTyBind, emptyCtx, lookupTmBind, lookupTyBind, openRecInCtx, setPos, throwTypeError)
 import Zord.Kinding (tySubst, (===))
 import Zord.Subtyping (isTopLike, (<:))
-import Zord.Syntax (BinOp(..), Expr(..), Ty(..), UnOp(..), (<+>))
+import Zord.Syntax.Core (BinOp(..), Expr(..), Ty(..), UnOp(..), (<+>))
 
 typeOf :: Expr -> Typing Ty
 typeOf (TmInt _)    = pure TyInt

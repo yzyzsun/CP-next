@@ -1,4 +1,4 @@
-module Zord.Syntax where
+module Zord.Syntax.Core where
 
 import Prelude
 

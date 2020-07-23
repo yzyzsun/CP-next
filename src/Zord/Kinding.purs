@@ -3,7 +3,7 @@ module Zord.Kinding where
 import Prelude
 
 import Zord.Context (Typing, addTyBind, lookupTyBind, throwTypeError)
-import Zord.Syntax (Kind(..), Name, Ty(..), (<+>))
+import Zord.Syntax.Core (Kind(..), Name, Ty(..), (<+>))
 
 kindOf :: Ty -> Typing Kind
 kindOf TyInt    = pure KnStar

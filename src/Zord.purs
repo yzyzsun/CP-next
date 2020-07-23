@@ -16,7 +16,6 @@ import Zord.Context (Pos(..), TypeError(..), runTyping)
 import Zord.Kinding (tyBReduce)
 import Zord.Parser (expr)
 import Zord.Semantics (eval, tracedEval)
-import Zord.Syntax ((<+>))
 import Zord.Typing (typeOf)
 
 interpret :: Boolean -> String -> Effect String
@@ -25,7 +24,7 @@ interpret tracing input = case runParser input (expr <* eof) of
   Right e -> case runTyping (tyBReduce <$> typeOf e) of
     Left err -> throw $ showTypeError err
     Right t -> pure $ if tracing then tracedEval e
-                      else show (eval e) <+> ":" <+> show t
+                      else show (eval e) <> " : " <> show t
 
 seek :: String -> Int -> Int -> Maybe Char
 seek str line column = (split (Pattern "\n") str) !! line' >>= charAt column'
@@ -39,7 +38,7 @@ showPosition (Position { line: line, column: column }) =
 showParseError :: ParseError -> String -> String
 showParseError (ParseError msg pos) source =
   showPosition pos <> ": parse error" <> (
-    case sought pos of Just char -> " on input" <+> show char
+    case sought pos of Just char -> " on input " <> show char
                        Nothing -> ""
   )
   where
@@ -49,4 +48,4 @@ showParseError (ParseError msg pos) source =
 showTypeError :: TypeError -> String
 showTypeError (TypeError msg UnknownPos) = msg
 showTypeError (TypeError msg (Pos pos expr)) =
-  showPosition pos <> ":" <+> msg <> "\nIn the expression:" <+> show expr
+  showPosition pos <> ": " <> msg <> "\nIn the expression: " <> show expr
