@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Zord.Kinding (tyBReduce)
+import Zord.Kinding (tyBReduce, tySubst)
 import Zord.Syntax.Core (Ty(..))
 
 subtype :: Ty -> Ty -> Boolean
@@ -15,7 +15,8 @@ subtype l r = case tyBReduce l, tyBReduce r of
   TyArr targ1 tret1, TyArr targ2 tret2 -> targ2 <: targ1 && tret1 <: tret2
   TyAnd t1 t2, t3 -> t1 <: t3 || t2 <: t3
   TyRec l1 t1, TyRec l2 t2 -> l1 == l2 && t1 <: t2
-  TyForall _ td1 t1, TyForall _ td2 t2 -> td2 <: td1 && t1 <: t2
+  TyForall a1 td1 t1, TyForall a2 td2 t2 -> td2 <: td1 &&
+                                            t1 <: tySubst a2 (TyVar a1) t2
   t1, t2 | t1 == t2  -> true
          | otherwise -> false
 

@@ -5,7 +5,7 @@ import Prelude
 import Data.List (List(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Zord.Context (Pos(..), Typing, addTmBind, addTyBind, emptyCtx, lookupTmBind, lookupTyBind, setPos, throwTypeError)
+import Zord.Context (Pos(..), Typing, addTmBind, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
 import Zord.Desugar (transform)
 import Zord.Kinding (tySubst, (===))
 import Zord.Subtyping (isTopLike, (<:))
@@ -68,7 +68,7 @@ synthesize (S.TmVar x) = Tuple (C.TmVar x) <$> lookupTmBind x
 synthesize (S.TmApp e1 e2) = do
   Tuple e1' t1 <- synthesize e1
   Tuple e2' t2 <- synthesize e2
-  Tuple (C.TmApp e1' e2') <$> emptyCtx (appSS t1 t2)
+  Tuple (C.TmApp e1' e2') <$> appSS t1 t2
 synthesize (S.TmAbs (Cons (Tuple x (Just targ)) Nil) e) = do
   let targ' = transform targ
   Tuple e' tret <- addTmBind x targ' $ synthesize e
@@ -93,7 +93,7 @@ synthesize (S.TmPrj e l) = do
   mt <- select t
   case mt of
     Just t' -> Tuple (C.TmPrj (C.TmAnno e' t') l) <$>
-                     emptyCtx (appSS t' (C.TyRec l C.TyTop))
+               appSS' t' (C.TyRec l C.TyTop)
     _ -> throwTypeError $ show t <+> "has no label named" <+> show l
   where
     select :: C.Ty -> Typing (Maybe C.Ty)
@@ -110,7 +110,7 @@ synthesize (S.TmPrj e l) = do
 synthesize (S.TmTApp e ta) = do
   Tuple e' tf <- synthesize e
   let ta' = transform ta
-  Tuple (C.TmTApp e' ta') <$> appSS tf ta'
+  Tuple (C.TmTApp e' ta') <$> appSS' tf ta'
 synthesize (S.TmTAbs (Cons (Tuple a (Just td)) Nil) e) = do
   let td' = transform td
   Tuple e' t <- addTyBind a td' $ synthesize e
@@ -127,13 +127,21 @@ appSS C.TyTop _ = pure C.TyTop
 appSS f@(C.TyArr targ tret) t | t <: targ = pure tret
                               | otherwise = throwTypeError $
   show f <+> "expected a subtype of its parameter type, but got" <+> show t
-appSS (C.TyRec _ t) (C.TyRec _ _) = pure t
-appSS (C.TyForall a td t) ta = disjoint ta td $> tySubst a ta t
 appSS (C.TyAnd t1 t2) t = do
   t1' <- appSS t1 t
   t2' <- appSS t2 t
   pure $ C.TyAnd t1' t2'
 appSS t _ = throwTypeError $ show t <+> "is not applicable"
+
+appSS' :: C.Ty -> C.Ty -> Typing C.Ty
+appSS' C.TyTop _ = pure C.TyTop
+appSS' (C.TyRec _ t) (C.TyRec _ _) = pure t
+appSS' (C.TyForall a td t) ta = disjoint ta td $> tySubst a ta t
+appSS' (C.TyAnd t1 t2) t = do
+  t1' <- appSS' t1 t
+  t2' <- appSS' t2 t
+  pure $ C.TyAnd t1' t2'
+appSS' t _ = throwTypeError $ show t <+> "is not type-applicable"
 
 disjoint :: C.Ty -> C.Ty -> Typing Unit
 disjoint t _ | isTopLike t = pure unit
@@ -147,6 +155,7 @@ disjoint (C.TyVar a) t = do
   t' <- lookupTyBind a
   if t' <: t then pure unit else throwTypeError $
     "type variable" <+> show a <+> "is not disjoint from" <+> show t
+    -- TODO: TyVar name is confusing after substitution in TyForall
 disjoint t (C.TyVar a) = disjoint (C.TyVar a) t
 disjoint (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) =
   addTyBind a1 (C.TyAnd td1 td2) $ disjoint t1 (tySubst a2 (C.TyVar a1) t2)
