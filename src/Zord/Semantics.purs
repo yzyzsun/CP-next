@@ -9,24 +9,26 @@ import Math ((%))
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Zord.Kinding (tyBReduce, tySubst)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Core (ArithOp(..), BinOp(..), CompOp(..), Expr(..), LogicOp(..), Name, Ty(..), UnOp(..), stripPos)
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
+import Zord.Syntax.Core (Tm(..), Ty(..))
 
-eval :: Expr -> Expr
+eval :: Tm -> Tm
 eval e | isValue e = e
        | otherwise = eval $ step e
 
-tracedEval :: Expr -> String
-tracedEval = stripPos >>> trace
-  where trace :: Expr -> String
-        trace e | isValue e = show e
-                | otherwise = show e <> "\n↓\n" <> trace (step e)
+tracedEval :: Tm -> String
+tracedEval e | isValue e = show e
+             | otherwise = show e <> "\n↓\n" <> tracedEval (step e)
 
-step :: Expr -> Expr
+step :: Tm -> Tm
 step (TmUnary op e) | isValue e = unop op e
                     | otherwise = TmUnary op (step e)
 step (TmBinary op e1 e2) | isValue e1 && isValue e2 = binop op e1 e2
                          | isValue e1 = TmBinary op e1 (step e2)
                          | otherwise  = TmBinary op (step e1) e2
+step (TmIf (TmBool true)  e2 e3) = e2
+step (TmIf (TmBool false) e2 e3) = e3
+step (TmIf e1 e2 e3) = TmIf (step e1) e2 e3
 step (TmApp e1 e2) | isValue e1 && isValue e2 = paraApp e1 e2
                    | isValue e1 = TmApp e1 (step e2)
                    | otherwise  = TmApp (step e1) e2
@@ -43,23 +45,10 @@ step (TmPrj e l) | isValue e = paraApp' e (TyRec l TyTop)
                  | otherwise = TmPrj (step e) l
 step (TmTApp e t) | isValue e = paraApp' e t
                   | otherwise = TmTApp (step e) t
-step (TmIf (TmBool true)  e2 e3) = e2
-step (TmIf (TmBool false) e2 e3) = e3
-step (TmIf e1 e2 e3) = TmIf (step e1) e2 e3
-step (TmLet x e1 e2) | isValue e1 = tmSubst x e1 e2
-                     | otherwise  = TmLet x (step e1) e2
-step (TmOpen e1 e2) | not (isValue e1) = TmOpen (step e1) e2
-                    | otherwise = open e1 e2
-  where open :: Expr -> Expr -> Expr
-        open (TmRec l v) e  = tmSubst l v e
-        open (TmMerge v1 v2) e = open v1 (open v2 e)
-        open v e = unsafeCrashWith $
-          "Zord.Semantics.step: impossible open " <> show v <> " in " <> show e
-step (TmPos _ e) = e
 step e = unsafeCrashWith $
   "Zord.Semantics.step: well-typed programs don't get stuck, but got " <> show e
 
-typedReduce :: Expr -> Ty -> Maybe Expr
+typedReduce :: Tm -> Ty -> Maybe Tm
 typedReduce e _ | not (isValue e) = unsafeCrashWith $
   "Zord.Semantics.typedReduce: " <> show e <> " is not a value"
 typedReduce _ t | isTopLike t = Just $ TmUnit
@@ -77,7 +66,7 @@ typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
 typedReduce (TmRec l v) (TyRec l' t) | l == l' = TmRec l <$> typedReduce v t
 typedReduce _ _ = Nothing
 
-paraApp :: Expr -> Expr -> Expr
+paraApp :: Tm -> Tm -> Tm
 paraApp TmUnit _ = TmUnit
 paraApp (TmAbs x e targ tret) v = TmAnno (tmSubst x v' e) tret
   where v' = unsafePartial (fromJust (typedReduce v targ))
@@ -85,14 +74,14 @@ paraApp (TmMerge v1 v2) v = TmMerge (paraApp v1 v) (paraApp v2 v)
 paraApp v1 v2 = unsafeCrashWith $
   "Zord.Semantics.paraApp: impossible application of " <> show v1 <> " to " <> show v2
 
-paraApp' :: Expr -> Ty -> Expr
-paraApp' (TmRec l v) (TyRec l' _) | l == l' = v
+paraApp' :: Tm -> Ty -> Tm
+paraApp' (TmRec _ v) (TyRec _ _) = v
 paraApp' (TmTAbs a td e t) ta = TmAnno (tmTSubst a ta e) (tySubst a ta t)
 paraApp' (TmMerge v1 v2) t = TmMerge (paraApp' v1 t) (paraApp' v2 t)
 paraApp' v t = unsafeCrashWith $
   "Zord.Semantics.paraApp': impossible application of " <> show v <> " to " <> show t
 
-isValue :: Expr -> Boolean
+isValue :: Tm -> Boolean
 isValue (TmInt _)    = true
 isValue (TmDouble _) = true
 isValue (TmString _) = true
@@ -104,9 +93,11 @@ isValue (TmRec _ e)  = isValue e
 isValue (TmTAbs _ _ _ _) = true
 isValue _ = false
 
-tmSubst :: Name -> Expr -> Expr -> Expr
+tmSubst :: Name -> Tm -> Tm -> Tm
 tmSubst x v (TmUnary op e) = TmUnary op (tmSubst x v e)
 tmSubst x v (TmBinary op e1 e2) = TmBinary op (tmSubst x v e1) (tmSubst x v e2)
+tmSubst x v (TmIf e1 e2 e3) =
+  TmIf (tmSubst x v e1) (tmSubst x v e2) (tmSubst x v e3)
 tmSubst x v (TmVar x') = if x == x' then v else TmVar x'
 tmSubst x v (TmApp e1 e2) = TmApp (tmSubst x v e1) (tmSubst x v e2)
 tmSubst x v (TmAbs x' e targ tret) =
@@ -118,14 +109,9 @@ tmSubst x v (TmRec l e) = TmRec l (tmSubst x v e)
 tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
 tmSubst x v (TmTAbs a td e t) = TmTAbs a td (tmSubst x v e) t
-tmSubst x v (TmIf e1 e2 e3) =
-  TmIf (tmSubst x v e1) (tmSubst x v e2) (tmSubst x v e3)
-tmSubst x v (TmLet x' e1 e2) = TmLet x' (tmSubst x v e1) (tmSubst x v e2)
-tmSubst x v (TmOpen e1 e2) = TmOpen (tmSubst x v e1) (tmSubst x v e2)
-tmSubst x v (TmPos p e) = TmPos p (tmSubst x v e)
 tmSubst _ _ e = e
 
-tmTSubst :: Name -> Ty -> Expr -> Expr
+tmTSubst :: Name -> Ty -> Tm -> Tm
 tmTSubst a s (TmAbs x e targ tret) =
   TmAbs x e (tySubst a s targ) (tySubst a s tret)
 tmTSubst a s (TmFix x e t) = TmFix x e (tySubst a s t)
@@ -135,14 +121,14 @@ tmTSubst a s (TmTAbs a' td e t) =
   TmTAbs a' (tySubst a s td) e (if a == a' then t else tySubst a s t)
 tmTSubst _ _ e = e
 
-unop :: UnOp -> Expr -> Expr
+unop :: UnOp -> Tm -> Tm
 unop Neg (TmInt i)    = TmInt    (negate i)
 unop Neg (TmDouble n) = TmDouble (negate n)
 unop Not (TmBool b)   = TmBool   (not b)
 unop op v = unsafeCrashWith $
   "Zord.Semantics.binop: impossible unary operation " <> show op <> " on " <> show v
 
-binop :: BinOp -> Expr -> Expr -> Expr
+binop :: BinOp -> Tm -> Tm -> Tm
 binop (Arith Add) (TmInt i1) (TmInt i2) = TmInt (i1 + i2)
 binop (Arith Sub) (TmInt i1) (TmInt i2) = TmInt (i1 - i2)
 binop (Arith Mul) (TmInt i1) (TmInt i2) = TmInt (i1 * i2)

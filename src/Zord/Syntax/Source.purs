@@ -1,8 +1,12 @@
-module Zord.Syntax.Core where
+module Zord.Syntax.Source where
 
 import Prelude
 
-import Zord.Syntax.Common (BinOp, Label, Name, UnOp, parens, (<+>))
+import Data.List (List, intercalate)
+import Data.Maybe (Maybe, maybe)
+import Data.Tuple (Tuple, fst, snd)
+import Text.Parsing.Parser.Pos (Position)
+import Zord.Syntax.Common (BinOp, Label, Name, UnOp, braces, parens, (<+>))
 
 -- Types --
 
@@ -14,9 +18,9 @@ data Ty = TyInt
         | TyBot
         | TyArr Ty Ty
         | TyAnd Ty Ty
-        | TyRec Label Ty
+        | TyRec (RecList Ty)
         | TyVar Name
-        | TyForall Name Ty Ty
+        | TyForall ParamList Ty
         | TyApp Ty Ty
         | TyAbs Name Ty
 
@@ -25,16 +29,16 @@ instance showTy :: Show Ty where
   show TyDouble = "Double"
   show TyString = "String"
   show TyBool   = "Bool"
-  show TyTop    = "⊤"
-  show TyBot    = "⊥"
-  show (TyArr t1 t2) = parens $ show t1 <+> "→" <+> show t2
+  show TyTop    = "Top"
+  show TyBot    = "Bot"
+  show (TyArr t1 t2) = parens $ show t1 <+> "->" <+> show t2
   show (TyAnd t1 t2) = show t1 <+> "&" <+> show t2
-  show (TyRec l t) = "{" <+> l <+> ":" <+> show t <+> "}"
+  show (TyRec xs) = braces $ showRec ":" xs
   show (TyVar a) = a
-  show (TyForall a td t) = parens $
-    "∀" <> a <+> "*" <+> show td <> "." <+> show t
+  show (TyForall xs t) = parens $
+    "forall" <+> showParams "*" xs <> "." <+> show t
   show (TyApp t1 t2) = parens $ show t1 <+> show t2
-  show (TyAbs a t) = parens $ "λ" <> a <> "." <+> show t
+  show (TyAbs a t) = parens $ "\\" <> a <+> "->" <+> show t
 
 derive instance eqTy :: Eq Ty
 
@@ -50,14 +54,15 @@ data Tm = TmInt Int
         | TmIf Tm Tm Tm
         | TmVar Name
         | TmApp Tm Tm
-        | TmAbs Name Tm Ty Ty
-        | TmFix Name Tm Ty
+        | TmAbs ParamList Tm
         | TmAnno Tm Ty
         | TmMerge Tm Tm
-        | TmRec Label Tm
+        | TmRec (RecList Tm)  -- TODO: empty {}
         | TmPrj Tm Label
         | TmTApp Tm Ty
-        | TmTAbs Name Ty Tm Ty
+        | TmTAbs ParamList Tm
+        | TmLet Name Tm Tm  -- TODO: let rec
+        | TmPos Position Tm
 
 instance showTm :: Show Tm where
   show (TmInt i)    = show i
@@ -71,13 +76,27 @@ instance showTm :: Show Tm where
     "if" <+> show e1 <+> "then" <+> show e2 <+> "else" <+> show e3
   show (TmVar x) = x
   show (TmApp e1 e2) = parens $ show e1 <+> show e2
-  show (TmAbs x e targ tret) = parens $
-    "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "→" <+> show tret
-  show (TmFix x e t) = parens $ "fix" <+> x <> "." <+> show e <+> ":" <+> show t
+  show (TmAbs xs e) = parens $ "\\" <> showParams ":" xs <+> "->" <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
-  show (TmRec l e) = "{" <+> l <+> "=" <+> show e <+> "}"
+  show (TmRec xs) = braces $ showRec "=" xs
   show (TmPrj e l) = show e <> "." <> l
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
-  show (TmTAbs a td e t) = parens $ "Λ" <> a <> "." <+> show e <+>
-    ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
+  show (TmTAbs xs e) = parens $ "/\\" <> showParams "*" xs <> "." <+> show e
+  show (TmLet x e1 e2) = parens $
+    "let" <+> x <+> "=" <+> show e1 <+> "in" <+> show e2
+  show (TmPos p e) = show e
+
+-- Helpers --
+
+type ParamList = List (Tuple Name (Maybe Ty))
+
+showParams :: String -> ParamList -> String
+showParams s xs = intercalate " " (xs <#> \x ->
+  maybe (fst x) (\t -> parens $ fst x <+> s <+> show t) (snd x)
+)
+
+type RecList a = List (Tuple Label a)
+
+showRec :: forall a. Show a => String -> RecList a -> String
+showRec s xs = intercalate "; " (xs <#> \x -> fst x <+> s <+> show (snd x))

@@ -9,7 +9,9 @@ import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), lookup)
 import Text.Parsing.Parser.Pos (Position)
-import Zord.Syntax.Core (Expr, Name, Ty(..), (<+>))
+import Zord.Syntax.Common (Name, (<+>))
+import Zord.Syntax.Core (Ty)
+import Zord.Syntax.Source (Tm)
 
 type Ctx = { ctx :: Mapping
            , pos :: Pos
@@ -21,7 +23,7 @@ data Binding = TmBind Ty -- typing
              | TyBind Ty -- disjointness
 
 data Pos = UnknownPos
-         | Pos Position Expr
+         | Pos Position Tm
 
 type Typing = ReaderT Ctx (Except TypeError)
 
@@ -63,17 +65,6 @@ addTyBind a t = addBinding a (TyBind t)
 
 emptyCtx :: forall a. Typing a -> Typing a
 emptyCtx = local (mapCtx (const Nil))
-
-openRecInCtx :: forall a. Ty -> Typing a -> Typing a
-openRecInCtx r m = do
-  ctx <- open r
-  local (mapCtx (ctx <> _)) m
-  where open :: Ty -> Typing Mapping
-        open (TyRec l t) = pure $ Tuple l (TmBind t) : Nil
-        open (TyAnd t1 t2) = do ctx1 <- open t1
-                                ctx2 <- open t2
-                                pure $ ctx1 <> ctx2
-        open t = throwTypeError $ show t <+> "cannot be opened"
 
 setPos :: forall a. Pos -> Typing a -> Typing a
 setPos p = local (_ { pos = p })

@@ -7,24 +7,25 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), split)
 import Data.String.CodeUnits (charAt)
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Exception (throw)
 import Text.Parsing.Parser (ParseError(..), runParser)
 import Text.Parsing.Parser.Pos (Position(..))
 import Text.Parsing.Parser.String (eof)
 import Zord.Context (Pos(..), TypeError(..), runTyping)
-import Zord.Kinding (tyBReduce)
+import Zord.Desugar (desugar)
 import Zord.Parser (expr)
 import Zord.Semantics (eval, tracedEval)
-import Zord.Typing (typeOf)
+import Zord.Typing (synthesize)
 
 interpret :: Boolean -> String -> Effect String
 interpret tracing input = case runParser input (expr <* eof) of
   Left err -> throw $ showParseError err input
-  Right e -> case runTyping (tyBReduce <$> typeOf e) of
+  Right e -> case runTyping (synthesize (desugar e)) of
     Left err -> throw $ showTypeError err
-    Right t -> pure $ if tracing then tracedEval e
-                      else show (eval e) <> " : " <> show t
+    Right (Tuple e' t) -> pure $ if tracing then tracedEval e'
+                                            else show (eval e')
 
 seek :: String -> Int -> Int -> Maybe Char
 seek str line column = (split (Pattern "\n") str) !! line' >>= charAt column'
