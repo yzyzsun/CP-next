@@ -60,14 +60,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const UIRefresh = (element, text) => {
     element.textContent = text;
-    element.innerHTML = element.innerHTML.replace(/\n/g, '<br>');
+    element.innerHTML = element.innerHTML
+      .replace(/^[↓→].+$/gm, '<span class="text-secondary">$&</span>')
+      .replace(/\n/g, '<br>');
   }
 
-  const UIInterpret = (tracing, state) => {
+  const UIInterpret = (mode, state) => {
     state = state || view.state;
     output.textContent = error.textContent = '';
     try {
-      UIRefresh(output, Zord.interpret(tracing)(state.doc.toString())());
+      UIRefresh(output, Zord.interpret(mode)(state.doc.toString())());
     } catch (err) {
       UIRefresh(error, err);
     }
@@ -77,11 +79,11 @@ document.addEventListener("DOMContentLoaded", () => {
     extensions: [
       basicSetup,
       zordSyntax.extension,
-      keymap([{ key: "Mod-Enter", run() { UIInterpret(true); } }]),
+      keymap([{ key: "Mod-Enter", run() { UIInterpret(Zord.Verbose.value); } }]),
       ViewPlugin.fromClass(class {
         update(update) {
           if (update.docChanged) {
-            UIInterpret(false, update.state);
+            UIInterpret(Zord.Simple.value, update.state);
           }
         }
       }),

@@ -12,20 +12,23 @@ import Effect (Effect)
 import Effect.Exception (throw)
 import Text.Parsing.Parser (ParseError(..), runParser)
 import Text.Parsing.Parser.Pos (Position(..))
-import Text.Parsing.Parser.String (eof)
+import Text.Parsing.Parser.String (eof, skipSpaces)
 import Zord.Context (Pos(..), TypeError(..), runTyping)
 import Zord.Desugar (desugar)
 import Zord.Parser (expr)
-import Zord.Semantics (eval, tracedEval)
+import Zord.Semantics (eval, runEval)
 import Zord.Typing (synthesize)
 
-interpret :: Boolean -> String -> Effect String
-interpret tracing input = case runParser input (expr <* eof) of
+data Mode = Simple | Verbose
+
+interpret :: Mode -> String -> Effect String
+interpret mode input = case runParser input (skipSpaces *> expr <* eof) of
   Left err -> throw $ showParseError err input
   Right e -> case runTyping (synthesize (desugar e)) of
     Left err -> throw $ showTypeError err
-    Right (Tuple e' t) -> pure $ if tracing then tracedEval e'
-                                            else show (eval e')
+    Right (Tuple e' t) -> let Tuple e'' s = runEval (eval e') in case mode of
+      Simple  -> pure $ show e''
+      Verbose -> pure s
 
 seek :: String -> Int -> Int -> Maybe Char
 seek str line column = (split (Pattern "\n") str) !! line' >>= charAt column'

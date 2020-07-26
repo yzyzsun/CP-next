@@ -3,6 +3,7 @@ module Zord.Semantics where
 import Prelude
 
 import Control.Alt ((<|>))
+import Control.Monad.Writer (Writer, runWriter, tell)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (Tuple(..))
 import Math ((%))
@@ -12,39 +13,46 @@ import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
 import Zord.Syntax.Core (Tm(..), Ty(..))
 
-eval :: Tm -> Tm
-eval e | isValue e = e
-       | otherwise = eval $ step e
+type Eval a = Writer String a
 
-tracedEval :: Tm -> String
-tracedEval e | isValue e = show e
-             | otherwise = show e <> "\n↓\n" <> tracedEval (step e)
+runEval :: forall a. Eval a -> Tuple a String
+runEval = runWriter
 
-step :: Tm -> Tm
-step (TmUnary op e) | isValue e = unop op e
-                    | otherwise = TmUnary op (step e)
-step (TmBinary op e1 e2) | isValue e1 && isValue e2 = binop op e1 e2
-                         | isValue e1 = TmBinary op e1 (step e2)
-                         | otherwise  = TmBinary op (step e1) e2
-step (TmIf (TmBool true)  e2 e3) = e2
-step (TmIf (TmBool false) e2 e3) = e3
-step (TmIf e1 e2 e3) = TmIf (step e1) e2 e3
-step (TmApp e1 e2) | isValue e1 && isValue e2 = paraApp e1 e2
-                   | isValue e1 = TmApp e1 (step e2)
-                   | otherwise  = TmApp (step e1) e2
-step (TmFix x e t) = TmAnno (tmSubst x (TmFix x e t) e) t
+computation :: String -> Eval Unit
+computation w = tell $ "↓ Step-" <> w <> "\n"
+
+congruence :: String -> Eval Unit
+congruence w = tell $ "→ Step-" <> w <> "\n"
+
+eval :: Tm -> Eval Tm
+eval e | isValue e = tell (show e <> "\n") $> e
+       | otherwise = tell (show e <> "\n") *> step e >>= eval
+
+step :: Tm -> Eval Tm
+step (TmUnary op e) | isValue e = computation "UnaryV" $> unop op e
+                    | otherwise = congruence "Unary" $> TmUnary op <*> step e
+step (TmBinary op e1 e2) | isValue e1 && isValue e2 = computation "BinaryV" $> binop op e1 e2
+                         | isValue e1 = congruence "BinaryR" $> TmBinary op e1 <*> step e2
+                         | otherwise  = congruence "BinaryL" $> TmBinary op <*> step e1 <@> e2
+step (TmIf (TmBool true)  e2 e3) = computation "IfTrue"  $> e2
+step (TmIf (TmBool false) e2 e3) = computation "IfFalse" $> e3
+step (TmIf e1 e2 e3) = congruence "If" $> TmIf <*> step e1 <@> e2 <@> e3
+step (TmApp e1 e2) | isValue e1 && isValue e2 = computation "PApp" $> paraApp e1 e2
+                   | isValue e1 = congruence "AppR" $> TmApp e1 <*> step e2
+                   | otherwise  = congruence "AppL" $> TmApp <*> step e1 <@> e2
+step (TmFix x e t) = computation "Fix" $> TmAnno (tmSubst x (TmFix x e t) e) t
 step (TmAnno e t)
   -- TODO: do type-level beta-reduction elsewhere
-  | isValue e = unsafePartial (fromJust (typedReduce e (tyBReduce t)))
-  | otherwise = TmAnno (step e) t
-step (TmMerge e1 e2) | isValue e1 = TmMerge e1 (step e2)
-                     | isValue e2 = TmMerge (step e1) e2
-                     | otherwise  = TmMerge (step e1) (step e2)
-step (TmRec l e) = TmRec l (step e)
-step (TmPrj e l) | isValue e = paraApp' e (TyRec l TyTop)
-                 | otherwise = TmPrj (step e) l
-step (TmTApp e t) | isValue e = paraApp' e t
-                  | otherwise = TmTApp (step e) t
+  | isValue e = computation "AnnoV" $> unsafePartial (fromJust (typedReduce e (tyBReduce t)))
+  | otherwise = congruence "Anno" $> TmAnno <*> step e <@> t
+step (TmMerge e1 e2) | isValue e1 = congruence "MergeR" $> TmMerge e1 <*> step e2
+                     | isValue e2 = congruence "MergeL" $> TmMerge <*> step e1 <@> e2
+                     | otherwise  = congruence "Merge"  $> TmMerge <*> step e1 <*> step e2
+step (TmRec l e) = congruence "Rcd" $> TmRec l <*> step e
+step (TmPrj e l) | isValue e = computation "PProj" $> paraApp' e (TyRec l TyTop)
+                 | otherwise = congruence "Proj" $> TmPrj <*> step e <@> l
+step (TmTApp e t) | isValue e = computation "PTApp" $> paraApp' e t
+                  | otherwise = congruence "TApp" $> TmTApp <*> step e <@> t
 step e = unsafeCrashWith $
   "Zord.Semantics.step: well-typed programs don't get stuck, but got " <> show e
 

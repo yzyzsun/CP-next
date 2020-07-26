@@ -11,7 +11,7 @@ import Effect.Exception (message, try)
 import Node.Encoding (Encoding(..))
 import Node.FS.Sync (readTextFile)
 import Node.ReadLine (createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
-import Zord (interpret)
+import Zord (Mode(..), interpret)
 
 main :: Effect Unit
 main = do
@@ -20,7 +20,7 @@ main = do
   setPrompt ":load " 6 interface
   prompt interface
   setLineHandler interface \f -> do
-    result <- try (readTextFile UTF8 f >>= interpret false)
+    result <- try (readTextFile UTF8 f >>= interpret Simple)
     case result of
       Right output -> log output
       Left err -> error $ withGraphics (foreground Red) (message err)
