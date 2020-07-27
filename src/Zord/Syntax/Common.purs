@@ -3,6 +3,7 @@ module Zord.Syntax.Common where
 import Prelude
 
 import Data.List (List(..), foldl)
+import Data.Maybe (Maybe(..))
 import Partial.Unsafe (unsafeCrashWith)
 
 type Name  = String
@@ -80,3 +81,7 @@ brackets str = "[" <+> str <+> "]"
 foldl1 :: forall a. (a -> a -> a) -> List a -> a
 foldl1 _ Nil = unsafeCrashWith "foldl1: empty list"
 foldl1 f (Cons x xs) = foldl f x xs
+
+fromJust :: forall a. Maybe a -> a
+fromJust (Just x) = x
+fromJust Nothing = unsafeCrashWith "fromJust: unexpected Nothing"

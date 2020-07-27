@@ -4,13 +4,13 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Monad.Writer (Writer, runWriter, tell)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Math ((%))
-import Partial.Unsafe (unsafeCrashWith, unsafePartial)
+import Partial.Unsafe (unsafeCrashWith)
 import Zord.Kinding (tyBReduce, tySubst)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..), fromJust)
 import Zord.Syntax.Core (Tm(..), Ty(..))
 
 type Eval a = Writer String a
@@ -43,7 +43,7 @@ step (TmApp e1 e2) | isValue e1 && isValue e2 = computation "PApp" $> paraApp e1
 step (TmFix x e t) = computation "Fix" $> TmAnno (tmSubst x (TmFix x e t) e) t
 step (TmAnno e t)
   -- TODO: do type-level beta-reduction elsewhere
-  | isValue e = computation "AnnoV" $> unsafePartial (fromJust (typedReduce e (tyBReduce t)))
+  | isValue e = computation "AnnoV" $> fromJust (typedReduce e (tyBReduce t))
   | otherwise = congruence "Anno" $> TmAnno <*> step e <@> t
 step (TmMerge e1 e2) | isValue e1 = congruence "MergeR" $> TmMerge e1 <*> step e2
                      | isValue e2 = congruence "MergeL" $> TmMerge <*> step e1 <@> e2
@@ -79,7 +79,7 @@ typedReduce _ _ = Nothing
 paraApp :: Tm -> Tm -> Tm
 paraApp TmUnit _ = TmUnit
 paraApp (TmAbs x e targ tret) v = TmAnno (tmSubst x v' e) tret
-  where v' = unsafePartial (fromJust (typedReduce v targ))
+  where v' = fromJust (typedReduce v targ)
 paraApp (TmMerge v1 v2) v = TmMerge (paraApp v1 v) (paraApp v2 v)
 paraApp v1 v2 = unsafeCrashWith $
   "Zord.Semantics.paraApp: impossible application of " <> show v1 <> " to " <> show v2
