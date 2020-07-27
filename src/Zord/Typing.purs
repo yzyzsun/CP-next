@@ -2,14 +2,15 @@ module Zord.Typing where
 
 import Prelude
 
-import Data.List (List(..))
+import Data.List (List(..), foldr, null)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
+import Data.Set (Set, empty, singleton, union)
+import Data.Tuple (Tuple(..), uncurry)
 import Zord.Context (Pos(..), Typing, addTmBind, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
 import Zord.Desugar (transform)
 import Zord.Kinding (tySubst, (===))
 import Zord.Subtyping (isTopLike, (<:))
-import Zord.Syntax.Common (BinOp(..), UnOp(..), (<+>))
+import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..), fromJust, (<+>))
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
 
@@ -90,23 +91,9 @@ synthesize (S.TmRcd (Cons (Tuple l e) Nil)) = do
   pure $ Tuple (C.TmRcd l e') (C.TyRcd l t)
 synthesize (S.TmPrj e l) = do
   Tuple e' t <- synthesize e
-  mt <- select t
-  case mt of
-    Just t' -> Tuple (C.TmPrj (C.TmAnno e' t') l) <$>
-               appSS' t' (C.TyRcd l C.TyTop)
+  case selectLabel t l of
+    Just t' -> pure $ Tuple (projectLabel e' l t') t'
     _ -> throwTypeError $ show t <+> "has no label named" <+> show l
-  where
-    select :: C.Ty -> Typing (Maybe C.Ty)
-    select (C.TyAnd t1 t2) = do
-      m1 <- select t1
-      m2 <- select t2
-      case m1, m2 of Just t1', Just t2' -> pure $ Just (C.TyAnd t1' t2')
-                     Just t1', Nothing  -> pure $ Just t1'
-                     Nothing,  Just t2' -> pure $ Just t2'
-                     Nothing,  Nothing  -> pure Nothing
-    select r@(C.TyRcd l' t) | l' == l   = pure $ Just r
-                            | otherwise = pure Nothing
-    select t = throwTypeError $ "projection expected Rcd, but got" <+> show t
 synthesize (S.TmTApp e ta) = do
   Tuple e' tf <- synthesize e
   let ta' = transform ta
@@ -118,7 +105,29 @@ synthesize (S.TmTAbs (Cons (Tuple a (Just td)) Nil) e) = do
 synthesize (S.TmLet x e1 e2) = do
   Tuple e1' t1 <- synthesize e1
   Tuple e2' t2 <- addTmBind x t1 $ synthesize e2
-  pure $ Tuple (C.TmApp (C.TmAbs x e2' t1 t2) e1') t2
+  pure $ Tuple (letIn x e1' t1 e2' t2) t2
+synthesize (S.TmLetrec x t e1 e2) = do
+  let t' = transform t
+  Tuple e1' t1 <- addTmBind x t' $ synthesize e1
+  if t1 <: t' then do
+    Tuple e2' t2 <- addTmBind x t' $ synthesize e2
+    pure $ Tuple (letIn x (C.TmFix x e1' t') t' e2' t2) t2
+  else throwTypeError $
+    "annotated" <+> show t' <+> "is not a supertype of synthesized" <+> show t1
+-- TODO: find a more efficient algorithm
+synthesize (S.TmOpen e1 e2) = do
+  Tuple e1' t1 <- synthesize e1
+  let ls = foldr Cons Nil (labels t1)
+  if null ls then throwTypeError $ show t1 <+> "cannot be opened" else do
+    let bs = ls <#> \l -> Tuple l (fromJust (selectLabel t1 l))
+    Tuple e2' t2 <- foldr (uncurry addTmBind) (synthesize e2) bs
+    let open (Tuple l t) e = letIn l (projectLabel e1' l t) t e t2
+    pure $ Tuple (foldr open e2' bs) t2
+  where
+    labels :: C.Ty -> Set Label
+    labels (C.TyAnd t1 t2) = union (labels t1) (labels t2)
+    labels (C.TyRcd l _) = singleton l
+    labels _ = empty
 synthesize (S.TmPos p e) = setPos (Pos p e) $ synthesize e
 synthesize e = throwTypeError $ show e <+> "should have been desugared"
 
@@ -135,7 +144,6 @@ appSS t _ = throwTypeError $ show t <+> "is not applicable"
 
 appSS' :: C.Ty -> C.Ty -> Typing C.Ty
 appSS' C.TyTop _ = pure C.TyTop
-appSS' (C.TyRcd _ t) (C.TyRcd _ _) = pure t
 appSS' (C.TyForall a td t) ta = disjoint ta td $> tySubst a ta t
 appSS' (C.TyAnd t1 t2) t = do
   t1' <- appSS' t1 t
@@ -162,3 +170,18 @@ disjoint (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) =
 disjoint t1 t2 | t1 /= t2  = pure unit
                | otherwise = throwTypeError $
   show t1 <+> "and" <+> show t2 <+> "are not disjoint"
+
+letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
+letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2) e1
+
+projectLabel :: C.Tm -> Label -> C.Ty -> C.Tm
+projectLabel r l t = C.TmPrj (C.TmAnno r (C.TyRcd l t)) l
+
+selectLabel :: C.Ty -> Label -> Maybe C.Ty
+selectLabel (C.TyAnd t1 t2) l = case selectLabel t1 l, selectLabel t2 l of
+  Just t1', Just t2' -> Just (C.TyAnd t1' t2')
+  Just t1', Nothing  -> Just t1'
+  Nothing,  Just t2' -> Just t2'
+  Nothing,  Nothing  -> Nothing
+selectLabel (C.TyRcd l' t) l | l == l' = Just t
+selectLabel _ _ = Nothing

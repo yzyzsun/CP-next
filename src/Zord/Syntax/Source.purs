@@ -57,11 +57,13 @@ data Tm = TmInt Int
         | TmAbs ParamList Tm
         | TmAnno Tm Ty
         | TmMerge Tm Tm
-        | TmRcd (RcdList Tm)  -- TODO: empty {}
+        | TmRcd (RcdList Tm)
         | TmPrj Tm Label
         | TmTApp Tm Ty
         | TmTAbs ParamList Tm
-        | TmLet Name Tm Tm  -- TODO: let rec
+        | TmLet Name Tm Tm
+        | TmLetrec Name Ty Tm Tm
+        | TmOpen Tm Tm
         | TmPos Position Tm
 
 instance showTm :: Show Tm where
@@ -85,6 +87,9 @@ instance showTm :: Show Tm where
   show (TmTAbs xs e) = parens $ "/\\" <> showParams "*" xs <> "." <+> show e
   show (TmLet x e1 e2) = parens $
     "let" <+> x <+> "=" <+> show e1 <+> "in" <+> show e2
+  show (TmLetrec x t e1 e2) = parens $
+    "letrec" <+> x <+> ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
+  show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
   show (TmPos p e) = show e
 
 -- Helpers --

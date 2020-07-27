@@ -32,7 +32,8 @@ opexpr :: SParser Tm -> SParser Tm
 opexpr e = buildExprParser operators $ lexpr e
 
 lexpr :: SParser Tm -> SParser Tm
-lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|> ifThenElse <|> letIn
+lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|>
+          ifThenElse <|> letIn <|> letrec <|> open
 
 fexpr :: SParser Tm -> SParser Tm
 fexpr e = dotexpr e >>= \e' -> foldl (#) e' <$>
@@ -89,6 +90,27 @@ letIn = do
   e2 <- expr
   pure $ TmLet x e1 e2
 
+letrec :: SParser Tm
+letrec = do
+  reserved "letrec"
+  x <- identifier
+  symbol ":"
+  t <- ty
+  symbol "="
+  e1 <- expr
+  reserved "in"
+  e2 <- expr
+  pure $ TmLetrec x t e1 e2
+
+open :: SParser Tm
+open = do
+  reserved "open"
+  e1 <- expr
+  reserved "in"
+  e2 <- expr
+  pure $ TmOpen e1 e2
+
+-- TODO: reject "{}"
 recordLit :: SParser Tm
 recordLit = braces $ TmRcd <$> semiSep do
   l <- identifier
@@ -147,6 +169,7 @@ forallTy = do
   t <- ty
   pure $ TyForall xs t
 
+-- TODO: reject "{}"
 recordTy :: SParser Ty
 recordTy = braces $ TyRcd <$> semiSep do
   l <- identifier
@@ -173,7 +196,7 @@ params s = Tuple <$> identifier <*> pure Nothing <|>
 
 zordDef :: LanguageDef
 zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
-  [ "true", "false", "if", "then", "else", "let", "in"
+  [ "true", "false", "if", "then", "else", "let", "letrec", "open", "in"
   , "forall", "Int", "Double", "String", "Bool", "Top", "Bot"
   ]
 }

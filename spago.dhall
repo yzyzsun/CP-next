@@ -5,6 +5,7 @@
   , "debug"
   , "node-fs"
   , "node-readline"
+  , "ordered-collections"
   , "parsing"
   , "psci-support"
   , "transformers"

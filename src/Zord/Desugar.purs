@@ -10,6 +10,7 @@ import Zord.Syntax.Common (foldl1)
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
 
+-- typing-related desugaring is delayed until synthesizing
 desugar :: S.Tm -> S.Tm
 
 desugar (S.TmAbs xs e) = foldr (\x s -> S.TmAbs (singleton x) s) (desugar e) xs
@@ -28,6 +29,8 @@ desugar (S.TmMerge e1 e2) = S.TmMerge (desugar e1) (desugar e2)
 desugar (S.TmPrj e l) = S.TmPrj (desugar e) l
 desugar (S.TmTApp e t) = S.TmTApp (desugar e) t
 desugar (S.TmLet x e1 e2) = S.TmLet x (desugar e1) (desugar e2)
+desugar (S.TmLetrec x t e1 e2) = S.TmLetrec x t (desugar e1) (desugar e2)
+desugar (S.TmOpen e1 e2) = S.TmOpen (desugar e1) (desugar e2)
 desugar (S.TmPos p e) = S.TmPos p (desugar e)
 desugar e = e
 
