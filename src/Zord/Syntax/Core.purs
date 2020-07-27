@@ -14,7 +14,7 @@ data Ty = TyInt
         | TyBot
         | TyArr Ty Ty
         | TyAnd Ty Ty
-        | TyRec Label Ty
+        | TyRcd Label Ty
         | TyVar Name
         | TyForall Name Ty Ty
         | TyApp Ty Ty
@@ -29,7 +29,7 @@ instance showTy :: Show Ty where
   show TyBot    = "⊥"
   show (TyArr t1 t2) = parens $ show t1 <+> "→" <+> show t2
   show (TyAnd t1 t2) = show t1 <+> "&" <+> show t2
-  show (TyRec l t) = "{" <+> l <+> ":" <+> show t <+> "}"
+  show (TyRcd l t) = "{" <+> l <+> ":" <+> show t <+> "}"
   show (TyVar a) = a
   show (TyForall a td t) = parens $
     "∀" <> a <+> "*" <+> show td <> "." <+> show t
@@ -54,7 +54,7 @@ data Tm = TmInt Int
         | TmFix Name Tm Ty
         | TmAnno Tm Ty
         | TmMerge Tm Tm
-        | TmRec Label Tm
+        | TmRcd Label Tm
         | TmPrj Tm Label
         | TmTApp Tm Ty
         | TmTAbs Name Ty Tm Ty
@@ -76,7 +76,7 @@ instance showTm :: Show Tm where
   show (TmFix x e t) = parens $ "fix" <+> x <> "." <+> show e <+> ":" <+> show t
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
-  show (TmRec l e) = "{" <+> l <+> "=" <+> show e <+> "}"
+  show (TmRcd l e) = "{" <+> l <+> "=" <+> show e <+> "}"
   show (TmPrj e l) = show e <> "." <> l
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs a td e t) = parens $ "Λ" <> a <> "." <+> show e <+>

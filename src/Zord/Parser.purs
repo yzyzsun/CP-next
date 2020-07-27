@@ -90,7 +90,7 @@ letIn = do
   pure $ TmLet x e1 e2
 
 recordLit :: SParser Tm
-recordLit = braces $ TmRec <$> semiSep do
+recordLit = braces $ TmRcd <$> semiSep do
   l <- identifier
   symbol "="
   e <- expr
@@ -148,7 +148,7 @@ forallTy = do
   pure $ TyForall xs t
 
 recordTy :: SParser Ty
-recordTy = braces $ TyRec <$> semiSep do
+recordTy = braces $ TyRcd <$> semiSep do
   l <- identifier
   symbol ":"
   t <- ty

@@ -85,15 +85,15 @@ synthesize (S.TmMerge e1 e2) = do
   Tuple e2' t2 <- synthesize e2
   disjoint t1 t2
   pure $ Tuple (C.TmMerge e1' e2') (C.TyAnd t1 t2)
-synthesize (S.TmRec (Cons (Tuple l e) Nil)) = do
+synthesize (S.TmRcd (Cons (Tuple l e) Nil)) = do
   Tuple e' t <- synthesize e
-  pure $ Tuple (C.TmRec l e') (C.TyRec l t)
+  pure $ Tuple (C.TmRcd l e') (C.TyRcd l t)
 synthesize (S.TmPrj e l) = do
   Tuple e' t <- synthesize e
   mt <- select t
   case mt of
     Just t' -> Tuple (C.TmPrj (C.TmAnno e' t') l) <$>
-               appSS' t' (C.TyRec l C.TyTop)
+               appSS' t' (C.TyRcd l C.TyTop)
     _ -> throwTypeError $ show t <+> "has no label named" <+> show l
   where
     select :: C.Ty -> Typing (Maybe C.Ty)
@@ -104,9 +104,9 @@ synthesize (S.TmPrj e l) = do
                      Just t1', Nothing  -> pure $ Just t1'
                      Nothing,  Just t2' -> pure $ Just t2'
                      Nothing,  Nothing  -> pure Nothing
-    select r@(C.TyRec l' t) | l' == l   = pure $ Just r
+    select r@(C.TyRcd l' t) | l' == l   = pure $ Just r
                             | otherwise = pure Nothing
-    select t = throwTypeError $ "projection expected Rec, but got" <+> show t
+    select t = throwTypeError $ "projection expected Rcd, but got" <+> show t
 synthesize (S.TmTApp e ta) = do
   Tuple e' tf <- synthesize e
   let ta' = transform ta
@@ -135,7 +135,7 @@ appSS t _ = throwTypeError $ show t <+> "is not applicable"
 
 appSS' :: C.Ty -> C.Ty -> Typing C.Ty
 appSS' C.TyTop _ = pure C.TyTop
-appSS' (C.TyRec _ t) (C.TyRec _ _) = pure t
+appSS' (C.TyRcd _ t) (C.TyRcd _ _) = pure t
 appSS' (C.TyForall a td t) ta = disjoint ta td $> tySubst a ta t
 appSS' (C.TyAnd t1 t2) t = do
   t1' <- appSS' t1 t
@@ -149,7 +149,7 @@ disjoint _ t | isTopLike t = pure unit
 disjoint (C.TyArr _ t1) (C.TyArr _ t2) = disjoint t1 t2
 disjoint (C.TyAnd t1 t2) t3 = disjoint t1 t3 *> disjoint t2 t3
 disjoint t1 (C.TyAnd t2 t3) = disjoint (C.TyAnd t2 t3) t1
-disjoint (C.TyRec l1 t1) (C.TyRec l2 t2) | l1 == l2  = disjoint t1 t2
+disjoint (C.TyRcd l1 t1) (C.TyRcd l2 t2) | l1 == l2  = disjoint t1 t2
                                          | otherwise = pure unit
 disjoint (C.TyVar a) t = do
   t' <- lookupTyBind a

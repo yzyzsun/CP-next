@@ -18,7 +18,7 @@ data Ty = TyInt
         | TyBot
         | TyArr Ty Ty
         | TyAnd Ty Ty
-        | TyRec (RecList Ty)
+        | TyRcd (RcdList Ty)
         | TyVar Name
         | TyForall ParamList Ty
         | TyApp Ty Ty
@@ -33,7 +33,7 @@ instance showTy :: Show Ty where
   show TyBot    = "Bot"
   show (TyArr t1 t2) = parens $ show t1 <+> "->" <+> show t2
   show (TyAnd t1 t2) = show t1 <+> "&" <+> show t2
-  show (TyRec xs) = braces $ showRec ":" xs
+  show (TyRcd xs) = braces $ showRcd ":" xs
   show (TyVar a) = a
   show (TyForall xs t) = parens $
     "forall" <+> showParams "*" xs <> "." <+> show t
@@ -57,7 +57,7 @@ data Tm = TmInt Int
         | TmAbs ParamList Tm
         | TmAnno Tm Ty
         | TmMerge Tm Tm
-        | TmRec (RecList Tm)  -- TODO: empty {}
+        | TmRcd (RcdList Tm)  -- TODO: empty {}
         | TmPrj Tm Label
         | TmTApp Tm Ty
         | TmTAbs ParamList Tm
@@ -79,7 +79,7 @@ instance showTm :: Show Tm where
   show (TmAbs xs e) = parens $ "\\" <> showParams ":" xs <+> "->" <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
-  show (TmRec xs) = braces $ showRec "=" xs
+  show (TmRcd xs) = braces $ showRcd "=" xs
   show (TmPrj e l) = show e <> "." <> l
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs xs e) = parens $ "/\\" <> showParams "*" xs <> "." <+> show e
@@ -96,7 +96,7 @@ showParams s xs = intercalate " " (xs <#> \x ->
   maybe (fst x) (\t -> parens $ fst x <+> s <+> show t) (snd x)
 )
 
-type RecList a = List (Tuple Label a)
+type RcdList a = List (Tuple Label a)
 
-showRec :: forall a. Show a => String -> RecList a -> String
-showRec s xs = intercalate "; " (xs <#> \x -> fst x <+> s <+> show (snd x))
+showRcd :: forall a. Show a => String -> RcdList a -> String
+showRcd s xs = intercalate "; " (xs <#> \x -> fst x <+> s <+> show (snd x))

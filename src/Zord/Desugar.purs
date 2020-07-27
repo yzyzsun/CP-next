@@ -16,8 +16,8 @@ desugar (S.TmAbs xs e) = foldr (\x s -> S.TmAbs (singleton x) s) (desugar e) xs
 desugar (S.TmTAbs xs e) =
   foldr (\x s -> S.TmTAbs (singleton (rmap disjointness x)) s) (desugar e) xs
   where disjointness t = Just (fromMaybe S.TyTop t)
-desugar (S.TmRec xs) =
-  foldl1 S.TmMerge (xs <#> \x -> S.TmRec (singleton (rmap desugar x)))
+desugar (S.TmRcd xs) =
+  foldl1 S.TmMerge (xs <#> \x -> S.TmRcd (singleton (rmap desugar x)))
 
 desugar (S.TmUnary op e) = S.TmUnary op (desugar e)
 desugar (S.TmBinary op e1 e2) = S.TmBinary op (desugar e1) (desugar e2)
@@ -40,8 +40,8 @@ transform S.TyTop    = C.TyTop
 transform S.TyBot    = C.TyBot
 transform (S.TyArr t1 t2) = C.TyArr (transform t1) (transform t2)
 transform (S.TyAnd t1 t2) = C.TyAnd (transform t1) (transform t2)
-transform (S.TyRec xs) =
-  foldl1 C.TyAnd (xs <#> \x -> C.TyRec (fst x) (transform (snd x)))
+transform (S.TyRcd xs) =
+  foldl1 C.TyAnd (xs <#> \x -> C.TyRcd (fst x) (transform (snd x)))
 transform (S.TyVar a) = C.TyVar a
 transform (S.TyForall xs t) =
   foldr (\x s -> C.TyForall (fst x) (disjointness (snd x)) s) (transform t) xs

@@ -48,8 +48,8 @@ step (TmAnno e t)
 step (TmMerge e1 e2) | isValue e1 = congruence "MergeR" $> TmMerge e1 <*> step e2
                      | isValue e2 = congruence "MergeL" $> TmMerge <*> step e1 <@> e2
                      | otherwise  = congruence "Merge"  $> TmMerge <*> step e1 <*> step e2
-step (TmRec l e) = congruence "Rcd" $> TmRec l <*> step e
-step (TmPrj e l) | isValue e = computation "PProj" $> paraApp' e (TyRec l TyTop)
+step (TmRcd l e) = congruence "Rcd" $> TmRcd l <*> step e
+step (TmPrj e l) | isValue e = computation "PProj" $> paraApp' e (TyRcd l TyTop)
                  | otherwise = congruence "Proj" $> TmPrj <*> step e <@> l
 step (TmTApp e t) | isValue e = computation "PTApp" $> paraApp' e t
                   | otherwise = congruence "TApp" $> TmTApp <*> step e <@> t
@@ -71,7 +71,7 @@ typedReduce (TmBool b)   TyBool   = Just $ TmBool b
 typedReduce (TmAbs x e targ1 tret1) (TyArr targ2 tret2)
   | targ2 <: targ1 && tret1 <: tret2 = Just $ TmAbs x e targ1 tret2
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
-typedReduce (TmRec l v) (TyRec l' t) | l == l' = TmRec l <$> typedReduce v t
+typedReduce (TmRcd l v) (TyRcd l' t) | l == l' = TmRcd l <$> typedReduce v t
 typedReduce (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
   | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2 = Just $ TmTAbs a2 td1 e t2
 typedReduce _ _ = Nothing
@@ -86,7 +86,7 @@ paraApp v1 v2 = unsafeCrashWith $
 
 paraApp' :: Tm -> Ty -> Tm
 paraApp' TmUnit _ = TmUnit
-paraApp' (TmRec _ v) (TyRec _ _) = v
+paraApp' (TmRcd _ v) (TyRcd _ _) = v
 paraApp' (TmTAbs a _ e t) ta = TmAnno (tmTSubst a ta e) (tySubst a ta t)
 paraApp' (TmMerge v1 v2) t = TmMerge (paraApp' v1 t) (paraApp' v2 t)
 paraApp' v t = unsafeCrashWith $
@@ -100,7 +100,7 @@ isValue (TmBool _)   = true
 isValue (TmUnit)     = true
 isValue (TmAbs _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
-isValue (TmRec _ e)  = isValue e
+isValue (TmRcd _ e)  = isValue e
 isValue (TmTAbs _ _ _ _) = true
 isValue _ = false
 
@@ -116,7 +116,7 @@ tmSubst x v (TmAbs x' e targ tret) =
 tmSubst x v (TmFix x' e t) = TmFix x' (if x == x' then e else tmSubst x v e) t
 tmSubst x v (TmAnno e t) = TmAnno (tmSubst x v e) t
 tmSubst x v (TmMerge e1 e2) = TmMerge (tmSubst x v e1) (tmSubst x v e2)
-tmSubst x v (TmRec l e) = TmRec l (tmSubst x v e)
+tmSubst x v (TmRcd l e) = TmRcd l (tmSubst x v e)
 tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
 tmSubst x v (TmTAbs a td e t) = TmTAbs a td (tmSubst x v e) t
@@ -134,7 +134,7 @@ tmTSubst a s (TmAbs x e targ tret) =
 tmTSubst a s (TmFix x e t) = TmFix x (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmAnno e t) = TmAnno (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmMerge e1 e2) = TmMerge (tmTSubst a s e1) (tmTSubst a s e2)
-tmTSubst a s (TmRec l e) = TmRec l (tmTSubst a s e)
+tmTSubst a s (TmRcd l e) = TmRcd l (tmTSubst a s e)
 tmTSubst a s (TmPrj e l) = TmPrj (tmTSubst a s e) l
 tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmTAbs a' td e t) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
