@@ -2,7 +2,7 @@ module Zord.Typing where
 
 import Prelude
 
-import Data.List (List(..), foldr, null)
+import Data.List (List(..), foldr)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, singleton, union)
 import Data.Tuple (Tuple(..), uncurry)
@@ -118,11 +118,10 @@ synthesize (S.TmLetrec x t e1 e2) = do
 synthesize (S.TmOpen e1 e2) = do
   Tuple e1' t1 <- synthesize e1
   let ls = foldr Cons Nil (labels t1)
-  if null ls then throwTypeError $ show t1 <+> "cannot be opened" else do
-    let bs = ls <#> \l -> Tuple l (fromJust (selectLabel t1 l))
-    Tuple e2' t2 <- foldr (uncurry addTmBind) (synthesize e2) bs
-    let open (Tuple l t) e = letIn l (projectLabel e1' l t) t e t2
-    pure $ Tuple (foldr open e2' bs) t2
+  let bs = ls <#> \l -> Tuple l (fromJust (selectLabel t1 l))
+  Tuple e2' t2 <- foldr (uncurry addTmBind) (synthesize e2) bs
+  let open (Tuple l t) e = letIn l (projectLabel e1' l t) t e t2
+  pure $ Tuple (foldr open e2' bs) t2
   where
     labels :: C.Ty -> Set Label
     labels (C.TyAnd t1 t2) = union (labels t1) (labels t2)

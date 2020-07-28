@@ -3,7 +3,7 @@ module Zord.Desugar where
 import Prelude
 
 import Data.Bifunctor (rmap)
-import Data.List (foldr, singleton)
+import Data.List (List(..), foldr, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (fst, snd)
 import Zord.Syntax.Common (foldl1)
@@ -17,6 +17,7 @@ desugar (S.TmAbs xs e) = foldr (\x s -> S.TmAbs (singleton x) s) (desugar e) xs
 desugar (S.TmTAbs xs e) =
   foldr (\x s -> S.TmTAbs (singleton (rmap disjointness x)) s) (desugar e) xs
   where disjointness t = Just (fromMaybe S.TyTop t)
+desugar (S.TmRcd Nil) = S.TmUnit
 desugar (S.TmRcd xs) =
   foldl1 S.TmMerge (xs <#> \x -> S.TmRcd (singleton (rmap desugar x)))
 
@@ -43,6 +44,7 @@ transform S.TyTop    = C.TyTop
 transform S.TyBot    = C.TyBot
 transform (S.TyArr t1 t2) = C.TyArr (transform t1) (transform t2)
 transform (S.TyAnd t1 t2) = C.TyAnd (transform t1) (transform t2)
+transform (S.TyRcd Nil) = C.TyTop
 transform (S.TyRcd xs) =
   foldl1 C.TyAnd (xs <#> \x -> C.TyRcd (fst x) (transform (snd x)))
 transform (S.TyVar a) = C.TyVar a

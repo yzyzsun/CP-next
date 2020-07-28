@@ -110,7 +110,6 @@ open = do
   e2 <- expr
   pure $ TmOpen e1 e2
 
--- TODO: reject "{}"
 recordLit :: SParser Tm
 recordLit = braces $ TmRcd <$> semiSep do
   l <- identifier
@@ -169,7 +168,6 @@ forallTy = do
   t <- ty
   pure $ TyForall xs t
 
--- TODO: reject "{}"
 recordTy :: SParser Ty
 recordTy = braces $ TyRcd <$> semiSep do
   l <- identifier
