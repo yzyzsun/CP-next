@@ -12,7 +12,7 @@ data Ty = TyInt
         | TyBool
         | TyTop
         | TyBot
-        | TyArr Ty Ty
+        | TyArr Ty Ty Boolean
         | TyAnd Ty Ty
         | TyRcd Label Ty
         | TyVar Name
@@ -27,7 +27,7 @@ instance showTy :: Show Ty where
   show TyBool   = "Bool"
   show TyTop    = "⊤"
   show TyBot    = "⊥"
-  show (TyArr t1 t2) = parens $ show t1 <+> "→" <+> show t2
+  show (TyArr t1 t2 isTrait) = parens $ show t1 <+> "→" <+> show t2
   show (TyAnd t1 t2) = show t1 <+> "&" <+> show t2
   show (TyRcd l t) = "{" <+> l <+> ":" <+> show t <+> "}"
   show (TyVar a) = a

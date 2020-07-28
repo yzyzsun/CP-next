@@ -68,7 +68,7 @@ typedReduce (TmInt i)    TyInt    = Just $ TmInt i
 typedReduce (TmDouble n) TyDouble = Just $ TmDouble n
 typedReduce (TmString s) TyString = Just $ TmString s
 typedReduce (TmBool b)   TyBool   = Just $ TmBool b
-typedReduce (TmAbs x e targ1 tret1) (TyArr targ2 tret2)
+typedReduce (TmAbs x e targ1 tret1) (TyArr targ2 tret2 _)
   | targ2 <: targ1 && tret1 <: tret2 = Just $ TmAbs x e targ1 tret2
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
 typedReduce (TmRcd l v) (TyRcd l' t) | l == l' = TmRcd l <$> typedReduce v t

@@ -12,7 +12,7 @@ subtype l r = case tyBReduce l, tyBReduce r of
   TyBot, _ -> true
   _, t | isTopLike t -> true
   t1, t2 | Just (Tuple t3 t4) <- split t2 -> t1 <: t3 && t1 <: t4
-  TyArr targ1 tret1, TyArr targ2 tret2 -> targ2 <: targ1 && tret1 <: tret2
+  TyArr targ1 tret1 _, TyArr targ2 tret2 _ -> targ2 <: targ1 && tret1 <: tret2
   TyAnd t1 t2, t3 -> t1 <: t3 || t2 <: t3
   TyRcd l1 t1, TyRcd l2 t2 -> l1 == l2 && t1 <: t2
   TyForall a1 td1 t1, TyForall a2 td2 t2 -> td2 <: td1 &&
@@ -29,7 +29,7 @@ infix 4 supertype as :>
 
 isTopLike :: Ty -> Boolean
 isTopLike TyTop = true
-isTopLike (TyArr _ t) = isTopLike t
+isTopLike (TyArr _ t _) = isTopLike t
 isTopLike (TyAnd t1 t2) = isTopLike t1 && isTopLike t2
 isTopLike (TyRcd _ t) = isTopLike t
 isTopLike (TyForall _ _ t) = isTopLike t
@@ -37,8 +37,8 @@ isTopLike _ = false
 
 split :: Ty -> Maybe (Tuple Ty Ty)
 split (TyAnd t1 t2) = Just $ Tuple t1 t2
-split (TyArr targ tret) = split tret >>= \(Tuple tret1 tret2) ->
-  Just $ Tuple (TyArr targ tret1) (TyArr targ tret2)
+split (TyArr targ tret b) = split tret >>= \(Tuple tret1 tret2) ->
+  Just $ Tuple (TyArr targ tret1 b) (TyArr targ tret2 b)
 split (TyRcd l t) = split t >>= \(Tuple t1 t2) ->
   Just $ Tuple (TyRcd l t1) (TyRcd l t2)
 split (TyForall a td t) = split t >>= \(Tuple t1 t2) ->

@@ -13,7 +13,7 @@ kindOf TyString = pure KnStar
 kindOf TyBool   = pure KnStar
 kindOf TyTop    = pure KnStar
 kindOf TyBot    = pure KnStar
-kindOf (TyArr t1 t2) = do
+kindOf (TyArr t1 t2 _) = do
   checkProperTy t1
   checkProperTy t2
   pure KnStar
@@ -43,7 +43,7 @@ checkProperTy t = do
 
 tyAEq :: Ty -> Ty -> Boolean
 tyAEq l r = case tyBReduce l, tyBReduce r of
-  TyArr t1 t2, TyArr t3 t4 -> t1 === t3 && t2 === t4
+  TyArr t1 t2 _, TyArr t3 t4 _ -> t1 === t3 && t2 === t4
   TyAnd t1 t2, TyAnd t3 t4 -> t1 === t3 && t2 === t4
   TyRcd l1 t1, TyRcd l2 t2 -> l1 == l2 && t1 === t2
   TyForall a1 td1 t1, TyForall a2 td2 t2 -> td1 === td2 &&
@@ -54,7 +54,7 @@ tyAEq l r = case tyBReduce l, tyBReduce r of
 infix 4 tyAEq as ===
 
 tyBReduce :: Ty -> Ty
-tyBReduce (TyArr t1 t2) = TyArr (tyBReduce t1) (tyBReduce t2)
+tyBReduce (TyArr t1 t2 b) = TyArr (tyBReduce t1) (tyBReduce t2) b
 tyBReduce (TyAnd t1 t2) = TyAnd (tyBReduce t1) (tyBReduce t2)
 tyBReduce (TyRcd l t) = TyRcd l (tyBReduce t)
 tyBReduce (TyForall a td t) = TyForall a (tyBReduce td) (tyBReduce t)
@@ -63,7 +63,7 @@ tyBReduce t = t
 
 -- TODO: capture-avoiding
 tySubst :: Name -> Ty -> Ty -> Ty
-tySubst a s (TyArr t1 t2) = TyArr (tySubst a s t1) (tySubst a s t2)
+tySubst a s (TyArr t1 t2 b) = TyArr (tySubst a s t1) (tySubst a s t2) b
 tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyRcd l t) = TyRcd l (tySubst a s t)
 tySubst a s (TyVar a') = if a == a' then s else TyVar a'

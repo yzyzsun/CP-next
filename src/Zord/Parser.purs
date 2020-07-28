@@ -7,10 +7,10 @@ import Control.Lazy (fix)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, some)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), optional)
 import Data.Tuple (Tuple(..))
 import Text.Parsing.Parser (Parser, position)
-import Text.Parsing.Parser.Combinators (choice)
+import Text.Parsing.Parser.Combinators (choice, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (char)
@@ -32,7 +32,7 @@ opexpr :: SParser Tm -> SParser Tm
 opexpr e = buildExprParser operators $ lexpr e
 
 lexpr :: SParser Tm -> SParser Tm
-lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|>
+lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|> trait <|> new <|>
           ifThenElse <|> letIn <|> letrec <|> open
 
 fexpr :: SParser Tm -> SParser Tm
@@ -69,6 +69,21 @@ tyLambdaAbs = do
   symbol "."
   e <- expr
   pure $ TmTAbs xs e
+
+trait :: SParser Tm
+trait = do
+  reserved "trait"
+  self <- optional (brackets (Tuple <$> identifier <* symbol ":" <*> ty))
+  e1 <- optional (reserved "inherits" *> expr)
+  symbol "=>"
+  e2 <- expr
+  pure $ TmTrait self e1 e2
+
+new :: SParser Tm
+new = do
+  reserved "new"
+  e <- expr
+  pure $ TmNew e
 
 ifThenElse :: SParser Tm
 ifThenElse = do
@@ -146,7 +161,7 @@ ty :: SParser Ty
 ty = fix \t -> buildExprParser toperators $ bty t
 
 bty :: SParser Ty -> SParser Ty
-bty t = foldl1 TyApp <$> some (aty t) <|> forallTy
+bty t = foldl1 TyApp <$> some (aty t) <|> forallTy <|> traitTy t
 
 aty :: SParser Ty -> SParser Ty
 aty t = choice [ reserved "Int"    $> TyInt
@@ -167,6 +182,13 @@ forallTy = do
   symbol "."
   t <- ty
   pure $ TyForall xs t
+
+traitTy :: SParser Ty -> SParser Ty
+traitTy t = do
+  reserved "Trait"
+  ti <- optional (try (aty t <* symbol "#"))
+  to <- aty t
+  pure $ TyTrait ti to
 
 recordTy :: SParser Ty
 recordTy = braces $ TyRcd <$> semiSep do
@@ -194,8 +216,9 @@ params s = Tuple <$> identifier <*> pure Nothing <|>
 
 zordDef :: LanguageDef
 zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
-  [ "true", "false", "if", "then", "else", "let", "letrec", "open", "in"
-  , "forall", "Int", "Double", "String", "Bool", "Top", "Bot"
+  [ "true", "false", "trait", "implements", "inherits", "new"
+  , "if", "then", "else", "let", "letrec", "open", "in"
+  , "forall", "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
   ]
 }
 

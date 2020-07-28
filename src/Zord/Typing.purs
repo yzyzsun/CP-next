@@ -73,7 +73,7 @@ synthesize (S.TmApp e1 e2) = do
 synthesize (S.TmAbs (Cons (Tuple x (Just targ)) Nil) e) = do
   let targ' = transform targ
   Tuple e' tret <- addTmBind x targ' $ synthesize e
-  pure $ Tuple (C.TmAbs x e' targ' tret) (C.TyArr targ' tret)
+  pure $ Tuple (C.TmAbs x e' targ' tret) (C.TyArr targ' tret false)
 synthesize (S.TmAbs (Cons (Tuple x Nothing) Nil) e) = throwTypeError
   "lambda parameters should be annotated (type inference is not implemented)"
 synthesize (S.TmAnno e ta) = do
@@ -127,12 +127,41 @@ synthesize (S.TmOpen e1 e2) = do
     labels (C.TyAnd t1 t2) = union (labels t1) (labels t2)
     labels (C.TyRcd l _) = singleton l
     labels _ = empty
+synthesize (S.TmTrait (Just (Tuple x t)) me1 e2) = do
+  let t' = transform t
+  case me1 of
+    Just e1 -> do
+      Tuple e1' t1 <- addTmBind x t' $ synthesize e1
+      case t1 of
+        C.TyArr ti to true -> do
+          if t' <: ti then do
+            Tuple e2' t2 <- addTmBind x t' $ addTmBind "super" to $ synthesize e2
+            disjoint to t2
+            let tret = C.TyAnd to t2
+            let ret = letIn "super" (C.TmApp e1' (C.TmVar x)) to
+                      (C.TmMerge (C.TmVar "super") e2') tret
+            pure $ Tuple (C.TmAbs x ret t' tret) (C.TyArr t' tret true)
+          else throwTypeError $ "self-type" <+> show t' <+>
+            "is not a subtype of inherited self-type" <+> show to
+        _ -> throwTypeError $ "inherits expected a trait, but got" <+> show t1
+    Nothing -> do
+      Tuple e2' t2 <- addTmBind x t' $ synthesize e2
+      pure $ Tuple (C.TmAbs x e2' t' t2) (C.TyArr t' t2 true)
+synthesize (S.TmNew e) = do
+  Tuple e' t <- synthesize e
+  case t of
+    C.TyArr ti to true ->
+      if to <: ti then
+        pure $ Tuple (C.TmFix "self" (C.TmApp e' (C.TmVar "self")) to) to
+      else throwTypeError $ "in a trait type, input" <+> show ti <+>
+        "is not a supertype of output" <+> show to
+    _ -> throwTypeError $ "new expected a trait, but got" <+> show t
 synthesize (S.TmPos p e) = setPos (Pos p e) $ synthesize e
 synthesize e = throwTypeError $ show e <+> "should have been desugared"
 
 appSS :: C.Ty -> C.Ty -> Typing C.Ty
 appSS C.TyTop _ = pure C.TyTop
-appSS f@(C.TyArr targ tret) t | t <: targ = pure tret
+appSS f@(C.TyArr targ tret _) t | t <: targ = pure tret
                               | otherwise = throwTypeError $
   show f <+> "expected a subtype of its parameter type, but got" <+> show t
 appSS (C.TyAnd t1 t2) t = do
@@ -153,7 +182,7 @@ appSS' t _ = throwTypeError $ show t <+> "is not type-applicable"
 disjoint :: C.Ty -> C.Ty -> Typing Unit
 disjoint t _ | isTopLike t = pure unit
 disjoint _ t | isTopLike t = pure unit
-disjoint (C.TyArr _ t1) (C.TyArr _ t2) = disjoint t1 t2
+disjoint (C.TyArr _ t1 _) (C.TyArr _ t2 _) = disjoint t1 t2
 disjoint (C.TyAnd t1 t2) t3 = disjoint t1 t3 *> disjoint t2 t3
 disjoint t1 (C.TyAnd t2 t3) = disjoint (C.TyAnd t2 t3) t1
 disjoint (C.TyRcd l1 t1) (C.TyRcd l2 t2) | l1 == l2  = disjoint t1 t2
@@ -169,6 +198,7 @@ disjoint (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) =
 disjoint t1 t2 | t1 /= t2  = pure unit
                | otherwise = throwTypeError $
   show t1 <+> "and" <+> show t2 <+> "are not disjoint"
+
 
 letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
 letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2) e1
