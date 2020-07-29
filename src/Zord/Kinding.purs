@@ -46,8 +46,9 @@ tyAEq l r = case tyBReduce l, tyBReduce r of
   TyArr t1 t2 _, TyArr t3 t4 _ -> t1 === t3 && t2 === t4
   TyAnd t1 t2, TyAnd t3 t4 -> t1 === t3 && t2 === t4
   TyRcd l1 t1, TyRcd l2 t2 -> l1 == l2 && t1 === t2
-  TyForall a1 td1 t1, TyForall a2 td2 t2 -> td1 === td2 &&
-                                            t1 === tySubst a2 (TyVar a1) t2
+  TyForall a1 td1 t1, TyForall a2 td2 t2 ->
+    td1 === td2 && tySubst a1 freshVar t1 === tySubst a2 freshVar t2
+    where freshVar = TyVar "__fresh__"
   t1, t2 | t1 == t2  -> true
          | otherwise -> false
 

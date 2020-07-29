@@ -73,7 +73,7 @@ typedReduce (TmAbs x e targ1 tret1) (TyArr targ2 tret2 _)
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
 typedReduce (TmRcd l v) (TyRcd l' t) | l == l' = TmRcd l <$> typedReduce v t
 typedReduce (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
-  | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2 = Just $ TmTAbs a2 td1 e t2
+  | td2 <: td1 && t1 <: t2 = Just $ TmTAbs a2 td1 e t2
 typedReduce _ _ = Nothing
 
 paraApp :: Tm -> Tm -> Tm

@@ -191,10 +191,9 @@ disjoint (C.TyVar a) t = do
   t' <- lookupTyBind a
   if t' <: t then pure unit else throwTypeError $
     "type variable" <+> show a <+> "is not disjoint from" <+> show t
-    -- TODO: TyVar name is confusing after substitution in TyForall
 disjoint t (C.TyVar a) = disjoint (C.TyVar a) t
 disjoint (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) =
-  addTyBind a1 (C.TyAnd td1 td2) $ disjoint t1 (tySubst a2 (C.TyVar a1) t2)
+  addTyBind a1 (C.TyAnd td1 td2) $ disjoint t1 t2
 disjoint t1 t2 | t1 /= t2  = pure unit
                | otherwise = throwTypeError $
   show t1 <+> "and" <+> show t2 <+> "are not disjoint"
