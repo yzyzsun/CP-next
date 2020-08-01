@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, singleton, union)
 import Data.Tuple (Tuple(..), uncurry)
 import Zord.Context (Pos(..), Typing, addTmBind, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
-import Zord.Desugar (transform)
+import Zord.Desugar (transformProperTy)
 import Zord.Kinding (tySubst, (===))
 import Zord.Subtyping (isTopLike, (<:))
 import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..), fromJust, (<+>))
@@ -71,14 +71,14 @@ synthesize (S.TmApp e1 e2) = do
   Tuple e2' t2 <- synthesize e2
   Tuple (C.TmApp e1' e2') <$> appSS t1 t2
 synthesize (S.TmAbs (Cons (Tuple x (Just targ)) Nil) e) = do
-  let targ' = transform targ
+  targ' <- transformProperTy targ
   Tuple e' tret <- addTmBind x targ' $ synthesize e
   pure $ Tuple (C.TmAbs x e' targ' tret) (C.TyArr targ' tret false)
 synthesize (S.TmAbs (Cons (Tuple x Nothing) Nil) e) = throwTypeError
   "lambda parameters should be annotated (type inference is not implemented)"
 synthesize (S.TmAnno e ta) = do
   Tuple e' t <- synthesize e
-  let ta' = transform ta
+  ta' <- transformProperTy ta
   if t <: ta' then pure $ Tuple (C.TmAnno e' ta') ta' else throwTypeError $
     "annotated" <+> show ta' <+> "is not a supertype of synthesized" <+> show t
 synthesize (S.TmMerge e1 e2) = do
@@ -96,10 +96,10 @@ synthesize (S.TmPrj e l) = do
     _ -> throwTypeError $ show t <+> "has no label named" <+> show l
 synthesize (S.TmTApp e ta) = do
   Tuple e' tf <- synthesize e
-  let ta' = transform ta
+  ta' <- transformProperTy ta
   Tuple (C.TmTApp e' ta') <$> appSS' tf ta'
 synthesize (S.TmTAbs (Cons (Tuple a (Just td)) Nil) e) = do
-  let td' = transform td
+  td' <- transformProperTy td
   Tuple e' t <- addTyBind a td' $ synthesize e
   pure $ Tuple (C.TmTAbs a td' e' t) (C.TyForall a td' t)
 synthesize (S.TmLet x e1 e2) = do
@@ -107,7 +107,7 @@ synthesize (S.TmLet x e1 e2) = do
   Tuple e2' t2 <- addTmBind x t1 $ synthesize e2
   pure $ Tuple (letIn x e1' t1 e2' t2) t2
 synthesize (S.TmLetrec x t e1 e2) = do
-  let t' = transform t
+  t' <- transformProperTy t
   Tuple e1' t1 <- addTmBind x t' $ synthesize e1
   if t1 <: t' then do
     Tuple e2' t2 <- addTmBind x t' $ synthesize e2
@@ -128,7 +128,7 @@ synthesize (S.TmOpen e1 e2) = do
     labels (C.TyRcd l _) = singleton l
     labels _ = empty
 synthesize (S.TmTrait (Just (Tuple x t)) me1 e2) = do
-  let t' = transform t
+  t' <- transformProperTy t
   case me1 of
     Just e1 -> do
       Tuple e1' t1 <- addTmBind x t' $ synthesize e1

@@ -4,22 +4,22 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Zord.Kinding (tyBReduce, tySubst)
+import Zord.Kinding (tySubst)
 import Zord.Syntax.Core (Ty(..))
 
 subtype :: Ty -> Ty -> Boolean
-subtype l r = case tyBReduce l, tyBReduce r of
-  TyBot, _ -> true
-  _, t | isTopLike t -> true
-  t1, t2 | Just (Tuple t3 t4) <- split t2 -> t1 <: t3 && t1 <: t4
-  TyArr targ1 tret1 _, TyArr targ2 tret2 _ -> targ2 <: targ1 && tret1 <: tret2
-  TyAnd t1 t2, t3 -> t1 <: t3 || t2 <: t3
-  TyRcd l1 t1, TyRcd l2 t2 -> l1 == l2 && t1 <: t2
-  TyForall a1 td1 t1, TyForall a2 td2 t2 ->
-    td2 <: td1 && tySubst a1 freshVar t1 <: tySubst a2 freshVar t2
-    where freshVar = TyVar "__fresh__"
-  t1, t2 | t1 == t2  -> true
-         | otherwise -> false
+subtype TyBot _ = true
+subtype _ t | isTopLike t = true
+subtype t1 t2 | Just (Tuple t3 t4) <- split t2 = t1 <: t3 && t1 <: t4
+subtype (TyArr targ1 tret1 _) (TyArr targ2 tret2 _) = targ2 <: targ1 &&
+                                                      tret1 <: tret2
+subtype (TyAnd t1 t2) t3 = t1 <: t3 || t2 <: t3
+subtype (TyRcd l1 t1) (TyRcd l2 t2) = l1 == l2 && t1 <: t2
+subtype (TyForall a1 td1 t1) (TyForall a2 td2 t2) =
+  td2 <: td1 && tySubst a1 freshVar t1 <: tySubst a2 freshVar t2
+  where freshVar = TyVar "__fresh__"
+subtype t1 t2 | t1 == t2  = true
+              | otherwise = false
 
 infix 4 subtype as <:
 

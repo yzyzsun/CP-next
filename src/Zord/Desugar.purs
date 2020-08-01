@@ -6,6 +6,9 @@ import Data.Bifunctor (rmap)
 import Data.List (List(..), foldr, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..), fst, snd)
+import Partial.Unsafe (unsafeCrashWith)
+import Zord.Context (Typing)
+import Zord.Kinding (checkProperTy, tySubst)
 import Zord.Syntax.Common (foldl1)
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
@@ -39,25 +42,35 @@ desugar (S.TmNew e) = S.TmNew (desugar e)
 desugar (S.TmPos p e) = S.TmPos p (desugar e)
 desugar e = e
 
+
+-- type-level beta-reduction is also done here
 transform :: S.Ty -> C.Ty
+
+transform (S.TyVar a) = C.TyVar a
+transform (S.TyApp (S.TyAbs a t1) t2) = tySubst a (transform t2) (transform t1)
+
+transform (S.TyRcd Nil) = C.TyTop
+transform (S.TyRcd xs) =
+  foldl1 C.TyAnd (xs <#> \x -> C.TyRcd (fst x) (transform (snd x)))
+transform (S.TyForall xs t) =
+  foldr (\x s -> C.TyForall (fst x) (disjointness (snd x)) s) (transform t) xs
+  where disjointness :: Maybe S.Ty -> C.Ty
+        disjointness (Just s) = transform s
+        disjointness Nothing  = C.TyTop
+
 transform S.TyInt    = C.TyInt
 transform S.TyDouble = C.TyDouble
 transform S.TyString = C.TyString
 transform S.TyBool   = C.TyBool
 transform S.TyTop    = C.TyTop
 transform S.TyBot    = C.TyBot
-transform (S.TyArr t1 t2) = C.TyArr (transform t1) (transform t2) false
 transform (S.TyAnd t1 t2) = C.TyAnd (transform t1) (transform t2)
-transform (S.TyRcd Nil) = C.TyTop
-transform (S.TyRcd xs) =
-  foldl1 C.TyAnd (xs <#> \x -> C.TyRcd (fst x) (transform (snd x)))
-transform (S.TyVar a) = C.TyVar a
-transform (S.TyForall xs t) =
-  foldr (\x s -> C.TyForall (fst x) (disjointness (snd x)) s) (transform t) xs
-  where disjointness :: Maybe S.Ty -> C.Ty
-        disjointness (Just s) = transform s
-        disjointness Nothing  = C.TyTop
-transform (S.TyApp t1 t2) = C.TyApp (transform t1) (transform t2)
-transform (S.TyAbs a t) = C.TyAbs a (transform t)
+transform (S.TyArr t1 t2) = C.TyArr (transform t1) (transform t2) false
 transform (S.TyTrait (Just ti) to) = C.TyArr (transform ti) (transform to) true
 transform (S.TyTrait Nothing to) = C.TyArr C.TyTop (transform to) true
+transform t = unsafeCrashWith $
+  "Zord.Desugar.transform: impossible type transformation of " <> show t
+
+transformProperTy :: S.Ty -> Typing C.Ty
+transformProperTy t = checkProperTy t' $> t'
+  where t' = transform t
