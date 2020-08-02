@@ -8,10 +8,9 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Kinding (tySubst)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..), fromJust)
-import Zord.Syntax.Core (Tm(..), Ty(..))
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..), fromJust)
+import Zord.Syntax.Core (Tm(..), Ty(..), tmSubst, tmTSubst, tySubst)
 
 type Eval a = Writer String a
 
@@ -71,7 +70,8 @@ typedReduce (TmAbs x e targ1 tret1) (TyArr targ2 tret2 _)
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
 typedReduce (TmRcd l v) (TyRcd l' t) | l == l' = TmRcd l <$> typedReduce v t
 typedReduce (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
-  | td2 <: td1 && t1 <: t2 = Just $ TmTAbs a2 td1 e t2
+  | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2
+  = Just $ TmTAbs a2 td1 (tmTSubst a1 (TyVar a2) e) t2
 typedReduce _ _ = Nothing
 
 paraApp :: Tm -> Tm -> Tm
@@ -102,42 +102,6 @@ isValue (TmRcd _ e)  = isValue e
 isValue (TmTAbs _ _ _ _) = true
 isValue _ = false
 
-tmSubst :: Name -> Tm -> Tm -> Tm
-tmSubst x v (TmUnary op e) = TmUnary op (tmSubst x v e)
-tmSubst x v (TmBinary op e1 e2) = TmBinary op (tmSubst x v e1) (tmSubst x v e2)
-tmSubst x v (TmIf e1 e2 e3) =
-  TmIf (tmSubst x v e1) (tmSubst x v e2) (tmSubst x v e3)
-tmSubst x v (TmVar x') = if x == x' then v else TmVar x'
-tmSubst x v (TmApp e1 e2) = TmApp (tmSubst x v e1) (tmSubst x v e2)
-tmSubst x v (TmAbs x' e targ tret) =
-  TmAbs x' (if x == x' then e else tmSubst x v e) targ tret
-tmSubst x v (TmFix x' e t) = TmFix x' (if x == x' then e else tmSubst x v e) t
-tmSubst x v (TmAnno e t) = TmAnno (tmSubst x v e) t
-tmSubst x v (TmMerge e1 e2) = TmMerge (tmSubst x v e1) (tmSubst x v e2)
-tmSubst x v (TmRcd l e) = TmRcd l (tmSubst x v e)
-tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
-tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
-tmSubst x v (TmTAbs a td e t) = TmTAbs a td (tmSubst x v e) t
-tmSubst _ _ e = e
-
-tmTSubst :: Name -> Ty -> Tm -> Tm
-tmTSubst a s (TmUnary op e) = TmUnary op (tmTSubst a s e)
-tmTSubst a s (TmBinary op e1 e2) =
-  TmBinary op (tmTSubst a s e1) (tmTSubst a s e2)
-tmTSubst a s (TmIf e1 e2 e3) =
-  TmIf (tmTSubst a s e1) (tmTSubst a s e2) (tmTSubst a s e3)
-tmTSubst a s (TmApp e1 e2) = TmApp (tmTSubst a s e1) (tmTSubst a s e2)
-tmTSubst a s (TmAbs x e targ tret) =
-  TmAbs x (tmTSubst a s e) (tySubst a s targ) (tySubst a s tret)
-tmTSubst a s (TmFix x e t) = TmFix x (tmTSubst a s e) (tySubst a s t)
-tmTSubst a s (TmAnno e t) = TmAnno (tmTSubst a s e) (tySubst a s t)
-tmTSubst a s (TmMerge e1 e2) = TmMerge (tmTSubst a s e1) (tmTSubst a s e2)
-tmTSubst a s (TmRcd l e) = TmRcd l (tmTSubst a s e)
-tmTSubst a s (TmPrj e l) = TmPrj (tmTSubst a s e) l
-tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
-tmTSubst a s (TmTAbs a' td e t) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
-                                  (if a == a' then t else tySubst a s t)
-tmTSubst _ _ e = e
 
 unop :: UnOp -> Tm -> Tm
 unop Neg (TmInt i)    = TmInt    (negate i)

@@ -17,8 +17,6 @@ data Ty = TyInt
         | TyRcd Label Ty
         | TyVar Name
         | TyForall Name Ty Ty
-        | TyApp Ty Ty
-        | TyAbs Name Ty
 
 instance showTy :: Show Ty where
   show TyInt    = "Int"
@@ -33,8 +31,6 @@ instance showTy :: Show Ty where
   show (TyVar a) = a
   show (TyForall a td t) = parens $
     "∀" <> a <+> "*" <+> show td <> "." <+> show t
-  show (TyApp t1 t2) = parens $ show t1 <+> show t2
-  show (TyAbs a t) = parens $ "λ" <> a <> "." <+> show t
 
 derive instance eqTy :: Eq Ty
 
@@ -81,3 +77,52 @@ instance showTm :: Show Tm where
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs a td e t) = parens $ "Λ" <> a <> "." <+> show e <+>
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
+
+-- Substitution --
+
+-- TODO: capture-avoiding
+tySubst :: Name -> Ty -> Ty -> Ty
+tySubst a s (TyArr t1 t2 b) = TyArr (tySubst a s t1) (tySubst a s t2) b
+tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
+tySubst a s (TyRcd l t) = TyRcd l (tySubst a s t)
+tySubst a s (TyVar a') = if a == a' then s else TyVar a'
+tySubst a s (TyForall a' td t) =
+  TyForall a' (tySubst a s td) (if a == a' then t else tySubst a s t)
+tySubst _ _ t = t
+
+tmSubst :: Name -> Tm -> Tm -> Tm
+tmSubst x v (TmUnary op e) = TmUnary op (tmSubst x v e)
+tmSubst x v (TmBinary op e1 e2) = TmBinary op (tmSubst x v e1) (tmSubst x v e2)
+tmSubst x v (TmIf e1 e2 e3) =
+  TmIf (tmSubst x v e1) (tmSubst x v e2) (tmSubst x v e3)
+tmSubst x v (TmVar x') = if x == x' then v else TmVar x'
+tmSubst x v (TmApp e1 e2) = TmApp (tmSubst x v e1) (tmSubst x v e2)
+tmSubst x v (TmAbs x' e targ tret) =
+  TmAbs x' (if x == x' then e else tmSubst x v e) targ tret
+tmSubst x v (TmFix x' e t) = TmFix x' (if x == x' then e else tmSubst x v e) t
+tmSubst x v (TmAnno e t) = TmAnno (tmSubst x v e) t
+tmSubst x v (TmMerge e1 e2) = TmMerge (tmSubst x v e1) (tmSubst x v e2)
+tmSubst x v (TmRcd l e) = TmRcd l (tmSubst x v e)
+tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
+tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
+tmSubst x v (TmTAbs a td e t) = TmTAbs a td (tmSubst x v e) t
+tmSubst _ _ e = e
+
+tmTSubst :: Name -> Ty -> Tm -> Tm
+tmTSubst a s (TmUnary op e) = TmUnary op (tmTSubst a s e)
+tmTSubst a s (TmBinary op e1 e2) =
+  TmBinary op (tmTSubst a s e1) (tmTSubst a s e2)
+tmTSubst a s (TmIf e1 e2 e3) =
+  TmIf (tmTSubst a s e1) (tmTSubst a s e2) (tmTSubst a s e3)
+tmTSubst a s (TmApp e1 e2) = TmApp (tmTSubst a s e1) (tmTSubst a s e2)
+tmTSubst a s (TmAbs x e targ tret) =
+  TmAbs x (tmTSubst a s e) (tySubst a s targ) (tySubst a s tret)
+tmTSubst a s (TmFix x e t) = TmFix x (tmTSubst a s e) (tySubst a s t)
+tmTSubst a s (TmAnno e t) = TmAnno (tmTSubst a s e) (tySubst a s t)
+tmTSubst a s (TmMerge e1 e2) = TmMerge (tmTSubst a s e1) (tmTSubst a s e2)
+tmTSubst a s (TmRcd l e) = TmRcd l (tmTSubst a s e)
+tmTSubst a s (TmPrj e l) = TmPrj (tmTSubst a s e) l
+tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
+tmTSubst a s (TmTAbs a' td e t) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
+                                  (if a == a' then t else tySubst a s t)
+tmTSubst _ _ e = e

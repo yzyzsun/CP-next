@@ -2,7 +2,8 @@ module Zord.Syntax.Source where
 
 import Prelude
 
-import Data.List (List, intercalate)
+import Data.Bifunctor (rmap)
+import Data.List (List, any, intercalate)
 import Data.Maybe (Maybe, maybe)
 import Data.Tuple (Tuple(..), fst, snd)
 import Text.Parsing.Parser.Pos (Position)
@@ -100,6 +101,21 @@ instance showTm :: Show Tm where
     maybe "" (\(Tuple x t) -> "[" <> x <+> ":" <+> show t <> "] ") self <>
     showMaybe "inherits " e1 " " <> "=>" <+> show e2
   show (TmNew e) = "new" <+> show e
+
+-- Substitution --
+
+-- TODO: capture-avoiding
+tySubst :: Name -> Ty -> Ty -> Ty
+tySubst a s (TyArr t1 t2) = TyArr (tySubst a s t1) (tySubst a s t2)
+tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
+tySubst a s (TyRcd xs) = TyRcd (rmap (tySubst a s) <$> xs)
+tySubst a s (TyVar a') = if a == a' then s else TyVar a'
+tySubst a s (TyForall xs t) = TyForall (rmap (map (tySubst a s)) <$> xs)
+  (if any ((_ == a) <<< fst) xs then t else tySubst a s t)
+tySubst a s (TyApp t1 t2) = TyApp (tySubst a s t1) (tySubst a s t2)
+tySubst a s (TyAbs a' t) = TyAbs a' (if a == a' then t else tySubst a s t)
+tySubst a s (TyTrait ti to) = TyTrait (tySubst a s <$> ti) (tySubst a s to)
+tySubst _ _ t = t
 
 -- Helpers --
 

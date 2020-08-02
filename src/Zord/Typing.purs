@@ -7,12 +7,11 @@ import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, singleton, union)
 import Data.Tuple (Tuple(..), uncurry)
 import Zord.Context (Pos(..), Typing, addTmBind, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
-import Zord.Desugar (transformProperTy)
-import Zord.Kinding (tySubst, (===))
-import Zord.Subtyping (isTopLike, (<:))
+import Zord.Subtyping (isTopLike, (<:), (===))
 import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..), fromJust, (<+>))
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
+import Zord.Transform (transform)
 
 synthesize :: S.Tm -> Typing (Tuple C.Tm C.Ty)
 synthesize (S.TmInt i)    = pure $ Tuple (C.TmInt i) C.TyInt
@@ -71,14 +70,14 @@ synthesize (S.TmApp e1 e2) = do
   Tuple e2' t2 <- synthesize e2
   Tuple (C.TmApp e1' e2') <$> appSS t1 t2
 synthesize (S.TmAbs (Cons (Tuple x (Just targ)) Nil) e) = do
-  targ' <- transformProperTy targ
+  targ' <- transform targ
   Tuple e' tret <- addTmBind x targ' $ synthesize e
   pure $ Tuple (C.TmAbs x e' targ' tret) (C.TyArr targ' tret false)
 synthesize (S.TmAbs (Cons (Tuple x Nothing) Nil) e) = throwTypeError
   "lambda parameters should be annotated (type inference is not implemented)"
 synthesize (S.TmAnno e ta) = do
   Tuple e' t <- synthesize e
-  ta' <- transformProperTy ta
+  ta' <- transform ta
   if t <: ta' then pure $ Tuple (C.TmAnno e' ta') ta' else throwTypeError $
     "annotated" <+> show ta' <+> "is not a supertype of synthesized" <+> show t
 synthesize (S.TmMerge e1 e2) = do
@@ -96,10 +95,10 @@ synthesize (S.TmPrj e l) = do
     _ -> throwTypeError $ show t <+> "has no label named" <+> show l
 synthesize (S.TmTApp e ta) = do
   Tuple e' tf <- synthesize e
-  ta' <- transformProperTy ta
+  ta' <- transform ta
   Tuple (C.TmTApp e' ta') <$> appSS' tf ta'
 synthesize (S.TmTAbs (Cons (Tuple a (Just td)) Nil) e) = do
-  td' <- transformProperTy td
+  td' <- transform td
   Tuple e' t <- addTyBind a td' $ synthesize e
   pure $ Tuple (C.TmTAbs a td' e' t) (C.TyForall a td' t)
 synthesize (S.TmLet x e1 e2) = do
@@ -107,7 +106,7 @@ synthesize (S.TmLet x e1 e2) = do
   Tuple e2' t2 <- addTmBind x t1 $ synthesize e2
   pure $ Tuple (letIn x e1' t1 e2' t2) t2
 synthesize (S.TmLetrec x t e1 e2) = do
-  t' <- transformProperTy t
+  t' <- transform t
   Tuple e1' t1 <- addTmBind x t' $ synthesize e1
   if t1 <: t' then do
     Tuple e2' t2 <- addTmBind x t' $ synthesize e2
@@ -128,7 +127,7 @@ synthesize (S.TmOpen e1 e2) = do
     labels (C.TyRcd l _) = singleton l
     labels _ = empty
 synthesize (S.TmTrait (Just (Tuple x t)) me1 e2) = do
-  t' <- transformProperTy t
+  t' <- transform t
   case me1 of
     Just e1 -> do
       Tuple e1' t1 <- addTmBind x t' $ synthesize e1
@@ -172,7 +171,7 @@ appSS t _ = throwTypeError $ show t <+> "is not applicable"
 
 appSS' :: C.Ty -> C.Ty -> Typing C.Ty
 appSS' C.TyTop _ = pure C.TyTop
-appSS' (C.TyForall a td t) ta = disjoint ta td $> tySubst a ta t
+appSS' (C.TyForall a td t) ta = disjoint ta td $> C.tySubst a ta t
 appSS' (C.TyAnd t1 t2) t = do
   t1' <- appSS' t1 t
   t2' <- appSS' t2 t
@@ -193,7 +192,10 @@ disjoint (C.TyVar a) t = do
     "type variable" <+> show a <+> "is not disjoint from" <+> show t
 disjoint t (C.TyVar a) = disjoint (C.TyVar a) t
 disjoint (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) =
-  addTyBind a1 (C.TyAnd td1 td2) $ disjoint t1 t2
+  addTyBind freshName (C.TyAnd td1 td2) $
+  disjoint (C.tySubst a1 freshVar t1) (C.tySubst a2 freshVar t2)
+  where freshName = a1 <> " or " <> a2
+        freshVar = C.TyVar freshName
 disjoint t1 t2 | t1 /= t2  = pure unit
                | otherwise = throwTypeError $
   show t1 <+> "and" <+> show t2 <+> "are not disjoint"
