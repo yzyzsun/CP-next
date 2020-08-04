@@ -20,6 +20,36 @@ import Zord.Syntax.Source (Tm(..), Ty(..))
 
 type SParser a = Parser String a
 
+-- Program --
+
+program :: SParser Tm
+program = fix $ \p -> tyDef p <|> tmDef p <|> expr
+
+tyDef :: SParser Tm -> SParser Tm
+tyDef p = do
+  reserved "type"
+  a <- identifier
+  as <- many (identifier)
+  t1 <- optional (reserved "extends" *> ty)
+  symbol "="
+  t2 <- ty
+  symbol ";"
+  e <- p
+  pure $ TmType a as t1 t2 e
+
+tmDef :: SParser Tm -> SParser Tm
+tmDef p = do
+  reserved "def"
+  x <- identifier
+  tyParams <- many (symbol "@" *> params "*")
+  tmParams <- many (params ":")
+  t <- optional (symbol ":" *> ty)
+  symbol "="
+  e1 <- expr
+  symbol ";"
+  e2 <- p
+  pure $ TmDef x tyParams tmParams t e1 e2
+
 -- Expressions --
 
 expr :: SParser Tm
@@ -218,6 +248,7 @@ zordDef :: LanguageDef
 zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "trait", "implements", "inherits", "new"
   , "if", "then", "else", "let", "letrec", "open", "in"
+  , "type", "extends", "def", "override"
   , "forall", "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
   ]
 }

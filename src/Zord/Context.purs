@@ -10,61 +10,55 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), lookup)
 import Text.Parsing.Parser.Pos (Position)
 import Zord.Syntax.Common (Name, (<+>))
-import Zord.Syntax.Core (Ty)
-import Zord.Syntax.Source (Tm)
+import Zord.Syntax.Core as C
+import Zord.Syntax.Source as S
 
-type Ctx = { ctx :: Mapping
+type Ctx = { tmBindEnv :: Env C.Ty -- typing
+           , tyBindEnv :: Env C.Ty -- disjointness
+           , tyAliasEnv :: Env S.Ty
            , pos :: Pos
            }
 
-type Mapping = List (Tuple Name Binding)
-
-data Binding = TmBind Ty -- typing
-             | TyBind Ty -- disjointness
+type Env a = List (Tuple Name a)
 
 data Pos = UnknownPos
-         | Pos Position Tm
+         | Pos Position S.Tm
 
 type Typing = ReaderT Ctx (Except TypeError)
 
 runTyping :: forall a. Typing a -> Either TypeError a
-runTyping m = runExcept $ runReaderT m { ctx : Nil, pos : UnknownPos }
+runTyping m = runExcept $ runReaderT m
+  { tmBindEnv : Nil, tyBindEnv : Nil, tyAliasEnv : Nil, pos : UnknownPos }
 
-lookupBinding :: Name -> Typing Binding
-lookupBinding name = do
-  ctx <- asks (_.ctx)
-  case lookup name ctx of
-    Just binding -> pure binding
-    Nothing -> throwTypeError $ "variable" <+> show name <+> "is not defined"
+lookupTmBind :: Name -> Typing C.Ty
+lookupTmBind name = do
+  env <- asks (_.tmBindEnv)
+  case lookup name env of
+    Just t -> pure t
+    Nothing -> throwTypeError $ "term variable" <+> show name <+> "is undefined"
 
-lookupTmBind :: Name -> Typing Ty
-lookupTmBind x = do
-  binding <- lookupBinding x
-  case binding of
-    TmBind t -> pure t
-    _  -> throwTypeError $ "variable" <+> show x <+> "is not a term"
+lookupTyBind :: Name -> Typing (Maybe C.Ty)
+lookupTyBind name = do
+  env <- asks (_.tyBindEnv)
+  pure $ lookup name env
 
-lookupTyBind :: Name -> Typing Ty
-lookupTyBind a = do
-  binding <- lookupBinding a
-  case binding of
-    TyBind t -> pure t
-    _  -> throwTypeError $ "variable" <+> show a <+> "is not a type"
+lookupTyAlias :: Name -> Typing (Maybe S.Ty)
+lookupTyAlias name = do
+  env <- asks (_.tyAliasEnv)
+  pure $ lookup name env
 
-mapCtx :: (Mapping -> Mapping) -> Ctx -> Ctx
-mapCtx f r = r { ctx = f r.ctx }
+addToEnv :: forall a b. ((Env b -> Env b) -> Ctx -> Ctx) ->
+                        Name -> b -> Typing a -> Typing a
+addToEnv map name ty = local (map (Tuple name ty : _))
 
-addBinding :: forall a. Name -> Binding -> Typing a -> Typing a
-addBinding name binding = local (mapCtx (Tuple name binding : _))
+addTmBind :: forall a. Name -> C.Ty -> Typing a -> Typing a
+addTmBind = addToEnv \f r -> r { tmBindEnv = f r.tmBindEnv }
 
-addTmBind :: forall a. Name -> Ty -> Typing a -> Typing a
-addTmBind x t = addBinding x (TmBind t)
+addTyBind :: forall a. Name -> C.Ty -> Typing a -> Typing a
+addTyBind = addToEnv \f r -> r { tyBindEnv = f r.tyBindEnv }
 
-addTyBind :: forall a. Name -> Ty -> Typing a -> Typing a
-addTyBind a t = addBinding a (TyBind t)
-
-emptyCtx :: forall a. Typing a -> Typing a
-emptyCtx = local (mapCtx (const Nil))
+addTyAlias :: forall a. Name -> S.Ty -> Typing a -> Typing a
+addTyAlias = addToEnv \f r -> r { tyAliasEnv = f r.tyAliasEnv }
 
 setPos :: forall a. Pos -> Typing a -> Typing a
 setPos p = local (_ { pos = p })

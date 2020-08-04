@@ -6,7 +6,7 @@ import Data.List (List(..), foldr)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, singleton, union)
 import Data.Tuple (Tuple(..), uncurry)
-import Zord.Context (Pos(..), Typing, addTmBind, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
+import Zord.Context (Pos(..), Typing, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
 import Zord.Subtyping (isTopLike, (<:), (===))
 import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..), fromJust, (<+>))
 import Zord.Syntax.Core as C
@@ -155,7 +155,10 @@ synthesize (S.TmNew e) = do
       else throwTypeError $ "in a trait type, input" <+> show ti <+>
         "is not a supertype of output" <+> show to
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
+-- TODO: save original terms instead of desugared ones
 synthesize (S.TmPos p e) = setPos (Pos p e) $ synthesize e
+synthesize (S.TmType a as Nothing t e) =
+  addTyAlias a (foldr S.TyAbs t as) $ synthesize e
 synthesize e = throwTypeError $ show e <+> "should have been desugared"
 
 appSS :: C.Ty -> C.Ty -> Typing C.Ty
@@ -187,9 +190,11 @@ disjoint t1 (C.TyAnd t2 t3) = disjoint (C.TyAnd t2 t3) t1
 disjoint (C.TyRcd l1 t1) (C.TyRcd l2 t2) | l1 == l2  = disjoint t1 t2
                                          | otherwise = pure unit
 disjoint (C.TyVar a) t = do
-  t' <- lookupTyBind a
-  if t' <: t then pure unit else throwTypeError $
-    "type variable" <+> show a <+> "is not disjoint from" <+> show t
+  mt' <- lookupTyBind a
+  case mt' of
+    Just t' -> if t' <: t then pure unit else throwTypeError $
+      "type variable" <+> show a <+> "is not disjoint from" <+> show t
+    Nothing -> throwTypeError $ "type variable" <+> show a <+> "is undefined"
 disjoint t (C.TyVar a) = disjoint (C.TyVar a) t
 disjoint (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) =
   addTyBind freshName (C.TyAnd td1 td2) $

@@ -15,14 +15,14 @@ import Text.Parsing.Parser.Pos (Position(..))
 import Text.Parsing.Parser.String (eof, skipSpaces)
 import Zord.Context (Pos(..), TypeError(..), runTyping)
 import Zord.Desugar (desugar)
-import Zord.Parser (expr)
+import Zord.Parser (program)
 import Zord.Semantics (eval, runEval)
 import Zord.Typing (synthesize)
 
 data Mode = Simple | Verbose
 
 interpret :: Mode -> String -> Effect String
-interpret mode input = case runParser input (skipSpaces *> expr <* eof) of
+interpret mode input = case runParser input (skipSpaces *> program <* eof) of
   Left err -> throw $ showParseError err input
   Right e -> case runTyping (synthesize (desugar e)) of
     Left err -> throw $ showTypeError err

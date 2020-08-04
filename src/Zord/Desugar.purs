@@ -5,7 +5,7 @@ import Prelude
 import Data.Bifunctor (rmap)
 import Data.List (List(..), foldr, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), snd)
 import Zord.Syntax.Common (foldl1)
 import Zord.Syntax.Source (Tm(..), Ty(..))
 
@@ -22,6 +22,15 @@ desugar (TmRcd xs) =
 desugar (TmTrait self e1 e2) =
   let self'@(Tuple x _) = fromMaybe (Tuple "self" TyTop) self in
   TmTrait (Just self') (desugar <$> e1) (TmOpen (TmVar x) (desugar e2))
+desugar (TmType a as (Just t1) t2 e) =
+  TmType a as Nothing (TyAnd t1 t2) (desugar e)
+-- TODO: should be always desugared to letrec
+desugar (TmDef x tyParams tmParams t e1 e2) =
+  case t of Just t' -> TmLetrec x (ty t') tm (desugar e2)
+            Nothing -> TmLet x tm (desugar e2)
+  where tm = desugar (TmTAbs tyParams (TmAbs tmParams e1))
+        ty t' = TyForall tyParams (foldr TyArr t' (tmParams <#>
+                                                   snd >>> fromMaybe TyTop))
 
 desugar (TmUnary op e) = TmUnary op (desugar e)
 desugar (TmBinary op e1 e2) = TmBinary op (desugar e1) (desugar e2)
@@ -36,4 +45,5 @@ desugar (TmLetrec x t e1 e2) = TmLetrec x t (desugar e1) (desugar e2)
 desugar (TmOpen e1 e2) = TmOpen (desugar e1) (desugar e2)
 desugar (TmNew e) = TmNew (desugar e)
 desugar (TmPos p e) = TmPos p (desugar e)
+desugar (TmType a as Nothing t2 e) = TmType a as Nothing t2 (desugar e)
 desugar e = e

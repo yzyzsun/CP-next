@@ -71,6 +71,8 @@ data Tm = TmInt Int
         | TmTrait (Maybe (Tuple Name Ty)) (Maybe Tm) Tm
         | TmNew Tm
         | TmPos Position Tm
+        | TmType Name (List Name) (Maybe Ty) Ty Tm
+        | TmDef Name ParamList ParamList (Maybe Ty) Tm Tm
 
 instance showTm :: Show Tm where
   show (TmInt i)    = show i
@@ -96,11 +98,16 @@ instance showTm :: Show Tm where
   show (TmLetrec x t e1 e2) = parens $
     "letrec" <+> x <+> ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
-  show (TmPos p e) = show e
   show (TmTrait self e1 e2) = parens $ "trait" <+>
     maybe "" (\(Tuple x t) -> "[" <> x <+> ":" <+> show t <> "] ") self <>
     showMaybe "inherits " e1 " " <> "=>" <+> show e2
   show (TmNew e) = "new" <+> show e
+  show (TmPos p e) = show e
+  show (TmType a as t1 t2 e) = "type" <+> a <+> intercalate " " as <+>
+    showMaybe "extends " t1 " " <> "=" <+> show t2 <> ";" <+> show e
+  show (TmDef x tyParams tmParams t e1 e2) = "def" <+> x <+>
+    showParams' tyParams <+> showParams ":" tmParams <+>
+    showMaybe ": " t " " <> "=" <+> show e1 <> ";" <+> show e2
 
 -- Substitution --
 
@@ -127,6 +134,11 @@ type ParamList = List (Tuple Name (Maybe Ty))
 showParams :: String -> ParamList -> String
 showParams s xs = intercalate " " (xs <#> \x ->
   maybe (fst x) (\t -> parens $ fst x <+> s <+> show t) (snd x)
+)
+
+showParams' :: ParamList -> String
+showParams' xs = intercalate " " (xs <#> \x ->
+  "@" <> maybe (fst x) (\t -> parens $ fst x <+> "*" <+> show t) (snd x)
 )
 
 type RcdList a = List (Tuple Label a)
