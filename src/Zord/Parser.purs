@@ -15,7 +15,7 @@ import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildEx
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (char)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef)
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..), Name)
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..), Label)
 import Zord.Syntax.Source (Tm(..), Ty(..))
 
 type SParser a = Parser String a
@@ -81,7 +81,7 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
                  , reserved "false" $> TmBool false
                  , symbol "()" $> TmUnit
                  , identifier <#> TmVar
-                 , recordLit
+                 , recordLit e
                  , parens e
                  ]
 
@@ -104,7 +104,7 @@ tyLambdaAbs = do
 trait :: SParser Tm
 trait = do
   reserved "trait"
-  self <- optional (brackets (Tuple <$> identifier <* symbol ":" <*> ty))
+  self <- optional selfAnno
   sig <- optional (reserved "implements" *> ty)
   e1 <- optional (reserved "inherits" *> expr)
   symbol "=>"
@@ -157,12 +157,28 @@ open = do
   e2 <- expr
   pure $ TmOpen e1 e2
 
-recordLit :: SParser Tm
-recordLit = braces $ TmRcd <$> semiSep do
+recordLit :: SParser Tm -> SParser Tm
+recordLit e = braces $ TmRcd <$> semiSep (recordField e <|> methodPattern e)
+
+recordField :: SParser Tm -> SParser (Tuple Label Tm)
+recordField p = do
   l <- identifier
   symbol "="
-  e <- expr
+  e <- p
   pure $ Tuple l e
+
+methodPattern :: SParser Tm -> SParser (Tuple Label Tm)
+methodPattern p = do
+  symbol "("
+  ll <- identifier
+  parms <- many (params ":")
+  self <- optional selfAnno
+  symbol ")"
+  symbol "."
+  l <- identifier
+  symbol "="
+  e <- p
+  pure $ Tuple ll (TmPattern ll parms self l e)
 
 operators :: OperatorTable Identity String Tm
 operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
@@ -210,15 +226,15 @@ aty t = choice [ reserved "Int"    $> TyInt
 
 sortTy :: SParser Ty -> SParser Ty
 sortTy t = angles do
-  ti <- aty t
-  to <- optional (symbol "%" *> aty t)
+  ti <- t
+  to <- optional (symbol "%" *> t)
   pure $ TySort ti to
 
 traitTy :: SParser Ty -> SParser Ty
 traitTy t = do
   reserved "Trait"
-  ti <- optional (try (aty t <* symbol "%"))
-  to <- aty t
+  ti <- optional (try (t <* symbol "%"))
+  to <- t
   pure $ TyTrait ti to
 
 forallTy :: SParser Ty
@@ -250,6 +266,9 @@ fromIntOrNumber (Right number) = TmDouble number
 params :: String -> SParser (Tuple Name (Maybe Ty))
 params s = Tuple <$> identifier <*> pure Nothing <|>
            parens (Tuple <$> identifier <* symbol s <*> (Just <$> ty))
+
+selfAnno :: SParser (Tuple Name Ty)
+selfAnno = brackets $ Tuple <$> identifier <* symbol ":" <*> ty
 
 -- Lexer --
 

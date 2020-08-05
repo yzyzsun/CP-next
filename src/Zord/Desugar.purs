@@ -25,13 +25,15 @@ desugar (TmTrait self sig e1 e2) =
           (desugar <$> e1) (TmOpen (TmVar x) (desugar e2))
 desugar (TmType a sorts params (Just t1) t2 e) =
   TmType a sorts params Nothing (TyAnd t1 t2) (desugar e)
--- TODO: should be always desugared to letrec
+-- TODO: def should always be desugared to letrec
 desugar (TmDef x tyParams tmParams t e1 e2) =
   case t of Just t' -> TmLetrec x (ty t') tm (desugar e2)
             Nothing -> TmLet x tm (desugar e2)
   where tm = desugar (TmTAbs tyParams (TmAbs tmParams e1))
         ty t' = TyForall tyParams (foldr TyArr t' (tmParams <#>
                                                    snd >>> fromMaybe TyTop))
+desugar (TmPattern _ params self l e) = desugar
+  (TmAbs params (TmTrait self Nothing Nothing (TmRcd (singleton (Tuple l e)))))
 
 desugar (TmUnary op e) = TmUnary op (desugar e)
 desugar (TmBinary op e1 e2) = TmBinary op (desugar e1) (desugar e2)

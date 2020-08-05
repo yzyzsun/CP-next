@@ -37,7 +37,7 @@ instance showTy :: Show Ty where
   show TyBot    = "Bot"
   show (TyArr t1 t2) = parens $ show t1 <+> "->" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
-  show (TyRcd xs) = braces $ showRcd ":" xs
+  show (TyRcd xs) = braces $ showRcdTy xs
   show (TyVar a) = a
   show (TyForall xs t) = parens $
     "forall" <+> showParams "*" xs <> "." <+> show t
@@ -71,11 +71,12 @@ data Tm = TmInt Int
         | TmLet Name Tm Tm
         | TmLetrec Name Ty Tm Tm
         | TmOpen Tm Tm
-        | TmTrait (Maybe (Tuple Name Ty)) (Maybe Ty) (Maybe Tm) Tm
+        | TmTrait SelfAnno (Maybe Ty) (Maybe Tm) Tm
         | TmNew Tm
         | TmPos Position Tm
         | TmType Name (List Name) (List Name) (Maybe Ty) Ty Tm
         | TmDef Name ParamList ParamList (Maybe Ty) Tm Tm
+        | TmPattern Label ParamList SelfAnno Label Tm
 
 instance showTm :: Show Tm where
   show (TmInt i)    = show i
@@ -92,7 +93,7 @@ instance showTm :: Show Tm where
   show (TmAbs xs e) = parens $ "\\" <> showParams ":" xs <+> "->" <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
-  show (TmRcd xs) = braces $ showRcd "=" xs
+  show (TmRcd xs) = braces $ showRcdTm xs
   show (TmPrj e l) = show e <> "." <> l
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs xs e) = parens $ "/\\" <> showParams "*" xs <> "." <+> show e
@@ -101,8 +102,7 @@ instance showTm :: Show Tm where
   show (TmLetrec x t e1 e2) = parens $
     "letrec" <+> x <+> ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
-  show (TmTrait self sig e1 e2) = parens $ "trait" <>
-    maybe "" (\(Tuple x t) -> brackets $ x <+> ":" <+> show t) self <+>
+  show (TmTrait self sig e1 e2) = parens $ "trait" <+> showSelf self <+>
     showMaybe "implements " sig " " <> showMaybe "inherits " e1 " " <>
     "=>" <+> show e2
   show (TmNew e) = "new" <+> show e
@@ -113,6 +113,9 @@ instance showTm :: Show Tm where
   show (TmDef x tyParams tmParams t e1 e2) = "def" <+> x <+>
     showParams' tyParams <+> showParams ":" tmParams <+>
     showMaybe ": " t " " <> "=" <+> show e1 <> ";" <+> show e2
+  show (TmPattern ll params self l e) =
+    parens (ll <+> showParams ":" params <+> showSelf self) <> "." <> l <+>
+    "=" <+> show e
 
 -- Substitution --
 
@@ -150,5 +153,16 @@ showParams' xs = intercalate " " (xs <#> \x ->
 
 type RcdList a = List (Tuple Label a)
 
-showRcd :: forall a. Show a => String -> RcdList a -> String
-showRcd s xs = intercalate "; " (xs <#> \x -> fst x <+> s <+> show (snd x))
+showRcdTy :: RcdList Ty -> String
+showRcdTy xs = intercalate "; " (xs <#> \(Tuple l t) -> l <+> ":" <+> show t)
+
+showRcdTm :: RcdList Tm -> String
+showRcdTm xs = intercalate "; " (xs <#> showField)
+  where showField :: Tuple Label Tm -> String
+        showField (Tuple _ p@(TmPattern _ _ _ _ _)) = show p
+        showField (Tuple l e) = l <+> "=" <+> show e
+
+type SelfAnno = Maybe (Tuple Name Ty)
+
+showSelf :: SelfAnno -> String
+showSelf = maybe "" \(Tuple x t) -> brackets $ x <+> ":" <+> show t
