@@ -2,44 +2,48 @@ module Zord.Transform where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Data.Bitraversable (rtraverse)
+import Data.Char.Unicode (isUpper)
 import Data.List (List(..), foldr)
 import Data.Maybe (Maybe(..))
-import Data.Traversable (traverse)
-import Data.Tuple (fst, snd, uncurry)
-import Zord.Context (Typing, addTyBind, lookupTyAlias, lookupTyBind, throwTypeError)
-import Zord.Syntax.Common (foldl1, (<+>))
+import Data.String.Unsafe (charAt)
+import Data.Traversable (for, traverse)
+import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Zord.Context (Typing, addTyBind, lookupSort, lookupTyAlias, lookupTyBind, throwTypeError)
+import Zord.Syntax.Common (foldl1, fromJust, (<+>))
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
 
 transform :: S.Ty -> Typing C.Ty
-transform = expand >=> elaborate
+transform = expand >=> translate
 
-elaborate :: S.Ty -> Typing C.Ty
-elaborate (S.TyRcd Nil) = pure C.TyTop
-elaborate (S.TyRcd xs) =
-  foldl1 C.TyAnd <$> traverse (\x -> C.TyRcd (fst x) <$> elaborate (snd x)) xs
-elaborate (S.TyForall xs t) =
-  foldr (uncurry C.TyForall) <$> elaborate t <*>
+translate :: S.Ty -> Typing C.Ty
+translate (S.TyRcd Nil) = pure C.TyTop
+translate (S.TyRcd xs) =
+  foldl1 C.TyAnd <$> for xs \x -> C.TyRcd (fst x) <$> translate (snd x)
+translate (S.TyForall xs t) =
+  foldr (uncurry C.TyForall) <$> translate t <*>
     traverse (rtraverse disjointness) xs
   where disjointness :: Maybe S.Ty -> Typing C.Ty
-        disjointness (Just s) = elaborate s
+        disjointness (Just s) = translate s
         disjointness Nothing  = pure C.TyTop
 
-elaborate S.TyInt    = pure C.TyInt
-elaborate S.TyDouble = pure C.TyDouble
-elaborate S.TyString = pure C.TyString
-elaborate S.TyBool   = pure C.TyBool
-elaborate S.TyTop    = pure C.TyTop
-elaborate S.TyBot    = pure C.TyBot
-elaborate (S.TyAnd t1 t2) = C.TyAnd <$> elaborate t1 <*> elaborate t2
-elaborate (S.TyArr t1 t2) = C.TyArr <$> elaborate t1 <*> elaborate t2 <@> false
-elaborate (S.TyVar a) = pure $ C.TyVar a
-elaborate (S.TyTrait (Just ti) to) =
-  C.TyArr <$> elaborate ti <*> elaborate to <@> true
-elaborate (S.TyTrait Nothing to) = C.TyArr C.TyTop <$> elaborate to <@> true
-elaborate t@(S.TyAbs _ _) = throwTypeError $ show t <+> "is not a proper type"
-elaborate t = throwTypeError $ show t <+> "should have been expanded"
+translate S.TyInt    = pure C.TyInt
+translate S.TyDouble = pure C.TyDouble
+translate S.TyString = pure C.TyString
+translate S.TyBool   = pure C.TyBool
+translate S.TyTop    = pure C.TyTop
+translate S.TyBot    = pure C.TyBot
+translate (S.TyAnd t1 t2) = C.TyAnd <$> translate t1 <*> translate t2
+translate (S.TyArr t1 t2) = C.TyArr <$> translate t1 <*> translate t2 <@> false
+translate (S.TyVar a) = pure $ C.TyVar a
+translate (S.TyTrait Nothing to) = C.TyArr C.TyTop <$> translate to <@> true
+translate (S.TyTrait (Just ti) to) =
+  C.TyArr <$> translate ti <*> translate to <@> true
+translate t@(S.TyAbs _ _) = throwTypeError $ show t <+> "is not a proper type"
+translate t@(S.TySig _ _) = throwTypeError $ show t <+> "is not a proper type"
+translate t = throwTypeError $ show t <+> "should have been expanded"
 
 -- We don't need to check disjointness in the process of type expansion,
 -- so a placeholder of core types will be added to TyBindEnv.
@@ -53,8 +57,9 @@ expand (S.TyAnd t1 t2) = S.TyAnd <$> expand t1 <*> expand t2
 expand (S.TyRcd xs) = S.TyRcd <$> traverse (rtraverse expand) xs
 expand (S.TyVar a) = do
   mtd <- lookupTyBind a
-  case mtd of
-    Just _ -> pure $ S.TyVar a
+  ms <- lookupSort a
+  case void mtd <|> void ms of
+    Just unit -> pure $ S.TyVar a
     Nothing -> do
       mt <- lookupTyAlias a
       case mt of
@@ -66,8 +71,52 @@ expand (S.TyForall xs t) =
 expand (S.TyApp t1 t2) = do
   t1' <- expand t1
   t2' <- expand t2
-  case t1' of S.TyAbs a t -> pure $ S.tySubst a t2' t
-              _ -> throwTypeError $ "type" <+> show t1' <+> "is not applicable"
+  case t1' of
+    S.TyAbs a t -> pure $ S.tySubst a t2' t
+    S.TySig a t ->
+      case t2' of
+        S.TySort ti (Just to) -> do
+          mb <- lookupSort a
+          pure $ S.tySubst a ti (S.tySubst (fromJust mb) to t)
+        _ -> throwTypeError $
+          "sig" <+> show t1' <+> "expected a sort, but got" <+> show t2'
+    _ -> throwTypeError $ "type" <+> show t1' <+> "is not applicable"
 expand (S.TyAbs a t) = addTyBind a someTy $ S.TyAbs a <$> expand t
 expand (S.TyTrait ti to) = S.TyTrait <$> traverse expand ti <*> expand to
+expand (S.TySort ti to) = do
+  ti' <- expand ti
+  mto <- traverse expand to
+  case mto of
+    Just to' -> pure $ S.TySort (S.TyAnd ti' to') (Just to')
+    Nothing -> case ti' of
+      S.TyVar a -> do
+        mb <- lookupSort a
+        case mb of Just b -> pure $ S.TySort ti' (Just (S.TyVar b))
+                   Nothing -> pure $ S.TySort ti' (Just ti')
+      _ -> pure $ S.TySort ti' (Just ti')
 expand t = pure t
+
+distinguish :: Boolean -> Boolean -> S.Ty -> Typing S.Ty
+distinguish isCtor isOut (S.TyArr t1 t2) =
+  S.TyArr <$> distinguish isCtor (not isOut) t1 <*> distinguish isCtor isOut t2
+distinguish isCtor isOut (S.TyAnd t1 t2) =
+  S.TyAnd <$> distinguish isCtor isOut t1 <*> distinguish isCtor isOut t2
+distinguish isCtor isOut (S.TyRcd xs) = S.TyRcd <$> for xs \(Tuple l t) ->
+  Tuple l <$> distinguish (isUpper (charAt 0 l)) isOut t
+distinguish isCtor true t@(S.TyVar a) = do
+  mb <- lookupSort a
+  case mb of Just b -> do if isCtor then pure $ S.TyTrait (Just t) (S.TyVar b)
+                                    else pure $ S.TyVar b
+             Nothing -> pure $ S.TyVar a
+-- TODO: remove bound variable names from SortEnv
+distinguish isCtor isOut (S.TyForall xs t) = S.TyForall <$>
+  traverse (rtraverse (traverse (distinguish isCtor isOut))) xs <*>
+  distinguish isCtor isOut t
+distinguish isCtor isOut (S.TyApp t1 t2) =
+  S.TyApp <$> distinguish isCtor isOut t1 <*> distinguish isCtor isOut t2
+-- TODO: remove bound variable names from SortEnv
+distinguish isCtor isOut (S.TyAbs a t) =
+  S.TyAbs a <$> distinguish isCtor isOut t
+distinguish isCtor isOut (S.TyTrait ti to) = S.TyTrait <$>
+  traverse (distinguish isCtor (not isOut)) ti <*> distinguish isCtor isOut to
+distinguish _ _ t = pure t

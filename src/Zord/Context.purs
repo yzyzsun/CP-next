@@ -15,7 +15,8 @@ import Zord.Syntax.Source as S
 
 type Ctx = { tmBindEnv :: Env C.Ty -- typing
            , tyBindEnv :: Env C.Ty -- disjointness
-           , tyAliasEnv :: Env S.Ty
+           , tyAliasEnv :: Env S.Ty -- synonym
+           , sortEnv :: Env Name -- distinguishing
            , pos :: Pos
            }
 
@@ -27,8 +28,12 @@ data Pos = UnknownPos
 type Typing = ReaderT Ctx (Except TypeError)
 
 runTyping :: forall a. Typing a -> Either TypeError a
-runTyping m = runExcept $ runReaderT m
-  { tmBindEnv : Nil, tyBindEnv : Nil, tyAliasEnv : Nil, pos : UnknownPos }
+runTyping m = runExcept $ runReaderT m { tmBindEnv : Nil
+                                       , tyBindEnv : Nil
+                                       , tyAliasEnv : Nil
+                                       , sortEnv : Nil
+                                       , pos : UnknownPos
+                                       }
 
 lookupTmBind :: Name -> Typing C.Ty
 lookupTmBind name = do
@@ -38,14 +43,13 @@ lookupTmBind name = do
     Nothing -> throwTypeError $ "term variable" <+> show name <+> "is undefined"
 
 lookupTyBind :: Name -> Typing (Maybe C.Ty)
-lookupTyBind name = do
-  env <- asks (_.tyBindEnv)
-  pure $ lookup name env
+lookupTyBind name = lookup name <$> asks (_.tyBindEnv)
 
 lookupTyAlias :: Name -> Typing (Maybe S.Ty)
-lookupTyAlias name = do
-  env <- asks (_.tyAliasEnv)
-  pure $ lookup name env
+lookupTyAlias name = lookup name <$> asks (_.tyAliasEnv)
+
+lookupSort :: Name -> Typing (Maybe Name)
+lookupSort name = lookup name <$> asks (_.sortEnv)
 
 addToEnv :: forall a b. ((Env b -> Env b) -> Ctx -> Ctx) ->
                         Name -> b -> Typing a -> Typing a
@@ -59,6 +63,9 @@ addTyBind = addToEnv \f r -> r { tyBindEnv = f r.tyBindEnv }
 
 addTyAlias :: forall a. Name -> S.Ty -> Typing a -> Typing a
 addTyAlias = addToEnv \f r -> r { tyAliasEnv = f r.tyAliasEnv }
+
+addSort :: forall a. Name -> Typing a -> Typing a
+addSort name = addToEnv (\f r -> r { sortEnv = f r.sortEnv }) name ("#" <> name)
 
 setPos :: forall a. Pos -> Typing a -> Typing a
 setPos p = local (_ { pos = p })

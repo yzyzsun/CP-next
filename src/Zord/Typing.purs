@@ -6,12 +6,12 @@ import Data.List (List(..), foldr)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set, empty, singleton, union)
 import Data.Tuple (Tuple(..), uncurry)
-import Zord.Context (Pos(..), Typing, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
+import Zord.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
 import Zord.Subtyping (isTopLike, (<:), (===))
 import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..), fromJust, (<+>))
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
-import Zord.Transform (transform)
+import Zord.Transform (distinguish, transform)
 
 synthesize :: S.Tm -> Typing (Tuple C.Tm C.Ty)
 synthesize (S.TmInt i)    = pure $ Tuple (C.TmInt i) C.TyInt
@@ -157,8 +157,14 @@ synthesize (S.TmNew e) = do
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
 -- TODO: save original terms instead of desugared ones
 synthesize (S.TmPos p e) = setPos (Pos p e) $ synthesize e
-synthesize (S.TmType a as Nothing t e) =
-  addTyAlias a (foldr S.TyAbs t as) $ synthesize e
+synthesize (S.TmType a sorts params Nothing t e) = do
+  t' <- addSorts $ distinguish false true t
+  addSorts $ addTyAlias a (sig t') $ synthesize e
+  where
+    addSorts :: forall a. Typing a -> Typing a
+    addSorts x = foldr addSort x sorts
+    sig :: S.Ty -> S.Ty
+    sig t' = foldr S.TySig (foldr S.TyAbs t' params) sorts
 synthesize e = throwTypeError $ show e <+> "should have been desugared"
 
 appSS :: C.Ty -> C.Ty -> Typing C.Ty

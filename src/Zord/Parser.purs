@@ -15,7 +15,7 @@ import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildEx
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (char)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef)
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..), Name, foldl1)
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..), Name)
 import Zord.Syntax.Source (Tm(..), Ty(..))
 
 type SParser a = Parser String a
@@ -29,13 +29,14 @@ tyDef :: SParser Tm -> SParser Tm
 tyDef p = do
   reserved "type"
   a <- identifier
-  as <- many (identifier)
+  sorts <- many (angles identifier)
+  parms <- many (identifier)
   t1 <- optional (reserved "extends" *> ty)
   symbol "="
   t2 <- ty
   symbol ";"
   e <- p
-  pure $ TmType a as t1 t2 e
+  pure $ TmType a sorts parms t1 t2 e
 
 tmDef :: SParser Tm -> SParser Tm
 tmDef p = do
@@ -191,7 +192,8 @@ ty :: SParser Ty
 ty = fix \t -> buildExprParser toperators $ bty t
 
 bty :: SParser Ty -> SParser Ty
-bty t = foldl1 TyApp <$> some (aty t) <|> forallTy <|> traitTy t
+bty t = foldl TyApp <$> aty t <*> many (aty t <|> sortTy t) <|>
+        traitTy t <|> forallTy
 
 aty :: SParser Ty -> SParser Ty
 aty t = choice [ reserved "Int"    $> TyInt
@@ -205,6 +207,19 @@ aty t = choice [ reserved "Int"    $> TyInt
                , parens t
                ]
 
+sortTy :: SParser Ty -> SParser Ty
+sortTy t = angles do
+  ti <- aty t
+  to <- optional (symbol "%" *> aty t)
+  pure $ TySort ti to
+
+traitTy :: SParser Ty -> SParser Ty
+traitTy t = do
+  reserved "Trait"
+  ti <- optional (try (aty t <* symbol "%"))
+  to <- aty t
+  pure $ TyTrait ti to
+
 forallTy :: SParser Ty
 forallTy = do
   reserved "forall"
@@ -212,13 +227,6 @@ forallTy = do
   symbol "."
   t <- ty
   pure $ TyForall xs t
-
-traitTy :: SParser Ty -> SParser Ty
-traitTy t = do
-  reserved "Trait"
-  ti <- optional (try (aty t <* symbol "#"))
-  to <- aty t
-  pure $ TyTrait ti to
 
 recordTy :: SParser Ty
 recordTy = braces $ TyRcd <$> semiSep do

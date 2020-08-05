@@ -7,7 +7,7 @@ import Data.List (List, any, intercalate)
 import Data.Maybe (Maybe, maybe)
 import Data.Tuple (Tuple(..), fst, snd)
 import Text.Parsing.Parser.Pos (Position)
-import Zord.Syntax.Common (BinOp, Label, Name, UnOp, braces, parens, (<+>))
+import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens, (<+>))
 
 -- Types --
 
@@ -25,6 +25,8 @@ data Ty = TyInt
         | TyApp Ty Ty
         | TyAbs Name Ty
         | TyTrait (Maybe Ty) Ty
+        | TySort Ty (Maybe Ty)
+        | TySig Name Ty
 
 instance showTy :: Show Ty where
   show TyInt    = "Int"
@@ -41,8 +43,9 @@ instance showTy :: Show Ty where
     "forall" <+> showParams "*" xs <> "." <+> show t
   show (TyApp t1 t2) = parens $ show t1 <+> show t2
   show (TyAbs a t) = parens $ "\\" <> a <+> "->" <+> show t
-  show (TyTrait ti to) = parens $
-    "Trait" <+> showMaybe "" ti "#" <> show to
+  show (TyTrait ti to) = parens $ "Trait" <+> showMaybe "" ti " % " <> show to
+  show (TySort ti to) = angles $ show ti <> showMaybe " % " to ""
+  show (TySig a t) = parens $ "\\" <> angles a <+> "->" <+> show t
 
 derive instance eqTy :: Eq Ty
 
@@ -71,7 +74,7 @@ data Tm = TmInt Int
         | TmTrait (Maybe (Tuple Name Ty)) (Maybe Tm) Tm
         | TmNew Tm
         | TmPos Position Tm
-        | TmType Name (List Name) (Maybe Ty) Ty Tm
+        | TmType Name (List Name) (List Name) (Maybe Ty) Ty Tm
         | TmDef Name ParamList ParamList (Maybe Ty) Tm Tm
 
 instance showTm :: Show Tm where
@@ -98,12 +101,13 @@ instance showTm :: Show Tm where
   show (TmLetrec x t e1 e2) = parens $
     "letrec" <+> x <+> ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
-  show (TmTrait self e1 e2) = parens $ "trait" <+>
-    maybe "" (\(Tuple x t) -> "[" <> x <+> ":" <+> show t <> "] ") self <>
+  show (TmTrait self e1 e2) = parens $ "trait" <>
+    maybe "" (\(Tuple x t) -> brackets $ x <+> ":" <+> show t) self <+>
     showMaybe "inherits " e1 " " <> "=>" <+> show e2
   show (TmNew e) = "new" <+> show e
   show (TmPos p e) = show e
-  show (TmType a as t1 t2 e) = "type" <+> a <+> intercalate " " as <+>
+  show (TmType a sorts params t1 t2 e) = "type" <+> a <+>
+    intercalate " " (angles <$> sorts) <+> intercalate " " params <+>
     showMaybe "extends " t1 " " <> "=" <+> show t2 <> ";" <+> show e
   show (TmDef x tyParams tmParams t e1 e2) = "def" <+> x <+>
     showParams' tyParams <+> showParams ":" tmParams <+>
@@ -122,6 +126,8 @@ tySubst a s (TyForall xs t) = TyForall (rmap (map (tySubst a s)) <$> xs)
 tySubst a s (TyApp t1 t2) = TyApp (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyAbs a' t) = TyAbs a' (if a == a' then t else tySubst a s t)
 tySubst a s (TyTrait ti to) = TyTrait (tySubst a s <$> ti) (tySubst a s to)
+tySubst a s (TySort ti to) = TySort (tySubst a s ti) (tySubst a s <$> to)
+tySubst a s (TySig a' t) = TySig a' (if a == a' then t else tySubst a s t)
 tySubst _ _ t = t
 
 -- Helpers --
