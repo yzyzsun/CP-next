@@ -19,9 +19,10 @@ desugar (TmTAbs xs e) =
 desugar (TmRcd Nil) = TmUnit
 desugar (TmRcd xs) =
   foldl1 TmMerge (xs <#> \x -> TmRcd (singleton (rmap desugar x)))
-desugar (TmTrait self e1 e2) =
+desugar (TmTrait self sig e1 e2) =
   let self'@(Tuple x _) = fromMaybe (Tuple "self" TyTop) self in
-  TmTrait (Just self') (desugar <$> e1) (TmOpen (TmVar x) (desugar e2))
+  TmTrait (Just self') (Just (fromMaybe TyTop sig))
+          (desugar <$> e1) (TmOpen (TmVar x) (desugar e2))
 desugar (TmType a sorts params (Just t1) t2 e) =
   TmType a sorts params Nothing (TyAnd t1 t2) (desugar e)
 -- TODO: should be always desugared to letrec

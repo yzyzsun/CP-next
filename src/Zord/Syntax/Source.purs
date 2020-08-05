@@ -71,7 +71,7 @@ data Tm = TmInt Int
         | TmLet Name Tm Tm
         | TmLetrec Name Ty Tm Tm
         | TmOpen Tm Tm
-        | TmTrait (Maybe (Tuple Name Ty)) (Maybe Tm) Tm
+        | TmTrait (Maybe (Tuple Name Ty)) (Maybe Ty) (Maybe Tm) Tm
         | TmNew Tm
         | TmPos Position Tm
         | TmType Name (List Name) (List Name) (Maybe Ty) Ty Tm
@@ -101,9 +101,10 @@ instance showTm :: Show Tm where
   show (TmLetrec x t e1 e2) = parens $
     "letrec" <+> x <+> ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
-  show (TmTrait self e1 e2) = parens $ "trait" <>
+  show (TmTrait self sig e1 e2) = parens $ "trait" <>
     maybe "" (\(Tuple x t) -> brackets $ x <+> ":" <+> show t) self <+>
-    showMaybe "inherits " e1 " " <> "=>" <+> show e2
+    showMaybe "implements " sig " " <> showMaybe "inherits " e1 " " <>
+    "=>" <+> show e2
   show (TmNew e) = "new" <+> show e
   show (TmPos p e) = show e
   show (TmType a sorts params t1 t2 e) = "type" <+> a <+>

@@ -126,10 +126,12 @@ synthesize (S.TmOpen e1 e2) = do
     labels (C.TyAnd t1 t2) = union (labels t1) (labels t2)
     labels (C.TyRcd l _) = singleton l
     labels _ = empty
-synthesize (S.TmTrait (Just (Tuple x t)) me1 e2) = do
+synthesize (S.TmTrait (Just (Tuple x t)) (Just sig) me1 e2) = do
   t' <- transform t
+  sig' <- transform sig
   case me1 of
     Just e1 -> do
+      -- TODO: self-reference may have a different name in super-trait
       Tuple e1' t1 <- addTmBind x t' $ synthesize e1
       case t1 of
         C.TyArr ti to true -> do
@@ -137,15 +139,18 @@ synthesize (S.TmTrait (Just (Tuple x t)) me1 e2) = do
             Tuple e2' t2 <- addTmBind x t' $ addTmBind "super" to $ synthesize e2
             disjoint to t2
             let tret = C.TyAnd to t2
-            let ret = letIn "super" (C.TmApp e1' (C.TmVar x)) to
-                      (C.TmMerge (C.TmVar "super") e2') tret
-            pure $ Tuple (C.TmAbs x ret t' tret) (C.TyArr t' tret true)
+            if tret <: sig' then
+              let ret = letIn "super" (C.TmApp e1' (C.TmVar x)) to
+                        (C.TmMerge (C.TmVar "super") e2') tret in
+              pure $ Tuple (C.TmAbs x ret t' tret) (C.TyArr t' tret true)
+            else throwTypeError $ show tret <+> "does not implement" <+> show sig'
           else throwTypeError $ "self-type" <+> show t' <+>
             "is not a subtype of inherited self-type" <+> show to
         _ -> throwTypeError $ "inherits expected a trait, but got" <+> show t1
     Nothing -> do
       Tuple e2' t2 <- addTmBind x t' $ synthesize e2
-      pure $ Tuple (C.TmAbs x e2' t' t2) (C.TyArr t' t2 true)
+      if t2 <: sig' then pure $ Tuple (C.TmAbs x e2' t' t2) (C.TyArr t' t2 true)
+      else throwTypeError $ show t2 <+> "does not implement" <+> show sig'
 synthesize (S.TmNew e) = do
   Tuple e' t <- synthesize e
   case t of
