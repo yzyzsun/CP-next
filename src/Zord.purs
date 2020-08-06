@@ -12,18 +12,18 @@ import Effect (Effect)
 import Effect.Exception (throw)
 import Text.Parsing.Parser (ParseError(..), runParser)
 import Text.Parsing.Parser.Pos (Position(..))
-import Text.Parsing.Parser.String (eof, skipSpaces)
+import Text.Parsing.Parser.String (eof)
 import Zord.Context (Pos(..), TypeError(..), runTyping)
 import Zord.Desugar (desugar)
-import Zord.Parser (program)
+import Zord.Parser (program, whiteSpace)
 import Zord.Semantics (eval, runEval)
 import Zord.Typing (synthesize)
 
 data Mode = Simple | Verbose
 
 interpret :: Mode -> String -> Effect String
-interpret mode input = case runParser input (skipSpaces *> program <* eof) of
-  Left err -> throw $ showParseError err input
+interpret mode code = case runParser code (whiteSpace *> program <* eof) of
+  Left err -> throw $ showParseError err code
   Right e -> case runTyping (synthesize (desugar e)) of
     Left err -> throw $ showTypeError err
     Right (Tuple e' t) -> let Tuple e'' s = runEval (eval e') in case mode of

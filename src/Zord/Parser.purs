@@ -305,6 +305,9 @@ naturalOrFloat = zord.naturalOrFloat
 symbol :: String -> SParser Unit
 symbol s = zord.symbol s $> unit
 
+whiteSpace :: SParser Unit
+whiteSpace = zord.whiteSpace
+
 parens :: forall a. SParser a -> SParser a
 parens = zord.parens
 
