@@ -28,7 +28,8 @@ interpret mode input = case runParser input (skipSpaces *> program <* eof) of
     Left err -> throw $ showTypeError err
     Right (Tuple e' t) -> let Tuple e'' s = runEval (eval e') in case mode of
       Simple  -> pure $ show e''
-      Verbose -> pure s
+      Verbose -> pure $ show e <> "\n⇣ Desugar\n" <> show (desugar e) <>
+                                  "\n↯ Elaborate\n" <> s
 
 seek :: String -> Int -> Int -> Maybe Char
 seek str line column = (split (Pattern "\n") str) !! line' >>= charAt column'

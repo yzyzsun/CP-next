@@ -2,11 +2,10 @@ import 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import { EditorState, EditorView, basicSetup } from '@codemirror/next/basic-setup';
-import { ViewPlugin } from "@codemirror/next/view";
+import { ViewPlugin, keymap } from '@codemirror/next/view';
 import { styleTags } from '@codemirror/next/highlight';
 import { LezerSyntax, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/next/syntax';
 import { parser } from './zord';
-import { keymap } from "@codemirror/next/view";
 
 import Zord from '../src/Zord.purs';
 
@@ -50,18 +49,18 @@ const zordSyntax = new LezerSyntax(parser.withProps(
 ), {
   languageData: {
     closeBrackets: { brackets: ['{', '(', '[', '"'] },
-    commentTokens: { line: "--", block: { open: "{-", close: "-}" } },
+    commentTokens: { line: '--', block: { open: '{-', close: '-}' } },
   }
 });
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
   const output = document.getElementById('output');
   const error = document.getElementById('error');
 
   const UIRefresh = (element, text) => {
     element.textContent = text;
     element.innerHTML = element.innerHTML
-      .replace(/^[↓→].+$/gm, '<span class="text-secondary">$&</span>')
+      .replace(/^[⇣↯↓→].+$/gm, '<span class="text-secondary">$&</span>')
       .replace(/\n/g, '<br>');
   }
 
@@ -79,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
     extensions: [
       basicSetup,
       zordSyntax.extension,
-      keymap([{ key: "Mod-Enter", run() { UIInterpret(Zord.Verbose.value); } }]),
+      keymap([{ key: 'Mod-Enter', run() { UIInterpret(Zord.Verbose.value); } }]),
       ViewPlugin.fromClass(class {
         update(update) {
           if (update.docChanged) {
