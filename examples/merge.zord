@@ -1,0 +1,5 @@
+--> (48 , true)
+
+def f (x:Int) = x * 16;
+def g (x:Int) = if x > 0 then true else false;
+(f , g) (3 , 1.5)
