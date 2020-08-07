@@ -12,92 +12,95 @@
 
 @top Program { (definition ";")* expression }
 
-definition { TypeDef | kw<"def"> TermDef }
+definition { TypeDef | TermDef }
 
 TypeDef {
-  kw<"type"> TypeNameDef angles<TypeNameDef>* (kw<"extends"> type)? "=" type
+  kw<"type"> TypeNameDef angles<TypeNameDef>* TypeNameDef* (kw<"extends"> type)? "=" type
 }
 
 TermDef {
-  kw<"override">? TermNameDef typeParam* termParam* "=" expression
+  kw<"def"> TermNameDef ("@" typeParam)* termParam* (":" type)? "=" expression
 }
 
-PatternDef {
-  kw<"override">? parens<TermNameDef termParam* SelfAnno?> "." TermDef
+type {
+  btype | kw<"forall"> typeParam+ "." type |
+  kw<"Trait"> typeWithPercent |
+  type !arrow TypeOp<"->"> type |
+  type !intersect TypeOp<"&"> type
+}
+
+btype { atype (atype | angles<typeWithPercent>)* }
+
+atype {
+  TypeName | RecordType { braces<sepEndBySemi<LabelDecl ":" type>> } |
+  kw<"Int"> | kw<"Double"> | kw<"String"> | kw<"Bool"> | kw<"Top"> | kw<"Bot"> |
+  parens<type>
+}
+
+expression { opexpr ~conflict (":" type)? }
+
+opexpr {
+  lexpr | minus opexpr | LogicOp<"!"> opexpr |
+  opexpr !times (ArithOp<"*" | "/"> | modulo) opexpr |
+  opexpr !plus (ArithOp<"+"> | minus) opexpr |
+  opexpr !comp CompareOp opexpr |
+  opexpr !and LogicOp<"&&"> opexpr |
+  opexpr !or  LogicOp<"||"> opexpr |
+  opexpr !merge MergeOp opexpr |
+  opexpr !forward ForwardOp opexpr
+}
+
+lexpr {
+  fexpr | Lambda { "\\" termParam+ "->" expression } |
+  BigLambda { "/\\" typeParam+ "." expression } |
+  Let { kw<"let"> TermNameDef "=" expression kw<"in"> expression } |
+  LetRec { kw<"letrec"> TermNameDef ":" type "=" expression kw<"in"> expression } |
+  Open { kw<"open"> expression kw<"in"> expression } |
+  IfElse { kw<"if"> expression kw<"then"> expression kw<"else"> expression } |
+  Trait { kw<"trait"> SelfAnno? (kw<"implements"> type)? (kw<"inherits"> opexpr)? "=>" opexpr } |
+  New { kw<"new"> expression }
+}
+
+fexpr {
+  aexpr (aexpr | "@" atype)* |
+  aexpr "." TermName |
+  aexpr "\\" RecordType
+}
+
+aexpr {
+  TermName | Number | String | Unit |
+  kw<"true"> | kw<"false"> | kw<"undefined"> |
+  Record { braces<sepEndBySemi<kw<"override">? (RecordField | MethodPattern)>> } |
+  parens<expression>
+}
+
+RecordField {
+  TermNameDef termParam* "=" expression
+}
+
+MethodPattern {
+  parens<TermNameDef termParam* SelfAnno?> "." RecordField
 }
 
 typeParam { TypeNameDef | brackets<TypeNameDef "*" type> }
 termParam { TermNameDef | parens<TermNameDef ":" type> }
 SelfAnno { "[" TermNameDef ":" type "]" }
 
-type {
-  btype | kw<"forall"> typeParam+ "." type |
-  type !arrow TypeOp<"->"> type |
-  type !intersect TypeOp<"&"> type
-}
-
-btype { btype? atype }
-
-atype {
-  TypeName angles<typeSepByComma>* |
-  kW<"Int"> | kW<"Double"> | kW<"String"> | kW<"Bool"> | kW<"Top"> | kW<"Bot"> |
-  TraitType { kW<"Trait"> brackets<typeSepByComma> } |
-  RecordType { braces<endByCommaOrSemi<LabelDecl ":" type>> } |
-  parens<type>
-}
-
-expression {
-  opexp ~conflict (":" type)? |
-  kw<"trait"> SelfAnno? (kw<"implements"> type)? (kw<"inherits"> opexp)? "=>" opexp
-}
-
-opexp {
-  lexp | minus opexp | LogicOp<"!"> opexp |
-  opexp !times ArithOp<"*" | "/" | "%"> opexp |
-  opexp !plus (ArithOp<"+"> | minus) opexp |
-  opexp !comp CompareOp opexp |
-  opexp !and LogicOp<"&&"> opexp |
-  opexp !or  LogicOp<"||"> opexp |
-  opexp !merge MergeOp opexp |
-  opexp !forward ForwardOp opexp
-}
-
-lexp {
-  fexp | Lambda { "\\" termParam+ "->" expression } |
-  BigLambda { "/\\" typeParam+ "." expression } |
-  Let { kw<"let"> TermNameDef "=" expression kw<"in"> expression } |
-  LetRec { kw<"letrec"> TermNameDef ":" type "=" expression kw<"in"> expression } |
-  Open { kw<"open"> expression kw<"in"> expression } |
-  IfElse { kw<"if"> expression kw<"then"> expression kw<"else"> expression } |
-  New { kw<"new"> expression }
-}
-
-fexp { fexp? aexp }
-
-aexp {
-  TermName | Number | String | Unit |
-  Boolean { kw<"true"> | kw<"false"> } | Undefined { kw<"undefined"> } |
-  aexp "." TermName | aexp "@" atype | aexp "\\" RecordType |
-  Record { braces<endByCommaOrSemi<TermDef | PatternDef>> } |
-  parens<expression>
-}
-
-kw<word> { @specialize[name={word}]<lowerid, word> }
-kW<word> { @specialize[name={word}]<upperid, word> }
+kw<word> { @specialize[name={word}]<identifier, word> }
 
 braces<contents> { "{" contents "}" }
 parens<contents> { "(" contents ")" }
 brackets<contents> { "[" contents "]" }
 angles<contents> { "<" contents ">" }
 
-endByCommaOrSemi<stmt> { (stmt ("," | ";"))* }
-typeSepByComma { type | type "," type }
+sepEndBySemi<clause> { ~conflict (clause ";")* clause? }
+typeWithPercent { type ~conflict ("%" type)? }
 
-TypeName { upperid }
-TypeNameDef { upperid }
-TermName { lowerid }
-TermNameDef { lowerid }
-LabelDecl { lowerid }
+TypeName { identifier }
+TypeNameDef { identifier }
+TermName { identifier }
+TermNameDef { identifier }
+LabelDecl { identifier }
 
 @skip { whitespace | LineComment | BlockComment }
 
@@ -111,9 +114,9 @@ LabelDecl { lowerid }
   blockCommentRest { "-" blockCommentAfterHyphen | ![-] blockCommentRest }
   blockCommentAfterHyphen { "}" | blockCommentRest }
 
-  identifierChar { std.asciiLetter | std.digit | "'" }
-  lowerid { std.asciiLowercase identifierChar* }
-  upperid { std.asciiUppercase identifierChar* }
+  idStart { std.asciiLetter | "_" }
+  idChar { std.asciiLetter | std.digit | "'" | "_" }
+  identifier { idStart idChar* }
 
   octit { $[0-7] }
   hexit { std.digit | $[a-fA-F] }
@@ -128,22 +131,22 @@ LabelDecl { lowerid }
   Unit { "()" }
 
   "(" ")" "{" "}" "[" "]" "<" ">"
-  "." "," ";" ":" "*" "\\" "/\\" "@" "^"
+  "." "," ";" ":" "*" "\\" "/\\" "@" "^" "%"
   "=" "->" "=>"[name=TraitArrow]
 
   TypeOp<op> { op }
   ArithOp<op> { op }
   LogicOp<op> { op }
   CompareOp { "<" "="? | ">" "="? | "==" | "!=" }
-  MergeOp { ",," }
+  MergeOp { "," }
   ForwardOp { "^" }
 
   minus[name=ArithOp] { "-" }
+  modulo[name=ArithOp] { "%" }
 
   @precedence { LineComment, minus }
-
   @precedence { BlockComment, "{" }
-
   @precedence { CompareOp, "<" }
+  @precedence { modulo, "%" }
 
 }
