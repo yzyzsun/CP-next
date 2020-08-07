@@ -1,29 +1,23 @@
 # The Zord Programming Language
 
+Zord is a functional programming language that advocates compositional programming. It is implemented using [PureScript](https://www.purescript.org) (a Haskell-like language that compiles to JavaScript).
+
 ## Setup
 
 - First of all, you need to install [Node.js](https://nodejs.org).
-- Then the PureScript compiler and its build tool Spago can be installed globally via `npm`:
+- Then execute `npm install` to get all of the dev dependencies.
+- After installation, you can choose any of the following npm scripts:
+  - `npm start` to run a Zord REPL;
+  - `npm test` to run a test suite checking `examples/*.zord`;
+  - `npm run lezer` to generate an LR parser for the online code editor;
+  - `npm run build` to pack all scripts needed by PL Ground to `dist/bundle.js`;
+  - `npm run dev` to start a webpack dev server providing live reloading.
 
-```sh
-$ npm install -g purescript spago
-```
+## Demo
 
-- After installation, you can run the Zord interpreter via Spago:
+[PL Ground](https://plground.org) provides an in-browser interpreter for Zord. It is integrated with a CodeMirror editor with syntax highlighting. Its grammar file written in Lezer can be found at `plground/zord.grammar`.
 
-```sh
-$ spago run
-```
-
-## PL Ground
-
-[PL Ground](https://plground.org) provides an online interpreter for Zord. It is integrated with a CodeMirror editor with syntax highlighting. If you want to build it from scratch, the following command will install dev dependencies and invoke `webpack` to bundle all of the required scripts.
-
-```sh
-$ npm install && npm run build
-```
-
-The generated `bundle.js` can be found in the `dist` directory; meanwhile, `index.html` is copied to the same directory for convenience.
+If you want to build it from scratch, please follow the setup instructions above.
 
 ## Naming
 
