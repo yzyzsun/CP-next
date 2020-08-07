@@ -264,8 +264,9 @@ fromIntOrNumber (Left int) = TmInt int
 fromIntOrNumber (Right number) = TmDouble number
 
 params :: String -> SParser (Tuple Name (Maybe Ty))
-params s = Tuple <$> identifier <*> pure Nothing <|>
-           parens (Tuple <$> identifier <* symbol s <*> (Just <$> ty))
+params s = Tuple <$> param <*> pure Nothing <|>
+           parens (Tuple <$> param <* symbol s <*> (Just <$> ty))
+  where param = identifier <|> underscore
 
 selfAnno :: SParser (Tuple Name Ty)
 selfAnno = brackets $ Tuple <$> identifier <* symbol ":" <*> ty
@@ -304,6 +305,9 @@ naturalOrFloat = zord.naturalOrFloat
 
 symbol :: String -> SParser Unit
 symbol s = zord.symbol s $> unit
+
+underscore :: SParser String
+underscore = zord.symbol "_"
 
 whiteSpace :: SParser Unit
 whiteSpace = zord.whiteSpace

@@ -53,7 +53,8 @@ lookupSort name = lookup name <$> asks (_.sortEnv)
 
 addToEnv :: forall a b. ((Env b -> Env b) -> Ctx -> Ctx) ->
                         Name -> b -> Typing a -> Typing a
-addToEnv map name ty = local (map (Tuple name ty : _))
+addToEnv map name ty = if name == "_" then identity
+                       else local (map (Tuple name ty : _))
 
 addTmBind :: forall a. Name -> C.Ty -> Typing a -> Typing a
 addTmBind = addToEnv \f r -> r { tmBindEnv = f r.tmBindEnv }
