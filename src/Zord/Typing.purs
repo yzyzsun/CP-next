@@ -91,7 +91,7 @@ synthesize (S.TmRcd (Cons (Tuple l e) Nil)) = do
 synthesize (S.TmPrj e l) = do
   Tuple e' t <- synthesize e
   case selectLabel t l of
-    Just t' -> pure $ Tuple (projectLabel e' l t') t'
+    Just t' -> pure $ Tuple (C.TmPrj e' l) t'
     _ -> throwTypeError $ show t <+> "has no label named" <+> show l
 synthesize (S.TmTApp e ta) = do
   Tuple e' tf <- synthesize e
@@ -119,7 +119,7 @@ synthesize (S.TmOpen e1 e2) = do
   let ls = foldr Cons Nil (labels t1)
   let bs = ls <#> \l -> Tuple l (fromJust (selectLabel t1 l))
   Tuple e2' t2 <- foldr (uncurry addTmBind) (synthesize e2) bs
-  let open (Tuple l t) e = letIn l (projectLabel e1' l t) t e t2
+  let open (Tuple l t) e = letIn l (C.TmPrj e1' l) t e t2
   pure $ Tuple (foldr open e2' bs) t2
   where
     labels :: C.Ty -> Set Label
@@ -219,9 +219,6 @@ disjoint t1 t2 | t1 /= t2  = pure unit
 
 letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
 letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2) e1
-
-projectLabel :: C.Tm -> Label -> C.Ty -> C.Tm
-projectLabel r l t = C.TmPrj (C.TmAnno r (C.TyRcd l t)) l
 
 selectLabel :: C.Ty -> Label -> Maybe C.Ty
 selectLabel (C.TyAnd t1 t2) l = case selectLabel t1 l, selectLabel t2 l of
