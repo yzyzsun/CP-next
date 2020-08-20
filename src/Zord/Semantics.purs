@@ -9,7 +9,7 @@ import Data.Tuple (Tuple(..))
 import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..), Label, fromJust)
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), UnOp(..), fromJust)
 import Zord.Syntax.Core (Tm(..), Ty(..), tmSubst, tmTSubst, tySubst)
 
 type Eval a = Writer String a
@@ -156,6 +156,7 @@ binop (Comp Gt ) (TmBool b1) (TmBool b2) = TmBool (b1 >  b2)
 binop (Comp Ge ) (TmBool b1) (TmBool b2) = TmBool (b1 >= b2)
 binop (Logic And) (TmBool b1) (TmBool b2) = TmBool (b1 && b2)
 binop (Logic Or ) (TmBool b1) (TmBool b2) = TmBool (b1 || b2)
+binop Append (TmString s1) (TmString s2) = TmString (s1 <> s2)
 binop op v1 v2 = unsafeCrashWith $
   "Zord.Semantics.binop: impossible binary operation " <> show op <>
   " between " <> show v1 <> " and " <> show v2

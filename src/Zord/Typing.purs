@@ -56,6 +56,13 @@ synthesize (S.TmBinary (Logic op) e1 e2) = do
   case t1, t2 of C.TyBool, C.TyBool -> core
                  _, _ -> throwTypeError $ "LogicOp is not defined between" <+>
                                           show t1 <+> "and" <+> show t2
+synthesize (S.TmBinary Append e1 e2) = do
+  Tuple e1' t1 <- synthesize e1
+  Tuple e2' t2 <- synthesize e2
+  let core = pure $ Tuple (C.TmBinary Append e1' e2') C.TyString
+  case t1, t2 of C.TyString, C.TyString -> core
+                 _, _ -> throwTypeError $ "Append is not defined between" <+>
+                                          show t1 <+> "and" <+> show t2
 synthesize (S.TmIf e1 e2 e3) = do
   Tuple e1' t1 <- synthesize e1
   if t1 === C.TyBool then do

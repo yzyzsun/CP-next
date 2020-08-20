@@ -31,6 +31,8 @@ instance showUnOp :: Show UnOp where
 data BinOp = Arith ArithOp
            | Comp  CompOp
            | Logic LogicOp
+           | Append
+
 data ArithOp = Add | Sub | Mul | Div | Mod
 data CompOp  = Eql | Neq | Lt | Le | Gt | Ge
 data LogicOp = And | Or
@@ -39,6 +41,7 @@ instance showBinOp :: Show BinOp where
   show (Arith op) = show op
   show (Comp  op) = show op
   show (Logic op) = show op
+  show Append = "++"
 
 instance showArithOp :: Show ArithOp where
   show Add = "+"

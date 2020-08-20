@@ -15,7 +15,7 @@ import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildEx
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (char)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef)
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..), Label)
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), Name, UnOp(..))
 import Zord.Syntax.Source (Tm(..), Ty(..))
 
 type SParser a = Parser String a
@@ -191,6 +191,7 @@ operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
             , [ Infix (reservedOp "+" $> TmBinary (Arith Add)) AssocLeft
               , Infix (reservedOp "-" $> TmBinary (Arith Sub)) AssocLeft
               ]
+            , [ Infix (reservedOp "++" $> TmBinary Append) AssocLeft ]
             , [ Infix (reservedOp "==" $> TmBinary (Comp Eql)) AssocNone
               , Infix (reservedOp "!=" $> TmBinary (Comp Neq)) AssocNone
               , Infix (reservedOp "<"  $> TmBinary (Comp Lt )) AssocNone
