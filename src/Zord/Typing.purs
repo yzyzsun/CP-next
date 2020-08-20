@@ -2,16 +2,17 @@ module Zord.Typing where
 
 import Prelude
 
-import Data.List (List(..), foldr)
+import Data.List (List(..), filter, foldr, last, singleton)
 import Data.Maybe (Maybe(..))
-import Data.Set (Set, empty, singleton, union)
-import Data.Tuple (Tuple(..), uncurry)
+import Data.Set (Set)
+import Data.Set as Set
+import Data.Tuple (Tuple(..), fst, uncurry)
 import Zord.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
 import Zord.Subtyping (isTopLike, (<:), (===))
 import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..), fromJust, (<+>))
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
-import Zord.Transform (distinguish, transform)
+import Zord.Transform (distinguish, duringTransformation, transform)
 
 synthesize :: S.Tm -> Typing (Tuple C.Tm C.Ty)
 synthesize (S.TmInt i)    = pure $ Tuple (C.TmInt i) C.TyInt
@@ -123,34 +124,49 @@ synthesize (S.TmOpen e1 e2) = do
   pure $ Tuple (foldr open e2' bs) t2
   where
     labels :: C.Ty -> Set Label
-    labels (C.TyAnd t1 t2) = union (labels t1) (labels t2)
-    labels (C.TyRcd l _) = singleton l
-    labels _ = empty
-synthesize (S.TmTrait (Just (Tuple x t)) (Just sig) me1 e2) = do
+    labels (C.TyAnd t1 t2) = Set.union (labels t1) (labels t2)
+    labels (C.TyRcd l _) = Set.singleton l
+    labels _ = Set.empty
+synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
   t' <- transform t
-  sig' <- transform sig
+  Tuple sig' e2 <- inferFromSig `duringTransformation` Tuple sig ne2
   case me1 of
     Just e1 -> do
       -- TODO: self-reference may have a different name in super-trait
-      Tuple e1' t1 <- addTmBind x t' $ synthesize e1
+      Tuple e1' t1 <- addTmBind self t' $ synthesize e1
       case t1 of
         C.TyArr ti to true -> do
           if t' <: ti then do
-            Tuple e2' t2 <- addTmBind x t' $ addTmBind "super" to $ synthesize e2
+            Tuple e2' t2 <-
+              addTmBind self t' $ addTmBind "super" to $ synthesize e2
             disjoint to t2
             let tret = C.TyAnd to t2
             if tret <: sig' then
-              let ret = letIn "super" (C.TmApp e1' (C.TmVar x)) to
+              let ret = letIn "super" (C.TmApp e1' (C.TmVar self)) to
                         (C.TmMerge (C.TmVar "super") e2') tret in
-              pure $ Tuple (C.TmAbs x ret t' tret) (C.TyArr t' tret true)
+              pure $ Tuple (C.TmAbs self ret t' tret) (C.TyArr t' tret true)
             else throwTypeError $ show tret <+> "does not implement" <+> show sig'
           else throwTypeError $ "self-type" <+> show t' <+>
             "is not a subtype of inherited self-type" <+> show to
         _ -> throwTypeError $ "inherits expected a trait, but got" <+> show t1
     Nothing -> do
-      Tuple e2' t2 <- addTmBind x t' $ synthesize e2
-      if t2 <: sig' then pure $ Tuple (C.TmAbs x e2' t' t2) (C.TyArr t' t2 true)
+      Tuple e2' t2 <- addTmBind self t' $ synthesize e2
+      if t2 <: sig' then pure $ Tuple (C.TmAbs self e2' t' t2) (C.TyArr t' t2 true)
       else throwTypeError $ show t2 <+> "does not implement" <+> show sig'
+  where
+    -- TODO: type inference is not complete
+    inferFromSig :: S.Ty -> S.Tm -> S.Tm
+    inferFromSig s (S.TmPos p e) = S.TmPos p (inferFromSig s e)
+    inferFromSig s (S.TmOpen e1 e2) = S.TmOpen e1 (inferFromSig s e2)
+    inferFromSig s (S.TmMerge e1 e2) =
+      S.TmMerge (inferFromSig s e1) (inferFromSig s e2)
+    inferFromSig (S.TyRcd xs) r@(S.TmRcd (Cons (Tuple l e) Nil)) =
+      case last $ filter (\x -> fst x == l) xs of
+        Just (Tuple _ ty) -> S.TmRcd (singleton (Tuple l (inferFromSig ty e)))
+        _ -> r
+    inferFromSig (S.TyArr targ tret) (S.TmAbs (Cons (Tuple x Nothing) Nil) e) =
+      S.TmAbs (singleton (Tuple x (Just targ))) (inferFromSig tret e)
+    inferFromSig _ e = e
 synthesize (S.TmNew e) = do
   Tuple e' t <- synthesize e
   case t of

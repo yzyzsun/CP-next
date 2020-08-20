@@ -18,6 +18,15 @@ import Zord.Syntax.Source as S
 transform :: S.Ty -> Typing C.Ty
 transform = expand >=> translate
 
+-- do other stuff between type expansion and translation
+duringTransformation ::
+  forall a b. (S.Ty -> a -> b) -> Tuple S.Ty a -> Typing (Tuple C.Ty b)
+duringTransformation f (Tuple t x) = do
+  t' <- expand t
+  let x' = f t' x
+  t'' <- translate t'
+  pure $ Tuple t'' x'
+
 translate :: S.Ty -> Typing C.Ty
 translate (S.TyRcd Nil) = pure C.TyTop
 translate (S.TyRcd xs) =
