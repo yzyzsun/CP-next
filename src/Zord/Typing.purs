@@ -91,8 +91,15 @@ synthesize (S.TmAnno e ta) = do
 synthesize (S.TmMerge e1 e2) = do
   Tuple e1' t1 <- synthesize e1
   Tuple e2' t2 <- synthesize e2
-  disjoint t1 t2
-  pure $ Tuple (C.TmMerge e1' e2') (C.TyAnd t1 t2)
+  case t1, t2 of
+    C.TyArr targ1 tret1 true, C.TyArr targ2 tret2 true -> do
+      disjoint tret1 tret2
+      pure $ trait "self" (C.TmMerge (appToSelf e1') (appToSelf e2'))
+                   (C.TyAnd targ1 targ2) (C.TyAnd tret1 tret2)
+    _, _ -> do
+      disjoint t1 t2
+      pure $ Tuple (C.TmMerge e1' e2') (C.TyAnd t1 t2)
+  where appToSelf e = C.TmApp e (C.TmVar "self")
 synthesize (S.TmRcd (Cons (Tuple l e) Nil)) = do
   Tuple e' t <- synthesize e
   pure $ Tuple (C.TmRcd l e') (C.TyRcd l t)
@@ -151,14 +158,14 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
             if tret <: sig' then
               let ret = letIn "super" (C.TmApp e1' (C.TmVar self)) to
                         (C.TmMerge (C.TmVar "super") e2') tret in
-              pure $ Tuple (C.TmAbs self ret t' tret) (C.TyArr t' tret true)
+              pure $ trait self ret t' tret
             else throwTypeError $ show tret <+> "does not implement" <+> show sig'
           else throwTypeError $ "self-type" <+> show t' <+>
             "is not a subtype of inherited self-type" <+> show to
         _ -> throwTypeError $ "inherits expected a trait, but got" <+> show t1
     Nothing -> do
       Tuple e2' t2 <- addTmBind self t' $ synthesize e2
-      if t2 <: sig' then pure $ Tuple (C.TmAbs self e2' t' t2) (C.TyArr t' t2 true)
+      if t2 <: sig' then pure $ trait self e2' t' t2
       else throwTypeError $ show t2 <+> "does not implement" <+> show sig'
   where
     -- TODO: type inference is not complete
@@ -242,6 +249,9 @@ disjoint t1 t2 | t1 /= t2  = pure unit
 
 letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
 letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2) e1
+
+trait :: Name -> C.Tm -> C.Ty -> C.Ty -> Tuple C.Tm C.Ty
+trait x e targ tret = Tuple (C.TmAbs x e targ tret) (C.TyArr targ tret true)
 
 selectLabel :: C.Ty -> Label -> Maybe C.Ty
 selectLabel (C.TyAnd t1 t2) l = case selectLabel t1 l, selectLabel t2 l of
