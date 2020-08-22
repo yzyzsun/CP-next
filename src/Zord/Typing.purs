@@ -102,7 +102,7 @@ synthesize (S.TmMerge e1 e2) = do
   where appToSelf e = C.TmApp e (C.TmVar "self")
 synthesize (S.TmRcd (Cons (Tuple l e) Nil)) = do
   Tuple e' t <- synthesize e
-  pure $ Tuple (C.TmRcd l e') (C.TyRcd l t)
+  pure $ Tuple (C.TmRcd l t e') (C.TyRcd l t)
 synthesize (S.TmPrj e l) = do
   Tuple e' t <- synthesize e
   case selectLabel t l of

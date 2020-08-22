@@ -50,7 +50,7 @@ data Tm = TmInt Int
         | TmFix Name Tm Ty
         | TmAnno Tm Ty
         | TmMerge Tm Tm
-        | TmRcd Label Tm
+        | TmRcd Label Ty Tm
         | TmPrj Tm Label
         | TmTApp Tm Ty
         | TmTAbs Name Ty Tm Ty
@@ -72,7 +72,7 @@ instance showTm :: Show Tm where
   show (TmFix x e t) = parens $ "fix" <+> x <> "." <+> show e <+> ":" <+> show t
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
-  show (TmRcd l e) = "{" <+> l <+> "=" <+> show e <+> "}"
+  show (TmRcd l t e) = "{" <+> l <+> ":" <+> show t <+> "=" <+> show e <+> "}"
   show (TmPrj e l) = show e <> "." <> l
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs a td e t) = parens $ "Λ" <> a <> "." <+> show e <+>
@@ -102,7 +102,7 @@ tmSubst x v (TmAbs x' e targ tret) =
 tmSubst x v (TmFix x' e t) = TmFix x' (if x == x' then e else tmSubst x v e) t
 tmSubst x v (TmAnno e t) = TmAnno (tmSubst x v e) t
 tmSubst x v (TmMerge e1 e2) = TmMerge (tmSubst x v e1) (tmSubst x v e2)
-tmSubst x v (TmRcd l e) = TmRcd l (tmSubst x v e)
+tmSubst x v (TmRcd l t e) = TmRcd l t (tmSubst x v e)
 tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
 tmSubst x v (TmTAbs a td e t) = TmTAbs a td (tmSubst x v e) t
@@ -120,7 +120,7 @@ tmTSubst a s (TmAbs x e targ tret) =
 tmTSubst a s (TmFix x e t) = TmFix x (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmAnno e t) = TmAnno (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmMerge e1 e2) = TmMerge (tmTSubst a s e1) (tmTSubst a s e2)
-tmTSubst a s (TmRcd l e) = TmRcd l (tmTSubst a s e)
+tmTSubst a s (TmRcd l t e) = TmRcd l (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmPrj e l) = TmPrj (tmTSubst a s e) l
 tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmTAbs a' td e t) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
