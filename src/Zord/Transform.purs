@@ -11,7 +11,7 @@ import Data.String.Unsafe (charAt)
 import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import Zord.Context (Typing, addTyBind, lookupSort, lookupTyAlias, lookupTyBind, throwTypeError)
-import Zord.Syntax.Common (foldl1, fromJust, (<+>))
+import Zord.Syntax.Common (foldl1, (<+>))
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
 
@@ -51,7 +51,7 @@ translate (S.TyTrait Nothing to) = C.TyArr C.TyTop <$> translate to <@> true
 translate (S.TyTrait (Just ti) to) =
   C.TyArr <$> translate ti <*> translate to <@> true
 translate t@(S.TyAbs _ _) = throwTypeError $ show t <+> "is not a proper type"
-translate t@(S.TySig _ _) = throwTypeError $ show t <+> "is not a proper type"
+translate t@(S.TySig _ _ _) = throwTypeError $ show t <+> "is not a proper type"
 translate t = throwTypeError $ show t <+> "should have been expanded"
 
 -- We don't need to check disjointness in the process of type expansion,
@@ -82,11 +82,12 @@ expand (S.TyApp t1 t2) = do
   t2' <- expand t2
   case t1' of
     S.TyAbs a t -> pure $ S.tySubst a t2' t
-    S.TySig a t ->
+    S.TySig a b t ->
       case t2' of
         S.TySort ti (Just to) -> do
-          mb <- lookupSort a
-          pure $ S.tySubst a ti (S.tySubst (fromJust mb) to t)
+          -- Here first substitute a and then b (i.e. #a) because
+          -- some TyVar may be wrongly captured by a but impossible by #a.
+          pure $ S.tySubst b to (S.tySubst a ti t)
         _ -> throwTypeError $
           "sig" <+> show t1' <+> "expected a sort, but got" <+> show t2'
     _ -> throwTypeError $ "type" <+> show t1' <+> "is not applicable"
@@ -104,6 +105,9 @@ expand (S.TySort ti to) = do
                    Nothing -> pure $ S.TySort ti' (Just ti')
       _ -> pure $ S.TySort ti' (Just ti')
 expand t = pure t
+
+transformTyDef :: S.Ty -> Typing S.Ty
+transformTyDef = expand >=> distinguish false true
 
 distinguish :: Boolean -> Boolean -> S.Ty -> Typing S.Ty
 distinguish isCtor isOut (S.TyArr t1 t2) =

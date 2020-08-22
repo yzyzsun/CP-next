@@ -26,7 +26,7 @@ data Ty = TyInt
         | TyAbs Name Ty
         | TyTrait (Maybe Ty) Ty
         | TySort Ty (Maybe Ty)
-        | TySig Name Ty
+        | TySig Name Name Ty
 
 instance showTy :: Show Ty where
   show TyInt    = "Int"
@@ -45,7 +45,8 @@ instance showTy :: Show Ty where
   show (TyAbs a t) = parens $ "\\" <> a <+> "->" <+> show t
   show (TyTrait ti to) = parens $ "Trait" <+> showMaybe "" ti " % " <> show to
   show (TySort ti to) = angles $ show ti <> showMaybe " % " to ""
-  show (TySig a t) = parens $ "\\" <> angles a <+> "->" <+> show t
+  show (TySig a b t) = parens $
+    "\\" <> angles (a <+> "%" <+> b) <+> "->" <+> show t
 
 derive instance eqTy :: Eq Ty
 
@@ -131,7 +132,8 @@ tySubst a s (TyApp t1 t2) = TyApp (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyAbs a' t) = TyAbs a' (if a == a' then t else tySubst a s t)
 tySubst a s (TyTrait ti to) = TyTrait (tySubst a s <$> ti) (tySubst a s to)
 tySubst a s (TySort ti to) = TySort (tySubst a s ti) (tySubst a s <$> to)
-tySubst a s (TySig a' t) = TySig a' (if a == a' then t else tySubst a s t)
+tySubst a s (TySig a' b' t) = TySig a' b'
+  (if a == a' || a == b' then t else tySubst a s t)
 tySubst _ _ t = t
 
 -- Helpers --

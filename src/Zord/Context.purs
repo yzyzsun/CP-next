@@ -65,8 +65,8 @@ addTyBind = addToEnv \f r -> r { tyBindEnv = f r.tyBindEnv }
 addTyAlias :: forall a. Name -> S.Ty -> Typing a -> Typing a
 addTyAlias = addToEnv \f r -> r { tyAliasEnv = f r.tyAliasEnv }
 
-addSort :: forall a. Name -> Typing a -> Typing a
-addSort name = addToEnv (\f r -> r { sortEnv = f r.sortEnv }) name ("#" <> name)
+addSort :: forall a. Name -> Name -> Typing a -> Typing a
+addSort = addToEnv \f r -> r { sortEnv = f r.sortEnv }
 
 setPos :: forall a. Pos -> Typing a -> Typing a
 setPos p = local (_ { pos = p })

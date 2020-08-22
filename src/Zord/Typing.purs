@@ -12,7 +12,7 @@ import Zord.Subtyping (isTopLike, (<:), (===))
 import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..), fromJust, (<+>))
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
-import Zord.Transform (distinguish, duringTransformation, transform)
+import Zord.Transform (duringTransformation, transform, transformTyDef)
 
 synthesize :: S.Tm -> Typing (Tuple C.Tm C.Ty)
 synthesize (S.TmInt i)    = pure $ Tuple (C.TmInt i) C.TyInt
@@ -170,6 +170,8 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
   where
     -- TODO: type inference is not complete
     inferFromSig :: S.Ty -> S.Tm -> S.Tm
+    inferFromSig (S.TyAnd (S.TyRcd xs) (S.TyRcd ys)) e =
+      inferFromSig (S.TyRcd (xs <> ys)) e
     inferFromSig s (S.TmPos p e) = S.TmPos p (inferFromSig s e)
     inferFromSig s (S.TmOpen e1 e2) = S.TmOpen e1 (inferFromSig s e2)
     inferFromSig s (S.TmMerge e1 e2) =
@@ -187,19 +189,21 @@ synthesize (S.TmNew e) = do
     C.TyArr ti to true ->
       if to <: ti then
         pure $ Tuple (C.TmFix "self" (C.TmApp e' (C.TmVar "self")) to) to
-      else throwTypeError $ "in a trait type, input" <+> show ti <+>
-        "is not a supertype of output" <+> show to
+      else throwTypeError $ "input" <+> show ti <+>
+        "is not a supertype of output" <+> show to <+> "in Trait"
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
 -- TODO: save original terms instead of desugared ones
 synthesize (S.TmPos p e) = setPos (Pos p e) $ synthesize e
 synthesize (S.TmType a sorts params Nothing t e) = do
-  t' <- addSorts $ distinguish false true t
-  addSorts $ addTyAlias a (sig t') $ synthesize e
+  t' <- addSorts $ transformTyDef t
+  addTyAlias a (sig t') $ synthesize e
   where
+    dualSorts :: List (Tuple Name Name)
+    dualSorts = sorts <#> \sort -> Tuple sort ("#" <> sort)
     addSorts :: forall a. Typing a -> Typing a
-    addSorts x = foldr addSort x sorts
+    addSorts typing = foldr (uncurry addSort) typing dualSorts
     sig :: S.Ty -> S.Ty
-    sig t' = foldr S.TySig (foldr S.TyAbs t' params) sorts
+    sig t' = foldr (uncurry S.TySig) (foldr S.TyAbs t' params) dualSorts
 synthesize e = throwTypeError $ show e <+> "should have been desugared"
 
 appSS :: C.Ty -> C.Ty -> Typing C.Ty
