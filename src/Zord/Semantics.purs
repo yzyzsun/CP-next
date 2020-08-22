@@ -46,7 +46,7 @@ step (TmMerge e1 e2) | isValue e1 = congruence "MergeR" $> TmMerge e1 <*> step e
                      | isValue e2 = congruence "MergeL" $> TmMerge <*> step e1 <@> e2
                      | otherwise  = congruence "Merge"  $> TmMerge <*> step e1 <*> step e2
 step (TmRcd l e) = congruence "Rcd" $> TmRcd l <*> step e
-step (TmPrj e l) | isValue e = computation "PProj" $> paraApp' (selectLabel e l) (TyRcd l TyTop)
+step (TmPrj e l) | isValue e = computation "PProj" $> selectLabel e l
                  | otherwise = congruence "Proj" $> TmPrj <*> step e <@> l
 step (TmTApp e t) | isValue e = computation "PTApp" $> paraApp' e t
                   | otherwise = congruence "TApp" $> TmTApp <*> step e <@> t
@@ -84,7 +84,6 @@ paraApp v1 v2 = unsafeCrashWith $
 
 paraApp' :: Tm -> Ty -> Tm
 paraApp' TmUnit _ = TmUnit
-paraApp' (TmRcd _ v) (TyRcd _ _) = v
 paraApp' (TmTAbs a _ e t) ta = TmAnno (tmTSubst a ta e) (tySubst a ta t)
 paraApp' (TmMerge v1 v2) t = TmMerge (paraApp' v1 t) (paraApp' v2 t)
 paraApp' v t = unsafeCrashWith $
@@ -93,10 +92,10 @@ paraApp' v t = unsafeCrashWith $
 selectLabel :: Tm -> Label -> Tm
 selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
   TmUnit, TmUnit -> TmUnit
-  TmUnit, r -> r
-  r, TmUnit -> r
-  r1, r2 -> TmMerge r1 r2
-selectLabel r@(TmRcd l' e) l | l == l' = r
+  TmUnit, e2' -> e2'
+  e1', TmUnit -> e1'
+  e1', e2' -> TmMerge e1' e2'
+selectLabel (TmRcd l' e) l | l == l' = e
 selectLabel _ _ = TmUnit
 
 isValue :: Tm -> Boolean
