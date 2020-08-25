@@ -10,7 +10,7 @@ import Data.List (List, foldl, many, some)
 import Data.Maybe (Maybe(..), isJust, optional)
 import Data.Tuple (Tuple(..))
 import Text.Parsing.Parser (Parser, position)
-import Text.Parsing.Parser.Combinators (choice, try)
+import Text.Parsing.Parser.Combinators (choice, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (char)
@@ -164,7 +164,7 @@ showExpr = do
   pure $ TmShow e
 
 recordLit :: SParser Tm -> SParser Tm
-recordLit e = braces $ TmRcd <$> semiSep (recordField e <|> methodPattern e)
+recordLit e = braces $ TmRcd <$> sepEndBySemi (recordField e <|> methodPattern e)
 
 recordField :: SParser Tm -> SParser RcdField
 recordField p = do
@@ -255,7 +255,7 @@ forallTy = do
   pure $ TyForall xs t
 
 recordTy :: SParser Ty
-recordTy = braces $ TyRcd <$> semiSep do
+recordTy = braces $ TyRcd <$> sepEndBySemi do
   l <- identifier
   symbol ":"
   t <- ty
@@ -338,5 +338,5 @@ angles = zord.angles
 brackets :: forall a. SParser a -> SParser a
 brackets = zord.brackets
 
-semiSep :: forall a. SParser a -> SParser (List a)
-semiSep = zord.semiSep
+sepEndBySemi :: forall a. SParser a -> SParser (List a)
+sepEndBySemi p = sepEndBy p (symbol ";")
