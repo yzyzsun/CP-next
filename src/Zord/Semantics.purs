@@ -48,6 +48,8 @@ step (TmPrj e l) | isValue e = computation "PProj" $> selectLabel e l
                  | otherwise = congruence "Proj" $> TmPrj <*> step e <@> l
 step (TmTApp e t) | isValue e = computation "PTApp" $> paraApp' e t
                   | otherwise = congruence "TApp" $> TmTApp <*> step e <@> t
+step (TmShow e) | isValue e = computation "ShowV" $> toString e
+                | otherwise = congruence "Show" $> TmShow <*> step e
 step e = unsafeCrashWith $
   "Zord.Semantics.step: well-typed programs don't get stuck, but got " <> show e
 
@@ -157,3 +159,11 @@ binop Append (TmString s1) (TmString s2) = TmString (s1 <> s2)
 binop op v1 v2 = unsafeCrashWith $
   "Zord.Semantics.binop: impossible binary operation " <> show op <>
   " between " <> show v1 <> " and " <> show v2
+
+toString :: Tm -> Tm
+toString (TmInt i)    = TmString (show i)
+toString (TmDouble n) = TmString (show n)
+toString (TmString s) = TmString (show s)
+toString (TmBool b)   = TmString (show b)
+toString v = unsafeCrashWith $
+  "Zord.Semantics.toString: impossible show " <> show v

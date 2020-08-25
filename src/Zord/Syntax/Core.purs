@@ -54,6 +54,7 @@ data Tm = TmInt Int
         | TmPrj Tm Label
         | TmTApp Tm Ty
         | TmTAbs Name Ty Tm Ty
+        | TmShow Tm
 
 instance showTm :: Show Tm where
   show (TmInt i)    = show i
@@ -77,6 +78,7 @@ instance showTm :: Show Tm where
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs a td e t) = parens $ "Λ" <> a <> "." <+> show e <+>
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
+  show (TmShow e) = parens $ "show" <+> show e
 
 -- Substitution --
 
@@ -106,6 +108,7 @@ tmSubst x v (TmRcd l t e) = TmRcd l t (tmSubst x v e)
 tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
 tmSubst x v (TmTAbs a td e t) = TmTAbs a td (tmSubst x v e) t
+tmSubst x v (TmShow e) = TmShow (tmSubst x v e)
 tmSubst _ _ e = e
 
 tmTSubst :: Name -> Ty -> Tm -> Tm
@@ -125,4 +128,5 @@ tmTSubst a s (TmPrj e l) = TmPrj (tmTSubst a s e) l
 tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmTAbs a' td e t) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
                                   (if a == a' then t else tySubst a s t)
+tmTSubst a s (TmShow e) = TmShow (tmTSubst a s e)
 tmTSubst _ _ e = e

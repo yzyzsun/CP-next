@@ -75,6 +75,7 @@ data Tm = TmInt Int
         | TmOpen Tm Tm
         | TmTrait SelfAnno (Maybe Ty) (Maybe Tm) Tm
         | TmNew Tm
+        | TmShow Tm
         | TmPos Position Tm
         | TmType Name (List Name) (List Name) (Maybe Ty) Ty Tm
         | TmDef Name ParamList ParamList (Maybe Ty) Tm Tm
@@ -109,7 +110,8 @@ instance showTm :: Show Tm where
   show (TmTrait self sig e1 e2) = parens $ "trait" <+> showSelf self <+>
     showMaybe "implements " sig " " <> showMaybe "inherits " e1 " " <>
     "=>" <+> show e2
-  show (TmNew e) = "new" <+> show e
+  show (TmNew e) = parens $ "new" <+> show e
+  show (TmShow e) = parens $ "show" <+> show e
   show (TmPos p e) = show e
   show (TmType a sorts params t1 t2 e) = "type" <+> a <+>
     intercalate " " (angles <$> sorts) <+> intercalate " " params <+>
