@@ -3,6 +3,7 @@ module Zord.Syntax.Source where
 import Prelude
 
 import Data.Bifunctor (rmap)
+import Data.Either (Either(..))
 import Data.List (List, any, intercalate)
 import Data.Maybe (Maybe, maybe)
 import Data.Tuple (Tuple(..), fst, snd)
@@ -19,7 +20,7 @@ data Ty = TyInt
         | TyBot
         | TyArr Ty Ty
         | TyAnd Ty Ty
-        | TyRcd (RcdList Ty)
+        | TyRcd RcdTyList
         | TyVar Name
         | TyForall ParamList Ty
         | TyApp Ty Ty
@@ -65,7 +66,7 @@ data Tm = TmInt Int
         | TmAbs ParamList Tm
         | TmAnno Tm Ty
         | TmMerge Tm Tm
-        | TmRcd (RcdList Tm)
+        | TmRcd (List RcdField)
         | TmPrj Tm Label
         | TmTApp Tm Ty
         | TmTAbs ParamList Tm
@@ -77,7 +78,9 @@ data Tm = TmInt Int
         | TmPos Position Tm
         | TmType Name (List Name) (List Name) (Maybe Ty) Ty Tm
         | TmDef Name ParamList ParamList (Maybe Ty) Tm Tm
-        | TmPattern Label ParamList SelfAnno Label Tm
+
+data RcdField = RcdField Boolean Label (Either Tm MethodPattern)
+data MethodPattern = MethodPattern ParamList SelfAnno Label Tm
 
 instance showTm :: Show Tm where
   show (TmInt i)    = show i
@@ -114,9 +117,6 @@ instance showTm :: Show Tm where
   show (TmDef x tyParams tmParams t e1 e2) = "def" <+> x <+>
     showParams' tyParams <+> showParams ":" tmParams <+>
     showMaybe ": " t " " <> "=" <+> show e1 <> ";" <+> show e2
-  show (TmPattern ll params self l e) =
-    parens (ll <+> showParams ":" params <+> showSelf self) <> "." <> l <+>
-    "=" <+> show e
 
 -- Substitution --
 
@@ -153,16 +153,19 @@ showParams' xs = intercalate " " (xs <#> \x ->
   "@" <> maybe (fst x) (\t -> parens $ fst x <+> "*" <+> show t) (snd x)
 )
 
-type RcdList a = List (Tuple Label a)
+type RcdTyList = List (Tuple Label Ty)
 
-showRcdTy :: RcdList Ty -> String
+showRcdTy :: RcdTyList -> String
 showRcdTy xs = intercalate "; " (xs <#> \(Tuple l t) -> l <+> ":" <+> show t)
 
-showRcdTm :: RcdList Tm -> String
-showRcdTm xs = intercalate "; " (xs <#> showField)
-  where showField :: Tuple Label Tm -> String
-        showField (Tuple _ p@(TmPattern _ _ _ _ _)) = show p
-        showField (Tuple l e) = l <+> "=" <+> show e
+showRcdTm :: List RcdField -> String
+showRcdTm xs = intercalate "; " (xs <#> \(RcdField o l e) ->
+  (if o then "override " else "") <> showField l e)
+  where showField :: Label -> Either Tm MethodPattern -> String
+        showField l (Left e) = l <+> "=" <+> show e
+        showField l (Right (MethodPattern params self l' e)) =
+          parens (l <+> showParams ":" params <+> showSelf self) <>
+          "." <> l' <+> "=" <+> show e
 
 type SelfAnno = Maybe (Tuple Name Ty)
 

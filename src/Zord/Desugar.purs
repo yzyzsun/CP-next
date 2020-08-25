@@ -3,11 +3,12 @@ module Zord.Desugar where
 import Prelude
 
 import Data.Bifunctor (rmap)
+import Data.Either (Either(..))
 import Data.List (List(..), foldr, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..), snd)
 import Zord.Syntax.Common (foldl1)
-import Zord.Syntax.Source (Tm(..), Ty(..))
+import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), Ty(..))
 
 -- typing-related desugaring is delayed until synthesizing
 desugar :: Tm -> Tm
@@ -18,7 +19,14 @@ desugar (TmTAbs xs e) =
   where disjointness t = Just (fromMaybe TyTop t)
 desugar (TmRcd Nil) = TmUnit
 desugar (TmRcd xs) =
-  foldl1 TmMerge (xs <#> \x -> TmRcd (singleton (rmap desugar x)))
+  foldl1 TmMerge (xs <#> \x -> TmRcd (singleton (desugarField x)))
+  where
+    desugarField :: RcdField -> RcdField
+    desugarField (RcdField o l (Right (MethodPattern params self l' e))) =
+      RcdField o l <<< Left <<< desugar $
+        TmAbs params (TmTrait self Nothing Nothing
+          (TmRcd (singleton (RcdField false l' (Left e)))))
+    desugarField field = field
 desugar (TmTrait self sig e1 e2) =
   let self'@(Tuple x _) = fromMaybe (Tuple "self" TyTop) self in
   TmTrait (Just self') (Just (fromMaybe TyTop sig))
@@ -32,8 +40,6 @@ desugar (TmDef x tyParams tmParams t e1 e2) =
   where tm = desugar (TmTAbs tyParams (TmAbs tmParams e1))
         ty t' = TyForall tyParams (foldr TyArr t' (tmParams <#>
                                                    snd >>> fromMaybe TyTop))
-desugar (TmPattern _ params self l e) = desugar
-  (TmAbs params (TmTrait self Nothing Nothing (TmRcd (singleton (Tuple l e)))))
 
 desugar (TmUnary op e) = TmUnary op (desugar e)
 desugar (TmBinary op e1 e2) = TmBinary op (desugar e1) (desugar e2)

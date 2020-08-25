@@ -2,7 +2,8 @@ module Zord.Typing where
 
 import Prelude
 
-import Data.List (List(..), filter, foldr, last, singleton)
+import Data.Either (Either(..))
+import Data.List (List(..), elem, filter, foldr, last, null, singleton)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Set as Set
@@ -100,7 +101,7 @@ synthesize (S.TmMerge e1 e2) = do
       disjoint t1 t2
       pure $ Tuple (C.TmMerge e1' e2') (C.TyAnd t1 t2)
   where appToSelf e = C.TmApp e (C.TmVar "self")
-synthesize (S.TmRcd (Cons (Tuple l e) Nil)) = do
+synthesize (S.TmRcd (Cons (S.RcdField _ l (Left e)) Nil)) = do
   Tuple e' t <- synthesize e
   pure $ Tuple (C.TmRcd l t e') (C.TyRcd l t)
 synthesize (S.TmPrj e l) = do
@@ -153,11 +154,12 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
           if t' <: ti then do
             Tuple e2' t2 <-
               addTmBind self t' $ addTmBind "super" to $ synthesize e2
-            disjoint to t2
-            let tret = C.TyAnd to t2
+            to' <- override to e2
+            disjoint to' t2
+            let tret = C.TyAnd to' t2
             if tret <: sig' then
               let ret = letIn "super" (C.TmApp e1' (C.TmVar self)) to
-                        (C.TmMerge (C.TmVar "super") e2') tret in
+                        (C.TmMerge (C.TmAnno (C.TmVar "super") to') e2') tret in
               pure $ trait self ret t' tret
             else throwTypeError $ show tret <+> "does not implement" <+> show sig'
           else throwTypeError $ "self-type" <+> show t' <+>
@@ -176,13 +178,36 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     inferFromSig s (S.TmOpen e1 e2) = S.TmOpen e1 (inferFromSig s e2)
     inferFromSig s (S.TmMerge e1 e2) =
       S.TmMerge (inferFromSig s e1) (inferFromSig s e2)
-    inferFromSig (S.TyRcd xs) r@(S.TmRcd (Cons (Tuple l e) Nil)) =
+    inferFromSig (S.TyRcd xs) r@(S.TmRcd (Cons (S.RcdField o l (Left e)) Nil)) =
       case last $ filter (\x -> fst x == l) xs of
-        Just (Tuple _ ty) -> S.TmRcd (singleton (Tuple l (inferFromSig ty e)))
+        Just (Tuple _ ty) ->
+          S.TmRcd (singleton (S.RcdField o l (Left (inferFromSig ty e))))
         _ -> r
     inferFromSig (S.TyArr targ tret) (S.TmAbs (Cons (Tuple x Nothing) Nil) e) =
       S.TmAbs (singleton (Tuple x (Just targ))) (inferFromSig tret e)
     inferFromSig _ e = e
+    selectOverride :: S.Tm -> List Label
+    selectOverride (S.TmPos _ e) = selectOverride e
+    selectOverride (S.TmOpen _ e) = selectOverride e
+    selectOverride (S.TmMerge e1 e2) = selectOverride e1 <> selectOverride e2
+    selectOverride (S.TmRcd (Cons (S.RcdField true l _) Nil)) = singleton l
+    selectOverride _ = Nil
+    removeOverride :: C.Ty -> List Label -> Tuple Boolean C.Ty
+    removeOverride (C.TyAnd t1 t2) ls =
+      let Tuple o1 t1 = removeOverride t1 ls in
+      let Tuple o2 t2 = removeOverride t2 ls in
+      let tuple = Tuple (o1 || o2) in case t1, t2 of
+        C.TyTop, C.TyTop -> tuple C.TyTop
+        C.TyTop, _       -> tuple t2
+        _,       C.TyTop -> tuple t1
+        _,       _       -> tuple (C.TyAnd t1 t2)
+    removeOverride (C.TyRcd l _) ls | l `elem` ls = Tuple true C.TyTop
+    removeOverride ty _ = Tuple false ty
+    override :: C.Ty -> S.Tm -> Typing C.Ty
+    override ty e = let ls = selectOverride e in
+      if null ls then pure ty else case removeOverride ty ls of
+        Tuple true ty' -> pure ty'
+        Tuple false _  -> throwTypeError $ show ty <+> "is not overridden"
 synthesize (S.TmNew e) = do
   Tuple e' t <- synthesize e
   case t of

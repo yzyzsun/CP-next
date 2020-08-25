@@ -7,7 +7,7 @@ import Control.Lazy (fix)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, some)
-import Data.Maybe (Maybe(..), optional)
+import Data.Maybe (Maybe(..), isJust, optional)
 import Data.Tuple (Tuple(..))
 import Text.Parsing.Parser (Parser, position)
 import Text.Parsing.Parser.Combinators (choice, try)
@@ -15,8 +15,8 @@ import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildEx
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (char)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef)
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), Name, UnOp(..))
-import Zord.Syntax.Source (Tm(..), Ty(..))
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
+import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), Ty(..))
 
 type SParser a = Parser String a
 
@@ -160,25 +160,27 @@ open = do
 recordLit :: SParser Tm -> SParser Tm
 recordLit e = braces $ TmRcd <$> semiSep (recordField e <|> methodPattern e)
 
-recordField :: SParser Tm -> SParser (Tuple Label Tm)
+recordField :: SParser Tm -> SParser RcdField
 recordField p = do
+  o <- override
   l <- identifier
   symbol "="
   e <- p
-  pure $ Tuple l e
+  pure $ RcdField o l (Left e)
 
-methodPattern :: SParser Tm -> SParser (Tuple Label Tm)
+methodPattern :: SParser Tm -> SParser RcdField
 methodPattern p = do
+  o <- override
   symbol "("
-  ll <- identifier
+  l <- identifier
   parms <- many (params ":")
   self <- optional selfAnno
   symbol ")"
   symbol "."
-  l <- identifier
+  l' <- identifier
   symbol "="
   e <- p
-  pure $ Tuple ll (TmPattern ll parms self l e)
+  pure $ RcdField o l (Right (MethodPattern parms self l' e))
 
 operators :: OperatorTable Identity String Tm
 operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
@@ -271,6 +273,11 @@ params s = Tuple <$> param <*> pure Nothing <|>
 
 selfAnno :: SParser (Tuple Name Ty)
 selfAnno = brackets $ Tuple <$> identifier <* symbol ":" <*> ty
+
+override :: SParser Boolean
+override = do
+  m <- optional (reserved "override")
+  pure $ isJust m
 
 -- Lexer --
 
