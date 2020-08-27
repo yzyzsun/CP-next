@@ -15,16 +15,16 @@
 definition { TypeDef | TermDef }
 
 TypeDef {
-  kw<"type"> TypeNameDef angles<TypeNameDef>* TypeNameDef* (kw<"extends"> type)? "=" type
+  kw<"type"> TypeNameDecl angles<TypeNameDecl>* TypeNameDecl* (kw<"extends"> type)? "=" type
 }
 
 TermDef {
-  kw<"def"> TermNameDef ("@" typeParam)* termParam* (":" type)? "=" expression
+  kw<"def"> TermNameDecl ~conflict typeParam* termParam* (":" type)? "=" expression
 }
 
 type {
   btype | kw<"forall"> typeParam+ "." type |
-  kw<"Trait"> typeWithPercent |
+  kW<"Trait"> typeWithPercent |
   type !arrow TypeOp<"->"> type |
   type !intersect TypeOp<"&"> type
 }
@@ -33,7 +33,7 @@ btype { atype (atype | angles<typeWithPercent>)* }
 
 atype {
   TypeName | RecordType { braces<sepEndBySemi<LabelDecl ":" type>> } |
-  kw<"Int"> | kw<"Double"> | kw<"String"> | kw<"Bool"> | kw<"Top"> | kw<"Bot"> |
+  kW<"Int"> | kW<"Double"> | kW<"String"> | kW<"Bool"> | kW<"Top"> | kW<"Bot"> |
   parens<type>
 }
 
@@ -53,18 +53,16 @@ opexpr {
 lexpr {
   fexpr | Lambda { "\\" termParam+ "->" expression } |
   BigLambda { "/\\" typeParam+ "." expression } |
-  Let { kw<"let"> TermNameDef "=" expression kw<"in"> expression } |
-  LetRec { kw<"letrec"> TermNameDef ":" type "=" expression kw<"in"> expression } |
+  Let { kw<"let"> TermNameDecl "=" expression kw<"in"> expression } |
+  LetRec { kw<"letrec"> TermNameDecl ":" type "=" expression kw<"in"> expression } |
   Open { kw<"open"> expression kw<"in"> expression } |
   IfElse { kw<"if"> expression kw<"then"> expression kw<"else"> expression } |
   Trait { kw<"trait"> SelfAnno? (kw<"implements"> type)? (kw<"inherits"> opexpr)? "=>" opexpr } |
-  New { kw<"new"> expression }
+  New { kw<"new"> expression } | ToString { kw<"toString"> fexpr }
 }
 
 fexpr {
-  aexpr (aexpr | "@" atype)* |
-  aexpr "." TermName |
-  aexpr "\\" RecordType
+  aexpr (aexpr | "@" atype)* | aexpr "." Label | aexpr "\\" RecordType
 }
 
 aexpr {
@@ -75,18 +73,19 @@ aexpr {
 }
 
 RecordField {
-  TermNameDef termParam* "=" expression
+  LabelDecl termParam* "=" expression
 }
 
 MethodPattern {
-  parens<TermNameDef termParam* SelfAnno?> "." RecordField
+  parens<LabelDecl termParam* SelfAnno?> "." RecordField
 }
 
-typeParam { TypeNameDef | brackets<TypeNameDef "*" type> }
-termParam { TermNameDef | parens<TermNameDef ":" type> }
-SelfAnno { "[" TermNameDef ":" type "]" }
+typeParam { underscore | TypeNameDecl | parens<TypeNameDecl "*" type> }
+termParam { underscore | TermNameDecl | parens<TermNameDecl ":" type> }
+SelfAnno { brackets<TermNameDecl ":" type> }
 
-kw<word> { @specialize[name={word}]<identifier, word> }
+kw<word> { @specialize[name={word}]<lowerid, word> }
+kW<word> { @specialize[name={word}]<upperid, word> }
 
 braces<contents> { "{" contents "}" }
 parens<contents> { "(" contents ")" }
@@ -96,11 +95,12 @@ angles<contents> { "<" contents ">" }
 sepEndBySemi<clause> { ~conflict (clause ";")* clause? }
 typeWithPercent { type ~conflict ("%" type)? }
 
-TypeName { identifier }
-TypeNameDef { identifier }
-TermName { identifier }
-TermNameDef { identifier }
-LabelDecl { identifier }
+TypeNameDecl { upperid }
+TypeName { upperid }
+TermNameDecl { lowerid }
+TermName { lowerid | upperid }
+LabelDecl { lowerid | upperid }
+Label { lowerid | upperid }
 
 @skip { whitespace | LineComment | BlockComment }
 
@@ -114,9 +114,10 @@ LabelDecl { identifier }
   blockCommentRest { "-" blockCommentAfterHyphen | ![-] blockCommentRest }
   blockCommentAfterHyphen { "}" | blockCommentRest }
 
-  idStart { std.asciiLetter | "_" }
-  idChar { std.asciiLetter | std.digit | "'" | "_" }
-  identifier { idStart idChar* }
+  underscore { "_" }
+  idChar { std.asciiLetter | std.digit | underscore | "'" }
+  lowerid { std.asciiLowercase idChar* }
+  upperid { std.asciiUppercase idChar* }
 
   octit { $[0-7] }
   hexit { std.digit | $[a-fA-F] }
