@@ -4,17 +4,20 @@ import Prelude hiding (between)
 
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
+import Data.Array as Array
+import Data.Char.Unicode (isLower)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, some)
 import Data.Maybe (Maybe(..), isJust, optional)
+import Data.String.CodeUnits as CodeUnits
 import Data.Tuple (Tuple(..))
 import Text.Parsing.Parser (Parser, position)
 import Text.Parsing.Parser.Combinators (choice, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
-import Text.Parsing.Parser.String (char)
-import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef)
+import Text.Parsing.Parser.String (char, satisfy)
+import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
 import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), Ty(..))
 
@@ -28,9 +31,9 @@ program = fix $ \p -> tyDef p <|> tmDef p <|> expr
 tyDef :: SParser Tm -> SParser Tm
 tyDef p = do
   reserved "type"
-  a <- identifier
-  sorts <- many (angles identifier)
-  parms <- many (identifier)
+  a <- upperIdentifier
+  sorts <- many (angles upperIdentifier)
+  parms <- many upperIdentifier
   t1 <- optional (reserved "extends" *> ty)
   symbol "="
   t2 <- ty
@@ -41,9 +44,9 @@ tyDef p = do
 tmDef :: SParser Tm -> SParser Tm
 tmDef p = do
   reserved "def"
-  x <- identifier
-  tyParams <- many (symbol "@" *> params "*")
-  tmParams <- many (params ":")
+  x <- lowerIdentifier
+  tyParams <- many (try (params upperIdentifier "*"))
+  tmParams <- many (params lowerIdentifier ":")
   t <- optional (symbol ":" *> ty)
   symbol "="
   e1 <- expr
@@ -88,7 +91,7 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
 lambdaAbs :: SParser Tm
 lambdaAbs = do
   symbol "\\"
-  xs <- some (params ":")
+  xs <- some (params lowerIdentifier ":")
   symbol "->"
   e <- expr
   pure $ TmAbs xs e
@@ -96,7 +99,7 @@ lambdaAbs = do
 tyLambdaAbs :: SParser Tm
 tyLambdaAbs = do
   symbol "/\\"
-  xs <- some (params "*")
+  xs <- some (params upperIdentifier "*")
   symbol "."
   e <- expr
   pure $ TmTAbs xs e
@@ -130,7 +133,7 @@ ifThenElse = do
 letIn :: SParser Tm
 letIn = do
   reserved "let"
-  x <- identifier
+  x <- lowerIdentifier
   symbol "="
   e1 <- expr
   reserved "in"
@@ -140,7 +143,7 @@ letIn = do
 letrec :: SParser Tm
 letrec = do
   reserved "letrec"
-  x <- identifier
+  x <- lowerIdentifier
   symbol ":"
   t <- ty
   symbol "="
@@ -179,7 +182,7 @@ methodPattern p = do
   o <- override
   symbol "("
   l <- identifier
-  parms <- many (params ":")
+  parms <- many (params lowerIdentifier ":")
   self <- optional selfAnno
   symbol ")"
   symbol "."
@@ -228,7 +231,7 @@ aty t = choice [ reserved "Int"    $> TyInt
                , reserved "Bool"   $> TyBool
                , reserved "Top"    $> TyTop
                , reserved "Bot"    $> TyBot
-               , identifier <#> TyVar
+               , upperIdentifier <#> TyVar
                , recordTy
                , parens t
                ]
@@ -249,7 +252,7 @@ traitTy t = do
 forallTy :: SParser Ty
 forallTy = do
   reserved "forall"
-  xs <- some (params "*")
+  xs <- some (params upperIdentifier "*")
   symbol "."
   t <- ty
   pure $ TyForall xs t
@@ -272,13 +275,13 @@ fromIntOrNumber :: Either Int Number -> Tm
 fromIntOrNumber (Left int) = TmInt int
 fromIntOrNumber (Right number) = TmDouble number
 
-params :: String -> SParser (Tuple Name (Maybe Ty))
-params s = Tuple <$> param <*> pure Nothing <|>
-           parens (Tuple <$> param <* symbol s <*> (Just <$> ty))
-  where param = identifier <|> underscore
+params :: SParser String -> String -> SParser (Tuple Name (Maybe Ty))
+params id s = Tuple <$> param <*> pure Nothing <|>
+              parens (Tuple <$> param <* symbol s <*> (Just <$> ty))
+  where param = id <|> underscore
 
 selfAnno :: SParser (Tuple Name Ty)
-selfAnno = brackets $ Tuple <$> identifier <* symbol ":" <*> ty
+selfAnno = brackets $ Tuple <$> lowerIdentifier <* symbol ":" <*> ty
 
 override :: SParser Boolean
 override = do
@@ -323,6 +326,9 @@ symbol s = zord.symbol s $> unit
 underscore :: SParser String
 underscore = zord.symbol "_"
 
+lexeme :: forall a. SParser a -> SParser a
+lexeme = zord.lexeme
+
 whiteSpace :: SParser Unit
 whiteSpace = zord.whiteSpace
 
@@ -340,3 +346,18 @@ brackets = zord.brackets
 
 sepEndBySemi :: forall a. SParser a -> SParser (List a)
 sepEndBySemi p = sepEndBy p (symbol ";")
+
+lower :: SParser Char
+lower = satisfy isLower
+
+ident :: SParser Char -> SParser String
+ident identStart = lexeme $ try do
+  c <- identStart
+  cs <- Array.many (unGenLanguageDef zordDef).identLetter
+  pure $ CodeUnits.singleton c <> CodeUnits.fromCharArray cs
+
+lowerIdentifier :: SParser String
+lowerIdentifier = ident lower
+
+upperIdentifier :: SParser String
+upperIdentifier = ident upper
