@@ -217,10 +217,10 @@ synthesize (S.TmNew e) = do
       else throwTypeError $ "input" <+> show ti <+>
         "is not a supertype of output" <+> show to <+> "in Trait"
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
-synthesize (S.TmShow e) = do
+synthesize (S.TmToString e) = do
   Tuple e' t <- synthesize e
   if t == C.TyInt || t == C.TyDouble || t == C.TyString || t == C.TyBool
-  then pure $ Tuple (C.TmShow e') C.TyString
+  then pure $ Tuple (C.TmToString e') C.TyString
   else throwTypeError $ "cannot show" <+> show t
 -- TODO: save original terms instead of desugared ones
 synthesize (S.TmPos p e) = setPos (Pos p e) $ synthesize e

@@ -64,7 +64,7 @@ opexpr e = buildExprParser operators $ lexpr e
 
 lexpr :: SParser Tm -> SParser Tm
 lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|> trait <|> new <|>
-          ifThenElse <|> letIn <|> letrec <|> open <|> showExpr
+          ifThenElse <|> letIn <|> letrec <|> open <|> toString
 
 fexpr :: SParser Tm -> SParser Tm
 fexpr e = dotexpr e >>= \e' -> foldl (#) e' <$>
@@ -157,11 +157,11 @@ open = do
   e2 <- expr
   pure $ TmOpen e1 e2
 
-showExpr :: SParser Tm
-showExpr = do
-  reserved "show"
+toString :: SParser Tm
+toString = do
+  reserved "toString"
   e <- dotexpr expr
-  pure $ TmShow e
+  pure $ TmToString e
 
 recordLit :: SParser Tm -> SParser Tm
 recordLit e = braces $ TmRcd <$> sepEndBySemi (recordField e <|> methodPattern e)
@@ -290,7 +290,7 @@ override = do
 zordDef :: LanguageDef
 zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "trait", "implements", "inherits", "new"
-  , "if", "then", "else", "let", "letrec", "open", "in", "show"
+  , "if", "then", "else", "let", "letrec", "open", "in", "toString"
   , "type", "extends", "def", "override"
   , "forall", "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
   ]

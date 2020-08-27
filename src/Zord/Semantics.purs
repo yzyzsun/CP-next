@@ -48,8 +48,8 @@ step (TmPrj e l) | isValue e = computation "PProj" $> selectLabel e l
                  | otherwise = congruence "Proj" $> TmPrj <*> step e <@> l
 step (TmTApp e t) | isValue e = computation "PTApp" $> paraApp' e t
                   | otherwise = congruence "TApp" $> TmTApp <*> step e <@> t
-step (TmShow e) | isValue e = computation "ShowV" $> toString e
-                | otherwise = congruence "Show" $> TmShow <*> step e
+step (TmToString e) | isValue e = computation "ToStringV" $> toString e
+                    | otherwise = congruence "ToString" $> TmToString <*> step e
 step e = unsafeCrashWith $
   "Zord.Semantics.step: well-typed programs don't get stuck, but got " <> show e
 
@@ -78,9 +78,9 @@ typedReduce _ _ = Nothing
 paraApp :: Tm -> Tm -> Tm
 paraApp TmUnit _ = TmUnit
 paraApp (TmAbs x e1 targ tret) e2 = TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
-paraApp (TmMerge v1 v2) v = TmMerge (paraApp v1 v) (paraApp v2 v)
-paraApp v1 v2 = unsafeCrashWith $
-  "Zord.Semantics.paraApp: impossible application of " <> show v1 <> " to " <> show v2
+paraApp (TmMerge v1 v2) e = TmMerge (paraApp v1 e) (paraApp v2 e)
+paraApp v e = unsafeCrashWith $
+  "Zord.Semantics.paraApp: impossible application of " <> show v <> " to " <> show e
 
 paraApp' :: Tm -> Ty -> Tm
 paraApp' TmUnit _ = TmUnit
@@ -166,4 +166,4 @@ toString (TmDouble n) = TmString (show n)
 toString (TmString s) = TmString (show s)
 toString (TmBool b)   = TmString (show b)
 toString v = unsafeCrashWith $
-  "Zord.Semantics.toString: impossible show " <> show v
+  "Zord.Semantics.toString: impossible from " <> show v <> " to string"

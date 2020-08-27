@@ -12,7 +12,7 @@ def evalAdd = trait implements AddSig<Eval> => {
   (Add e1 e2).eval = e1.eval + e2.eval;
 };
 def printAdd = trait implements AddSig<Print> => {
-  (Lit     n).print = show n;
+  (Lit     n).print = toString n;
   (Add e1 e2).print = "(" ++ e1.print ++ " + " ++ e2.print ++ ")";
 };
 def expAdd @Exp = trait [self : AddSig<Exp>] => {
@@ -33,4 +33,4 @@ def expMul @Exp = trait [self : MulSig<Exp>] inherits expAdd @Exp => {
 };
 
 def e = new evalMul , printMul , expMul @(Eval & Print);
-e.exp.print ++ " is " ++ show e.exp.eval
+e.exp.print ++ " is " ++ toString e.exp.eval
