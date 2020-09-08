@@ -3,19 +3,22 @@ module Zord.Semantics where
 import Prelude
 
 import Control.Alt ((<|>))
+import Control.Monad.Reader (Reader, ask, local, runReader)
 import Control.Monad.Writer (Writer, runWriter, tell)
+import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), lookup)
 import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), UnOp(..), fromJust)
-import Zord.Syntax.Core (Tm(..), Ty(..), tmSubst, tmTSubst, tySubst)
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), Name, UnOp(..), fromJust)
+import Zord.Syntax.Core (EvalEnv, Tm(..), Ty(..), tmSubst, tmTSubst, tySubst)
+
+----------------------------------------------
+-- call-by-name substitution w/ step traces --
+----------------------------------------------
 
 type Eval a = Writer String a
-
-runEval :: forall a. Eval a -> Tuple a String
-runEval = runWriter
 
 computation :: String -> Eval Unit
 computation w = tell $ "↓ Step-" <> w <> "\n"
@@ -23,9 +26,11 @@ computation w = tell $ "↓ Step-" <> w <> "\n"
 congruence :: String -> Eval Unit
 congruence w = tell $ "→ Step-" <> w <> "\n"
 
-eval :: Tm -> Eval Tm
-eval e | isValue e = tell (show e <> "\n") $> e
-       | otherwise = tell (show e <> "\n") *> step e >>= eval
+eval :: Tm -> Tuple Tm String
+eval = go >>> runWriter
+  where go :: Tm -> Eval Tm
+        go e | isValue e = tell (show e <> "\n") $> e
+             | otherwise = tell (show e <> "\n") *> step e >>= go
 
 step :: Tm -> Eval Tm
 step (TmUnary op e)
@@ -54,7 +59,7 @@ step (TmPrj e l)
   | isValue e = computation "PProj" $> selectLabel e l
   | otherwise = congruence  "Proj"  $> TmPrj <*> step e <@> l
 step (TmTApp e t)
-  | isValue e = computation "PTApp" $> paraApp' e t
+  | isValue e = computation "PTApp" $> paraAppTy e t
   | otherwise = congruence  "TApp"  $> TmTApp <*> step e <@> t
 step (TmToString e)
   | isValue e = computation "ToStringV" $> toString e
@@ -91,21 +96,12 @@ paraApp (TmMerge v1 v2) e = TmMerge (paraApp v1 e) (paraApp v2 e)
 paraApp v e = unsafeCrashWith $
   "Zord.Semantics.paraApp: impossible application of " <> show v <> " to " <> show e
 
-paraApp' :: Tm -> Ty -> Tm
-paraApp' TmUnit _ = TmUnit
-paraApp' (TmTAbs a _ e t) ta = TmAnno (tmTSubst a ta e) (tySubst a ta t)
-paraApp' (TmMerge v1 v2) t = TmMerge (paraApp' v1 t) (paraApp' v2 t)
-paraApp' v t = unsafeCrashWith $
-  "Zord.Semantics.paraApp': impossible application of " <> show v <> " to " <> show t
-
-selectLabel :: Tm -> Label -> Tm
-selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUnit, TmUnit -> TmUnit
-  TmUnit, e2' -> e2'
-  e1', TmUnit -> e1'
-  e1', e2' -> TmMerge e1' e2'
-selectLabel (TmRcd l' _ e) l | l == l' = e
-selectLabel _ _ = TmUnit
+paraAppTy :: Tm -> Ty -> Tm
+paraAppTy TmUnit _ = TmUnit
+paraAppTy (TmTAbs a _ e t) ta = TmAnno (tmTSubst a ta e) (tySubst a ta t)
+paraAppTy (TmMerge v1 v2) t = TmMerge (paraAppTy v1 t) (paraAppTy v2 t)
+paraAppTy v t = unsafeCrashWith $
+  "Zord.Semantics.paraAppTy: impossible application of " <> show v <> " to " <> show t
 
 isValue :: Tm -> Boolean
 isValue (TmInt _)    = true
@@ -119,6 +115,113 @@ isValue (TmRcd _ _ _) = true
 isValue (TmTAbs _ _ _ _) = true
 isValue _ = false
 
+---------------------------
+-- call-by-name closures --
+---------------------------
+
+type Eval' a = Reader EvalEnv a
+
+eval' :: Tm -> Tm
+eval' tm = runReader (go tm) Nil
+  where go :: Tm -> Eval' Tm
+        go e | isValue' e = pure e
+             | otherwise  = step' e >>= go
+
+step' :: Tm -> Eval' Tm
+step' (TmUnary op e) | isValue' e = pure $ unop op e
+                     | otherwise  = TmUnary op <$> step' e
+step' (TmBinary op e1 e2) | isValue' e1 && isValue' e2 = pure $ binop op e1 e2
+                          | isValue' e1 = TmBinary op e1 <$> step' e2
+                          | otherwise   = TmBinary op <$> step' e1 <@> e2
+step' (TmIf (TmBool true)  e2 e3) = pure e2
+step' (TmIf (TmBool false) e2 e3) = pure e3
+step' (TmIf e1 e2 e3) = TmIf <$> step' e1 <@> e2 <@> e3
+step' (TmVar x) = ask >>= \env -> pure $ fromJust (lookup x env)
+step' (TmApp e1 e2@(TmClosure _ _)) | not (isValue' e1) = TmApp <$> step' e1 <@> e2
+                                    | otherwise = paraApp' e1 e2
+step' (TmApp e1 e2) = TmApp e1 <$> closure e2
+step' abs@(TmAbs _ _ _ _) = closure abs
+step' fix@(TmFix x e t) = closureWithTmBind x fix $ TmAnno e t
+step' (TmAnno (TmAnno e t') t) = pure $ TmAnno e t
+step' (TmAnno e t) | isValue' e = pure $ fromJust (typedReduce' e t)
+                   | otherwise  = TmAnno <$> step' e <@> t
+step' (TmMerge e1 e2) | isValue' e1 = TmMerge e1 <$> step' e2
+                      | isValue' e2 = TmMerge <$> step' e1 <@> e2
+                      | otherwise   = TmMerge <$> step' e1 <*> step' e2
+step' rcd@(TmRcd _ _ _) = closure rcd
+step' (TmPrj e l) | isValue' e = pure $ selectLabel e l
+                  | otherwise  = TmPrj <$> step' e <@> l
+-- TODO: polymorphic closures
+step' (TmTApp e t) | isValue' e = pure $ paraAppTy e t
+                   | otherwise  = TmTApp <$> step' e <@> t
+step' (TmToString e) | isValue' e = pure $ toString e
+                     | otherwise  = TmToString <$> step' e
+step' (TmClosure env e) | isValue' e = pure e
+                        | otherwise  = closureLocal env $ step' e
+step' e = unsafeCrashWith $
+  "Zord.Semantics.step': well-typed programs don't get stuck, but got " <> show e
+
+typedReduce' :: Tm -> Ty -> Maybe Tm
+typedReduce' e _ | not (isValue' e || isClosureValue e) = unsafeCrashWith $
+  "Zord.Semantics.typedReduce': " <> show e <> " is not a value"
+typedReduce' _ t | isTopLike t = Just $ TmUnit
+typedReduce' v t | Just (Tuple t1 t2) <- split t = do
+  v1 <- typedReduce' v t1
+  v2 <- typedReduce' v t2
+  Just $ TmMerge v1 v2
+typedReduce' (TmInt i)    TyInt    = Just $ TmInt i
+typedReduce' (TmDouble n) TyDouble = Just $ TmDouble n
+typedReduce' (TmString s) TyString = Just $ TmString s
+typedReduce' (TmBool b)   TyBool   = Just $ TmBool b
+typedReduce' (TmAbs x e targ1 tret1) (TyArr targ2 tret2 _)
+  | targ2 <: targ1 && tret1 <: tret2 = Just $ TmAbs x e targ1 tret2
+typedReduce' (TmMerge v1 v2) t = typedReduce' v1 t <|> typedReduce' v2 t
+typedReduce' (TmRcd l t e) (TyRcd l' t')
+  | l == l' && t <: t' = Just $ TmRcd l t' (TmAnno e t')
+typedReduce' (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
+  | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2
+  = Just $ TmTAbs a2 td1 (tmTSubst a1 (TyVar a2) e) t2
+typedReduce' (TmClosure env e) t = TmClosure env <$> typedReduce' e t
+typedReduce' _ _ = Nothing
+
+paraApp' :: Tm -> Tm -> Eval' Tm
+paraApp' (TmClosure env v) e = closureLocal env $ paraApp' v e
+paraApp' TmUnit _ = pure TmUnit
+paraApp' (TmAbs x e1 targ tret) e2 =
+  closureWithTmBind x (TmAnno e2 targ) $ TmAnno e1 tret
+paraApp' (TmMerge v1 v2) e = TmMerge <$> paraApp' v1 e <*> paraApp' v2 e
+paraApp' v e = unsafeCrashWith $
+  "Zord.Semantics.paraApp': impossible application of " <> show v <> " to " <> show e
+
+isValue' :: Tm -> Boolean
+isValue' (TmInt _)    = true
+isValue' (TmDouble _) = true
+isValue' (TmString _) = true
+isValue' (TmBool _)   = true
+isValue' (TmUnit)     = true
+isValue' (TmMerge e1 e2) = isValue' e1 && isValue' e2
+isValue' (TmTAbs _ _ _ _) = true
+isValue' (TmClosure _ e) = isClosureValue e
+isValue' _ = false
+
+isClosureValue :: Tm -> Boolean
+isClosureValue (TmMerge e1 e2) = isClosureValue e1 && isClosureValue e2
+isClosureValue (TmAbs _ _ _ _) = true
+isClosureValue (TmRcd _ _ _) = true
+isClosureValue _ = false
+
+closure :: Tm -> Eval' Tm
+closure e = ask >>= \env -> pure $ TmClosure env e
+
+closureWithTmBind :: Name -> Tm -> Tm -> Eval' Tm
+closureWithTmBind name tm e = local (Tuple name tm : _) (closure e)
+
+closureLocal :: EvalEnv -> Eval' Tm -> Eval' Tm
+closureLocal env m = TmClosure env <$> local (const env) m
+
+-----------------------
+-- common operations --
+-----------------------
 
 unop :: UnOp -> Tm -> Tm
 unop Neg (TmInt i)    = TmInt    (negate i)
@@ -176,3 +279,15 @@ toString (TmString s) = TmString (show s)
 toString (TmBool b)   = TmString (show b)
 toString v = unsafeCrashWith $
   "Zord.Semantics.toString: impossible from " <> show v <> " to string"
+
+selectLabel :: Tm -> Label -> Tm
+selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
+  TmUnit, TmUnit -> TmUnit
+  TmUnit, e2' -> e2'
+  e1', TmUnit -> e1'
+  e1', e2' -> TmMerge e1' e2'
+selectLabel (TmRcd l' _ e) l | l == l' = e
+selectLabel (TmClosure env e) l = case selectLabel e l of
+  TmUnit -> TmUnit
+  e' -> TmClosure env e'
+selectLabel _ _ = TmUnit

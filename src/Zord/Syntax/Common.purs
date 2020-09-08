@@ -4,6 +4,7 @@ import Prelude
 
 import Data.List (List(..), foldl)
 import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Name  = String
@@ -62,6 +63,10 @@ instance showLogicOp :: Show LogicOp where
   show And = "&&"
   show Or  = "||"
 
+-- Environment --
+
+type Env a = List (Tuple Name a)
+
 -- Helpers --
 
 beside :: String -> String -> String
@@ -76,7 +81,7 @@ braces :: String -> String
 braces str = "{" <+> str <+> "}"
 
 angles :: String -> String
-angles str = "<" <> str <> ">"
+angles str = "<" <+> str <+> ">"
 
 brackets :: String -> String
 brackets str = "[" <+> str <+> "]"

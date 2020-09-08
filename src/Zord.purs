@@ -16,7 +16,7 @@ import Text.Parsing.Parser.String (eof)
 import Zord.Context (Pos(..), TypeError(..), runTyping)
 import Zord.Desugar (desugar)
 import Zord.Parser (program, whiteSpace)
-import Zord.Semantics (eval, runEval)
+import Zord.Semantics (eval, eval')
 import Zord.Typing (synthesize)
 
 data Mode = Simple | Verbose
@@ -24,12 +24,12 @@ data Mode = Simple | Verbose
 interpret :: Mode -> String -> Effect String
 interpret mode code = case runParser code (whiteSpace *> program <* eof) of
   Left err -> throw $ showParseError err code
-  Right e -> case runTyping (synthesize (desugar e)) of
+  Right e -> let e' = desugar e in case runTyping (synthesize e') of
     Left err -> throw $ showTypeError err
-    Right (Tuple e' t) -> let Tuple e'' s = runEval (eval e') in case mode of
-      Simple  -> pure $ show e''
-      Verbose -> pure $ show e <> "\n⇣ Desugar\n" <> show (desugar e) <>
-                                  "\n↯ Elaborate\n" <> s
+    Right (Tuple e'' t) -> case mode of
+      Simple  -> pure $ show (eval' e'')
+      Verbose -> let Tuple _ s = eval e'' in pure $
+        show e <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s
 
 seek :: String -> Int -> Int -> Maybe Char
 seek str line column = (split (Pattern "\n") str) !! line' >>= charAt column'

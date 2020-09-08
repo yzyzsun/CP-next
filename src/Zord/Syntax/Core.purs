@@ -2,7 +2,10 @@ module Zord.Syntax.Core where
 
 import Prelude
 
-import Zord.Syntax.Common (BinOp, Label, Name, UnOp, parens, (<+>))
+import Data.Foldable (intercalate)
+import Data.List (null)
+import Data.Tuple (fst, snd)
+import Zord.Syntax.Common (BinOp, Env, Label, Name, UnOp, angles, braces, parens, (<+>))
 
 -- Types --
 
@@ -27,7 +30,7 @@ instance showTy :: Show Ty where
   show TyBot    = "⊥"
   show (TyArr t1 t2 isTrait) = parens $ show t1 <+> "→" <+> show t2
   show (TyAnd t1 t2) = show t1 <+> "&" <+> show t2
-  show (TyRcd l t) = "{" <+> l <+> ":" <+> show t <+> "}"
+  show (TyRcd l t) = braces $ l <+> ":" <+> show t
   show (TyVar a) = a
   show (TyForall a td t) = parens $
     "∀" <> a <+> "*" <+> show td <> "." <+> show t
@@ -55,6 +58,7 @@ data Tm = TmInt Int
         | TmTApp Tm Ty
         | TmTAbs Name Ty Tm Ty
         | TmToString Tm
+        | TmClosure EvalEnv Tm
 
 instance showTm :: Show Tm where
   show (TmInt i)    = show i
@@ -73,12 +77,13 @@ instance showTm :: Show Tm where
   show (TmFix x e t) = parens $ "fix" <+> x <> "." <+> show e <+> ":" <+> show t
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
-  show (TmRcd l t e) = "{" <+> l <+> ":" <+> show t <+> "=" <+> show e <+> "}"
+  show (TmRcd l t e) = braces $ l <+> ":" <+> show t <+> "=" <+> show e
   show (TmPrj e l) = show e <> "." <> l
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs a td e t) = parens $ "Λ" <> a <> "." <+> show e <+>
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
   show (TmToString e) = parens $ "toString" <+> show e
+  show (TmClosure env e) = angles $ showEvalEnv env <+> "|" <+> show e
 
 -- Substitution --
 
@@ -130,3 +135,11 @@ tmTSubst a s (TmTAbs a' td e t) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
                                   (if a == a' then t else tySubst a s t)
 tmTSubst a s (TmToString e) = TmToString (tmTSubst a s e)
 tmTSubst _ _ e = e
+
+-- Environment --
+
+type EvalEnv = Env Tm
+
+showEvalEnv :: EvalEnv -> String
+showEvalEnv env = if null env then "·" else
+  intercalate ", " (env <#> \x -> fst x <+> "↦" <+> show (snd x))

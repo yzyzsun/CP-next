@@ -9,9 +9,11 @@ import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), lookup)
 import Text.Parsing.Parser.Pos (Position)
-import Zord.Syntax.Common (Name, (<+>))
+import Zord.Syntax.Common (Env, Name, (<+>))
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
+
+type Typing = ReaderT Ctx (Except TypeError)
 
 type Ctx = { tmBindEnv :: Env C.Ty -- typing
            , tyBindEnv :: Env C.Ty -- disjointness
@@ -20,12 +22,8 @@ type Ctx = { tmBindEnv :: Env C.Ty -- typing
            , pos :: Pos
            }
 
-type Env a = List (Tuple Name a)
-
 data Pos = UnknownPos
          | Pos Position S.Tm
-
-type Typing = ReaderT Ctx (Except TypeError)
 
 runTyping :: forall a. Typing a -> Either TypeError a
 runTyping m = runExcept $ runReaderT m { tmBindEnv : Nil
