@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Foldable (intercalate)
 import Data.List (null)
+import Data.Maybe (Maybe(..))
 import Data.Tuple (fst, snd)
 import Zord.Syntax.Common (BinOp, Env, Label, Name, UnOp, angles, braces, parens, (<+>))
 
@@ -138,7 +139,14 @@ tmTSubst _ _ e = e
 
 -- Environment --
 
-type EvalEnv = Env Tm
+type EvalEnv = Env EvalBind
+
+data EvalBind = TmBind Tm | TyBind (Maybe Ty)
+
+instance showEvalBind :: Show EvalBind where
+  show (TmBind e) = show e
+  show (TyBind (Just t)) = show t
+  show (TyBind Nothing) = "*"
 
 showEvalEnv :: EvalEnv -> String
 showEvalEnv env = if null env then "·" else

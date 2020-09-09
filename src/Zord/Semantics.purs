@@ -12,7 +12,7 @@ import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), Name, UnOp(..), fromJust)
-import Zord.Syntax.Core (EvalEnv, Tm(..), Ty(..), tmSubst, tmTSubst, tySubst)
+import Zord.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..), tmSubst, tmTSubst, tySubst)
 
 ----------------------------------------------
 -- call-by-name substitution w/ step traces --
@@ -70,7 +70,7 @@ step e = unsafeCrashWith $
 typedReduce :: Tm -> Ty -> Maybe Tm
 typedReduce e _ | not (isValue e) = unsafeCrashWith $
   "Zord.Semantics.typedReduce: " <> show e <> " is not a value"
-typedReduce _ t | isTopLike t = Just $ TmUnit
+typedReduce _ t | isTopLike t = Just TmUnit
 typedReduce v t | Just (Tuple t1 t2) <- split t = do
   v1 <- typedReduce v t1
   v2 <- typedReduce v t2
@@ -136,14 +136,16 @@ step' (TmBinary op e1 e2) | isValue' e1 && isValue' e2 = pure $ binop op e1 e2
 step' (TmIf (TmBool true)  e2 e3) = pure e2
 step' (TmIf (TmBool false) e2 e3) = pure e3
 step' (TmIf e1 e2 e3) = TmIf <$> step' e1 <@> e2 <@> e3
-step' (TmVar x) = ask >>= \env -> pure $ fromJust (lookup x env)
-step' (TmApp e1 e2@(TmClosure _ _)) | not (isValue' e1) = TmApp <$> step' e1 <@> e2
-                                    | otherwise = paraApp' e1 e2
+step' (TmVar x) = ask >>= \env -> case lookup x env of
+  Just (TmBind e) -> pure e
+  m -> unsafeCrashWith $ "Zord.Semantics.step': " <> x <> " is " <> show m
+step' (TmApp e1 e2@(TmClosure _ _)) | isValue' e1 = paraApp' e1 e2
+                                    | otherwise   = TmApp <$> step' e1 <@> e2
 step' (TmApp e1 e2) = TmApp e1 <$> closure e2
 step' abs@(TmAbs _ _ _ _) = closure abs
 step' fix@(TmFix x e t) = closureWithTmBind x fix $ TmAnno e t
 step' (TmAnno (TmAnno e t') t) = pure $ TmAnno e t
-step' (TmAnno e t) | isValue' e = pure $ fromJust (typedReduce' e t)
+step' (TmAnno e t) | isValue' e = fromJust <$> (expand t >>= typedReduce' e)
                    | otherwise  = TmAnno <$> step' e <@> t
 step' (TmMerge e1 e2) | isValue' e1 = TmMerge e1 <$> step' e2
                       | isValue' e2 = TmMerge <$> step' e1 <@> e2
@@ -151,8 +153,7 @@ step' (TmMerge e1 e2) | isValue' e1 = TmMerge e1 <$> step' e2
 step' rcd@(TmRcd _ _ _) = closure rcd
 step' (TmPrj e l) | isValue' e = pure $ selectLabel e l
                   | otherwise  = TmPrj <$> step' e <@> l
--- TODO: polymorphic closures
-step' (TmTApp e t) | isValue' e = pure $ paraAppTy e t
+step' (TmTApp e t) | isValue' e = expand t >>= paraAppTy' e
                    | otherwise  = TmTApp <$> step' e <@> t
 step' (TmToString e) | isValue' e = pure $ toString e
                      | otherwise  = TmToString <$> step' e
@@ -161,28 +162,43 @@ step' (TmClosure env e) | isValue' e = pure e
 step' e = unsafeCrashWith $
   "Zord.Semantics.step': well-typed programs don't get stuck, but got " <> show e
 
-typedReduce' :: Tm -> Ty -> Maybe Tm
+-- the second argument has been expanded in Step-AnnoV
+typedReduce' :: Tm -> Ty -> Eval' (Maybe Tm)
 typedReduce' e _ | not (isValue' e || isClosureValue e) = unsafeCrashWith $
   "Zord.Semantics.typedReduce': " <> show e <> " is not a value"
-typedReduce' _ t | isTopLike t = Just $ TmUnit
+typedReduce' _ t | isTopLike t = pure (Just TmUnit)
 typedReduce' v t | Just (Tuple t1 t2) <- split t = do
-  v1 <- typedReduce' v t1
-  v2 <- typedReduce' v t2
-  Just $ TmMerge v1 v2
-typedReduce' (TmInt i)    TyInt    = Just $ TmInt i
-typedReduce' (TmDouble n) TyDouble = Just $ TmDouble n
-typedReduce' (TmString s) TyString = Just $ TmString s
-typedReduce' (TmBool b)   TyBool   = Just $ TmBool b
-typedReduce' (TmAbs x e targ1 tret1) (TyArr targ2 tret2 _)
-  | targ2 <: targ1 && tret1 <: tret2 = Just $ TmAbs x e targ1 tret2
-typedReduce' (TmMerge v1 v2) t = typedReduce' v1 t <|> typedReduce' v2 t
-typedReduce' (TmRcd l t e) (TyRcd l' t')
-  | l == l' && t <: t' = Just $ TmRcd l t' (TmAnno e t')
-typedReduce' (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
-  | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2
-  = Just $ TmTAbs a2 td1 (tmTSubst a1 (TyVar a2) e) t2
-typedReduce' (TmClosure env e) t = TmClosure env <$> typedReduce' e t
-typedReduce' _ _ = Nothing
+  m1 <- typedReduce' v t1
+  m2 <- typedReduce' v t2
+  pure (TmMerge <$> m1 <*> m2)
+typedReduce' (TmInt i)    TyInt    = pure (Just (TmInt i))
+typedReduce' (TmDouble n) TyDouble = pure (Just (TmDouble n))
+typedReduce' (TmString s) TyString = pure (Just (TmString s))
+typedReduce' (TmBool b)   TyBool   = pure (Just (TmBool b))
+typedReduce' (TmAbs x e targ1 tret1) (TyArr targ2 tret2 _) = do
+  targ1' <- expand targ1
+  tret1' <- expand tret1
+  if targ2 <: targ1' && tret1' <: tret2 then
+    pure (Just (TmAbs x e targ1' tret2))
+  else pure Nothing
+typedReduce' (TmMerge v1 v2) t = do
+  m1 <- typedReduce' v1 t
+  m2 <- typedReduce' v2 t
+  pure (m1 <|> m2)
+typedReduce' (TmRcd l t e) (TyRcd l' t') = do
+  t'' <- expand t
+  if l == l' && t'' <: t' then pure (Just (TmRcd l t' (TmAnno e t')))
+  else pure Nothing
+typedReduce' (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2) = do
+  td1' <- expand td1
+  t1' <- local (Tuple a1 (TyBind Nothing) : _) $ expand t1
+  if td2 <: td1' && tySubst a1 (TyVar a2) t1' <: t2 then
+    pure (Just (TmTAbs a2 td1' (tmTSubst a1 (TyVar a2) e) t2))
+  else pure Nothing
+typedReduce' (TmClosure env e) t = do
+  m <- local (const env) $ typedReduce' e t
+  pure (TmClosure env <$> m)
+typedReduce' _ _ = pure Nothing
 
 paraApp' :: Tm -> Tm -> Eval' Tm
 paraApp' (TmClosure env v) e = closureLocal env $ paraApp' v e
@@ -192,6 +208,28 @@ paraApp' (TmAbs x e1 targ tret) e2 =
 paraApp' (TmMerge v1 v2) e = TmMerge <$> paraApp' v1 e <*> paraApp' v2 e
 paraApp' v e = unsafeCrashWith $
   "Zord.Semantics.paraApp': impossible application of " <> show v <> " to " <> show e
+
+paraAppTy' :: Tm -> Ty -> Eval' Tm
+paraAppTy' (TmClosure env v) t = closureLocal env $ paraAppTy' v t
+paraAppTy' TmUnit _ = pure TmUnit
+paraAppTy' (TmTAbs a _ e t) ta = closureWithTyBind a ta $ TmAnno e t
+paraAppTy' (TmMerge v1 v2) t = TmMerge <$> paraAppTy' v1 t <*> paraAppTy' v2 t
+paraAppTy' v t = unsafeCrashWith $
+  "Zord.Semantics.paraAppTy': impossible application of " <> show v <> " to " <> show t
+
+expand :: Ty -> Eval' Ty
+expand (TyArr t1 t2 isTrait) = TyArr <$> expand t1 <*> expand t2 <@> isTrait
+expand (TyAnd t1 t2) = TyAnd <$> expand t1 <*> expand t2
+expand (TyRcd l t) = TyRcd l <$> expand t
+expand (TyVar a) = ask >>= \env -> case lookup a env of
+  Just (TyBind Nothing) -> pure $ TyVar a
+  Just (TyBind (Just t)) -> expand t
+  m -> unsafeCrashWith $ "Zord.Semantics.expand: " <> a <> " is " <> show m
+expand (TyForall a td t) = do
+  td' <- expand td
+  t' <- local (Tuple a (TyBind Nothing) : _) $ expand t
+  pure $ TyForall a td' t'
+expand t = pure t
 
 isValue' :: Tm -> Boolean
 isValue' (TmInt _)    = true
@@ -214,7 +252,10 @@ closure :: Tm -> Eval' Tm
 closure e = ask >>= \env -> pure $ TmClosure env e
 
 closureWithTmBind :: Name -> Tm -> Tm -> Eval' Tm
-closureWithTmBind name tm e = local (Tuple name tm : _) (closure e)
+closureWithTmBind name tm e = local (Tuple name (TmBind tm) : _) (closure e)
+
+closureWithTyBind :: Name -> Ty -> Tm -> Eval' Tm
+closureWithTyBind name ty e = local (Tuple name (TyBind (Just ty)) : _) (closure e)
 
 closureLocal :: EvalEnv -> Eval' Tm -> Eval' Tm
 closureLocal env m = TmClosure env <$> local (const env) m
