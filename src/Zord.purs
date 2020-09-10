@@ -16,7 +16,8 @@ import Text.Parsing.Parser.String (eof)
 import Zord.Context (Pos(..), TypeError(..), runTyping)
 import Zord.Desugar (desugar)
 import Zord.Parser (program, whiteSpace)
-import Zord.Semantics (eval, eval')
+import Zord.Semantics.Closure as C
+import Zord.Semantics.Substitution as S
 import Zord.Typing (synthesize)
 
 data Mode = Simple | Verbose
@@ -27,8 +28,8 @@ interpret mode code = case runParser code (whiteSpace *> program <* eof) of
   Right e -> let e' = desugar e in case runTyping (synthesize e') of
     Left err -> throw $ showTypeError err
     Right (Tuple e'' t) -> case mode of
-      Simple  -> pure $ show (eval' e'')
-      Verbose -> let Tuple _ s = eval e'' in pure $
+      Simple  -> pure $ show (C.eval e'')
+      Verbose -> let Tuple _ s = S.eval e'' in pure $
         show e <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s
 
 seek :: String -> Int -> Int -> Maybe Char
