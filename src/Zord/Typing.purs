@@ -77,7 +77,7 @@ synthesize (S.TmVar x) = Tuple (C.TmVar x) <$> lookupTmBind x
 synthesize (S.TmApp e1 e2) = do
   Tuple e1' t1 <- synthesize e1
   Tuple e2' t2 <- synthesize e2
-  Tuple (C.TmApp e1' e2') <$> appSS t1 t2
+  Tuple (C.TmApp e1' e2') <$> distApp t1 (Left t2)
 synthesize (S.TmAbs (Cons (Tuple x (Just targ)) Nil) e) = do
   targ' <- transform targ
   Tuple e' tret <- addTmBind x targ' $ synthesize e
@@ -112,7 +112,7 @@ synthesize (S.TmPrj e l) = do
 synthesize (S.TmTApp e ta) = do
   Tuple e' tf <- synthesize e
   ta' <- transform ta
-  Tuple (C.TmTApp e' ta') <$> appSS' tf ta'
+  Tuple (C.TmTApp e' ta') <$> distApp tf (Right ta')
 synthesize (S.TmTAbs (Cons (Tuple a (Just td)) Nil) e) = do
   td' <- transform td
   Tuple e' t <- addTyBind a td' $ synthesize e
@@ -236,25 +236,17 @@ synthesize (S.TmType a sorts params Nothing t e) = do
     sig t' = foldr (uncurry S.TySig) (foldr S.TyAbs t' params) dualSorts
 synthesize e = throwTypeError $ show e <+> "should have been desugared"
 
-appSS :: C.Ty -> C.Ty -> Typing C.Ty
-appSS C.TyTop _ = pure C.TyTop
-appSS f@(C.TyArr targ tret _) t | t <: targ = pure tret
-                              | otherwise = throwTypeError $
+distApp :: C.Ty -> Either C.Ty C.Ty -> Typing C.Ty
+distApp C.TyTop _ = pure C.TyTop
+distApp f@(C.TyArr targ tret _) (Left t) | t <: targ = pure tret
+                                         | otherwise = throwTypeError $
   show f <+> "expected a subtype of its parameter type, but got" <+> show t
-appSS (C.TyAnd t1 t2) t = do
-  t1' <- appSS t1 t
-  t2' <- appSS t2 t
+distApp (C.TyForall a td t) (Right ta) = disjoint ta td $> C.tySubst a ta t
+distApp (C.TyAnd t1 t2) t = do
+  t1' <- distApp t1 t
+  t2' <- distApp t2 t
   pure $ C.TyAnd t1' t2'
-appSS t _ = throwTypeError $ show t <+> "is not applicable"
-
-appSS' :: C.Ty -> C.Ty -> Typing C.Ty
-appSS' C.TyTop _ = pure C.TyTop
-appSS' (C.TyForall a td t) ta = disjoint ta td $> C.tySubst a ta t
-appSS' (C.TyAnd t1 t2) t = do
-  t1' <- appSS' t1 t
-  t2' <- appSS' t2 t
-  pure $ C.TyAnd t1' t2'
-appSS' t _ = throwTypeError $ show t <+> "is not type-applicable"
+distApp t _ = throwTypeError $ show t <+> "is not applicable"
 
 disjoint :: C.Ty -> C.Ty -> Typing Unit
 disjoint t _ | isTopLike t = pure unit

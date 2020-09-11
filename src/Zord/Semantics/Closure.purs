@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Monad.Reader (Reader, ask, local, runReader)
+import Data.Either (Either(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), lookup)
@@ -33,28 +34,27 @@ step (TmIf e1 e2 e3) = TmIf <$> step e1 <@> e2 <@> e3
 step (TmVar x) = ask >>= \env -> case lookup x env of
   Just (TmBind e) -> pure e
   m -> unsafeCrashWith $ "Zord.Semantics.Closure.step: " <> x <> " is " <> show m
-step (TmApp e1 e2@(TmClosure _ _)) | isValue e1 = paraApp e1 e2
-                                   | otherwise  = TmApp <$> step e1 <@> e2
-step (TmApp e1 e2) = TmApp e1 <$> closure e2
+step (TmApp e1 e2) | isValue e1 = paraApp e1 =<< Left <$> closure e2
+                   | otherwise  = TmApp <$> step e1 <@> e2
 step abs@(TmAbs _ _ _ _) = closure abs
 step fix@(TmFix x e t) = closureWithTmBind x fix $ TmAnno e t
 step (TmAnno (TmAnno e t') t) = pure $ TmAnno e t
-step (TmAnno e t) | isValue e = fromJust <$> (expand t >>= typedReduce e)
-                  | otherwise  = TmAnno <$> step e <@> t
+step (TmAnno e t) | isValue e = fromJust <$> (typedReduce e =<< expand t)
+                  | otherwise = TmAnno <$> step e <@> t
 step (TmMerge e1 e2) | isValue e1 = TmMerge e1 <$> step e2
                      | isValue e2 = TmMerge <$> step e1 <@> e2
                      | otherwise  = TmMerge <$> step e1 <*> step e2
 step rcd@(TmRcd _ _ _) = closure rcd
 step (TmPrj e l) | isValue e = pure $ selectLabel e l
                  | otherwise = TmPrj <$> step e <@> l
-step (TmTApp e t) | isValue e = expand t >>= paraAppTy e
+step (TmTApp e t) | isValue e = paraApp e =<< Right <$> expand t
                   | otherwise = TmTApp <$> step e <@> t
 step (TmToString e) | isValue e = pure $ toString e
                     | otherwise = TmToString <$> step e
 step (TmClosure env e) | isValue e = pure e
                        | otherwise = closureLocal env $ step e
-step e = unsafeCrashWith $
-  "Zord.Semantics.Closure.step: well-typed programs don't get stuck, but got " <> show e
+step e = unsafeCrashWith $ "Zord.Semantics.Closure.step: " <>
+  "well-typed programs don't get stuck, but got " <> show e
 
 -- the second argument has been expanded in Step-AnnoV
 typedReduce :: Tm -> Ty -> Eval (Maybe Tm)
@@ -94,22 +94,15 @@ typedReduce (TmClosure env e) t = do
   pure (TmClosure env <$> m)
 typedReduce _ _ = pure Nothing
 
-paraApp :: Tm -> Tm -> Eval Tm
-paraApp (TmClosure env v) e = closureLocal env $ paraApp v e
+paraApp :: Tm -> Either Tm Ty -> Eval Tm
+paraApp (TmClosure env v) et = closureLocal env $ paraApp v et
 paraApp TmUnit _ = pure TmUnit
-paraApp (TmAbs x e1 targ tret) e2 =
+paraApp (TmAbs x e1 targ tret) (Left e2) =
   closureWithTmBind x (TmAnno e2 targ) $ TmAnno e1 tret
-paraApp (TmMerge v1 v2) e = TmMerge <$> paraApp v1 e <*> paraApp v2 e
-paraApp v e = unsafeCrashWith $
-  "Zord.Semantics.Closure.paraApp: impossible application of " <> show v <> " to " <> show e
-
-paraAppTy :: Tm -> Ty -> Eval Tm
-paraAppTy (TmClosure env v) t = closureLocal env $ paraAppTy v t
-paraAppTy TmUnit _ = pure TmUnit
-paraAppTy (TmTAbs a _ e t) ta = closureWithTyBind a ta $ TmAnno e t
-paraAppTy (TmMerge v1 v2) t = TmMerge <$> paraAppTy v1 t <*> paraAppTy v2 t
-paraAppTy v t = unsafeCrashWith $
-  "Zord.Semantics.Closure.paraAppTy: impossible application of " <> show v <> " to " <> show t
+paraApp (TmTAbs a _ e t) (Right ta) = closureWithTyBind a ta $ TmAnno e t
+paraApp (TmMerge v1 v2) et = TmMerge <$> paraApp v1 et <*> paraApp v2 et
+paraApp v e = unsafeCrashWith $ "Zord.Semantics.Closure.paraApp: " <>
+  "impossible application " <> show v <> " • " <> show e
 
 expand :: Ty -> Eval Ty
 expand (TyArr t1 t2 isTrait) = TyArr <$> expand t1 <*> expand t2 <@> isTrait

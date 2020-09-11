@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Monad.Writer (Writer, runWriter, tell)
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
@@ -38,7 +39,7 @@ step (TmIf (TmBool true)  e2 e3) = computation "IfTrue"  $> e2
 step (TmIf (TmBool false) e2 e3) = computation "IfFalse" $> e3
 step (TmIf e1 e2 e3) = congruence "If" $> TmIf <*> step e1 <@> e2 <@> e3
 step (TmApp e1 e2)
-  | isValue e1 = computation "PApp" $> paraApp e1 e2
+  | isValue e1 = computation "PApp" $> paraApp e1 (Left e2)
   | otherwise  = congruence  "AppL" $> TmApp <*> step e1 <@> e2
 step (TmFix x e t) = computation "Fix" $> TmAnno (tmSubst x (TmFix x e t) e) t
 step (TmAnno (TmAnno e t') t) = computation "AnnoAnno" $> TmAnno e t
@@ -53,13 +54,13 @@ step (TmPrj e l)
   | isValue e = computation "PProj" $> selectLabel e l
   | otherwise = congruence  "Proj"  $> TmPrj <*> step e <@> l
 step (TmTApp e t)
-  | isValue e = computation "PTApp" $> paraAppTy e t
+  | isValue e = computation "PTApp" $> paraApp e (Right t)
   | otherwise = congruence  "TApp"  $> TmTApp <*> step e <@> t
 step (TmToString e)
   | isValue e = computation "ToStringV" $> toString e
   | otherwise = congruence  "ToString"  $> TmToString <*> step e
-step e = unsafeCrashWith $
-  "Zord.Semantics.Substitution.step: well-typed programs don't get stuck, but got " <> show e
+step e = unsafeCrashWith $ "Zord.Semantics.Substitution.step: " <>
+  "well-typed programs don't get stuck, but got " <> show e
 
 typedReduce :: Tm -> Ty -> Maybe Tm
 typedReduce e _ | not (isValue e) = unsafeCrashWith $
@@ -83,19 +84,14 @@ typedReduce (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
   = Just $ TmTAbs a2 td1 (tmTSubst a1 (TyVar a2) e) t2
 typedReduce _ _ = Nothing
 
-paraApp :: Tm -> Tm -> Tm
+paraApp :: Tm -> Either Tm Ty -> Tm
 paraApp TmUnit _ = TmUnit
-paraApp (TmAbs x e1 targ tret) e2 = TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
-paraApp (TmMerge v1 v2) e = TmMerge (paraApp v1 e) (paraApp v2 e)
-paraApp v e = unsafeCrashWith $
-  "Zord.Semantics.Substitution.paraApp: impossible application of " <> show v <> " to " <> show e
-
-paraAppTy :: Tm -> Ty -> Tm
-paraAppTy TmUnit _ = TmUnit
-paraAppTy (TmTAbs a _ e t) ta = TmAnno (tmTSubst a ta e) (tySubst a ta t)
-paraAppTy (TmMerge v1 v2) t = TmMerge (paraAppTy v1 t) (paraAppTy v2 t)
-paraAppTy v t = unsafeCrashWith $
-  "Zord.Semantics.Substitution.paraAppTy: impossible application of " <> show v <> " to " <> show t
+paraApp (TmAbs x e1 targ tret) (Left e2) =
+  TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
+paraApp (TmTAbs a _ e t) (Right ta) = TmAnno (tmTSubst a ta e) (tySubst a ta t)
+paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
+paraApp v e = unsafeCrashWith $ "Zord.Semantics.Substitution.paraApp: " <>
+  "impossible application " <> show v <> " • " <> show e
 
 isValue :: Tm -> Boolean
 isValue (TmInt _)    = true
