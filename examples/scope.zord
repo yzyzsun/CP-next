@@ -1,6 +1,6 @@
 --> 1
 
 def x = 1;
-def f (y:Int) = x + y;
+def f Dummy (y:Int) = x + y;
 def x = 2;
-f 0
+f @Top 0

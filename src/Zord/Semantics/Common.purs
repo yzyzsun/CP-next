@@ -4,7 +4,7 @@ import Prelude
 
 import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), UnOp(..))
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
 import Zord.Syntax.Core (Tm(..))
 
 unop :: UnOp -> Tm -> Tm
@@ -12,7 +12,8 @@ unop Neg (TmInt i)    = TmInt    (negate i)
 unop Neg (TmDouble n) = TmDouble (negate n)
 unop Not (TmBool b)   = TmBool   (not b)
 unop op v = unsafeCrashWith $
-  "Zord.Semantics.Common.unop: impossible unary operation " <> show op <> " on " <> show v
+  "Zord.Semantics.Common.unop: impossible unary operation " <> show op <>
+  " on " <> show v
 
 binop :: BinOp -> Tm -> Tm -> Tm
 binop (Arith Add) (TmInt i1) (TmInt i2) = TmInt (i1 + i2)
@@ -63,15 +64,3 @@ toString (TmString s) = TmString (show s)
 toString (TmBool b)   = TmString (show b)
 toString v = unsafeCrashWith $
   "Zord.Semantics.Common.toString: impossible from " <> show v <> " to string"
-
-selectLabel :: Tm -> Label -> Tm
-selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUnit, TmUnit -> TmUnit
-  TmUnit, e2' -> e2'
-  e1', TmUnit -> e1'
-  e1', e2' -> TmMerge e1' e2'
-selectLabel (TmRcd l' _ e) l | l == l' = e
-selectLabel (TmClosure env e) l = case selectLabel e l of
-  TmUnit -> TmUnit
-  e' -> TmClosure env e'
-selectLabel _ _ = TmUnit
