@@ -12,7 +12,7 @@ import Data.List (List, foldl, many, some)
 import Data.Maybe (Maybe(..), isJust, optional)
 import Data.String.CodeUnits as CodeUnits
 import Data.Tuple (Tuple(..))
-import Text.Parsing.Parser (Parser, position)
+import Text.Parsing.Parser (Parser, fail, position)
 import Text.Parsing.Parser.Combinators (choice, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
@@ -352,9 +352,12 @@ lower = satisfy isLower
 
 ident :: SParser Char -> SParser String
 ident identStart = lexeme $ try do
+  let languageDef = unGenLanguageDef zordDef
   c <- identStart
-  cs <- Array.many (unGenLanguageDef zordDef).identLetter
-  pure $ CodeUnits.singleton c <> CodeUnits.fromCharArray cs
+  cs <- Array.many languageDef.identLetter
+  let word = CodeUnits.singleton c <> CodeUnits.fromCharArray cs
+  if not (Array.elem word languageDef.reservedNames) then pure word
+  else fail $ "reserved word " <> show word
 
 lowerIdentifier :: SParser String
 lowerIdentifier = ident lower
