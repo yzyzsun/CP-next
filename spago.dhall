@@ -6,6 +6,7 @@
   , "node-fs"
   , "node-fs-aff"
   , "node-readline"
+  , "now"
   , "ordered-collections"
   , "parsing"
   , "psci-support"
