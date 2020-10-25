@@ -1,0 +1,43 @@
+{
+  "name": "Zord",
+  "scopeName": "source.zord",
+  "fileTypes": [
+    "zord"
+  ],
+  "patterns": [
+    {
+      "name": "comment.line.double-dash.zord",
+      "begin": "--",
+      "end": "$"
+    },
+    {
+      "name": "comment.block.zord",
+      "begin": "{-",
+      "end": "-}"
+    },
+    {
+      "name": "constant.numeric.zord",
+      "match": "\\b(\\d+(.\\d+)?([eE][+-]?\\d+)?|0[xX][\\da-fA-F]+|0[oO][0-7]+)\\b"
+    },
+    {
+      "name": "constant.language.zord",
+      "match": "\\b(true|false|undefined)\\b"
+    },
+    {
+      "name": "keyword.zord",
+      "match": "\\b(type|extends|forall|trait|implements|inherits|new|if|then|else|let|letrec|open|in|toString)\\b"
+    },
+    {
+      "name": "storage.type.zord",
+      "match": "\\b(Int|Double|Bool|String|Top|Bot|Trait)\\b"
+    },
+    {
+      "name": "storage.modifier.zord",
+      "match": "\\b(override)\\b"
+    },
+    {
+      "name": "string.quoted.double.zord",
+      "match": "\"([^\\\\\\n\"]|\\\\.)*\"?"
+    }
+  ]
+}
