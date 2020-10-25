@@ -9,7 +9,7 @@ import { parser } from './zord';
 
 import Zord from '../src/Zord.purs';
 
-const zordSyntax = new LezerSyntax(parser.withProps(
+const zordSyntax = LezerSyntax.define(parser.withProps(
   indentNodeProp.add({
     RecordType: continuedIndent(),
     Record: continuedIndent(),

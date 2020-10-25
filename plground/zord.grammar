@@ -10,7 +10,7 @@
   arrow @right
 }
 
-@top Program { ~conflict (definition ";")* expression }
+@top Program { (definition ";")* expression }
 
 definition { TypeDef | TermDef }
 
@@ -19,7 +19,7 @@ TypeDef {
 }
 
 TermDef {
-  TermNameDecl ~conflict typeParam* termParam* (":" type)? "=" expression
+  TermNameDecl typeParam* termParam* ~conflict (":" type)? "=" expression
 }
 
 type {
@@ -32,10 +32,11 @@ type {
 btype { atype (atype | angles<typeWithPercent>)* }
 
 atype {
-  TypeName | RecordType { braces<sepEndBySemi<LabelDecl ":" type>> } |
   kW<"Int"> | kW<"Double"> | kW<"String"> | kW<"Bool"> | kW<"Top"> | kW<"Bot"> |
-  parens<type>
+  TypeName | RecordType | parens<type>
 }
+
+RecordType { braces<sepEndBySemi<LabelDecl ":" type>> }
 
 expression { opexpr ~conflict (":" type)? }
 
@@ -84,15 +85,15 @@ typeParam { underscore | TypeNameDecl | parens<TypeNameDecl "*" type> }
 termParam { underscore | TermNameDecl | parens<TermNameDecl ":" type> }
 SelfAnno { brackets<TermNameDecl ":" type> }
 
-kw<word> { @specialize[name={word}]<lowerid, word> }
-kW<word> { @specialize[name={word}]<upperid, word> }
+kw<word> { @specialize[@name={word}]<lowerid, word> }
+kW<word> { @specialize[@name={word}]<upperid, word> }
 
 braces<contents> { "{" contents "}" }
 parens<contents> { "(" contents ")" }
 brackets<contents> { "[" contents "]" }
 angles<contents> { "<" contents ">" }
 
-sepEndBySemi<clause> { ~conflict (clause ";")* clause? }
+sepEndBySemi<clause> { (clause ";")* clause? }
 typeWithPercent { type ~conflict ("%" type)? }
 
 TypeNameDecl { upperid }
@@ -133,7 +134,7 @@ Label { lowerid | upperid }
 
   "(" ")" "{" "}" "[" "]" "<" ">"
   "." "," ";" ":" "*" "\\" "/\\" "@" "^" "%"
-  "=" "->" "=>"[name=TraitArrow]
+  "=" "->" "=>"[@name=TraitArrow]
 
   TypeOp<op> { op }
   ArithOp<op> { op }
@@ -142,8 +143,8 @@ Label { lowerid | upperid }
   MergeOp { "," }
   ForwardOp { "^" }
 
-  minus[name=ArithOp] { "-" }
-  modulo[name=ArithOp] { "%" }
+  minus[@name=ArithOp] { "-" }
+  modulo[@name=ArithOp] { "%" }
 
   @precedence { LineComment, minus }
   @precedence { BlockComment, "{" }
