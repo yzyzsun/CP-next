@@ -19,10 +19,9 @@ const zordSyntax = new LezerSyntax(parser.withProps(
     Record(tree) { return { from: tree.start + 1, to: tree.end - 1 } },
   }),
   styleTags({
-    'type extends def let letrec trait implements inherits override': 'keyword definition',
-    'if then else new open in toString forall': 'keyword',
+    'type extends let letrec trait implements inherits': 'keyword definition',
+    'if then else new open in toString forall Int Double Bool String Top Bot Trait': 'keyword',
     'override': 'modifier',
-    'Int Double Bool String Top Bot Trait': 'keyword',
     'true false': 'atom',
     'undefined': 'null',
     Unit: 'unit',

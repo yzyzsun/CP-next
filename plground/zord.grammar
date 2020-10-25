@@ -10,7 +10,7 @@
   arrow @right
 }
 
-@top Program { (definition ";")* expression }
+@top Program { ~conflict (definition ";")* expression }
 
 definition { TypeDef | TermDef }
 
@@ -19,7 +19,7 @@ TypeDef {
 }
 
 TermDef {
-  kw<"def"> TermNameDecl ~conflict typeParam* termParam* (":" type)? "=" expression
+  TermNameDecl ~conflict typeParam* termParam* (":" type)? "=" expression
 }
 
 type {

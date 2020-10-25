@@ -7,30 +7,30 @@ type AddSig<Exp> = {
   Lit: Int -> Exp;
   Add: Exp -> Exp -> Exp;
 };
-def evalAdd = trait implements AddSig<Eval> => {
+evalAdd = trait implements AddSig<Eval> => {
   (Lit     n).eval = n;
   (Add e1 e2).eval = e1.eval + e2.eval;
 };
-def printAdd = trait implements AddSig<Print> => {
+printAdd = trait implements AddSig<Print> => {
   (Lit     n).print = toString n;
   (Add e1 e2).print = "(" ++ e1.print ++ " + " ++ e2.print ++ ")";
 };
-def expAdd Exp = trait [self : AddSig<Exp>] => {
+expAdd Exp = trait [self : AddSig<Exp>] => {
   exp = new Add (new Lit 4) (new Lit 8);
 };
 
 type MulSig<Exp> extends AddSig<Exp> = {
   Mul : Exp -> Exp -> Exp;
 };
-def evalMul = trait implements MulSig<Eval> inherits evalAdd => {
+evalMul = trait implements MulSig<Eval> inherits evalAdd => {
   (Mul e1 e2).eval = e1.eval * e2.eval;
 };
-def printMul = trait implements MulSig<Print> inherits printAdd => {
+printMul = trait implements MulSig<Print> inherits printAdd => {
   (Mul e1 e2).print = "(" ++ e1.print ++ " * " ++ e2.print ++ ")";
 };
-def expMul Exp = trait [self : MulSig<Exp>] inherits expAdd @Exp => {
+expMul Exp = trait [self : MulSig<Exp>] inherits expAdd @Exp => {
   override exp = new Mul super.exp (new Lit 4);
 };
 
-def e = new evalMul , printMul , expMul @(Eval & Print);
+e = new evalMul , printMul , expMul @(Eval & Print);
 e.exp.print ++ " is " ++ toString e.exp.eval

@@ -26,7 +26,7 @@ type SParser a = Parser String a
 -- Program --
 
 program :: SParser Tm
-program = fix $ \p -> tyDef p <|> tmDef p <|> expr
+program = fix $ \p -> tyDef p <|> try (tmDef p) <|> expr
 
 tyDef :: SParser Tm -> SParser Tm
 tyDef p = do
@@ -43,7 +43,6 @@ tyDef p = do
 
 tmDef :: SParser Tm -> SParser Tm
 tmDef p = do
-  reserved "def"
   x <- lowerIdentifier
   tyParams <- many (try (params upperIdentifier "*"))
   tmParams <- many (params lowerIdentifier ":")
@@ -292,10 +291,10 @@ override = do
 
 zordDef :: LanguageDef
 zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
-  [ "true", "false", "trait", "implements", "inherits", "new"
+  [ "true", "false", "trait", "implements", "inherits", "override", "new"
   , "if", "then", "else", "let", "letrec", "open", "in", "toString"
-  , "type", "extends", "def", "override"
-  , "forall", "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
+  , "type", "extends", "forall"
+  , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
   ]
 }
 

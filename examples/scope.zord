@@ -1,6 +1,6 @@
 --> 1
 
-def x = 1;
-def f Dummy (y:Int) = x + y;
-def x = 2;
+x = 1;
+f Dummy (y:Int) = x + y;
+x = 2;
 f @Top 0

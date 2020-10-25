@@ -1,5 +1,5 @@
 --> Error: x and y are not disjoint
 
-def f = /\A. \(x:A) -> x;
-def g = /\B. \(y:B) -> y;
+f = /\A. \(x:A) -> x;
+g = /\B. \(y:B) -> y;
 (f , g) @Top ()
