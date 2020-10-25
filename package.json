@@ -1,11 +1,12 @@
 {
   "name": "zord",
   "version": "0.1.0",
-  "description": "The Zord Programming Languages",
+  "description": "The Zord Programming Language",
   "private": true,
   "scripts": {
     "start": "spago run",
     "test": "spago test",
+    "vscode": "cd vscode && vsce package",
     "lezer": "lezer-generator --noTerms --output plground/zord plground/zord.grammar",
     "build": "npm run lezer && webpack -p",
     "dev": "webpack-dev-server --open"
@@ -29,6 +30,7 @@
     "purs-loader": "^3.7.1",
     "spago": "^0.15.3",
     "style-loader": "^1.2.1",
+    "vsce": "^1.81.1",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.11.0"
