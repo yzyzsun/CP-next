@@ -11,14 +11,20 @@ Zord is a functional programming language that advocates compositional programmi
   - `npm test` to run a test suite checking `examples/*.zord`;
   - `npm run vscode` to package the VS Code extension into a VSIX file;
   - `npm run lezer` to generate an LR parser for the online code editor;
-  - `npm run build` to pack all scripts needed by PL Ground to `dist/bundle.js`;
-  - `npm run dev` to start a webpack dev server providing live reloading.
+  - `npm run webpack` to pack all scripts needed by PL Ground to `dist/bundle.js`;
+  - `npm run server` to start a webpack dev server providing live reloading.
 
 ## Online Demo
 
 [PL Ground](https://plground.org) provides an in-browser interpreter for Zord. It is integrated with a CodeMirror editor with syntax highlighting. Its grammar file written in Lezer can be found at `plground/zord.grammar`.
 
-If you want to build it from scratch, please follow the setup instructions above.
+If you want to start a dev server locally, please execute `npm run server` (see [Setup](#setup)).
+
+## VS Code Extension
+
+Zord Language Support can be found on [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=yzyzsun.zord). This extension provides basic support for syntax highlighting. For details, please refer to [Extension API](https://code.visualstudio.com/api).
+
+If you want to build it from scratch, please execute `npm run vscode` (see [Setup](#setup)).
 
 ## Naming
 

@@ -3,10 +3,11 @@
     "displayName": "Zord Language Support",
     "description": "Syntax highlighting for the Zord programming language",
     "version": "0.1.0",
+    "license": "Apache-2.0",
     "publisher": "yzyzsun",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/yzyzsun/zord.git"
+        "url": "https://github.com/yzyzsun/zord.git"
     },
     "engines": {
         "vscode": "^1.50.0"
