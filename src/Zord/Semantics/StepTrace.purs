@@ -2,19 +2,17 @@ module Zord.Semantics.StepTrace where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.Monad.Writer (Writer, runWriter, tell)
 import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
 import Data.Monoid.Endo (Endo(..))
 import Data.Newtype (unwrap)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple)
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (binop, toString, unop)
-import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (Label, fromJust)
-import Zord.Syntax.Core (Tm(..), Ty(..), tmSubst, tmTSubst, tySubst)
+import Zord.Semantics.Substitution (isValue, paraApp, selectLabel, typedReduce)
+import Zord.Syntax.Common (fromJust)
+import Zord.Syntax.Core (Tm(..), tmSubst)
 
 type ShowS = String -> String
 type EndoS = Endo Function String
@@ -69,55 +67,3 @@ step (TmToString e)
   | otherwise = congruence  "ToString"  $> TmToString <*> step e
 step e = unsafeCrashWith $ "Zord.Semantics.StepTrace.step: " <>
   "well-typed programs don't get stuck, but got " <> show e
-
-typedReduce :: Tm -> Ty -> Maybe Tm
-typedReduce e _ | not (isValue e) = unsafeCrashWith $
-  "Zord.Semantics.StepTrace.typedReduce: " <> show e <> " is not a value"
-typedReduce _ t | isTopLike t = Just TmUnit
-typedReduce v t | Just (Tuple t1 t2) <- split t = do
-  v1 <- typedReduce v t1
-  v2 <- typedReduce v t2
-  Just $ TmMerge v1 v2
-typedReduce (TmInt i)    TyInt    = Just $ TmInt i
-typedReduce (TmDouble n) TyDouble = Just $ TmDouble n
-typedReduce (TmString s) TyString = Just $ TmString s
-typedReduce (TmBool b)   TyBool   = Just $ TmBool b
-typedReduce (TmAbs x e targ1 tret1) (TyArr targ2 tret2 _)
-  | targ2 <: targ1 && tret1 <: tret2 = Just $ TmAbs x e targ1 tret2
-typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
-typedReduce (TmRcd l t e) (TyRcd l' t')
-  | l == l' && t <: t' = Just $ TmRcd l t' (TmAnno e t')
-typedReduce (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
-  | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2
-  = Just $ TmTAbs a2 td1 (tmTSubst a1 (TyVar a2) e) t2
-typedReduce _ _ = Nothing
-
-paraApp :: Tm -> Either Tm Ty -> Tm
-paraApp TmUnit _ = TmUnit
-paraApp (TmAbs x e1 targ tret) (Left e2) =
-  TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
-paraApp (TmTAbs a _ e t) (Right ta) = TmAnno (tmTSubst a ta e) (tySubst a ta t)
-paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
-paraApp v e = unsafeCrashWith $ "Zord.Semantics.StepTrace.paraApp: " <>
-  "impossible application " <> show v <> " • " <> show e
-
-selectLabel :: Tm -> Label -> Tm
-selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUnit, TmUnit -> TmUnit
-  TmUnit, e2' -> e2'
-  e1', TmUnit -> e1'
-  e1', e2' -> TmMerge e1' e2'
-selectLabel (TmRcd l' _ e) l | l == l' = e
-selectLabel _ _ = TmUnit
-
-isValue :: Tm -> Boolean
-isValue (TmInt _)    = true
-isValue (TmDouble _) = true
-isValue (TmString _) = true
-isValue (TmBool _)   = true
-isValue (TmUnit)     = true
-isValue (TmAbs _ _ _ _) = true
-isValue (TmMerge e1 e2) = isValue e1 && isValue e2
-isValue (TmRcd _ _ _) = true
-isValue (TmTAbs _ _ _ _) = true
-isValue _ = false
