@@ -15,7 +15,7 @@ import Effect.Exception (Error, message, try)
 import Effect.Now (nowTime)
 import Node.Encoding (Encoding(..))
 import Node.FS.Sync (readTextFile)
-import Node.ReadLine (createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
+import Node.ReadLine (Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
 import Zord (Mode(..), interpret)
 
 showSeconds :: Milliseconds -> String
@@ -24,14 +24,14 @@ showSeconds (Milliseconds n) = show (n / 1000.0) <> "s"
 errorRed :: Error -> Effect Unit
 errorRed err = error $ withGraphics (foreground Red) (message err)
 
-execute :: String -> Effect Unit
-execute program = do
+execute :: String -> Mode -> Effect Unit
+execute program mode = do
   beginTime <- nowTime
-  result <- try $ interpret Simple program
+  result <- try $ interpret program mode
   endTime <- nowTime
   let seconds = showSeconds $ diff endTime beginTime
   case result of
-    Right output -> log $ output <> "\n<Elapsed time: " <> seconds <> ">"
+    Right output -> log $ output <> "\n<" <> show mode <> " mode: " <> seconds <> ">"
     Left err -> errorRed err
 
 main :: Effect Unit
@@ -40,10 +40,22 @@ main = do
   interface <- createConsoleInterface noCompletion
   setPrompt "> " 2 interface
   prompt interface
-  setLineHandler interface \input -> do
-    case stripPrefix (Pattern ":load ") input of
-      Just file -> do result <- try $ readTextFile UTF8 file
-                      case result of Right program -> execute program
-                                     Left err -> errorRed err
-      Nothing -> execute input
-    prompt interface
+  setLineHandler interface $ handler interface BigStep
+  where
+    handler :: Interface -> Mode -> String -> Effect Unit
+    handler interface mode input = do
+      case stripPrefix (Pattern ":mode ") input of
+        Just m -> do
+          let setMode = setLineHandler interface <<< handler interface
+          case m of "BigStep" -> setMode BigStep
+                    "SmallStep" -> setMode SmallStep
+                    "StepTrace" -> setMode StepTrace
+                    _ -> error $ "unknown mode (available: BigStep SmallStep StepTrace)"
+        Nothing -> do
+          case stripPrefix (Pattern ":load ") input of
+            Just file -> do
+              result <- try $ readTextFile UTF8 file
+              case result of Right program -> execute program mode
+                             Left err -> errorRed err
+            Nothing -> execute input mode
+      prompt interface

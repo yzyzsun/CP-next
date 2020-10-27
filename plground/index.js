@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state = state || view.state;
     output.textContent = error.textContent = '';
     try {
-      UIRefresh(output, Zord.interpret(mode)(state.doc.toString())());
+      UIRefresh(output, Zord.interpret(state.doc.toString())(mode)());
     } catch (err) {
       UIRefresh(error, err);
     }
@@ -78,11 +78,11 @@ document.addEventListener('DOMContentLoaded', () => {
     extensions: [
       basicSetup,
       zordSyntax.extension,
-      keymap([{ key: 'Mod-Enter', run() { UIInterpret(Zord.Verbose.value); } }]),
+      keymap([{ key: 'Mod-Enter', run() { UIInterpret(Zord.StepTrace.value); } }]),
       ViewPlugin.fromClass(class {
         update(update) {
           if (update.docChanged) {
-            UIInterpret(Zord.Simple.value, update.state);
+            UIInterpret(Zord.BigStep.value, update.state);
           }
         }
       }),

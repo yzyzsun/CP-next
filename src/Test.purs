@@ -36,7 +36,7 @@ check code = case mexpected of
   Nothing -> fail "no expectation on the first line"
   where mexpected = map trim <<< stripPrefix (Pattern "-->") <<<
                     takeWhile (_ /= codePointFromChar '\n') $ code
-        interpretation = interpret Simple code
+        interpretation = interpret code BigStep
 
 main :: Effect Unit
 main = do
