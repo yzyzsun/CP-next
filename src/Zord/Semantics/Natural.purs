@@ -29,7 +29,7 @@ eval = runTrampoline <<< go
         "Zord.Semantics.Natural.eval: impossible if " <> show e1' <> " ..."
     go (TmApp e1 e2) = Bind (go e1) \e1' -> go $ paraApp e1' (Left e2)
     go e@(TmAbs _ _ _ _) = Done e
-    go (TmFix x e t) = go $ TmAnno (tmSubst x (TmFix x e t) e) t
+    go (TmFix x e t) = More \_ -> go $ TmAnno (tmSubst x (TmFix x e t) e) t
     go (TmAnno e t) = Bind (go' e) \e' -> go $ fromJust (typedReduce e' t)
       where go' :: Tm -> Trampoline Tm
             go' (TmAnno e' t') = go' e'

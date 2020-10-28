@@ -116,7 +116,7 @@ instance showTm :: Show Tm where
   show (TmType a sorts params t1 t2 e) = "type" <+> a <+>
     intercalate " " (angles <$> sorts) <+> intercalate " " params <+>
     showMaybe "extends " t1 " " <> "=" <+> show t2 <> ";" <+> show e
-  show (TmDef x tyParams tmParams t e1 e2) = "def" <+> x <+>
+  show (TmDef x tyParams tmParams t e1 e2) = x <+>
     showParams' tyParams <+> showParams ":" tmParams <+>
     showMaybe ": " t " " <> "=" <+> show e1 <> ";" <+> show e2
 
