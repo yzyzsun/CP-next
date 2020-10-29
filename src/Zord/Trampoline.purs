@@ -13,3 +13,9 @@ runTrampoline (Bind x f) = case x of
   Done v -> runTrampoline $ f v
   More k -> runTrampoline $ Bind (k unit) f
   Bind y g -> runTrampoline $ Bind y \v -> Bind (g v) f
+
+pure :: forall a. a -> Trampoline a
+pure = Done
+
+bind :: forall a. Trampoline a -> (a -> Trampoline a) -> Trampoline a
+bind = Bind
