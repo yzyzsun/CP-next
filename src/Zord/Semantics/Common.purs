@@ -4,7 +4,7 @@ import Prelude
 
 import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), UnOp(..))
 import Zord.Syntax.Core (Tm(..))
 
 unop :: UnOp -> Tm -> Tm
@@ -64,3 +64,12 @@ toString (TmString s) = TmString (show s)
 toString (TmBool b)   = TmString (show b)
 toString v = unsafeCrashWith $
   "Zord.Semantics.Common.toString: impossible from " <> show v <> " to string"
+
+selectLabel :: Tm -> Label -> Tm
+selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
+  TmUnit, TmUnit -> TmUnit
+  TmUnit, e2' -> e2'
+  e1', TmUnit -> e1'
+  e1', e2' -> TmMerge e1' e2'
+selectLabel (TmRcd l' _ e) l | l == l' = e
+selectLabel _ _ = TmUnit

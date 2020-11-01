@@ -60,3 +60,5 @@ eval tm = runReader (go tm) Nil
     go e@(TmClosure _ (TmAbs _ _ _ _)) = pure e
     go e@(TmClosure _ (TmTAbs _ _ _ _)) = pure e
     go (TmClosure env e) = local (const env) (go e)
+    go e = unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
+      "well-typed programs don't get stuck, but got " <> show e

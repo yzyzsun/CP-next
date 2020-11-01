@@ -7,9 +7,9 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (binop, toString, unop)
+import Zord.Semantics.Common (binop, selectLabel, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (Label, fromJust)
+import Zord.Syntax.Common (fromJust)
 import Zord.Syntax.Core (Tm(..), Ty(..), tmSubst, tmTSubst, tySubst)
 
 eval :: Tm -> Tm
@@ -73,15 +73,6 @@ paraApp (TmTAbs a _ e t) (Right ta) = TmAnno (tmTSubst a ta e) (tySubst a ta t)
 paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
 paraApp v e = unsafeCrashWith $ "Zord.Semantics.Substitution.paraApp: " <>
   "impossible application " <> show v <> " • " <> show e
-
-selectLabel :: Tm -> Label -> Tm
-selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUnit, TmUnit -> TmUnit
-  TmUnit, e2' -> e2'
-  e1', TmUnit -> e1'
-  e1', e2' -> TmMerge e1' e2'
-selectLabel (TmRcd l' _ e) l | l == l' = e
-selectLabel _ _ = TmUnit
 
 isValue :: Tm -> Boolean
 isValue (TmInt _)    = true

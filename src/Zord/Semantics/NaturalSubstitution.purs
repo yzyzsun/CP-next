@@ -4,8 +4,8 @@ import Prelude
 
 import Data.Either (Either(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (binop, toString, unop)
-import Zord.Semantics.Substitution (paraApp, selectLabel, typedReduce)
+import Zord.Semantics.Common (binop, selectLabel, toString, unop)
+import Zord.Semantics.Substitution (paraApp, typedReduce)
 import Zord.Syntax.Common (fromJust)
 import Zord.Syntax.Core (Tm(..), tmSubst)
 
