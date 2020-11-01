@@ -47,10 +47,12 @@ main = do
       case stripPrefix (Pattern ":mode ") input of
         Just m -> do
           let setMode = setLineHandler interface <<< handler interface
-          case m of "BigStep" -> setMode BigStep
-                    "SmallStep" -> setMode SmallStep
+          case m of "SmallStep" -> setMode SmallStep
                     "StepTrace" -> setMode StepTrace
-                    _ -> error $ "unknown mode (available: BigStep SmallStep StepTrace)"
+                    "BigStep" -> setMode BigStep
+                    "Subst" -> setMode Subst
+                    "Closure" -> setMode Closure
+                    _ -> error $ "unknown mode (available: SmallStep StepTrace BigStep Subst Closure)"
         Nothing -> do
           case stripPrefix (Pattern ":load ") input of
             Just file -> do
