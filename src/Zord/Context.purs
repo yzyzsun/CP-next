@@ -5,20 +5,19 @@ import Prelude
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.Reader (ReaderT, asks, local, runReaderT)
 import Data.Either (Either)
-import Data.List (List(..), (:))
+import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..), lookup)
 import Text.Parsing.Parser.Pos (Position)
-import Zord.Syntax.Common (Env, Name, (<+>))
+import Zord.Syntax.Common (Name, (<+>))
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
 
 type Typing = ReaderT Ctx (Except TypeError)
 
-type Ctx = { tmBindEnv :: Env C.Ty -- typing
-           , tyBindEnv :: Env C.Ty -- disjointness
-           , tyAliasEnv :: Env S.Ty -- synonym
-           , sortEnv :: Env Name -- distinguishing
+type Ctx = { tmBindEnv :: Map Name C.Ty  -- typing
+           , tyBindEnv :: Map Name C.Ty  -- disjointness
+           , tyAliasEnv :: Map Name S.Ty -- synonym
+           , sortEnv :: Map Name Name    -- distinguishing
            , pos :: Pos
            }
 
@@ -26,10 +25,10 @@ data Pos = UnknownPos
          | Pos Position S.Tm
 
 runTyping :: forall a. Typing a -> Either TypeError a
-runTyping m = runExcept $ runReaderT m { tmBindEnv : Nil
-                                       , tyBindEnv : Nil
-                                       , tyAliasEnv : Nil
-                                       , sortEnv : Nil
+runTyping m = runExcept $ runReaderT m { tmBindEnv : empty
+                                       , tyBindEnv : empty
+                                       , tyAliasEnv : empty
+                                       , sortEnv : empty
                                        , pos : UnknownPos
                                        }
 
@@ -49,10 +48,10 @@ lookupTyAlias name = lookup name <$> asks (_.tyAliasEnv)
 lookupSort :: Name -> Typing (Maybe Name)
 lookupSort name = lookup name <$> asks (_.sortEnv)
 
-addToEnv :: forall a b. ((Env b -> Env b) -> Ctx -> Ctx) ->
+addToEnv :: forall a b. ((Map Name b -> Map Name b) -> Ctx -> Ctx) ->
                         Name -> b -> Typing a -> Typing a
 addToEnv map name ty = if name == "_" then identity
-                       else local (map (Tuple name ty : _))
+                       else local (map \env -> insert name ty env)
 
 addTmBind :: forall a. Name -> C.Ty -> Typing a -> Typing a
 addTmBind = addToEnv \f r -> r { tmBindEnv = f r.tmBindEnv }

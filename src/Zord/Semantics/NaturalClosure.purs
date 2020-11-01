@@ -4,9 +4,8 @@ import Prelude
 
 import Control.Monad.Reader (ask, local, runReader)
 import Data.Either (Either(..))
-import Data.List (List(..), (:))
+import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..), lookup)
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Closure (Eval, closure, expand, paraApp, selectLabel, typedReduce)
 import Zord.Semantics.Common (binop, toString, unop)
@@ -14,7 +13,7 @@ import Zord.Syntax.Common (fromJust)
 import Zord.Syntax.Core (EvalBind(..), Tm(..))
 
 eval :: Tm -> Tm
-eval tm = runReader (go tm) Nil
+eval tm = runReader (go tm) empty
   where
     go :: Tm -> Eval Tm
     go e@(TmInt _)    = pure e
@@ -38,7 +37,8 @@ eval tm = runReader (go tm) Nil
       e2' <- closure e2
       go $ paraApp e1' (Left e2')
     go e@(TmAbs _ _ _ _) = closure e
-    go fix@(TmFix x e t) = local (Tuple x (TmBind fix) : _) (go $ TmAnno e t)
+    go fix@(TmFix x e t) =
+      local (\env -> insert x (TmBind fix) env) (go $ TmAnno e t)
     go (TmAnno e t) = do
       e' <- go' e
       t' <- expand t

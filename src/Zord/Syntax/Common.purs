@@ -4,7 +4,6 @@ import Prelude
 
 import Data.List (List(..), foldl)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Name  = String
@@ -62,10 +61,6 @@ instance showCompOp :: Show CompOp where
 instance showLogicOp :: Show LogicOp where
   show And = "&&"
   show Or  = "||"
-
--- Environment --
-
-type Env a = List (Tuple Name a)
 
 -- Helpers --
 

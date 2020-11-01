@@ -5,9 +5,9 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Reader (Reader, ask, local, runReader)
 import Data.Either (Either(..))
-import Data.List (List(..), (:))
+import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..), lookup)
+import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (binop, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
@@ -17,7 +17,7 @@ import Zord.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..))
 type Eval a = Reader EvalEnv a
 
 eval :: Tm -> Tm
-eval tm = runReader (go tm) Nil
+eval tm = runReader (go tm) empty
   where go :: Tm -> Eval Tm
         go e | isValue e = pure e
              | otherwise  = step e >>= go
@@ -87,7 +87,7 @@ typedReduce (TmClosure env (TmAbs x e targ1 tret1)) (TyArr targ2 tret2 _) = do
   else pure Nothing
 typedReduce (TmClosure env (TmTAbs a1 td1 e t1)) (TyForall a2 td2 t2) = do
   td1' <- local (const env) $ expand td1
-  let env' = Tuple a1 (TyBind Nothing) : env
+  let env' = insert a1 (TyBind Nothing) env
   t1' <- local (const env') $ expand t1
   -- TODO: a1 can be different from a2
   if a1 == a2 && td2 <: td1' && t1' <: t2 then
@@ -98,9 +98,9 @@ typedReduce _ _ = pure Nothing
 paraApp :: Tm -> Either Tm Ty -> Tm
 paraApp TmUnit _ = TmUnit
 paraApp (TmClosure env (TmAbs x e1 targ tret)) (Left e2) =
-  TmClosure (Tuple x (TmBind (TmAnno e2 targ)) : env) (TmAnno e1 tret)
+  TmClosure (insert x (TmBind (TmAnno e2 targ)) env) (TmAnno e1 tret)
 paraApp (TmClosure env (TmTAbs a _ e t)) (Right ta) =
-  TmClosure (Tuple a (TyBind (Just ta)) : env) (TmAnno e t)
+  TmClosure (insert a (TyBind (Just ta)) env) (TmAnno e t)
 paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
 paraApp v e = unsafeCrashWith $ "Zord.Semantics.Closure.paraApp: " <>
   "impossible application " <> show v <> " • " <> show e
@@ -124,7 +124,7 @@ expand (TyVar a) = ask >>= \env -> case lookup a env of
   m -> unsafeCrashWith $ "Zord.Semantics.Closure.expand: " <> a <> " is " <> show m
 expand (TyForall a td t) = do
   td' <- expand td
-  t' <- local (Tuple a (TyBind Nothing) : _) $ expand t
+  t' <- local (\env -> insert a (TyBind Nothing) env) (expand t)
   pure $ TyForall a td' t'
 expand t = pure t
 
@@ -144,4 +144,4 @@ closure :: Tm -> Eval Tm
 closure e = ask >>= \env -> pure $ TmClosure env e
 
 closureWithTmBind :: Name -> Tm -> Tm -> Eval Tm
-closureWithTmBind name tm e = local (Tuple name (TmBind tm) : _) (closure e)
+closureWithTmBind name tm e = local (\env -> insert name (TmBind tm) env) (closure e)

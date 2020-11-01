@@ -3,11 +3,9 @@ module Zord.Syntax.Core where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Foldable (intercalate)
-import Data.List (List(..), null, (:))
+import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..), fst, lookup, snd)
-import Zord.Syntax.Common (BinOp, Env, Label, Name, UnOp, angles, braces, parens, (<+>))
+import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, parens, (<+>))
 
 -- Types --
 
@@ -92,21 +90,21 @@ instance showTm :: Show Tm where
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
   show (TmHTAbs tabs td tf) = angles $ "HOAS ∀*" <+> show td
   show (TmToString e) = parens $ "toString" <+> show e
-  show (TmClosure env e) = angles $ showEvalEnv env <+> "|" <+> show e
+  show (TmClosure env e) = angles $ "Closure" <+> show e
 
 -- HOAS --
 
 tmHoas :: Tm -> Tm
-tmHoas = tmConvert Nil
+tmHoas = tmConvert empty
 
 -- convert a type containing a named variable to a HOAS type-level function
 tyHoas :: Name -> Ty -> Ty -> Ty
-tyHoas = tyHoas' Nil
+tyHoas = tyHoas' empty
 
-tyHoas' :: Env (Either Tm Ty) -> Name -> Ty -> Ty -> Ty
-tyHoas' env a t = \ty -> tyConvert (Tuple a (Right ty) : env) t
+tyHoas' :: HoasEnv -> Name -> Ty -> Ty -> Ty
+tyHoas' env a t = \ty -> tyConvert (insert a (Right ty) env) t
 
-tyConvert :: Env (Either Tm Ty) -> Ty -> Ty
+tyConvert :: HoasEnv -> Ty -> Ty
 tyConvert env (TyArr t1 t2 b) = TyArr (tyConvert env t1) (tyConvert env t2) b
 tyConvert env (TyAnd t1 t2) = TyAnd (tyConvert env t1) (tyConvert env t2)
 tyConvert env (TyRcd l t) = TyRcd l (tyConvert env t)
@@ -115,7 +113,7 @@ tyConvert env (TyVar a) = case lookup a env of Just (Right t) -> t
 tyConvert env (TyForall a td t) = TyForall a (tyConvert env td) (tyConvert env t)
 tyConvert _ t = t
 
-tmConvert :: Env (Either Tm Ty) -> Tm -> Tm
+tmConvert :: HoasEnv -> Tm -> Tm
 tmConvert env (TmUnary op e) = TmUnary op (tmConvert env e)
 tmConvert env (TmBinary op e1 e2) =
   TmBinary op (tmConvert env e1) (tmConvert env e2)
@@ -125,20 +123,22 @@ tmConvert env (TmVar x) = case lookup x env of Just (Left e) -> e
                                                _ -> TmVar x
 tmConvert env (TmApp e1 e2) = TmApp (tmConvert env e1) (tmConvert env e2)
 tmConvert env (TmAbs x e targ tret) =
-  TmHAbs (\tm -> tmConvert (Tuple x (Left tm) : env) e)
+  TmHAbs (\tm -> tmConvert (insert x (Left tm) env) e)
          (tyConvert env targ) (tyConvert env tret)
 tmConvert env (TmFix x e t) =
-  TmHFix (\tm -> tmConvert (Tuple x (Left tm) : env) e) (tyConvert env t)
+  TmHFix (\tm -> tmConvert (insert x (Left tm) env) e) (tyConvert env t)
 tmConvert env (TmAnno e t) = TmAnno (tmConvert env e) (tyConvert env t)
 tmConvert env (TmMerge e1 e2) = TmMerge (tmConvert env e1) (tmConvert env e2)
 tmConvert env (TmRcd l t e) = TmRcd l (tyConvert env t) (tmConvert env e)
 tmConvert env (TmPrj e l) = TmPrj (tmConvert env e) l
 tmConvert env (TmTApp e t) = TmTApp (tmConvert env e) (tyConvert env t)
 tmConvert env (TmTAbs a td e t) =
-  TmHTAbs (\ty -> tmConvert (Tuple a (Right ty) : env) e)
+  TmHTAbs (\ty -> tmConvert (insert a (Right ty) env) e)
           (tyConvert env td) (tyHoas' env a t)
 tmConvert env (TmToString e) = TmToString (tmConvert env e)
 tmConvert _ e = e
+
+type HoasEnv = Map Name (Either Tm Ty)
 
 -- Substitution --
 
@@ -193,7 +193,7 @@ tmTSubst _ _ e = e
 
 -- Environment --
 
-type EvalEnv = Env EvalBind
+type EvalEnv = Map Name EvalBind
 
 data EvalBind = TmBind Tm | TyBind (Maybe Ty)
 
@@ -201,7 +201,3 @@ instance showEvalBind :: Show EvalBind where
   show (TmBind e) = show e
   show (TyBind (Just t)) = show t
   show (TyBind Nothing) = "*"
-
-showEvalEnv :: EvalEnv -> String
-showEvalEnv env = if null env then "·" else
-  intercalate ", " (env <#> \x -> fst x <+> "↦" <+> show (snd x))
