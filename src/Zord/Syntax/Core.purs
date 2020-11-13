@@ -7,6 +7,12 @@ import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, parens, (<+>))
 
+foreign import data TmRef :: Type
+foreign import new :: Tm -> TmRef
+foreign import done :: TmRef -> Boolean
+foreign import read :: TmRef -> Tm
+foreign import write :: Tm -> TmRef -> Tm
+
 -- Types --
 
 data Ty = TyInt
@@ -62,6 +68,7 @@ data Tm = TmInt Int
         | TmHTAbs (Ty -> Tm) Ty (Ty -> Ty)
         | TmToString Tm
         | TmClosure EvalEnv Tm
+        | TmRef TmRef
 
 instance showTm :: Show Tm where
   show (TmInt i)    = show i
@@ -91,6 +98,7 @@ instance showTm :: Show Tm where
   show (TmHTAbs tabs td tf) = angles $ "HOAS ∀*" <+> show td
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmClosure env e) = angles $ "Closure" <+> show e
+  show (TmRef ref) = angles $ "Ref"
 
 -- HOAS --
 

@@ -10,7 +10,7 @@ import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (binop, selectLabel, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax.Common (fromJust)
-import Zord.Syntax.Core (Tm(..), Ty(..), tmHoas, tyHoas)
+import Zord.Syntax.Core (Tm(..), Ty(..), done, new, read, tmHoas, tyHoas, write)
 import Zord.Trampoline (Trampoline, bind, pure, runTrampoline)
 
 eval :: Tm -> Tm
@@ -62,6 +62,10 @@ eval = runTrampoline <<< go <<< tmHoas
     go (TmToString e) = do
       e' <- go e
       pure $ toString e'
+    go (TmRef ref) = if done ref then pure e else do
+      e' <- go e
+      pure $ write e' ref
+      where e = read ref
     go e = unsafeCrashWith $ "Zord.Semantics.Natural.eval: " <>
       "well-typed programs don't get stuck, but got " <> show e
 
@@ -89,7 +93,8 @@ typedReduce _ _ = Nothing
 
 paraApp :: Tm -> Either Tm Ty -> Tm
 paraApp TmUnit _ = TmUnit
-paraApp (TmHAbs abs targ tret) (Left e2) = TmAnno (abs (TmAnno e2 targ)) tret
+paraApp (TmHAbs abs targ tret) (Left e2) =
+  TmAnno (abs (TmRef <<< new $ TmAnno e2 targ)) tret
 paraApp (TmHTAbs tabs _ tf) (Right ta) = TmAnno (tabs ta) (tf ta)
 paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
 paraApp v e = unsafeCrashWith $ "Zord.Semantics.Natural.paraApp: " <>
