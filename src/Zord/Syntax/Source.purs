@@ -28,6 +28,7 @@ data Ty = TyInt
         | TyTrait (Maybe Ty) Ty
         | TySort Ty (Maybe Ty)
         | TySig Name Name Ty
+        | TyList Ty
 
 instance showTy :: Show Ty where
   show TyInt    = "Int"
@@ -48,6 +49,7 @@ instance showTy :: Show Ty where
   show (TySort ti to) = angles $ show ti <> showMaybe " % " to ""
   show (TySig a b t) = parens $
     "\\" <> angles (a <+> "%" <+> b) <+> "->" <+> show t
+  show (TyList t) = parens $ "List" <+> show t
 
 derive instance eqTy :: Eq Ty
 
@@ -76,6 +78,7 @@ data Tm = TmInt Int
         | TmTrait SelfAnno (Maybe Ty) (Maybe Tm) Tm
         | TmNew Tm
         | TmToString Tm
+        | TmList (List Tm)
         | TmPos Position Tm
         | TmType Name (List Name) (List Name) (Maybe Ty) Ty Tm
         | TmDef Name ParamList ParamList (Maybe Ty) Tm Tm
@@ -112,6 +115,7 @@ instance showTm :: Show Tm where
     "=>" <+> show e2
   show (TmNew e) = parens $ "new" <+> show e
   show (TmToString e) = parens $ "toString" <+> show e
+  show (TmList xs) = brackets $ intercalate "; " (show <$> xs)
   show (TmPos p e) = show e
   show (TmType a sorts params t1 t2 e) = "type" <+> a <+>
     intercalate " " (angles <$> sorts) <+> intercalate " " params <+>
@@ -136,6 +140,7 @@ tySubst a s (TyTrait ti to) = TyTrait (tySubst a s <$> ti) (tySubst a s to)
 tySubst a s (TySort ti to) = TySort (tySubst a s ti) (tySubst a s <$> to)
 tySubst a s (TySig a' b' t) = TySig a' b'
   (if a == a' || a == b' then t else tySubst a s t)
+tySubst a s (TyList t) = TyList (tySubst a s t)
 tySubst _ _ t = t
 
 -- Helpers --

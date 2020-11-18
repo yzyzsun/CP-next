@@ -17,6 +17,7 @@ subtype (TyRcd l1 t1) (TyRcd l2 t2) = l1 == l2 && t1 <: t2
 subtype (TyForall a1 td1 t1) (TyForall a2 td2 t2) =
   td2 <: td1 && tySubst a1 freshVar t1 <: tySubst a2 freshVar t2
   where freshVar = TyVar "#fresh"
+subtype (TyList t1) (TyList t2) = t1 <: t2
 subtype t1 t2 | t1 == t2  = true
               | otherwise = false
 
@@ -52,6 +53,7 @@ aeq (TyRcd l1 t1) (TyRcd l2 t2) = l1 == l2 && t1 === t2
 aeq (TyForall a1 td1 t1) (TyForall a2 td2 t2) =
   td1 === td2 && tySubst a1 freshVar t1 === tySubst a2 freshVar t2
   where freshVar = TyVar "#fresh"
+aeq (TyList t1) (TyList t2) = t1 === t2
 aeq t1 t2 | t1 == t2  = true
           | otherwise = false
 

@@ -3,10 +3,11 @@ module Zord.Typing where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.List (List(..), elem, filter, foldr, last, null, singleton)
+import Data.List (List(..), elem, filter, foldr, head, last, null, singleton, unzip)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Set as Set
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, uncurry)
 import Zord.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
 import Zord.Subtyping (isTopLike, (<:), (===))
@@ -32,6 +33,11 @@ synthesize (S.TmUnary Not e) = do
   let core = pure $ Tuple (C.TmUnary Not e') C.TyBool
   case t of C.TyBool -> core
             _ -> throwTypeError $ "Not is not defined for" <+> show t
+synthesize (S.TmUnary Len e) = do
+  Tuple e' t <- synthesize e
+  let core = pure $ Tuple (C.TmUnary Len e') C.TyInt
+  case t of C.TyList _ -> core
+            _ -> throwTypeError $ "Len is not defined for" <+> show t
 synthesize (S.TmBinary (Arith op) e1 e2) = do
   Tuple e1' t1 <- synthesize e1
   Tuple e2' t2 <- synthesize e2
@@ -60,9 +66,18 @@ synthesize (S.TmBinary (Logic op) e1 e2) = do
 synthesize (S.TmBinary Append e1 e2) = do
   Tuple e1' t1 <- synthesize e1
   Tuple e2' t2 <- synthesize e2
-  let core = pure $ Tuple (C.TmBinary Append e1' e2') C.TyString
-  case t1, t2 of C.TyString, C.TyString -> core
+  let core = C.TmBinary Append e1' e2'
+  case t1, t2 of C.TyString, C.TyString -> pure $ Tuple core C.TyString
+                 C.TyList t1', C.TyList t2'
+                  | t1' === t2' -> pure $ Tuple core (C.TyList t1')
                  _, _ -> throwTypeError $ "Append is not defined between" <+>
+                                          show t1 <+> "and" <+> show t2
+synthesize (S.TmBinary Index e1 e2) = do
+  Tuple e1' t1 <- synthesize e1
+  Tuple e2' t2 <- synthesize e2
+  let core = C.TmBinary Index e1' e2'
+  case t1, t2 of C.TyList t1', C.TyInt -> pure $ Tuple core t1'
+                 _, _ -> throwTypeError $ "Index is not defined between" <+>
                                           show t1 <+> "and" <+> show t2
 synthesize (S.TmIf e1 e2 e3) = do
   Tuple e1' t1 <- synthesize e1
@@ -222,6 +237,17 @@ synthesize (S.TmToString e) = do
   if t == C.TyInt || t == C.TyDouble || t == C.TyString || t == C.TyBool
   then pure $ Tuple (C.TmToString e') C.TyString
   else throwTypeError $ "cannot show" <+> show t
+synthesize l@(S.TmList xs) = do
+  ets <- traverse synthesize xs
+  let Tuple es ts = unzip ets
+  if allTheSame ts then let t = fromJust (head ts) in
+    pure $ Tuple (C.TmList t es) (C.TyList t)
+  else throwTypeError $ "elements of" <+> show l <+> "should have the same type"
+  where
+    allTheSame :: List C.Ty -> Boolean
+    allTheSame Nil = false
+    allTheSame (Cons t Nil) = true
+    allTheSame (Cons t ts) = t === fromJust (head ts)
 -- TODO: save original terms instead of desugared ones
 synthesize (S.TmPos p e) = setPos (Pos p e) $ synthesize e
 synthesize (S.TmType a sorts params Nothing t e) = do

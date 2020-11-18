@@ -2,15 +2,18 @@ module Zord.Semantics.Common where
 
 import Prelude
 
+import Data.List (length, (!!))
+import Data.Maybe (Maybe(..))
 import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), UnOp(..))
 import Zord.Syntax.Core (Tm(..))
 
 unop :: UnOp -> Tm -> Tm
-unop Neg (TmInt i)    = TmInt    (negate i)
-unop Neg (TmDouble n) = TmDouble (negate n)
-unop Not (TmBool b)   = TmBool   (not b)
+unop Neg (TmInt i)     = TmInt    (negate i)
+unop Neg (TmDouble n)  = TmDouble (negate n)
+unop Not (TmBool b)    = TmBool   (not b)
+unop Len (TmList _ xs) = TmInt    (length xs)
 unop op v = unsafeCrashWith $
   "Zord.Semantics.Common.unop: impossible unary operation " <> show op <>
   " on " <> show v
@@ -53,6 +56,11 @@ binop (Comp Ge ) (TmBool b1) (TmBool b2) = TmBool (b1 >= b2)
 binop (Logic And) (TmBool b1) (TmBool b2) = TmBool (b1 && b2)
 binop (Logic Or ) (TmBool b1) (TmBool b2) = TmBool (b1 || b2)
 binop Append (TmString s1) (TmString s2) = TmString (s1 <> s2)
+binop Append (TmList t1 l1) (TmList t2 l2) = TmList t1 (l1 <> l2)
+binop Index (TmList t l) (TmInt i) = case l !! i of
+  Just e -> TmAnno e t
+  Nothing -> unsafeCrashWith $ "Zord.Semantics.Common.binop: the index " <>
+    show i <> " is out of bounds for " <> show (TmList t l)
 binop op v1 v2 = unsafeCrashWith $
   "Zord.Semantics.Common.binop: impossible binary operation " <> show op <>
   " between " <> show v1 <> " and " <> show v2
@@ -71,5 +79,5 @@ selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
   TmUnit, e2' -> e2'
   e1', TmUnit -> e1'
   e1', e2' -> TmMerge e1' e2'
-selectLabel (TmRcd l' _ e) l | l == l' = e
+selectLabel (TmRcd l' t e) l | l == l' = TmAnno e t
 selectLabel _ _ = TmUnit

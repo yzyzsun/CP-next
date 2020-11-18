@@ -50,6 +50,7 @@ translate (S.TyVar a) = pure $ C.TyVar a
 translate (S.TyTrait Nothing to) = C.TyArr C.TyTop <$> translate to <@> true
 translate (S.TyTrait (Just ti) to) =
   C.TyArr <$> translate ti <*> translate to <@> true
+translate (S.TyList t) = C.TyList <$> translate t
 translate t@(S.TyAbs _ _) = throwTypeError $ show t <+> "is not a proper type"
 translate t@(S.TySig _ _ _) = throwTypeError $ show t <+> "is not a proper type"
 translate t = throwTypeError $ show t <+> "should have been expanded"
@@ -104,6 +105,7 @@ expand (S.TySort ti to) = do
         case mb of Just b -> pure $ S.TySort ti' (Just (S.TyVar b))
                    Nothing -> pure $ S.TySort ti' (Just ti')
       _ -> pure $ S.TySort ti' (Just ti')
+expand (S.TyList t) = S.TyList <$> expand t
 expand t = pure t
 
 transformTyDef :: S.Ty -> Typing S.Ty

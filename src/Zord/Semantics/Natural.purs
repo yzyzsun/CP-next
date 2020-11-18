@@ -9,7 +9,7 @@ import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (binop, selectLabel, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (fromJust)
+import Zord.Syntax.Common (BinOp(..), fromJust)
 import Zord.Syntax.Core (Tm(..), Ty(..), done, new, read, tmHoas, tyHoas, write)
 import Zord.Trampoline (Trampoline, bind, pure, runTrampoline)
 
@@ -28,7 +28,9 @@ eval = runTrampoline <<< go <<< tmHoas
     go (TmBinary op e1 e2) = do
       e1' <- go e1
       e2' <- go e2
-      pure $ binop op e1' e2'
+      let e = binop op e1' e2'
+      case op of Index -> go e
+                 _   -> pure e
     go (TmIf e1 e2 e3) = do
       e1' <- go e1
       case e1' of
@@ -62,6 +64,7 @@ eval = runTrampoline <<< go <<< tmHoas
     go (TmToString e) = do
       e' <- go e
       pure $ toString e'
+    go e@(TmList _ _) = pure e
     go (TmRef ref) = if done ref then pure e else do
       e' <- go e
       pure $ write e' ref
@@ -85,10 +88,11 @@ typedReduce (TmHAbs abs targ1 tret1) (TyArr targ2 tret2 _)
   | targ2 <: targ1 && tret1 <: tret2 = Just $ TmHAbs abs targ1 tret2
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
 typedReduce (TmRcd l t e) (TyRcd l' t')
-  | l == l' && t <: t' = Just $ TmRcd l t' (TmAnno e t')
+  | l == l' && t <: t' = Just $ TmRcd l t' e
 typedReduce (TmHTAbs tabs td1 tf1) (TyForall a td2 t2)
   | td2 <: td1 && tf1 (TyVar a) <: t2
   = Just $ TmHTAbs tabs td1 (tyHoas a t2)
+typedReduce (TmList t xs) (TyList t') | t <: t' = Just $ TmList t' xs
 typedReduce _ _ = Nothing
 
 paraApp :: Tm -> Either Tm Ty -> Tm
@@ -110,4 +114,5 @@ isValue (TmHAbs _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true
 isValue (TmHTAbs _ _ _) = true
+isValue (TmList _ _) = true
 isValue _ = false

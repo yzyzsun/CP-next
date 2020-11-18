@@ -22,16 +22,18 @@ derive instance eqKind :: Eq Kind
 
 -- Operators --
 
-data UnOp = Neg | Not
+data UnOp = Neg | Not | Len
 
 instance showUnOp :: Show UnOp where
   show Neg = "-"
   show Not = "!"
+  show Len = "#"
 
 data BinOp = Arith ArithOp
            | Comp  CompOp
            | Logic LogicOp
            | Append
+           | Index
 
 data ArithOp = Add | Sub | Mul | Div | Mod
 data CompOp  = Eql | Neq | Lt | Le | Gt | Ge
@@ -42,6 +44,7 @@ instance showBinOp :: Show BinOp where
   show (Comp  op) = show op
   show (Logic op) = show op
   show Append = "++"
+  show Index = "!!"
 
 instance showArithOp :: Show ArithOp where
   show Add = "+"

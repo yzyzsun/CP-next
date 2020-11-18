@@ -5,13 +5,14 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Reader (Reader, ask, local, runReader)
 import Data.Either (Either(..))
+import Data.List (length, (!!))
 import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (binop, toString, unop)
+import Zord.Semantics.Common (binop, selectLabel, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (Label, Name, fromJust)
+import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..), fromJust)
 import Zord.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..))
 
 type Eval a = Reader EvalEnv a
@@ -23,9 +24,9 @@ eval tm = runReader (go tm) empty
              | otherwise  = step e >>= go
 
 step :: Tm -> Eval Tm
-step (TmUnary op e) | isValue e = pure $ unop op e
+step (TmUnary op e) | isValue e = pure $ unop' op e
                     | otherwise = TmUnary op <$> step e
-step (TmBinary op e1 e2) | isValue e1 && isValue e2 = pure $ binop op e1 e2
+step (TmBinary op e1 e2) | isValue e1 && isValue e2 = pure $ binop' op e1 e2
                          | isValue e1 = TmBinary op e1 <$> step e2
                          | otherwise  = TmBinary op <$> step e1 <@> e2
 step (TmIf (TmBool true)  e2 e3) = pure e2
@@ -45,7 +46,7 @@ step (TmMerge e1 e2) | isValue e1 = TmMerge e1 <$> step e2
                      | isValue e2 = TmMerge <$> step e1 <@> e2
                      | otherwise  = TmMerge <$> step e1 <*> step e2
 step rcd@(TmRcd _ _ _) = closure rcd
-step (TmPrj e l) | isValue e = pure $ selectLabel e l
+step (TmPrj e l) | isValue e = pure $ selectLabel' e l
                  | otherwise = TmPrj <$> step e <@> l
 step (TmTApp e t) | isValue e = paraApp e <<< Right <$> expand t
                   | otherwise = TmTApp <$> step e <@> t
@@ -76,8 +77,7 @@ typedReduce (TmString s) TyString = pure <<< Just $ TmString s
 typedReduce (TmBool b)   TyBool   = pure (Just (TmBool b))
 typedReduce (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2) = do
   t1' <- local (const env) $ expand t1
-  if l1 == l2 && t1' <: t2 then
-    pure <<< Just $ TmClosure env (TmRcd l2 t2 (TmAnno e t2))
+  if l1 == l2 && t1' <: t2 then pure <<< Just $ TmClosure env (TmRcd l2 t2 e)
   else pure Nothing
 typedReduce (TmClosure env (TmAbs x e targ1 tret1)) (TyArr targ2 tret2 _) = do
   targ1' <- local (const env) $ expand targ1
@@ -93,6 +93,10 @@ typedReduce (TmClosure env (TmTAbs a1 td1 e t1)) (TyForall a2 td2 t2) = do
   if a1 == a2 && td2 <: td1' && t1' <: t2 then
     pure <<< Just $ TmClosure env' (TmTAbs a2 td1' e t2)
   else pure Nothing
+typedReduce (TmClosure env (TmList t1 xs)) (TyList t2) = do
+  t1' <- local (const env) $ expand t1
+  if t1' <: t2 then pure <<< Just $ TmClosure env (TmList t2 xs)
+  else pure Nothing
 typedReduce _ _ = pure Nothing
 
 paraApp :: Tm -> Either Tm Ty -> Tm
@@ -105,14 +109,23 @@ paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
 paraApp v e = unsafeCrashWith $ "Zord.Semantics.Closure.paraApp: " <>
   "impossible application " <> show v <> " • " <> show e
 
-selectLabel :: Tm -> Label -> Tm
-selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUnit, TmUnit -> TmUnit
-  TmUnit, e2' -> e2'
-  e1', TmUnit -> e1'
-  e1', e2' -> TmMerge e1' e2'
-selectLabel (TmClosure env (TmRcd l' _ e)) l | l == l' = TmClosure env e
-selectLabel _ _ = TmUnit
+selectLabel' :: Tm -> Label -> Tm
+selectLabel' (TmClosure env (TmRcd l' t e)) l
+  | l == l' = TmClosure env (TmAnno e t)
+selectLabel' e l = selectLabel e l
+
+unop' :: UnOp -> Tm -> Tm
+unop' Len (TmClosure _ (TmList _ xs)) = TmInt (length xs)
+unop' op e = unop op e
+
+binop' :: BinOp -> Tm -> Tm -> Tm
+binop' Append (TmClosure env1 (TmList t1 l1)) (TmClosure env2 (TmList t2 l2)) =
+  TmClosure (env1 <> env2) (TmList t1 (l1 <> l2))
+binop' Index (TmClosure env (TmList t l)) (TmInt i) = case l !! i of
+  Just e -> TmClosure env (TmAnno e t)
+  Nothing -> unsafeCrashWith $ "Zord.Semantics.Closure.binop': the index " <>
+    show i <> " is out of bounds for " <> show (TmList t l)
+binop' op v1 v2 = binop op v1 v2
 
 expand :: Ty -> Eval Ty
 expand (TyArr t1 t2 isTrait) = TyArr <$> expand t1 <*> expand t2 <@> isTrait
@@ -126,6 +139,7 @@ expand (TyForall a td t) = do
   td' <- expand td
   t' <- local (\env -> insert a (TyBind Nothing) env) (expand t)
   pure $ TyForall a td' t'
+expand (TyList t) = TyList <$> expand t
 expand t = pure t
 
 isValue :: Tm -> Boolean
@@ -138,6 +152,7 @@ isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmClosure _ (TmRcd _ _ _)) = true
 isValue (TmClosure _ (TmAbs _ _ _ _)) = true
 isValue (TmClosure _ (TmTAbs _ _ _ _)) = true
+isValue (TmClosure _ (TmList _ _)) = true
 isValue _ = false
 
 closure :: Tm -> Eval Tm

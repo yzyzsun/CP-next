@@ -53,6 +53,7 @@ desugar (TmLet x e1 e2) = TmLet x (desugar e1) (desugar e2)
 desugar (TmLetrec x t e1 e2) = TmLetrec x t (desugar e1) (desugar e2)
 desugar (TmOpen e1 e2) = TmOpen (desugar e1) (desugar e2)
 desugar (TmNew e) = TmNew (desugar e)
+desugar (TmList xs) = TmList (desugar <$> xs)
 desugar (TmPos p e) = TmPos p (desugar e)
 desugar (TmType a sorts params Nothing t2 e) =
   TmType a sorts params Nothing t2 (desugar e)

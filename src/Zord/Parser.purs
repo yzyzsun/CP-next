@@ -83,6 +83,7 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
                  , reserved "false" $> TmBool false
                  , symbol "()" $> TmUnit
                  , identifier <#> TmVar
+                 , brackets $ TmList <$> sepEndBySemi expr
                  , recordLit e
                  , parens e
                  ]
@@ -193,7 +194,9 @@ methodPattern p = do
 operators :: OperatorTable Identity String Tm
 operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
               , Prefix (reservedOp "!" $> TmUnary Not)
+              , Prefix (reservedOp "#" $> TmUnary Len)
               ]
+            , [ Infix (reservedOp "!!" $> TmBinary Index) AssocLeft ]
             , [ Infix (reservedOp "*" $> TmBinary (Arith Mul)) AssocLeft
               , Infix (reservedOp "/" $> TmBinary (Arith Div)) AssocLeft
               , Infix (reservedOp "%" $> TmBinary (Arith Mod)) AssocLeft
@@ -221,7 +224,7 @@ ty = fix \t -> buildExprParser toperators $ bty t
 
 bty :: SParser Ty -> SParser Ty
 bty t = foldl TyApp <$> aty t <*> many (aty t <|> sortTy t) <|>
-        traitTy t <|> forallTy
+        forallTy <|> traitTy <|> listTy
 
 aty :: SParser Ty -> SParser Ty
 aty t = choice [ reserved "Int"    $> TyInt
@@ -241,13 +244,6 @@ sortTy t = angles do
   to <- optional (symbol "%" *> t)
   pure $ TySort ti to
 
-traitTy :: SParser Ty -> SParser Ty
-traitTy t = do
-  reserved "Trait"
-  ti <- optional (try (t <* symbol "%"))
-  to <- t
-  pure $ TyTrait ti to
-
 forallTy :: SParser Ty
 forallTy = do
   reserved "forall"
@@ -255,6 +251,19 @@ forallTy = do
   symbol "."
   t <- ty
   pure $ TyForall xs t
+
+traitTy :: SParser Ty
+traitTy = do
+  reserved "Trait"
+  ti <- optional (try (ty <* symbol "%"))
+  to <- aty ty
+  pure $ TyTrait ti to
+
+listTy :: SParser Ty
+listTy = do
+  reserved "List"
+  te <- aty ty
+  pure $ TyList te
 
 recordTy :: SParser Ty
 recordTy = braces $ TyRcd <$> sepEndBySemi do
@@ -294,7 +303,7 @@ zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "trait", "implements", "inherits", "override", "new"
   , "if", "then", "else", "let", "letrec", "open", "in", "toString"
   , "type", "extends", "forall"
-  , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
+  , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait", "List"
   ]
 }
 
