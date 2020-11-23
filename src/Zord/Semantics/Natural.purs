@@ -64,7 +64,7 @@ eval = runTrampoline <<< go <<< tmHoas
     go (TmToString e) = do
       e' <- go e
       pure $ toString e'
-    go e@(TmList _ _) = pure e
+    go e@(TmArray _ _) = pure e
     go (TmRef ref) = if done ref then pure e else do
       e' <- go e
       pure $ write e' ref
@@ -84,7 +84,7 @@ typedReduce (TmInt i)    TyInt    = Just $ TmInt i
 typedReduce (TmDouble n) TyDouble = Just $ TmDouble n
 typedReduce (TmString s) TyString = Just $ TmString s
 typedReduce (TmBool b)   TyBool   = Just $ TmBool b
-typedReduce (TmHAbs abs targ1 tret1) (TyArr targ2 tret2 _)
+typedReduce (TmHAbs abs targ1 tret1) (TyArrow targ2 tret2 _)
   | targ2 <: targ1 && tret1 <: tret2 = Just $ TmHAbs abs targ1 tret2
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
 typedReduce (TmRcd l t e) (TyRcd l' t')
@@ -92,7 +92,7 @@ typedReduce (TmRcd l t e) (TyRcd l' t')
 typedReduce (TmHTAbs tabs td1 tf1) (TyForall a td2 t2)
   | td2 <: td1 && tf1 (TyVar a) <: t2
   = Just $ TmHTAbs tabs td1 (tyHoas a t2)
-typedReduce (TmList t xs) (TyList t') | t <: t' = Just $ TmList t' xs
+typedReduce (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 typedReduce _ _ = Nothing
 
 paraApp :: Tm -> Either Tm Ty -> Tm
@@ -114,5 +114,5 @@ isValue (TmHAbs _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true
 isValue (TmHTAbs _ _ _) = true
-isValue (TmList _ _) = true
+isValue (TmArray _ _) = true
 isValue _ = false

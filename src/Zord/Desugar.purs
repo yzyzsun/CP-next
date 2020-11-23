@@ -38,8 +38,8 @@ desugar (TmDef x tyParams tmParams t e1 e2) =
   case t of Just t' -> TmLetrec x (ty t') tm (desugar e2)
             Nothing -> TmLet x tm (desugar e2)
   where tm = desugar (TmTAbs tyParams (TmAbs tmParams e1))
-        ty t' = TyForall tyParams (foldr TyArr t' (tmParams <#>
-                                                   snd >>> fromMaybe TyTop))
+        ty t' = TyForall tyParams (foldr TyArrow t' (tmParams <#>
+                                                     snd >>> fromMaybe TyTop))
 
 desugar (TmUnary op e) = TmUnary op (desugar e)
 desugar (TmBinary op e1 e2) = TmBinary op (desugar e1) (desugar e2)
@@ -53,7 +53,7 @@ desugar (TmLet x e1 e2) = TmLet x (desugar e1) (desugar e2)
 desugar (TmLetrec x t e1 e2) = TmLetrec x t (desugar e1) (desugar e2)
 desugar (TmOpen e1 e2) = TmOpen (desugar e1) (desugar e2)
 desugar (TmNew e) = TmNew (desugar e)
-desugar (TmList xs) = TmList (desugar <$> xs)
+desugar (TmArray arr) = TmArray (desugar <$> arr)
 desugar (TmPos p e) = TmPos p (desugar e)
 desugar (TmType a sorts params Nothing t2 e) =
   TmType a sorts params Nothing t2 (desugar e)

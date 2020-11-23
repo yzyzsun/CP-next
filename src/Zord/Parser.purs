@@ -8,7 +8,7 @@ import Data.Array as Array
 import Data.Char.Unicode (isLower)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
-import Data.List (List, foldl, many, some)
+import Data.List (List, foldl, many, some, toUnfoldable)
 import Data.Maybe (Maybe(..), isJust, optional)
 import Data.String.CodeUnits as CodeUnits
 import Data.Tuple (Tuple(..))
@@ -83,7 +83,7 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
                  , reserved "false" $> TmBool false
                  , symbol "()" $> TmUnit
                  , identifier <#> TmVar
-                 , brackets $ TmList <$> sepEndBySemi expr
+                 , brackets $ TmArray <<< toUnfoldable <$> sepEndBySemi expr
                  , recordLit e
                  , parens e
                  ]
@@ -224,7 +224,7 @@ ty = fix \t -> buildExprParser toperators $ bty t
 
 bty :: SParser Ty -> SParser Ty
 bty t = foldl TyApp <$> aty t <*> many (aty t <|> sortTy t) <|>
-        forallTy <|> traitTy <|> listTy
+        forallTy <|> traitTy <|> arrayTy
 
 aty :: SParser Ty -> SParser Ty
 aty t = choice [ reserved "Int"    $> TyInt
@@ -259,11 +259,11 @@ traitTy = do
   to <- aty ty
   pure $ TyTrait ti to
 
-listTy :: SParser Ty
-listTy = do
-  reserved "List"
+arrayTy :: SParser Ty
+arrayTy = do
+  reserved "Array"
   te <- aty ty
-  pure $ TyList te
+  pure $ TyArray te
 
 recordTy :: SParser Ty
 recordTy = braces $ TyRcd <$> sepEndBySemi do
@@ -274,7 +274,7 @@ recordTy = braces $ TyRcd <$> sepEndBySemi do
 
 toperators :: OperatorTable Identity String Ty
 toperators = [ [ Infix (reservedOp "&"  $> TyAnd) AssocLeft  ]
-             , [ Infix (reservedOp "->" $> TyArr) AssocRight ]
+             , [ Infix (reservedOp "->" $> TyArrow) AssocRight ]
              ]
 
 -- Helpers --
@@ -303,7 +303,7 @@ zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "trait", "implements", "inherits", "override", "new"
   , "if", "then", "else", "let", "letrec", "open", "in", "toString"
   , "type", "extends", "forall"
-  , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait", "List"
+  , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait", "Array"
   ]
 }
 

@@ -45,12 +45,12 @@ translate S.TyBool   = pure C.TyBool
 translate S.TyTop    = pure C.TyTop
 translate S.TyBot    = pure C.TyBot
 translate (S.TyAnd t1 t2) = C.TyAnd <$> translate t1 <*> translate t2
-translate (S.TyArr t1 t2) = C.TyArr <$> translate t1 <*> translate t2 <@> false
+translate (S.TyArrow t1 t2) = C.TyArrow <$> translate t1 <*> translate t2 <@> false
 translate (S.TyVar a) = pure $ C.TyVar a
-translate (S.TyTrait Nothing to) = C.TyArr C.TyTop <$> translate to <@> true
+translate (S.TyTrait Nothing to) = C.TyArrow C.TyTop <$> translate to <@> true
 translate (S.TyTrait (Just ti) to) =
-  C.TyArr <$> translate ti <*> translate to <@> true
-translate (S.TyList t) = C.TyList <$> translate t
+  C.TyArrow <$> translate ti <*> translate to <@> true
+translate (S.TyArray t) = C.TyArray <$> translate t
 translate t@(S.TyAbs _ _) = throwTypeError $ show t <+> "is not a proper type"
 translate t@(S.TySig _ _ _) = throwTypeError $ show t <+> "is not a proper type"
 translate t = throwTypeError $ show t <+> "should have been expanded"
@@ -62,7 +62,7 @@ someTy = C.TyTop
 
 -- type-level beta-reduction is also done here
 expand :: S.Ty -> Typing S.Ty
-expand (S.TyArr t1 t2) = S.TyArr <$> expand t1 <*> expand t2
+expand (S.TyArrow t1 t2) = S.TyArrow <$> expand t1 <*> expand t2
 expand (S.TyAnd t1 t2) = S.TyAnd <$> expand t1 <*> expand t2
 expand (S.TyRcd xs) = S.TyRcd <$> traverse (rtraverse expand) xs
 expand (S.TyVar a) = do
@@ -105,15 +105,15 @@ expand (S.TySort ti to) = do
         case mb of Just b -> pure $ S.TySort ti' (Just (S.TyVar b))
                    Nothing -> pure $ S.TySort ti' (Just ti')
       _ -> pure $ S.TySort ti' (Just ti')
-expand (S.TyList t) = S.TyList <$> expand t
+expand (S.TyArray t) = S.TyArray <$> expand t
 expand t = pure t
 
 transformTyDef :: S.Ty -> Typing S.Ty
 transformTyDef = expand >=> distinguish false true
 
 distinguish :: Boolean -> Boolean -> S.Ty -> Typing S.Ty
-distinguish isCtor isOut (S.TyArr t1 t2) =
-  S.TyArr <$> distinguish isCtor (not isOut) t1 <*> distinguish isCtor isOut t2
+distinguish isCtor isOut (S.TyArrow t1 t2) =
+  S.TyArrow <$> distinguish isCtor (not isOut) t1 <*> distinguish isCtor isOut t2
 distinguish isCtor isOut (S.TyAnd t1 t2) =
   S.TyAnd <$> distinguish isCtor isOut t1 <*> distinguish isCtor isOut t2
 distinguish isCtor isOut (S.TyRcd xs) = S.TyRcd <$> for xs \(Tuple l t) ->

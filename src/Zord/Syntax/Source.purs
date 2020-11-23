@@ -4,7 +4,8 @@ import Prelude
 
 import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
-import Data.List (List, any, intercalate)
+import Data.Foldable (any, intercalate)
+import Data.List (List)
 import Data.Maybe (Maybe, maybe)
 import Data.Tuple (Tuple(..), fst, snd)
 import Text.Parsing.Parser.Pos (Position)
@@ -18,7 +19,7 @@ data Ty = TyInt
         | TyBool
         | TyTop
         | TyBot
-        | TyArr Ty Ty
+        | TyArrow Ty Ty
         | TyAnd Ty Ty
         | TyRcd RcdTyList
         | TyVar Name
@@ -28,7 +29,7 @@ data Ty = TyInt
         | TyTrait (Maybe Ty) Ty
         | TySort Ty (Maybe Ty)
         | TySig Name Name Ty
-        | TyList Ty
+        | TyArray Ty
 
 instance showTy :: Show Ty where
   show TyInt    = "Int"
@@ -37,7 +38,7 @@ instance showTy :: Show Ty where
   show TyBool   = "Bool"
   show TyTop    = "Top"
   show TyBot    = "Bot"
-  show (TyArr t1 t2) = parens $ show t1 <+> "->" <+> show t2
+  show (TyArrow t1 t2) = parens $ show t1 <+> "->" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
   show (TyRcd xs) = braces $ showRcdTy xs
   show (TyVar a) = a
@@ -49,7 +50,7 @@ instance showTy :: Show Ty where
   show (TySort ti to) = angles $ show ti <> showMaybe " % " to ""
   show (TySig a b t) = parens $
     "\\" <> angles (a <+> "%" <+> b) <+> "->" <+> show t
-  show (TyList t) = parens $ "List" <+> show t
+  show (TyArray t) = parens $ "Array" <+> show t
 
 derive instance eqTy :: Eq Ty
 
@@ -78,7 +79,7 @@ data Tm = TmInt Int
         | TmTrait SelfAnno (Maybe Ty) (Maybe Tm) Tm
         | TmNew Tm
         | TmToString Tm
-        | TmList (List Tm)
+        | TmArray (Array Tm)
         | TmPos Position Tm
         | TmType Name (List Name) (List Name) (Maybe Ty) Ty Tm
         | TmDef Name ParamList ParamList (Maybe Ty) Tm Tm
@@ -115,7 +116,7 @@ instance showTm :: Show Tm where
     "=>" <+> show e2
   show (TmNew e) = parens $ "new" <+> show e
   show (TmToString e) = parens $ "toString" <+> show e
-  show (TmList xs) = brackets $ intercalate "; " (show <$> xs)
+  show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
   show (TmPos p e) = show e
   show (TmType a sorts params t1 t2 e) = "type" <+> a <+>
     intercalate " " (angles <$> sorts) <+> intercalate " " params <+>
@@ -128,7 +129,7 @@ instance showTm :: Show Tm where
 
 -- TODO: capture-avoiding
 tySubst :: Name -> Ty -> Ty -> Ty
-tySubst a s (TyArr t1 t2) = TyArr (tySubst a s t1) (tySubst a s t2)
+tySubst a s (TyArrow t1 t2) = TyArrow (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyRcd xs) = TyRcd (rmap (tySubst a s) <$> xs)
 tySubst a s (TyVar a') = if a == a' then s else TyVar a'
@@ -140,7 +141,7 @@ tySubst a s (TyTrait ti to) = TyTrait (tySubst a s <$> ti) (tySubst a s to)
 tySubst a s (TySort ti to) = TySort (tySubst a s ti) (tySubst a s <$> to)
 tySubst a s (TySig a' b' t) = TySig a' b'
   (if a == a' || a == b' then t else tySubst a s t)
-tySubst a s (TyList t) = TyList (tySubst a s t)
+tySubst a s (TyArray t) = TyArray (tySubst a s t)
 tySubst _ _ t = t
 
 -- Helpers --

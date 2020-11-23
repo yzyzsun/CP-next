@@ -2,7 +2,7 @@ module Zord.Semantics.Common where
 
 import Prelude
 
-import Data.List (length, (!!))
+import Data.Array (length, (!!))
 import Data.Maybe (Maybe(..))
 import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
@@ -10,10 +10,10 @@ import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..
 import Zord.Syntax.Core (Tm(..))
 
 unop :: UnOp -> Tm -> Tm
-unop Neg (TmInt i)     = TmInt    (negate i)
-unop Neg (TmDouble n)  = TmDouble (negate n)
-unop Not (TmBool b)    = TmBool   (not b)
-unop Len (TmList _ xs) = TmInt    (length xs)
+unop Neg (TmInt i)       = TmInt    (negate i)
+unop Neg (TmDouble n)    = TmDouble (negate n)
+unop Not (TmBool b)      = TmBool   (not b)
+unop Len (TmArray _ arr) = TmInt    (length arr)
 unop op v = unsafeCrashWith $
   "Zord.Semantics.Common.unop: impossible unary operation " <> show op <>
   " on " <> show v
@@ -56,11 +56,11 @@ binop (Comp Ge ) (TmBool b1) (TmBool b2) = TmBool (b1 >= b2)
 binop (Logic And) (TmBool b1) (TmBool b2) = TmBool (b1 && b2)
 binop (Logic Or ) (TmBool b1) (TmBool b2) = TmBool (b1 || b2)
 binop Append (TmString s1) (TmString s2) = TmString (s1 <> s2)
-binop Append (TmList t1 l1) (TmList t2 l2) = TmList t1 (l1 <> l2)
-binop Index (TmList t l) (TmInt i) = case l !! i of
+binop Append (TmArray t1 l1) (TmArray t2 l2) = TmArray t1 (l1 <> l2)
+binop Index (TmArray t arr) (TmInt i) = case arr !! i of
   Just e -> TmAnno e t
   Nothing -> unsafeCrashWith $ "Zord.Semantics.Common.binop: the index " <>
-    show i <> " is out of bounds for " <> show (TmList t l)
+    show i <> " is out of bounds for " <> show (TmArray t arr)
 binop op v1 v2 = unsafeCrashWith $
   "Zord.Semantics.Common.binop: impossible binary operation " <> show op <>
   " between " <> show v1 <> " and " <> show v2

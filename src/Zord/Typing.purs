@@ -2,8 +2,9 @@ module Zord.Typing where
 
 import Prelude
 
+import Data.Array (all, head, unzip)
 import Data.Either (Either(..))
-import Data.List (List(..), elem, filter, foldr, head, last, null, singleton, unzip)
+import Data.List (List(..), elem, filter, foldr, last, null, singleton)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Set as Set
@@ -36,7 +37,7 @@ synthesize (S.TmUnary Not e) = do
 synthesize (S.TmUnary Len e) = do
   Tuple e' t <- synthesize e
   let core = pure $ Tuple (C.TmUnary Len e') C.TyInt
-  case t of C.TyList _ -> core
+  case t of C.TyArray _ -> core
             _ -> throwTypeError $ "Len is not defined for" <+> show t
 synthesize (S.TmBinary (Arith op) e1 e2) = do
   Tuple e1' t1 <- synthesize e1
@@ -68,15 +69,15 @@ synthesize (S.TmBinary Append e1 e2) = do
   Tuple e2' t2 <- synthesize e2
   let core = C.TmBinary Append e1' e2'
   case t1, t2 of C.TyString, C.TyString -> pure $ Tuple core C.TyString
-                 C.TyList t1', C.TyList t2'
-                  | t1' === t2' -> pure $ Tuple core (C.TyList t1')
+                 C.TyArray t1', C.TyArray t2'
+                  | t1' === t2' -> pure $ Tuple core (C.TyArray t1')
                  _, _ -> throwTypeError $ "Append is not defined between" <+>
                                           show t1 <+> "and" <+> show t2
 synthesize (S.TmBinary Index e1 e2) = do
   Tuple e1' t1 <- synthesize e1
   Tuple e2' t2 <- synthesize e2
   let core = C.TmBinary Index e1' e2'
-  case t1, t2 of C.TyList t1', C.TyInt -> pure $ Tuple core t1'
+  case t1, t2 of C.TyArray t1', C.TyInt -> pure $ Tuple core t1'
                  _, _ -> throwTypeError $ "Index is not defined between" <+>
                                           show t1 <+> "and" <+> show t2
 synthesize (S.TmIf e1 e2 e3) = do
@@ -96,7 +97,7 @@ synthesize (S.TmApp e1 e2) = do
 synthesize (S.TmAbs (Cons (Tuple x (Just targ)) Nil) e) = do
   targ' <- transform targ
   Tuple e' tret <- addTmBind x targ' $ synthesize e
-  pure $ Tuple (C.TmAbs x e' targ' tret) (C.TyArr targ' tret false)
+  pure $ Tuple (C.TmAbs x e' targ' tret) (C.TyArrow targ' tret false)
 synthesize (S.TmAbs (Cons (Tuple x Nothing) Nil) e) = throwTypeError
   "lambda parameters should be annotated (type inference is not implemented)"
 synthesize (S.TmAnno e ta) = do
@@ -108,7 +109,7 @@ synthesize (S.TmMerge e1 e2) = do
   Tuple e1' t1 <- synthesize e1
   Tuple e2' t2 <- synthesize e2
   case t1, t2 of
-    C.TyArr targ1 tret1 true, C.TyArr targ2 tret2 true -> do
+    C.TyArrow targ1 tret1 true, C.TyArrow targ2 tret2 true -> do
       disjoint tret1 tret2
       pure $ trait "self" (C.TmMerge (appToSelf e1') (appToSelf e2'))
                    (C.TyAnd targ1 targ2) (C.TyAnd tret1 tret2)
@@ -165,7 +166,7 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
       -- TODO: self-reference may have a different name in super-trait
       Tuple e1' t1 <- addTmBind self t' $ synthesize e1
       case t1 of
-        C.TyArr ti to true -> do
+        C.TyArrow ti to true -> do
           if t' <: ti then do
             Tuple e2' t2 <-
               addTmBind self t' $ addTmBind "super" to $ synthesize e2
@@ -198,7 +199,7 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
         Just (Tuple _ ty) ->
           S.TmRcd (singleton (S.RcdField o l (Left (inferFromSig ty e))))
         _ -> r
-    inferFromSig (S.TyArr targ tret) (S.TmAbs (Cons (Tuple x Nothing) Nil) e) =
+    inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons (Tuple x Nothing) Nil) e) =
       S.TmAbs (singleton (Tuple x (Just targ))) (inferFromSig tret e)
     inferFromSig _ e = e
     selectOverride :: S.Tm -> List Label
@@ -226,7 +227,7 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
 synthesize (S.TmNew e) = do
   Tuple e' t <- synthesize e
   case t of
-    C.TyArr ti to true ->
+    C.TyArrow ti to true ->
       if to <: ti then
         pure $ Tuple (C.TmFix "self" (C.TmApp e' (C.TmVar "self")) to) to
       else throwTypeError $ "input" <+> show ti <+>
@@ -237,17 +238,13 @@ synthesize (S.TmToString e) = do
   if t == C.TyInt || t == C.TyDouble || t == C.TyString || t == C.TyBool
   then pure $ Tuple (C.TmToString e') C.TyString
   else throwTypeError $ "cannot show" <+> show t
-synthesize l@(S.TmList xs) = do
-  ets <- traverse synthesize xs
+synthesize (S.TmArray arr) = do
+  ets <- traverse synthesize arr
   let Tuple es ts = unzip ets
-  if allTheSame ts then let t = fromJust (head ts) in
-    pure $ Tuple (C.TmList t es) (C.TyList t)
-  else throwTypeError $ "elements of" <+> show l <+> "should have the same type"
-  where
-    allTheSame :: List C.Ty -> Boolean
-    allTheSame Nil = false
-    allTheSame (Cons t Nil) = true
-    allTheSame (Cons t ts) = t === fromJust (head ts)
+  let t = fromJust (head ts)
+  if all (_ === t) ts then pure $ Tuple (C.TmArray t es) (C.TyArray t)
+  else throwTypeError $ "elements of" <+> show (S.TmArray arr) <+>
+                        "should have the same type"
 -- TODO: save original terms instead of desugared ones
 synthesize (S.TmPos p e) = setPos (Pos p e) $ synthesize e
 synthesize (S.TmType a sorts params Nothing t e) = do
@@ -264,8 +261,8 @@ synthesize e = throwTypeError $ show e <+> "should have been desugared"
 
 distApp :: C.Ty -> Either C.Ty C.Ty -> Typing C.Ty
 distApp C.TyTop _ = pure C.TyTop
-distApp f@(C.TyArr targ tret _) (Left t) | t <: targ = pure tret
-                                         | otherwise = throwTypeError $
+distApp f@(C.TyArrow targ tret _) (Left t) | t <: targ = pure tret
+                                           | otherwise = throwTypeError $
   show f <+> "expected a subtype of its parameter type, but got" <+> show t
 distApp (C.TyForall a td t) (Right ta) = disjoint ta td $> C.tySubst a ta t
 distApp (C.TyAnd t1 t2) t = do
@@ -277,7 +274,7 @@ distApp t _ = throwTypeError $ show t <+> "is not applicable"
 disjoint :: C.Ty -> C.Ty -> Typing Unit
 disjoint t _ | isTopLike t = pure unit
 disjoint _ t | isTopLike t = pure unit
-disjoint (C.TyArr _ t1 _) (C.TyArr _ t2 _) = disjoint t1 t2
+disjoint (C.TyArrow _ t1 _) (C.TyArrow _ t2 _) = disjoint t1 t2
 disjoint (C.TyAnd t1 t2) t3 = disjoint t1 t3 *> disjoint t2 t3
 disjoint t1 (C.TyAnd t2 t3) = disjoint (C.TyAnd t2 t3) t1
 disjoint (C.TyRcd l1 t1) (C.TyRcd l2 t2) | l1 == l2  = disjoint t1 t2
@@ -303,7 +300,7 @@ letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
 letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2) e1
 
 trait :: Name -> C.Tm -> C.Ty -> C.Ty -> Tuple C.Tm C.Ty
-trait x e targ tret = Tuple (C.TmAbs x e targ tret) (C.TyArr targ tret true)
+trait x e targ tret = Tuple (C.TmAbs x e targ tret) (C.TyArrow targ tret true)
 
 selectLabel :: C.Ty -> Label -> Maybe C.Ty
 selectLabel (C.TyAnd t1 t2) l = case selectLabel t1 l, selectLabel t2 l of

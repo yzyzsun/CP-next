@@ -3,7 +3,7 @@ module Zord.Syntax.Core where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.List (List, intercalate)
+import Data.Foldable (intercalate)
 import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens, (<+>))
@@ -22,12 +22,12 @@ data Ty = TyInt
         | TyBool
         | TyTop
         | TyBot
-        | TyArr Ty Ty Boolean
+        | TyArrow Ty Ty Boolean
         | TyAnd Ty Ty
         | TyRcd Label Ty
         | TyVar Name
         | TyForall Name Ty Ty
-        | TyList Ty
+        | TyArray Ty
 
 instance showTy :: Show Ty where
   show TyInt    = "Int"
@@ -36,13 +36,13 @@ instance showTy :: Show Ty where
   show TyBool   = "Bool"
   show TyTop    = "⊤"
   show TyBot    = "⊥"
-  show (TyArr t1 t2 isTrait) = parens $ show t1 <+> "→" <+> show t2
+  show (TyArrow t1 t2 isTrait) = parens $ show t1 <+> "→" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
   show (TyRcd l t) = braces $ l <+> ":" <+> show t
   show (TyVar a) = a
   show (TyForall a td t) = parens $
     "∀" <> a <+> "*" <+> show td <> "." <+> show t
-  show (TyList t) = parens $ "List" <+> show t
+  show (TyArray t) = parens $ "Array" <+> show t
 
 derive instance eqTy :: Eq Ty
 
@@ -70,7 +70,7 @@ data Tm = TmInt Int
         | TmTAbs Name Ty Tm Ty
         | TmHTAbs (Ty -> Tm) Ty (Ty -> Ty)
         | TmToString Tm
-        | TmList Ty (List Tm)
+        | TmArray Ty (Array Tm)
         | TmClosure EvalEnv Tm
         | TmRef TmRef
 
@@ -101,8 +101,8 @@ instance showTm :: Show Tm where
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
   show (TmHTAbs tabs td tf) = angles $ "HOAS ∀*" <+> show td
   show (TmToString e) = parens $ "toString" <+> show e
-  show (TmList t xs) = parens $
-    brackets (intercalate "; " (show <$> xs)) <+> ": List" <+> show t
+  show (TmArray t arr) = parens $
+    brackets (intercalate "; " (show <$> arr)) <+> ": Array" <+> show t
   show (TmClosure env e) = angles $ "Closure" <+> show e
   show (TmRef ref) = angles $ "Ref"
 
@@ -119,13 +119,13 @@ tyHoas' :: HoasEnv -> Name -> Ty -> Ty -> Ty
 tyHoas' env a t = \ty -> tyConvert (insert a (Right ty) env) t
 
 tyConvert :: HoasEnv -> Ty -> Ty
-tyConvert env (TyArr t1 t2 b) = TyArr (tyConvert env t1) (tyConvert env t2) b
+tyConvert env (TyArrow t1 t2 b) = TyArrow (tyConvert env t1) (tyConvert env t2) b
 tyConvert env (TyAnd t1 t2) = TyAnd (tyConvert env t1) (tyConvert env t2)
 tyConvert env (TyRcd l t) = TyRcd l (tyConvert env t)
 tyConvert env (TyVar a) = case lookup a env of Just (Right t) -> t
                                                _ -> TyVar a
 tyConvert env (TyForall a td t) = TyForall a (tyConvert env td) (tyConvert env t)
-tyConvert env (TyList t) = TyList (tyConvert env t)
+tyConvert env (TyArray t) = TyArray (tyConvert env t)
 tyConvert _ t = t
 
 tmConvert :: HoasEnv -> Tm -> Tm
@@ -151,7 +151,7 @@ tmConvert env (TmTAbs a td e t) =
   TmHTAbs (\ty -> tmConvert (insert a (Right ty) env) e)
           (tyConvert env td) (tyHoas' env a t)
 tmConvert env (TmToString e) = TmToString (tmConvert env e)
-tmConvert env (TmList t xs) = TmList (tyConvert env t) (tmConvert env <$> xs)
+tmConvert env (TmArray t arr) = TmArray (tyConvert env t) (tmConvert env <$> arr)
 tmConvert _ e = e
 
 type HoasEnv = Map Name (Either Tm Ty)
@@ -160,13 +160,13 @@ type HoasEnv = Map Name (Either Tm Ty)
 
 -- TODO: capture-avoiding
 tySubst :: Name -> Ty -> Ty -> Ty
-tySubst a s (TyArr t1 t2 b) = TyArr (tySubst a s t1) (tySubst a s t2) b
+tySubst a s (TyArrow t1 t2 b) = TyArrow (tySubst a s t1) (tySubst a s t2) b
 tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyRcd l t) = TyRcd l (tySubst a s t)
 tySubst a s (TyVar a') = if a == a' then s else TyVar a'
 tySubst a s (TyForall a' td t) =
   TyForall a' (tySubst a s td) (if a == a' then t else tySubst a s t)
-tySubst a s (TyList t) = TyList (tySubst a s t)
+tySubst a s (TyArray t) = TyArray (tySubst a s t)
 tySubst _ _ t = t
 
 tmSubst :: Name -> Tm -> Tm -> Tm
@@ -186,7 +186,7 @@ tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
 tmSubst x v (TmTAbs a td e t) = TmTAbs a td (tmSubst x v e) t
 tmSubst x v (TmToString e) = TmToString (tmSubst x v e)
-tmSubst x v (TmList t xs) = TmList t (tmSubst x v <$> xs)
+tmSubst x v (TmArray t arr) = TmArray t (tmSubst x v <$> arr)
 tmSubst _ _ e = e
 
 tmTSubst :: Name -> Ty -> Tm -> Tm
@@ -207,7 +207,7 @@ tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmTAbs a' td e t) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
                                   (if a == a' then t else tySubst a s t)
 tmTSubst a s (TmToString e) = TmToString (tmTSubst a s e)
-tmTSubst a s (TmList t xs) = TmList (tySubst a s t) (tmTSubst a s <$> xs)
+tmTSubst a s (TmArray t arr) = TmArray (tySubst a s t) (tmTSubst a s <$> arr)
 tmTSubst _ _ e = e
 
 -- Environment --

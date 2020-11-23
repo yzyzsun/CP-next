@@ -4,8 +4,8 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Monad.Reader (Reader, ask, local, runReader)
+import Data.Array (length, (!!))
 import Data.Either (Either(..))
-import Data.List (length, (!!))
 import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
@@ -79,7 +79,7 @@ typedReduce (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2) = do
   t1' <- local (const env) $ expand t1
   if l1 == l2 && t1' <: t2 then pure <<< Just $ TmClosure env (TmRcd l2 t2 e)
   else pure Nothing
-typedReduce (TmClosure env (TmAbs x e targ1 tret1)) (TyArr targ2 tret2 _) = do
+typedReduce (TmClosure env (TmAbs x e targ1 tret1)) (TyArrow targ2 tret2 _) = do
   targ1' <- local (const env) $ expand targ1
   tret1' <- local (const env) $ expand tret1
   if targ2 <: targ1' && tret1' <: tret2 then
@@ -93,9 +93,9 @@ typedReduce (TmClosure env (TmTAbs a1 td1 e t1)) (TyForall a2 td2 t2) = do
   if a1 == a2 && td2 <: td1' && t1' <: t2 then
     pure <<< Just $ TmClosure env' (TmTAbs a2 td1' e t2)
   else pure Nothing
-typedReduce (TmClosure env (TmList t1 xs)) (TyList t2) = do
+typedReduce (TmClosure env (TmArray t1 arr)) (TyArray t2) = do
   t1' <- local (const env) $ expand t1
-  if t1' <: t2 then pure <<< Just $ TmClosure env (TmList t2 xs)
+  if t1' <: t2 then pure <<< Just $ TmClosure env (TmArray t2 arr)
   else pure Nothing
 typedReduce _ _ = pure Nothing
 
@@ -115,20 +115,20 @@ selectLabel' (TmClosure env (TmRcd l' t e)) l
 selectLabel' e l = selectLabel e l
 
 unop' :: UnOp -> Tm -> Tm
-unop' Len (TmClosure _ (TmList _ xs)) = TmInt (length xs)
+unop' Len (TmClosure _ (TmArray _ arr)) = TmInt (length arr)
 unop' op e = unop op e
 
 binop' :: BinOp -> Tm -> Tm -> Tm
-binop' Append (TmClosure env1 (TmList t1 l1)) (TmClosure env2 (TmList t2 l2)) =
-  TmClosure (env1 <> env2) (TmList t1 (l1 <> l2))
-binop' Index (TmClosure env (TmList t l)) (TmInt i) = case l !! i of
+binop' Append (TmClosure env1 (TmArray t1 l1)) (TmClosure env2 (TmArray t2 l2)) =
+  TmClosure (env1 <> env2) (TmArray t1 (l1 <> l2))
+binop' Index (TmClosure env (TmArray t arr)) (TmInt i) = case arr !! i of
   Just e -> TmClosure env (TmAnno e t)
   Nothing -> unsafeCrashWith $ "Zord.Semantics.Closure.binop': the index " <>
-    show i <> " is out of bounds for " <> show (TmList t l)
+    show i <> " is out of bounds for " <> show (TmArray t arr)
 binop' op v1 v2 = binop op v1 v2
 
 expand :: Ty -> Eval Ty
-expand (TyArr t1 t2 isTrait) = TyArr <$> expand t1 <*> expand t2 <@> isTrait
+expand (TyArrow t1 t2 isTrait) = TyArrow <$> expand t1 <*> expand t2 <@> isTrait
 expand (TyAnd t1 t2) = TyAnd <$> expand t1 <*> expand t2
 expand (TyRcd l t) = TyRcd l <$> expand t
 expand (TyVar a) = ask >>= \env -> case lookup a env of
@@ -139,7 +139,7 @@ expand (TyForall a td t) = do
   td' <- expand td
   t' <- local (\env -> insert a (TyBind Nothing) env) (expand t)
   pure $ TyForall a td' t'
-expand (TyList t) = TyList <$> expand t
+expand (TyArray t) = TyArray <$> expand t
 expand t = pure t
 
 isValue :: Tm -> Boolean
@@ -152,7 +152,7 @@ isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmClosure _ (TmRcd _ _ _)) = true
 isValue (TmClosure _ (TmAbs _ _ _ _)) = true
 isValue (TmClosure _ (TmTAbs _ _ _ _)) = true
-isValue (TmClosure _ (TmList _ _)) = true
+isValue (TmClosure _ (TmArray _ _)) = true
 isValue _ = false
 
 closure :: Tm -> Eval Tm

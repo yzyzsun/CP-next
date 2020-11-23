@@ -38,6 +38,6 @@ eval (TmPrj e l) = eval $ selectLabel (eval e) l
 eval (TmTApp e t) = eval $ paraApp (eval e) (Right t)
 eval e@(TmTAbs _ _ _ _) = e
 eval (TmToString e) = toString (eval e)
-eval e@(TmList _ _) = e
+eval e@(TmArray _ _) = e
 eval e = unsafeCrashWith $ "Zord.Semantics.NaturalSubstitution.eval: " <>
   "well-typed programs don't get stuck, but got " <> show e

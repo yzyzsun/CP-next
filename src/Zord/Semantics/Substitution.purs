@@ -55,7 +55,7 @@ typedReduce (TmInt i)    TyInt    = Just $ TmInt i
 typedReduce (TmDouble n) TyDouble = Just $ TmDouble n
 typedReduce (TmString s) TyString = Just $ TmString s
 typedReduce (TmBool b)   TyBool   = Just $ TmBool b
-typedReduce (TmAbs x e targ1 tret1) (TyArr targ2 tret2 _)
+typedReduce (TmAbs x e targ1 tret1) (TyArrow targ2 tret2 _)
   | targ2 <: targ1 && tret1 <: tret2 = Just $ TmAbs x e targ1 tret2
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
 typedReduce (TmRcd l t e) (TyRcd l' t')
@@ -63,7 +63,7 @@ typedReduce (TmRcd l t e) (TyRcd l' t')
 typedReduce (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
   | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2
   = Just $ TmTAbs a2 td1 (tmTSubst a1 (TyVar a2) e) t2
-typedReduce (TmList t xs) (TyList t') | t <: t' = Just $ TmList t' xs
+typedReduce (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 typedReduce _ _ = Nothing
 
 paraApp :: Tm -> Either Tm Ty -> Tm
@@ -85,5 +85,5 @@ isValue (TmAbs _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true
 isValue (TmTAbs _ _ _ _) = true
-isValue (TmList _ _) = true
+isValue (TmArray _ _) = true
 isValue _ = false
