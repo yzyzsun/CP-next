@@ -75,4 +75,4 @@ doc T = trait [self : DocSig'<T>] => {
   """
 };
 
-(new doc @(Html & Latex) , html' , latex').body.html
+(new doc @(Html & Latex) , html' , latex').body

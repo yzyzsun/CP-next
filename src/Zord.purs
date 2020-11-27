@@ -25,7 +25,7 @@ import Zord.Semantics.StepTrace as StepTrace
 import Zord.Semantics.Substitution as SmallStep
 import Zord.Typing (synthesize)
 
-data Mode = SmallStep | StepTrace | BigStep | Subst | Closure
+data Mode = SmallStep | StepTrace | BigStep | Subst | Closure | Doc
 
 derive instance genericMode :: Generic Mode _
 instance showMode :: Show Mode where show = genericShow
@@ -42,6 +42,7 @@ interpret code mode = case runParser code (whiteSpace *> program <* eof) of
       BigStep -> pure $ show (BigStep.eval e'')
       Subst -> pure $ show (Subst.eval e'')
       Closure -> pure $ show (Closure.eval e'')
+      Doc -> pure $ BigStep.evalDoc e''
 
 seek :: String -> Int -> Int -> Maybe Char
 seek str line column = (split (Pattern "\n") str) !! line' >>= charAt column'

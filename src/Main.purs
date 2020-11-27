@@ -52,7 +52,8 @@ main = do
                     "BigStep" -> setMode BigStep
                     "Subst" -> setMode Subst
                     "Closure" -> setMode Closure
-                    _ -> error $ "unknown mode (available: SmallStep StepTrace BigStep Subst Closure)"
+                    "Doc" -> setMode Doc
+                    _ -> error $ "unknown mode (available: SmallStep StepTrace BigStep Subst Closure Doc)"
         Nothing -> do
           case stripPrefix (Pattern ":load ") input of
             Just file -> do
