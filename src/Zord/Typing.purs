@@ -2,7 +2,7 @@ module Zord.Typing where
 
 import Prelude
 
-import Data.Array (all, head, unzip)
+import Data.Array as Array
 import Data.Either (Either(..))
 import Data.List (List(..), elem, filter, foldr, last, null, singleton)
 import Data.Maybe (Maybe(..))
@@ -239,12 +239,15 @@ synthesize (S.TmToString e) = do
   then pure $ Tuple (C.TmToString e') C.TyString
   else throwTypeError $ "cannot show" <+> show t
 synthesize (S.TmArray arr) = do
-  ets <- traverse synthesize arr
-  let Tuple es ts = unzip ets
-  let t = fromJust (head ts)
-  if all (_ === t) ts then pure $ Tuple (C.TmArray t es) (C.TyArray t)
-  else throwTypeError $ "elements of" <+> show (S.TmArray arr) <+>
-                        "should have the same type"
+  if Array.null arr then
+    pure $ Tuple (C.TmArray C.TyBot []) (C.TyArray C.TyBot)
+  else do
+    ets <- traverse synthesize arr
+    let Tuple es ts = Array.unzip ets
+    let t = fromJust (Array.head ts)
+    if Array.all (_ === t) ts then pure $ Tuple (C.TmArray t es) (C.TyArray t)
+    else throwTypeError $ "elements of" <+> show (S.TmArray arr) <+>
+                          "should have the same type"
 -- TODO: save original terms instead of desugared ones
 synthesize (S.TmPos p e) = setPos (Pos p e) $ synthesize e
 synthesize (S.TmType a sorts params Nothing t e) = do

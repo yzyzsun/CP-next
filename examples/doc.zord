@@ -1,0 +1,78 @@
+type Html = { html : String };
+type Latex = { latex : String };
+
+join' T (a : Array T) (f : T -> String) (i : Int) : String =
+  if i == 0 then f (a!!0) else join' @T a f (i-1) ++ f (a!!i);
+join T (a : Array T) (f : T -> String) = join' @T a f (#a-1);
+
+joinHtml (a : Array Html) = join @Html a (\(x : Html) -> x.html);
+joinLatex (a : Array Latex) = join @Latex a (\(x : Latex) -> x.latex);
+
+type DocSig<Element> = {
+  Doc : Array Element -> Element;
+  Str : String -> Element;
+};
+
+html = trait implements DocSig<Html> => {
+  (Doc e).html = joinHtml e;
+  (Str s).html = s;
+};
+
+latex = trait implements DocSig<Latex> => {
+  (Doc e).latex = joinLatex e;
+  (Str s).latex = s;
+};
+
+type DocSig'<Element> extends DocSig<Element> = {
+  Section : Array Element -> Element;
+  SubSection : Array Element -> Element;
+  SubSubSection : Array Element -> Element;
+  Enumerate : Array Element -> Element;
+  Itemize : Array Element -> Element;
+  Item : Array Element -> Element;
+  Href : String -> Array Element -> Element;
+  Bold : Array Element -> Element;
+  Emph : Array Element -> Element;
+};
+
+html' = trait implements DocSig'<Html> inherits html => {
+  (Section e).html = "<h2>" ++ joinHtml e ++ "</h2>";
+  (SubSection e).html = "<h3>" ++ joinHtml e ++ "</h3>";
+  (SubSubSection e).html = "<h4>" ++ joinHtml e ++ "</h4>";
+  (Enumerate e).html = "<ol>" ++ joinHtml e ++ "</ol>";
+  (Itemize e).html = "<ul>" ++ joinHtml e ++ "</ul>";
+  (Item e).html = "<li>" ++ joinHtml e ++ "</li>";
+  (Href s e).html = "<a href=\"" ++ s ++ "\">" ++ joinHtml e ++ "</a>";
+  (Bold e).html = "<b>" ++ joinHtml e ++ "</b>";
+  (Emph e).html = "<em>" ++ joinHtml e ++ "</em>";
+};
+
+latex' = trait implements DocSig'<Latex> inherits latex => {
+  (Section e).latex = "\\section{" ++ joinLatex e ++ "}";
+  (SubSection e).latex = "\\subsection{" ++ joinLatex e ++ "}";
+  (SubSubSection e).latex = "\\subsubsection{" ++ joinLatex e ++ "}";
+  (Enumerate e).latex = "\\enumerate{" ++ joinLatex e ++ "}";
+  (Itemize e).latex = "\\itemize{" ++ joinLatex e ++ "}";
+  (Item e).latex = "\\item{" ++ joinLatex e ++ "}";
+  (Href s e).latex = "\\href{" ++ s ++ "}{" ++ joinLatex e ++ "}";
+  (Bold e).latex = "\\textbf{" ++ joinLatex e ++ "}";
+  (Emph e).latex = "\\emph{" ++ joinLatex e ++ "}";
+};
+
+doc T = trait [self : DocSig'<T>] => {
+  body = """
+    \Section[
+      Welcome to \(Href "https://plground.org")[PL Ground]!
+    ]
+    \Bold[Zord] is a \Emph[compositional] programming language.
+    There are \( 1+1+1+1 ) key concepts:
+    \Enumerate[
+      \Item[Compositional interfaces;]
+      \Item[Compositional traits;]
+      \Item[Method patterns;]
+      \Item[Nested trait composition.]
+    ]
+  """
+};
+
+(new doc @(Html & Latex) , html' , latex').body.html

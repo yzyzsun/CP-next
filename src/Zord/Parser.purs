@@ -10,13 +10,14 @@ import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, some, toUnfoldable)
 import Data.Maybe (Maybe(..), isJust, optional)
+import Data.String (null)
 import Data.String.CodeUnits as CodeUnits
 import Data.Tuple (Tuple(..))
 import Text.Parsing.Parser (Parser, fail, position)
-import Text.Parsing.Parser.Combinators (choice, sepEndBy, try)
+import Text.Parsing.Parser.Combinators (between, choice, lookAhead, manyTill, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
-import Text.Parsing.Parser.String (char, satisfy)
+import Text.Parsing.Parser.String (anyChar, char, satisfy, string)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
 import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), Ty(..))
@@ -78,7 +79,8 @@ dotexpr e = aexpr e >>= \e' -> foldl (#) e' <$>
 
 aexpr :: SParser Tm -> SParser Tm
 aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
-                 , stringLiteral  <#> TmString
+                 , lexeme $ hereDocument e
+                 , stringLiteral <#> TmString
                  , reserved "true"  $> TmBool true
                  , reserved "false" $> TmBool false
                  , symbol "()" $> TmUnit
@@ -166,8 +168,29 @@ toString = do
   e <- dotexpr expr
   pure $ TmToString e
 
+hereDocument :: SParser Tm -> SParser Tm
+hereDocument p = between tripleQuotes tripleQuotes (document p) <#>
+                 \arr -> newApp (TmVar "Doc") (TmArray arr)
+
+document :: SParser Tm -> SParser (Array Tm)
+document p = do
+  s <- stringTill (char '\\' <|> char ']' <|> tripleQuotes $> '"')
+  let str = if null s then [] else [newApp (TmVar "Str") (TmString s)]
+  bs <- optional (char '\\')
+  if isJust bs then do
+    e <- between (symbol "(") (char ')') p <|> TmVar <$> stringTill (char '[')
+    doc <- optional $ between (char '[') (char ']') (document p)
+    let res = case doc of Just arr -> newApp e (TmArray arr)
+                          Nothing -> newApp (TmVar "Str") (TmToString e)
+    more <- document p
+    pure $ str <> [res] <> more
+  else pure str
+
+newApp :: Tm -> Tm -> Tm
+newApp x y = TmNew (TmApp x y)
+
 recordLit :: SParser Tm -> SParser Tm
-recordLit e = braces $ TmRcd <$> sepEndBySemi (recordField e <|> methodPattern e)
+recordLit p = braces $ TmRcd <$> sepEndBySemi (recordField p <|> methodPattern p)
 
 recordField :: SParser Tm -> SParser RcdField
 recordField p = do
@@ -334,6 +357,9 @@ symbol s = zord.symbol s $> unit
 underscore :: SParser String
 underscore = zord.symbol "_"
 
+tripleQuotes :: SParser String
+tripleQuotes = string "\"\"\""
+
 lexeme :: forall a. SParser a -> SParser a
 lexeme = zord.lexeme
 
@@ -372,3 +398,7 @@ lowerIdentifier = ident lower
 
 upperIdentifier :: SParser String
 upperIdentifier = ident upper
+
+stringTill :: forall a. SParser a -> SParser String
+stringTill p =
+  CodeUnits.fromCharArray <<< toUnfoldable <$> manyTill anyChar (lookAhead p)
