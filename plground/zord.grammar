@@ -1,4 +1,5 @@
 @precedence {
+  index @left,
   times @left,
   plus  @left,
   comp  @left,
@@ -41,7 +42,8 @@ RecordType { braces<sepEndBySemi<LabelDecl ":" type>> }
 expression { opexpr ~conflict (":" type)? }
 
 opexpr {
-  lexpr | minus opexpr | LogicOp<"!"> opexpr |
+  lexpr | minus opexpr | LogicOp<"!"> opexpr | LengthOp opexpr |
+  opexpr !index IndexOp opexpr |
   opexpr !times (ArithOp<"*" | "/"> | modulo) opexpr |
   opexpr !plus (ArithOp<"+"> | minus) opexpr |
   opexpr !comp CompareOp opexpr |
@@ -67,8 +69,9 @@ fexpr {
 }
 
 aexpr {
-  TermName | Number | String | Unit |
+  TermName | Number | HereDoc | String | Unit |
   kw<"true"> | kw<"false"> | kw<"undefined"> |
+  Array { brackets<sepEndBySemi<expression>> } |
   Record { braces<sepEndBySemi<kw<"override">? (RecordField | MethodPattern)>> } |
   parens<expression>
 }
@@ -128,6 +131,11 @@ Label { lowerid | upperid }
     "0o" octit+ | "0O" octit+
   }
 
+  HereDoc { '"""' doc_1* '"""' }
+  doc_1 { !["] | '"' doc_2 }
+  doc_2 { !["] | '"' doc_3 }
+  doc_3 { !["] }
+
   String { '"' (![\\\n"] | "\\" _)* '"'? }
 
   Unit { "()" }
@@ -142,10 +150,13 @@ Label { lowerid | upperid }
   CompareOp { "<" "="? | ">" "="? | "==" | "!=" }
   MergeOp { "," }
   ForwardOp { "^" }
+  IndexOp { "!!" }
+  LengthOp { "#" }
 
   minus[@name=ArithOp] { "-" }
   modulo[@name=ArithOp] { "%" }
 
+  @precedence { HereDoc, String }
   @precedence { LineComment, minus }
   @precedence { BlockComment, "{" }
   @precedence { CompareOp, "<" }

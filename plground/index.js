@@ -15,8 +15,8 @@ const zordSyntax = LezerSyntax.define(parser.withProps(
     Record: continuedIndent(),
   }),
   foldNodeProp.add({
-    RecordType(tree) { return { from: tree.start + 1, to: tree.end - 1 } },
-    Record(tree) { return { from: tree.start + 1, to: tree.end - 1 } },
+    RecordType(tree) { return { from: tree.from + 1, to: tree.to - 1 } },
+    Record(tree) { return { from: tree.from + 1, to: tree.to - 1 } },
   }),
   styleTags({
     'type extends let letrec trait implements inherits': 'keyword definition',
@@ -33,6 +33,7 @@ const zordSyntax = LezerSyntax.define(parser.withProps(
     BlockComment: 'blockComment',
     Number: 'number',
     String: 'string',
+    HereDoc: 'string',
     TypeOp: 'typeOperator',
     ArithOp: 'arithmeticOperator',
     LogicOp: 'logicOperator',
