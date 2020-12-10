@@ -1,30 +1,51 @@
 # The Zord Programming Language
 
-Zord is a functional programming language that advocates compositional programming. It is implemented using [PureScript](https://www.purescript.org) (a Haskell-like language that compiles to JavaScript).
+Zord is a functional programming language that advocates compositional programming. The interpreter is implemented in [PureScript](https://www.purescript.org) (a Haskell-like language that compiles to JavaScript).
 
 ## Setup
 
 - First of all, you need to install [Node.js](https://nodejs.org).
 - Then execute `npm install` to get all of the dev dependencies.
-- After installation, you can choose any of the following npm scripts:
+- After installation, you can choose either of the following npm scripts:
   - `npm start` to run a Zord REPL;
-  - `npm test` to run a test suite checking `examples/*.zord`;
-  - `npm run vscode` to package the VS Code extension into a VSIX file;
-  - `npm run lezer` to generate an LR parser for the online code editor;
-  - `npm run webpack` to pack all scripts needed by PL Ground to `dist/bundle.js`;
-  - `npm run server` to start a webpack dev server providing live reloading.
+  - `npm test` to run a test suite checking `examples/*.zord`.
 
-## Online Demo
+## REPL Example
 
-[PL Ground](https://plground.org) provides an in-browser interpreter for Zord. It is integrated with a CodeMirror editor with syntax highlighting. Its grammar file written in Lezer can be found at `plground/zord.grammar`.
+```
+$ npm start
+...
+Zord REPL, version 0.1.0 (press Ctrl-C to quit)
 
-If you want to start a dev server locally, please execute `npm run server` (see [Setup](#setup)).
+> :load examples/bench.zord
+832
+<BigStep mode: 0.198s>
+
+> :mode StepTrace
+
+> 1+2*3
+(1 + (2 * 3))
+→ Step-BinaryR
+↓ Step-BinaryV
+(1 + 6)
+↓ Step-BinaryV
+7
+<StepTrace mode: 0.021s>
+```
+
+## PLGround
+
+[PLGround.org](https://plground.org) provides wiki-like open document repository. Documents are written in Zord and rendered with an in-browser interpreter. It is integrated with a [CodeMirror 6](https://codemirror.net/6/) editor with syntax highlighting. Its grammar file written in [Lezer](https://lezer.codemirror.net) can be found at `plground/zord.grammar`.
+
+Since the frontend code uses the Fetch API, PLGround is expected to work on Chrome 42+, Firefox 39+, Edge 14+, Safari 10.1+, or other modern browsers.
+
+If you want to start a web server locally, [Ruby](https://www.ruby-lang.org) is needed. Besides, execute `gem install sinatra` to get the [Sinatra](http://sinatrarb.com) web framework. Finally, execute `npm run rackup` to start a web server. (Internally, webpack is first invoked to get all static assets ready in `plground/public/`.)
 
 ## VS Code Extension
 
-Zord Language Support can be found on [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=yzyzsun.zord). This extension provides basic support for syntax highlighting. For details, please refer to [Extension API](https://code.visualstudio.com/api).
+Zord Language Support can be found on [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=yzyzsun.zord). This extension provides basic support for syntax highlighting. [Extension API](https://code.visualstudio.com/api) should be useful for further development.
 
-If you want to build it from scratch, please execute `npm run vscode` (see [Setup](#setup)).
+If you want to build it from scratch, please execute `npm run vscode`. Then a `.vsix` file will be generated in `vscode/`.
 
 ## Naming
 
