@@ -21,7 +21,10 @@
     <div class="navbar-nav">
       <a href class="nav-link" data-toggle="modal" data-target="#modal">About</a>
     </div>
-    <button class="btn btn-outline-success ml-auto" id="save">Save as...</button>
+    <div class="ml-auto">
+      <button class="btn btn-outline-primary" id="render">Render</button>
+      <button class="btn btn-outline-success" id="save">Save as...</button>
+    </div>
   </nav>
   <div class="modal fade" id="modal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg">
@@ -48,9 +51,7 @@
     <div class="col-lg-6" id="editor"></div>
     <div class="col-lg-6">
       <div class="m-4" id="output">
-        Documents will be rendered here on the fly whenever you type in the editor.<br>
-        Press Ctrl+Enter (or Cmd+Return on ) to view small-step tracing for debugging.<br>
-        <span class="text-secondary">(↓ computation rule; → congruence rule)</span><br><br>
+        Click the button in the top right corner or press Ctrl+Enter (or Cmd+Return on ) to render the document.<br><br>
       </div>
       <div class="m-4" id="error"></div>
     </div>

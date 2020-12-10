@@ -70,27 +70,33 @@ const fetchDoc = name => fetch('docs/' + name).then(res => {
   else throw new Error('Document not found: ' + name);
 });
 
+const preprocess = code => {
+  const regexp = /^\s*open\s+(\w+)\s*;\s*$/gm;
+  const open = pre => {
+    const match = regexp.exec(code);
+    if (!match) return new Promise((resolve, reject) => resolve(pre));
+    else return fetchDoc(match[1]).then(doc => open(pre + doc));
+  };
+  return open('').then(pre =>
+    new Promise((resolve, reject) => resolve(pre + code.replace(regexp, '')))
+  );
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   const output = document.getElementById('output');
   const error = document.getElementById('error');
 
-  const UIRefresh = (element, text) => {
-    element.textContent = text;
-    element.innerHTML = element.innerHTML
-      .replace(/^[⇣↯↓→].+$/gm, '<span class="text-secondary">$&</span>')
-      .replace(/\n/g, '<br>');
-  }
-
-  const UIInterpret = (mode, state) => {
-    state = state || view.state;
+  const interpret = () => {
     output.textContent = error.textContent = '';
-    try {
-      const text = Zord.interpret(state.doc.toString())(mode)();
-      if (mode === Zord.Doc.value) output.innerHTML = text;
-      else UIRefresh(output, text);
-    } catch (err) {
-      UIRefresh(error, err);
-    }
+    preprocess(view.state.doc.toString()).then(code => {
+      const text = Zord.interpret(code)(Zord.Doc.value)();
+      output.innerHTML = text;
+    }).catch(err => {
+      error.textContent = err;
+      error.innerHTML = element.innerHTML
+        .replace(/^[⇣↯↓→].+$/gm, '<span class="text-secondary">$&</span>')
+        .replace(/\n/g, '<br>');
+    });
   };
 
   const state = (doc, editable) => EditorState.create({
@@ -100,12 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
       EditorView.editable.of(editable),
       EditorView.lineWrapping,
       zordSyntax.extension,
-      keymap([{ key: 'Mod-Enter', run() { UIInterpret(Zord.StepTrace.value); } }]),
-      ViewPlugin.fromClass(class {
-        update(update) {
-          if (update.docChanged) UIInterpret(Zord.Doc.value, update.state);
-        }
-      }),
+      keymap([{ key: 'Mod-Enter', run: interpret }]),
     ],
   });
 
@@ -116,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (pathname) fetchDoc(pathname).then(doc => {
     view.setState(state(doc, true));
-    UIInterpret(Zord.Doc.value);
+    interpret();
   }).catch(err => {
     alert(err.message);
     window.location.replace('/');
@@ -133,6 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return false;
   };
 
+  document.getElementById('render').onclick = interpret;
+
   document.getElementById('save').onclick = () => {
     const name = prompt('Please enter the document name to save:');
     const init = { method: 'POST', body: view.state.doc.toString() };
@@ -140,6 +143,5 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) window.location.assign('/' + name);
       else alert('Document name aleady occupied: ' + name);
     }).catch(err => alert(err.message));
-    return false;
   };
 });
