@@ -117,7 +117,10 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-### PureScript
+### Static Assets ###
+public/
+
+### PureScript ###
 /.pulp-cache/
 /output/
 /generated-docs/

@@ -3,12 +3,12 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>PL Ground</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PLGround</title>
   <style>
     #editor {
       font-size: large;
     }
-
     #error {
       color: red;
     }
@@ -17,41 +17,43 @@
 
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <a href class="navbar-brand">PL Ground</a>
-    <ul class="navbar-nav ml-auto">
-      <li class="nav-item active">
-        <a href class="nav-link" data-toggle="modal" data-target="#modal">About</a>
-      </li>
-    </ul>
+    <a href class="navbar-brand" id="title">PLGround</a>
+    <div class="navbar-nav">
+      <a href class="nav-link" data-toggle="modal" data-target="#modal">About</a>
+    </div>
+    <button class="btn btn-outline-success ml-auto" id="save">Save as...</button>
   </nav>
   <div class="modal fade" id="modal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header bg-light">
-          <h5 class="modal-title">About PL Ground</h5>
+          <h5 class="modal-title">About PLGround</h5>
           <button type="button" class="close" data-dismiss="modal">
             <span>&times;</span>
           </button>
         </div>
         <div class="modal-body">
-          <p>PL Ground provides an online interpreter for the Zord programming language.</p>
-          <p>Zord advocates compositional programming, which is a modular programming style that encourages:</p>
-          <ul>
-            <li>References to methods, constructors and types to be virtual or abstract;</li>
-            <li>Dependencies to other program components to be expressed in terms of interfaces, instead of concrete implementations.</li>
-          </ul>
+          <p>
+            PLGround provides a wiki-like open document repository.
+            Documents are written in Zord and rendered with an in-browser interpreter.
+            Zord is a functional programming language that advocates compositional programming.
+          </p>
+          <p><em>Code Repo:</em> <a href="https://github.com/yzyzsun/zord">https://github.com/yzyzsun/zord</a></p>
+          <p><em>Contributors:</em> <a href="https://yzsun.me">Yaozhu Sun</a> and <a href="https://i.cs.hku.hk/~bruno/">Bruno Oliveira</a></p>
         </div>
       </div>
     </div>
   </div>
-  <div class="container">
-    <div id="editor" class="my-1"></div>
-    <div class="m-4" id="output">
-      Code will be run on the fly whenever you type in the editor.<br>
-      Press Ctrl+Enter (or Command+Return on macOS) to view small-step tracing.
-      <span class="text-secondary">(↓ computation rule; → congruence rule)</span>
+  <div class="row">
+    <div class="col-lg-6" id="editor"></div>
+    <div class="col-lg-6">
+      <div class="m-4" id="output">
+        Documents will be rendered here on the fly whenever you type in the editor.<br>
+        Press Ctrl+Enter (or Cmd+Return on ) to view small-step tracing for debugging.<br>
+        <span class="text-secondary">(↓ computation rule; → congruence rule)</span><br><br>
+      </div>
+      <div class="m-4" id="error"></div>
     </div>
-    <div class="m-4" id="error"></div>
   </div>
 </body>
 

@@ -9,7 +9,8 @@
     "vscode": "cd vscode && vsce package",
     "lezer": "lezer-generator --noTerms --output plground/zord plground/zord.grammar",
     "webpack": "npm run lezer && webpack -p",
-    "server": "webpack-dev-server --open"
+    "webpack:dev": "webpack-dev-server --open",
+    "rackup": "npm run webpack && cd plground && rackup"
   },
   "repository": "github:yzyzsun/zord",
   "author": "Yaozhu Sun",

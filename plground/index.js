@@ -54,6 +54,22 @@ const zordSyntax = LezerSyntax.define(parser.withProps(
   }
 });
 
+const pathname = window.location.pathname.slice(1);
+
+const validate = name => {
+  if (name.match(/^\w+$/) === null) {
+    alert('Invalid document name (only a-z, A-Z, 0-9, and _ are allowed): ' + name);
+    return false;
+  } else {
+    return true;
+  }
+};
+
+const fetchDoc = name => fetch('docs/' + name).then(res => {
+  if (res.ok) return res.text();
+  else throw new Error('Document not found: ' + name);
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   const output = document.getElementById('output');
   const error = document.getElementById('error');
@@ -69,25 +85,61 @@ document.addEventListener('DOMContentLoaded', () => {
     state = state || view.state;
     output.textContent = error.textContent = '';
     try {
-      UIRefresh(output, Zord.interpret(state.doc.toString())(mode)());
+      const text = Zord.interpret(state.doc.toString())(mode)();
+      if (mode === Zord.Doc.value) output.innerHTML = text;
+      else UIRefresh(output, text);
     } catch (err) {
       UIRefresh(error, err);
     }
   };
 
-  const state = EditorState.create({
+  const state = (doc, editable) => EditorState.create({
+    doc,
     extensions: [
       basicSetup,
+      EditorView.editable.of(editable),
+      EditorView.lineWrapping,
       zordSyntax.extension,
       keymap([{ key: 'Mod-Enter', run() { UIInterpret(Zord.StepTrace.value); } }]),
       ViewPlugin.fromClass(class {
         update(update) {
-          if (update.docChanged) {
-            UIInterpret(Zord.BigStep.value, update.state);
-          }
+          if (update.docChanged) UIInterpret(Zord.Doc.value, update.state);
         }
       }),
     ],
   });
-  const view = new EditorView({ state, parent: document.getElementById('editor') });
+
+  const view = new EditorView({
+    state: pathname ? state('loading...', false) : state('', true),
+    parent: document.getElementById('editor'),
+  });
+
+  if (pathname) fetchDoc(pathname).then(doc => {
+    view.setState(state(doc, true));
+    UIInterpret(Zord.Doc.value);
+  }).catch(err => {
+    alert(err.message);
+    window.location.replace('/');
+  });
+  else fetch('/docs').then(res => res.text()).then(text =>{
+    output.innerHTML += text;
+  });
+
+  document.getElementById('title').onclick = () => {
+    const name = prompt('Please enter which document to go (blank to go home):');
+    if (name === '' || name && validate(name)) {
+      window.location.assign('/' + name);
+    }
+    return false;
+  };
+
+  document.getElementById('save').onclick = () => {
+    const name = prompt('Please enter the document name to save:');
+    const init = { method: 'POST', body: view.state.doc.toString() };
+    if (name && validate(name)) fetch('docs/' + name, init).then(res => {
+      if (res.ok) window.location.assign('/' + name);
+      else alert('Document name aleady occupied: ' + name);
+    }).catch(err => alert(err.message));
+    return false;
+  };
 });
