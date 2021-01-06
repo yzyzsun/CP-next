@@ -8,9 +8,9 @@ import Data.Array as Array
 import Data.Char.Unicode (isLower)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
-import Data.List (List, foldl, many, some, toUnfoldable)
+import Data.List (List, foldl, many, null, some, toUnfoldable)
 import Data.Maybe (Maybe(..), isJust, optional)
-import Data.String (null)
+import Data.String as String
 import Data.String.CodeUnits as CodeUnits
 import Data.Tuple (Tuple(..))
 import Text.Parsing.Parser (Parser, fail, position)
@@ -170,24 +170,24 @@ toString = do
 
 hereDocument :: SParser Tm -> SParser Tm
 hereDocument p = between tripleQuotes tripleQuotes (document p) <#>
-                 \arr -> newApp (TmVar "Doc") (TmArray arr)
+                 \arr -> newApp "Doc" (TmArray arr)
 
 document :: SParser Tm -> SParser (Array Tm)
 document p = do
   s <- stringTill (char '\\' <|> char ']' <|> tripleQuotes $> '"')
-  let str = if null s then [] else [newApp (TmVar "Str") (TmString s)]
+  let str = if String.null s then [] else [newApp "Str" (TmString s)]
   bs <- optional (char '\\')
   if isJust bs then do
     e <- between (symbol "(") (char ')') p <|> TmVar <$> stringTill (char '[')
-    doc <- optional $ between (char '[') (char ']') (document p)
-    let res = case doc of Just arr -> newApp e (TmArray arr)
-                          Nothing -> newApp (TmVar "Str") (TmToString e)
+    docs <- many $ between (char '[') (char ']') (document p)
+    let res = if null docs then newApp "Str" (TmToString e)
+                           else TmNew $ foldl TmApp e (TmArray <$> docs)
     more <- document p
     pure $ str <> [res] <> more
   else pure str
 
-newApp :: Tm -> Tm -> Tm
-newApp x y = TmNew (TmApp x y)
+newApp :: String -> Tm -> Tm
+newApp x y = TmNew (TmApp (TmVar x) y)
 
 recordLit :: SParser Tm -> SParser Tm
 recordLit p = braces $ TmRcd <$> sepEndBySemi (recordField p <|> methodPattern p)
