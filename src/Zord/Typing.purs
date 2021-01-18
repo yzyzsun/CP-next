@@ -188,8 +188,7 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
   where
     -- TODO: type inference is not complete
     inferFromSig :: S.Ty -> S.Tm -> S.Tm
-    inferFromSig (S.TyAnd (S.TyRcd xs) (S.TyRcd ys)) e =
-      inferFromSig (S.TyRcd (xs <> ys)) e
+    inferFromSig rs@(S.TyAnd _ _) e = inferFromSig (S.TyRcd $ combineRcd rs) e
     inferFromSig s (S.TmPos p e) = S.TmPos p (inferFromSig s e)
     inferFromSig s (S.TmOpen e1 e2) = S.TmOpen e1 (inferFromSig s e2)
     inferFromSig s (S.TmMerge e1 e2) =
@@ -202,6 +201,12 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons (Tuple x Nothing) Nil) e) =
       S.TmAbs (singleton (Tuple x (Just targ))) (inferFromSig tret e)
     inferFromSig _ e = e
+    combineRcd :: S.Ty -> S.RcdTyList
+    combineRcd (S.TyAnd (S.TyRcd xs) (S.TyRcd ys)) = xs <> ys
+    combineRcd (S.TyAnd l (S.TyRcd ys)) = combineRcd l <> ys
+    combineRcd (S.TyAnd (S.TyRcd xs) r) = xs <> combineRcd r
+    combineRcd (S.TyAnd l r) = combineRcd l <> combineRcd r
+    combineRcd _ = Nil
     selectOverride :: S.Tm -> List Label
     selectOverride (S.TmPos _ e) = selectOverride e
     selectOverride (S.TmOpen _ e) = selectOverride e
@@ -251,13 +256,15 @@ synthesize (S.TmArray arr) = do
 -- TODO: save original terms instead of desugared ones
 synthesize (S.TmPos p e) = setPos (Pos p e) $ synthesize e
 synthesize (S.TmType a sorts params Nothing t e) = do
-  t' <- addSorts $ transformTyDef t
+  t' <- addSorts <<< addTyBinds $ transformTyDef t
   addTyAlias a (sig t') $ synthesize e
   where
     dualSorts :: List (Tuple Name Name)
     dualSorts = sorts <#> \sort -> Tuple sort ("#" <> sort)
     addSorts :: forall a. Typing a -> Typing a
     addSorts typing = foldr (uncurry addSort) typing dualSorts
+    addTyBinds :: forall a. Typing a -> Typing a
+    addTyBinds typing = foldr (flip addTyBind C.TyTop) typing params
     sig :: S.Ty -> S.Ty
     sig t' = foldr (uncurry S.TySig) (foldr S.TyAbs t' params) dualSorts
 synthesize e = throwTypeError $ show e <+> "should have been desugared"
