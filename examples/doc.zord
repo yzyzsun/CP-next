@@ -2,8 +2,8 @@ type Html = { html : String };
 type Latex = { latex : String };
 
 join' T (a : Array T) (f : T -> String) (i : Int) : String =
-  if i == 0 then f (a!!0) else join' @T a f (i-1) ++ f (a!!i);
-join T (a : Array T) (f : T -> String) = join' @T a f (#a-1);
+  if i == 0 then "" else join' @T a f (i-1) ++ f (a!!(i-1));
+join T (a : Array T) (f : T -> String) = join' @T a f (#a);
 
 joinHtml (a : Array Html) = join @Html a (\(x : Html) -> x.html);
 joinLatex (a : Array Latex) = join @Latex a (\(x : Latex) -> x.latex);
@@ -11,16 +11,19 @@ joinLatex (a : Array Latex) = join @Latex a (\(x : Latex) -> x.latex);
 type DocSig<Element> = {
   Doc : Array Element -> Element;
   Str : String -> Element;
+  Endl : Element;
 };
 
 html = trait implements DocSig<Html> => {
   (Doc e).html = joinHtml e;
   (Str s).html = s;
+  (Endl).html = "<br>";
 };
 
 latex = trait implements DocSig<Latex> => {
   (Doc e).latex = joinLatex e;
   (Str s).latex = s;
+  (Endl).latex = "\\\\";
 };
 
 type DocSig'<Element> extends DocSig<Element> = {
@@ -62,9 +65,9 @@ latex' = trait implements DocSig'<Latex> inherits latex => {
 doc T = trait [self : DocSig'<T>] => {
   body = """
     \Section[
-      Welcome to \(Href "https://plground.org")[PLGround]!
+      Welcome to \Href{"https://plground.org"}[PLGround]!
     ]
-    \Bold[Zord] is a \Emph[compositional] programming language.
+    \Bold[Zord] is a \Emph[compositional] programming language. \\
     There are \( 1+1+1+1 ) key concepts:
     \Enumerate[
       \Item[Compositional interfaces;]
