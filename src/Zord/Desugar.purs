@@ -22,11 +22,11 @@ desugar (TmRcd xs) =
   foldl1 TmMerge (xs <#> \x -> TmRcd (singleton (desugarField x)))
   where
     desugarField :: RcdField -> RcdField
+    desugarField (RcdField o l (Left e)) = RcdField o l (Left (desugar e))
     desugarField (RcdField o l (Right (MethodPattern params self l' e))) =
       RcdField o l <<< Left <<< desugar $
         TmAbs params (TmTrait self Nothing Nothing
           (TmRcd (singleton (RcdField false l' (Left e)))))
-    desugarField field = field
 desugar (TmTrait self sig e1 e2) =
   let self'@(Tuple x _) = fromMaybe (Tuple "self" TyTop) self in
   TmTrait (Just self') (Just (fromMaybe TyTop sig))

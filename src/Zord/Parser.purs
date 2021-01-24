@@ -9,7 +9,7 @@ import Data.Char.Unicode (isLower)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, some, toUnfoldable)
-import Data.Maybe (Maybe(..), isJust, isNothing, optional)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, optional)
 import Data.String as String
 import Data.String.CodeUnits as CodeUnits
 import Data.Tuple (Tuple(..))
@@ -185,13 +185,12 @@ document p = do
         e <- p <* char ')'
         pure $ newApp "Str" (TmToString e)
       else do
-        cmd <- stringTill (char '{' <|> char '[')
+        cmd <- stringTill (char '{' <|> char '(' <|> char '[')
         let ctor = TmVar (String.trim cmd)
-        opts <- optional (between (symbol "{") (char '}') (many (dotexpr p)))
-        let e = case opts of Just l  -> foldl TmApp ctor l
-                             Nothing -> ctor
+        e <- optional $ TmApp ctor <$> recordLit p <|>
+          foldl TmApp ctor <$> between (symbol "(") (char ')') (many (dotexpr p))
         docs <- many (try $ skipSpaces *> between (char '[') (char ']') (document p))
-        pure $ TmNew (foldl TmApp e (TmArray <$> docs))
+        pure $ TmNew (foldl TmApp (fromMaybe ctor e) (TmArray <$> docs))
     more <- document p
     pure $ str <> [res] <> more
 
