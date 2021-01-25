@@ -11,16 +11,18 @@
   arrow @right
 }
 
-@top Program { (definition ";")* expression }
+@top Program { open* definition* expression }
+
+open { kw<"open"> (lowerid | upperid) ";" }
 
 definition { TypeDef | TermDef }
 
 TypeDef {
-  kw<"type"> TypeNameDecl angles<TypeNameDecl>* TypeNameDecl* (kw<"extends"> type)? "=" type
+  kw<"type"> TypeNameDecl angles<TypeNameDecl>* TypeNameDecl* (kw<"extends"> type)? "=" type ";"
 }
 
 TermDef {
-  TermNameDecl typeParam* termParam* ~conflict (":" type)? "=" expression
+  TermNameDecl typeParam* termParam* ~conflict (":" type)? "=" expression ";"
 }
 
 type {
@@ -65,7 +67,7 @@ lexpr {
 }
 
 fexpr {
-  aexpr (aexpr | "@" atype)* | aexpr "." Label | aexpr "\\" RecordType
+  aexpr (aexpr | "@" atype)* | aexpr ("." Label)+ | aexpr ("\\" RecordType)+
 }
 
 aexpr {
