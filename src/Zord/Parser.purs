@@ -169,33 +169,39 @@ toString = do
   pure $ TmToString e
 
 hereDocument :: SParser Tm -> SParser Tm
-hereDocument p = between tripleQuotes tripleQuotes (document p) <#>
-                 \arr -> newApp "Doc" (TmArray arr)
+hereDocument p = between tripleQuotes tripleQuotes $ document p
 
-document :: SParser Tm -> SParser (Array Tm)
+document :: SParser Tm -> SParser Tm
 document p = do
   s <- stringTill (char '\\' <|> char ']' <|> tripleQuotes $> '"')
-  let str = if String.null s then [] else [newApp "Str" (TmString s)]
+  let str = if String.null s then newCtor "Empty"
+                             else newStr (TmString s)
   bs  <- optional (char '\\')
   if isNothing bs then pure str else do
     bs' <- optional (char '\\')
-    res <- if isJust bs' then pure $ TmNew (TmVar "Endl") else do
+    res <- if isJust bs' then pure $ newCtor "Endl" else do
       paren <- optional (symbol "(")
       if isJust paren then do
         e <- p <* char ')'
-        pure $ newApp "Str" (TmToString e)
+        pure $ newStr (TmToString e)
       else do
         cmd <- stringTill (char '{' <|> char '(' <|> char '[')
         let ctor = TmVar (String.trim cmd)
         e <- optional $ TmApp ctor <$> recordLit p <|>
           foldl TmApp ctor <$> between (symbol "(") (char ')') (many (dotexpr p))
         docs <- many (try $ skipSpaces *> between (char '[') (char ']') (document p))
-        pure $ TmNew (foldl TmApp (fromMaybe ctor e) (TmArray <$> docs))
+        pure $ TmNew (foldl TmApp (fromMaybe ctor e) docs)
     more <- document p
-    pure $ str <> [res] <> more
+    pure $ newComp (newComp str res) more
 
-newApp :: String -> Tm -> Tm
-newApp x y = TmNew (TmApp (TmVar x) y)
+newCtor :: String -> Tm
+newCtor = TmNew <<< TmVar
+
+newStr :: Tm -> Tm
+newStr s = TmNew (TmApp (TmVar "Str") s)
+
+newComp :: Tm -> Tm -> Tm
+newComp x y = TmNew (TmApp (TmApp (TmVar "Comp") x) y)
 
 recordLit :: SParser Tm -> SParser Tm
 recordLit p = braces $ TmRcd <$> sepEndBySemi (try (recordField p) <|> methodPattern p)

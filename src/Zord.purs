@@ -65,4 +65,4 @@ showParseError (ParseError msg pos) source =
 showTypeError :: TypeError -> String
 showTypeError (TypeError msg UnknownPos) = msg
 showTypeError (TypeError msg (Pos pos expr)) =
-  showPosition pos <> ": " <> msg <> "\nIn the expression: " <> show expr
+  showPosition pos <> ": " <> msg <> "\nin the expression: " <> show expr
