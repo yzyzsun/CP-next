@@ -2,7 +2,7 @@
     "name": "zord",
     "displayName": "Zord Language Support",
     "description": "Syntax highlighting for the Zord programming language",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "license": "Apache-2.0",
     "publisher": "yzyzsun",
     "repository": {
@@ -19,7 +19,7 @@
         "languages": [{
             "id": "zord",
             "aliases": ["Zord", "zord"],
-            "extensions": [".zord"],
+            "extensions": [".zord", ".mzord"],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{

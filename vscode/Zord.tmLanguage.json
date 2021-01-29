@@ -29,15 +29,20 @@
     },
     {
       "name": "storage.type.zord",
-      "match": "\\b(Int|Double|Bool|String|Top|Bot|Trait)\\b"
+      "match": "\\b(Int|Double|Bool|String|Top|Bot|Trait|Array)\\b"
     },
     {
       "name": "storage.modifier.zord",
       "match": "\\b(override)\\b"
     },
     {
+      "name": "string.quoted.triple.zord",
+      "begin": "\"\"\"",
+      "end": "\"\"\""
+    },
+    {
       "name": "string.quoted.double.zord",
-      "match": "\"([^\\\\\\n\"]|\\\\.)*\"?"
+      "match": "\"([^\\\\\"]|\\\\.)*\"?"
     }
   ]
 }
