@@ -2,7 +2,7 @@ import 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import { EditorState, EditorView, basicSetup } from '@codemirror/next/basic-setup';
-import { ViewPlugin, keymap } from '@codemirror/next/view';
+import { keymap } from '@codemirror/next/view';
 import { styleTags } from '@codemirror/next/highlight';
 import { LezerSyntax, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/next/syntax';
 import { parser } from './zord';
@@ -20,7 +20,7 @@ const zordSyntax = LezerSyntax.define(parser.withProps(
   }),
   styleTags({
     'type extends let letrec trait implements inherits': 'keyword definition',
-    'if then else new open in toString forall Int Double Bool String Top Bot Trait': 'keyword',
+    'if then else new open in toString forall Int Double Bool String Top Bot Trait Array': 'keyword',
     'override': 'modifier',
     'true false': 'atom',
     'undefined': 'null',

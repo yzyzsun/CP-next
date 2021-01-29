@@ -292,9 +292,10 @@ forallTy = do
 traitTy :: SParser Ty
 traitTy = do
   reserved "Trait"
-  ti <- optional (try (ty <* symbol "%"))
-  to <- aty ty
-  pure $ TyTrait ti to
+  angles do
+    ti <- optional (try (ty <* symbol "%"))
+    to <- ty
+    pure $ TyTrait ti to
 
 arrayTy :: SParser Ty
 arrayTy = do

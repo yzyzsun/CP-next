@@ -27,7 +27,7 @@ TermDef {
 
 type {
   btype | kw<"forall"> typeParam+ "." type |
-  kW<"Trait"> typeWithPercent |
+  kW<"Trait"> angles<typeWithPercent> | kW<"Array"> atype |
   type !arrow TypeOp<"->"> type |
   type !intersect TypeOp<"&"> type
 }
@@ -99,7 +99,7 @@ brackets<contents> { "[" contents "]" }
 angles<contents> { "<" contents ">" }
 
 sepEndBySemi<clause> { (clause ";")* clause? }
-typeWithPercent { type ~conflict ("%" type)? }
+typeWithPercent { atype ("%" atype)? }
 
 TypeNameDecl { upperid }
 TypeName { upperid }
