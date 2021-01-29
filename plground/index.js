@@ -117,7 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (pathname) fetchDoc(pathname).then(doc => {
     view.setState(state(doc, true));
-    interpret();
+    if (/^--\s*module/.test(doc)) output.textContent = "This is a module file.";
+    else interpret();
   }).catch(err => {
     alert(err.message);
     window.location.replace('/');

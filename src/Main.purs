@@ -4,9 +4,12 @@ import Prelude
 
 import Ansi.Codes (Color(..))
 import Ansi.Output (foreground, withGraphics)
-import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
+import Data.Array.NonEmpty ((!!))
+import Data.Either (Either(..), fromRight)
+import Data.Maybe (Maybe(..), fromJust)
 import Data.String (Pattern(..), stripPrefix)
+import Data.String.Regex (match, regex, replace)
+import Data.String.Regex.Flags (multiline)
 import Data.Time (diff)
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
@@ -14,8 +17,10 @@ import Effect.Console (error, log)
 import Effect.Exception (Error, message, try)
 import Effect.Now (nowTime)
 import Node.Encoding (Encoding(..))
-import Node.FS.Sync (readTextFile)
+import Node.FS.Sync as Sync
+import Node.Path (concat, dirname)
 import Node.ReadLine (Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
+import Partial.Unsafe (unsafePartial)
 import Zord (Mode(..), interpret)
 
 showSeconds :: Milliseconds -> String
@@ -23,6 +28,28 @@ showSeconds (Milliseconds n) = show (n / 1000.0) <> "s"
 
 errorRed :: Error -> Effect Unit
 errorRed err = error $ withGraphics (foreground Red) (message err)
+
+readTextFile :: String -> Effect String
+readTextFile f = do
+  result <- try $ Sync.readTextFile UTF8 f
+  case result of Right text -> pure text
+                 Left err -> errorRed err $> ""
+
+load :: String -> Effect String
+load file = do
+  let path = dirname file
+  program <- readTextFile file
+  unsafePartial (preprocess path program)
+
+preprocess :: Partial => String -> String -> Effect String
+preprocess path program = case match re program of
+  Just arr -> do
+    let name = fromJust (fromJust (arr !! 1))
+    text <- readTextFile (concat [path, ext name])
+    preprocess path $ replace re text program
+  Nothing -> pure program
+  where re = fromRight (regex """^\s*open\s+(\w+)\s*;\s*$""" multiline)
+        ext name = name <> ".mzord"
 
 execute :: String -> Mode -> Effect Unit
 execute program mode = do
@@ -57,8 +84,7 @@ main = do
         Nothing -> do
           case stripPrefix (Pattern ":load ") input of
             Just file -> do
-              result <- try $ readTextFile UTF8 file
-              case result of Right program -> execute program mode
-                             Left err -> errorRed err
+              program <- load file
+              execute program mode
             Nothing -> execute input mode
       prompt interface
