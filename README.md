@@ -15,7 +15,7 @@ Zord is a functional programming language that advocates compositional programmi
 ```
 $ npm start
 ...
-Zord REPL, version 0.1.0 (press Ctrl-C to quit)
+Zord REPL, version 0.1.1 (press Ctrl-C to quit)
 
 > :load examples/bench.zord
 832
@@ -35,11 +35,11 @@ Zord REPL, version 0.1.0 (press Ctrl-C to quit)
 
 ## PLGround
 
-[PLGround.org](https://plground.org) provides wiki-like open document repository. Documents are written in Zord and rendered with an in-browser interpreter. It is integrated with a [CodeMirror 6](https://codemirror.net/6/) editor with syntax highlighting. Its grammar file written in [Lezer](https://lezer.codemirror.net) can be found at `plground/zord.grammar`.
+[PLGround.org](https://plground.org) provides a wiki-like open document repository. Documents are written in Zord and rendered with an in-browser interpreter. It is integrated with a [CodeMirror 6](https://codemirror.net/6/) editor with syntax highlighting. Its grammar file written in [Lezer](https://lezer.codemirror.net) can be found at `plground/zord.grammar`.
 
 Since the frontend code uses the Fetch API, PLGround is expected to work on Chrome 42+, Firefox 39+, Edge 14+, Safari 10.1+, or other modern browsers.
 
-If you want to start a web server locally, [Ruby](https://www.ruby-lang.org) is needed. Besides, execute `gem install sinatra` to get the [Sinatra](http://sinatrarb.com) web framework. Finally, execute `npm run rackup` to start a web server. (Internally, webpack is first invoked to get all static assets ready in `plground/public/`.)
+If you want to start a web server locally, [Ruby](https://www.ruby-lang.org) is needed. Besides, execute `gem install sinatra webrick` to get the [Sinatra](http://sinatrarb.com) web framework. Finally, execute `npm run rackup` to start a web server. (Internally, webpack is first invoked to get all static assets ready in `plground/public/`.)
 
 ## VS Code Extension
 

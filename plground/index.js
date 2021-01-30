@@ -3,55 +3,57 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 import { EditorState, EditorView, basicSetup } from '@codemirror/next/basic-setup';
 import { keymap } from '@codemirror/next/view';
-import { styleTags } from '@codemirror/next/highlight';
-import { LezerSyntax, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/next/syntax';
+import { styleTags, tags as t } from '@codemirror/next/highlight';
+import { LanguageSupport, LezerLanguage, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/next/language';
 import { parser } from './zord';
 
 import Zord from '../src/Zord.purs';
 
-const zordSyntax = LezerSyntax.define(parser.withProps(
-  indentNodeProp.add({
-    RecordType: continuedIndent(),
-    Record: continuedIndent(),
+const zordLanguage = LezerLanguage.define({
+  parser: parser.configure({
+    props: [
+      indentNodeProp.add({
+        RecordType: continuedIndent(),
+        Record: continuedIndent(),
+      }),
+      foldNodeProp.add({
+        RecordType(tree) { return { from: tree.from + 1, to: tree.to - 1 } },
+        Record(tree) { return { from: tree.from + 1, to: tree.to - 1 } },
+      }),
+      styleTags({
+        'type extends let letrec trait implements inherits': t.definitionKeyword,
+        'if then else new open in toString forall Int Double Bool String Top Bot Trait Array': t.keyword,
+        'override': t.modifier,
+        'true false undefined': t.atom,
+        Unit: t.unit,
+        TermName: t.variableName,
+        TermNameDecl: t.definition(t.variableName),
+        Label: t.propertyName,
+        LabelDecl: t.definition(t.propertyName),
+        LineComment: t.lineComment,
+        BlockComment: t.blockComment,
+        Number: t.number,
+        String: t.string,
+        HereDoc: t.docString,
+        TypeOp: t.typeOperator,
+        ArithOp: t.arithmeticOperator,
+        LogicOp: t.logicOperator,
+        CompareOp: t.compareOperator,
+        MergeOp: t.operator,
+        TraitArrow: t.definition(t.punctuation),
+        '( )': t.paren,
+        '{ }': t.brace,
+        '[ ]': t.squareBracket,
+        '< >': t.angleBracket,
+        '.': t.derefOperator,
+        ';': t.separator,
+      }),
+    ],
   }),
-  foldNodeProp.add({
-    RecordType(tree) { return { from: tree.from + 1, to: tree.to - 1 } },
-    Record(tree) { return { from: tree.from + 1, to: tree.to - 1 } },
-  }),
-  styleTags({
-    'type extends let letrec trait implements inherits': 'keyword definition',
-    'if then else new open in toString forall Int Double Bool String Top Bot Trait Array': 'keyword',
-    'override': 'modifier',
-    'true false': 'atom',
-    'undefined': 'null',
-    Unit: 'unit',
-    TermName: 'variableName',
-    TermNameDecl: 'variableName definition',
-    Label: 'propertyName',
-    LabelDecl: 'propertyName definition',
-    LineComment: 'lineComment',
-    BlockComment: 'blockComment',
-    Number: 'number',
-    String: 'string',
-    HereDoc: 'string',
-    TypeOp: 'typeOperator',
-    ArithOp: 'arithmeticOperator',
-    LogicOp: 'logicOperator',
-    CompareOp: 'compareOperator',
-    MergeOp: 'operator',
-    TraitArrow: 'punctuation definition',
-    '( )': 'paren',
-    '{ }': 'brace',
-    '[ ]': 'squareBracket',
-    '< >': 'angleBracket',
-    '.': 'derefOperator',
-    ', ;': 'separator',
-  })
-), {
   languageData: {
     closeBrackets: { brackets: ['{', '(', '[', '"'] },
     commentTokens: { line: '--', block: { open: '{-', close: '-}' } },
-  }
+  },
 });
 
 const pathname = window.location.pathname.slice(1);
@@ -103,10 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
     doc,
     extensions: [
       basicSetup,
-      EditorView.editable.of(editable),
       EditorView.lineWrapping,
-      zordSyntax.extension,
-      keymap([{ key: 'Mod-Enter', run: interpret }]),
+      EditorView.editable.of(editable),
+      keymap.of([{ key: 'Mod-Enter', run: interpret }]),
+      new LanguageSupport(zordLanguage),
     ],
   });
 
