@@ -1,0 +1,29 @@
+-- module svg --
+
+open color;
+
+type Html = { html : String };
+
+type GraphicSig<Graphic><Color> = {
+  Line : { x1: Int; y1: Int; x2: Int; y2: Int; color: Color; width: Int } -> Graphic;
+  Rect : { x: Int; y: Int; width: Int; height: Int; color: Color } -> Graphic;
+  Circle : { cx: Int; cy: Int; r: Int; color: Color } -> Graphic;
+  Ellipse : { cx: Int; cy: Int; rx: Int; ry: Int; color: Color } -> Graphic;
+  Path : { d: String; fill: Color; stroke: Color; width: Int } -> Graphic;
+  Text : { x: Int; y: Int; color: Color } -> Graphic -> Graphic;
+  Use : String -> String -> Graphic;
+  Group : String -> Graphic -> Graphic;
+  Defs : Graphic -> Graphic;
+};
+
+svg = trait implements GraphicSig<Html><Hex> => {
+  (Line attr).html = "<line x1=\"" ++ toString attr.x1 ++ "\" y1=\"" ++ toString attr.y1 ++ "\" x2=\"" ++ toString attr.x2 ++ "\" y2=\"" ++ toString attr.y2 ++ "\" stroke=\"" ++ attr.color.hex ++ "\" stroke-width=\"" ++ toString attr.width ++ "\" />";
+  (Rect attr).html = "<rect x=\"" ++ toString attr.x ++ "\" y=\"" ++ toString attr.y ++ "\" width=\"" ++ toString attr.width ++ "\" height=\"" ++ toString attr.height ++ "\" fill=\"" ++ attr.color.hex ++ "\" />";
+  (Circle attr).html = "<circle cx=\"" ++ toString attr.cx ++ "\" cy=\"" ++ toString attr.cy ++ "\" r=\"" ++ toString attr.r ++ "\" fill=\"" ++ attr.color.hex ++ "\" />";
+  (Ellipse attr).html = "<ellipse cx=\"" ++ toString attr.cx ++ "\" cy=\"" ++ toString attr.cy ++ "\" rx=\"" ++ toString attr.rx ++ "\" ry=\"" ++ toString attr.ry ++ "\" fill=\"" ++ attr.color.hex ++ "\" />";
+  (Path attr).html = "<path d=\"" ++ attr.d ++ "\" fill=\"" ++ attr.fill.hex ++ "\" stroke=\"" ++ attr.stroke.hex ++ "\" stroke-width=\"" ++ toString attr.width ++ "\" />";
+  (Text attr e).html = "<text x=\"" ++ toString attr.x ++ "\" y=\"" ++ toString attr.y ++ "\" fill=\"" ++ attr.color.hex ++ "\">" ++ e.html ++ "</text>";
+  (Use id tr).html = "<use href=\"#" ++ id ++ "\" transform=\"" ++ tr ++ "\" />";
+  (Group id e).html = "<g id=\"" ++ id ++ "\">" ++ e.html ++ "</g>";
+  (Defs e).html = "<defs>" ++ e.html ++ "</defs>";
+};

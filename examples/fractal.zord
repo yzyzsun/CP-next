@@ -1,0 +1,45 @@
+open doc;
+open svg;
+
+type DocSig'<Element><Graphic> extends DocSig<Element> = {
+  Graph : { width: Int; height: Int } -> Graphic -> Element
+};
+
+html' = trait implements DocSig'<Html><Html> inherits html => {
+  (Graph attr e).html = "<svg width=\"" ++ toString attr.width ++ "\" height=\"" ++ toString attr.height ++ "\">" ++ e.html ++ "</svg>"
+};
+
+fold' T (f : T -> T -> T) (z : T) (xs : Array T) (i : Int) : T =
+  if i == 0 then z else f (fold' @T f z xs (i-1)) (xs!!(i-1));
+fold T (f : T -> T -> T) (z : T) (xs : Array T) = fold' @T f z xs (#xs);
+
+type Draw Graphic Color = {
+  init : { x: Int; y: Int; width: Int; height: Int; color: Color; level: Int };
+  draw : { x: Int; y: Int; width: Int; height: Int; level: Int } -> Graphic;
+};
+
+doc T C = trait [self : DocSig'<T><T> & GraphicSig<T><C> & ColorSig<C> & Draw T C] implements Draw T C => {
+  init = { x = 0; y = 0; width = 600; height = 600; color = new Black; level = 3 };
+  draw = \attr ->
+    let center = new Rect { x = attr.x + attr.width/3; y = attr.y + attr.height/3; width = attr.width/3; height = attr.height/3; color = new White } in
+    if attr.level == 0 then center else
+      let opt = { width = attr.width/3; height = attr.height/3; level = attr.level - 1 } in
+      let arr = [
+        draw (opt,{ x = attr.x; y = attr.y });
+        draw (opt,{ x = attr.x + attr.width/3; y = attr.y });
+        draw (opt,{ x = attr.x + attr.width*2/3; y = attr.y });
+        draw (opt,{ x = attr.x; y = attr.y + attr.height/3 });
+        draw (opt,{ x = attr.x + attr.width*2/3; y = attr.y + attr.height/3 });
+        draw (opt,{ x = attr.x; y = attr.y + attr.height*2/3 });
+        draw (opt,{ x = attr.x + attr.width/3; y = attr.y + attr.height*2/3 });
+        draw (opt,{ x = attr.x + attr.width*2/3; y = attr.y + attr.height*2/3 });
+      ] in fold @T (\(s:T) (x:T) -> new Comp s x) center arr;
+  body = """
+    \Graph { width = init.width; height = init.height } [
+      \Rect(init)
+      \Group("Sierpiński" (draw init))
+    ]
+  """;
+};
+
+(new doc @Html @Hex , html' , svg , color).body
