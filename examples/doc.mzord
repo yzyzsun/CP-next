@@ -1,7 +1,7 @@
 -- module doc --
 
-type Html = { html : String };
-type Latex = { latex : String };
+type HTML = { html : String };
+type LaTeX = { latex : String };
 
 type DocSig<Element> = {
   Comp : Element -> Element -> Element;
@@ -10,14 +10,14 @@ type DocSig<Element> = {
   Endl : Element;
 };
 
-html = trait implements DocSig<Html> => {
+html = trait implements DocSig<HTML> => {
   (Comp l r).html = l.html ++ r.html;
   (Empty).html = "";
   (Str s).html = s;
   (Endl).html = "<br>";
 };
 
-latex = trait implements DocSig<Latex> => {
+latex = trait implements DocSig<LaTeX> => {
   (Comp l r).latex = l.latex ++ r.latex;
   (Empty).latex = "";
   (Str s).latex = s;
@@ -36,7 +36,7 @@ type DocSig'<Element> extends DocSig<Element> = {
   Emph : Element -> Element;
 };
 
-html' = trait implements DocSig'<Html> inherits html => {
+html' = trait implements DocSig'<HTML> inherits html => {
   (Section e).html = "<h2>" ++ e.html ++ "</h2>";
   (SubSection e).html = "<h3>" ++ e.html ++ "</h3>";
   (SubSubSection e).html = "<h4>" ++ e.html ++ "</h4>";
@@ -48,7 +48,7 @@ html' = trait implements DocSig'<Html> inherits html => {
   (Emph e).html = "<em>" ++ e.html ++ "</em>";
 };
 
-latex' = trait implements DocSig'<Latex> inherits latex => {
+latex' = trait implements DocSig'<LaTeX> inherits latex => {
   (Section e).latex = "\\section{" ++ e.latex ++ "}";
   (SubSection e).latex = "\\subsection{" ++ e.latex ++ "}";
   (SubSubSection e).latex = "\\subsubsection{" ++ e.latex ++ "}";

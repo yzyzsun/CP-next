@@ -5,7 +5,7 @@ type DocSig'<Element><Graphic> extends DocSig<Element> = {
   Graph : { width: Int; height: Int } -> Graphic -> Element
 };
 
-html' = trait implements DocSig'<Html><Html> inherits html => {
+html' = trait implements DocSig'<HTML><HTML> inherits html => {
   (Graph attr e).html = "<svg width=\"" ++ toString attr.width ++ "\" height=\"" ++ toString attr.height ++ "\">" ++ e.html ++ "</svg>"
 };
 
@@ -42,4 +42,4 @@ doc T C = trait [self : DocSig'<T><T> & GraphicSig<T><C> & ColorSig<C> & Draw T 
   """;
 };
 
-(new doc @Html @Hex , html' , svg , color).body
+(new doc @HTML @Hex , html' , svg , color).body
