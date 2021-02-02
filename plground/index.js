@@ -73,15 +73,10 @@ const fetchDoc = name => fetch('docs/' + name).then(res => {
 });
 
 const preprocess = code => {
-  const regexp = /^\s*open\s+(\w+)\s*;\s*$/gm;
-  const open = pre => {
-    const match = regexp.exec(code);
-    if (!match) return new Promise((resolve, reject) => resolve(pre));
-    else return fetchDoc(match[1]).then(doc => open(pre + doc));
-  };
-  return open('').then(pre =>
-    new Promise((resolve, reject) => resolve(pre + code.replace(regexp, '')))
-  );
+  const regexp = /^\s*open\s+(\w+)\s*;\s*$/m;
+  const found = code.match(regexp);
+  if (!found) return new Promise((resolve, reject) => resolve(code));
+  else return fetchDoc(found[1]).then(doc => preprocess(code.replace(regexp, doc)));
 };
 
 document.addEventListener('DOMContentLoaded', () => {
