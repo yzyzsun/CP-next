@@ -78,6 +78,7 @@ data Tm = TmInt Int
         | TmOpen Tm Tm
         | TmTrait SelfAnno (Maybe Ty) (Maybe Tm) Tm
         | TmNew Tm
+        | TmConstruction String (List Tm)
         | TmToString Tm
         | TmArray (Array Tm)
         | TmPos Position Tm
@@ -115,6 +116,8 @@ instance showTm :: Show Tm where
     showMaybe "implements " sig " " <> showMaybe "inherits " e1 " " <>
     "=>" <+> show e2
   show (TmNew e) = parens $ "new" <+> show e
+  show (TmConstruction ctor args) = ctor <>
+    parens (intercalate "; " (show <$> args))
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
   show (TmPos p e) = show e

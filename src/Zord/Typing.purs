@@ -161,7 +161,7 @@ synthesize (S.TmOpen e1 e2) = do
 synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
   t' <- transform t
   Tuple sig' e2 <- inferFromSig `duringTransformation` Tuple sig ne2
-  case me1 of
+  Tuple ret tret <- case me1 of
     Just e1 -> do
       -- TODO: self-reference may have a different name in super-trait
       Tuple e1' t1 <- addTmBind self t' $ synthesize e1
@@ -173,18 +173,17 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
             to' <- override to e2
             disjoint to' t2
             let tret = C.TyAnd to' t2
-            if tret <: sig' then
-              let ret = letIn "super" (C.TmApp e1' (C.TmVar self)) to
-                        (C.TmMerge (C.TmAnno (C.TmVar "super") to') e2') tret in
-              pure $ trait self ret t' tret
-            else throwTypeError $ show tret <+> "does not implement" <+> show sig'
+            let ret = letIn "super" (C.TmApp e1' (C.TmVar self)) to
+                      (C.TmMerge (C.TmAnno (C.TmVar "super") to') e2') tret
+            pure $ Tuple ret tret
           else throwTypeError $ "self-type" <+> show t' <+>
             "is not a subtype of inherited self-type" <+> show to
         _ -> throwTypeError $ "inherits expected a trait, but got" <+> show t1
     Nothing -> do
       Tuple e2' t2 <- addTmBind self t' $ synthesize e2
-      if t2 <: sig' then pure $ trait self e2' t' t2
-      else throwTypeError $ show t2 <+> "does not implement" <+> show sig'
+      pure $ Tuple e2' t2
+  if tret <: sig' then pure $ trait self ret t' tret
+  else throwTypeError $ show tret <+> "does not implement" <+> show sig'
   where
     -- TODO: type inference is not complete
     inferFromSig :: S.Ty -> S.Tm -> S.Tm
