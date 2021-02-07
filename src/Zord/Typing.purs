@@ -94,11 +94,11 @@ synthesize (S.TmApp e1 e2) = do
   Tuple e1' t1 <- synthesize e1
   Tuple e2' t2 <- synthesize e2
   Tuple (C.TmApp e1' e2') <$> distApp t1 (Left t2)
-synthesize (S.TmAbs (Cons (Tuple x (Just targ)) Nil) e) = do
+synthesize (S.TmAbs (Cons (S.TmParam x (Just targ)) Nil) e) = do
   targ' <- transform targ
   Tuple e' tret <- addTmBind x targ' $ synthesize e
   pure $ Tuple (C.TmAbs x e' targ' tret) (C.TyArrow targ' tret false)
-synthesize (S.TmAbs (Cons (Tuple x Nothing) Nil) e) = throwTypeError
+synthesize (S.TmAbs (Cons (S.TmParam x Nothing) Nil) e) = throwTypeError
   "lambda parameters should be annotated (type inference is not implemented)"
 synthesize (S.TmAnno e ta) = do
   Tuple e' t <- synthesize e
@@ -197,8 +197,10 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
         Just (Tuple _ ty) ->
           S.TmRcd (singleton (S.RcdField o l (Left (inferFromSig ty e))))
         _ -> r
-    inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons (Tuple x Nothing) Nil) e) =
-      S.TmAbs (singleton (Tuple x (Just targ))) (inferFromSig tret e)
+    inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons (S.TmParam x Nothing) Nil) e) =
+      S.TmAbs (singleton (S.TmParam x (Just targ))) (inferFromSig tret e)
+    inferFromSig (S.TyArrow targ tret) (S.TmAbs param@(Cons (S.TmParam _ (Just _)) Nil) e) =
+      S.TmAbs param (inferFromSig tret e)
     inferFromSig _ e = e
     combineRcd :: S.Ty -> S.RcdTyList
     combineRcd (S.TyAnd (S.TyRcd xs) (S.TyRcd ys)) = xs <> ys

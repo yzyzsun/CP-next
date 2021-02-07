@@ -6,7 +6,7 @@ type DocSig'<Element><Graphic> extends DocSig<Element> = {
 };
 
 html' = trait implements DocSig'<HTML><HTML> inherits html => {
-  (Graph attr e).html = "<svg width=\"" ++ toString attr.width ++ "\" height=\"" ++ toString attr.height ++ "\">" ++ e.html ++ "</svg>"
+  (Graph {..} e).html = "<svg width=\"" ++ toString width ++ "\" height=\"" ++ toString height ++ "\">" ++ e.html ++ "</svg>"
 };
 
 fold' T (f : T -> T -> T) (z : T) (xs : Array T) (i : Int) : T =
@@ -20,19 +20,19 @@ type Draw Graphic Color = {
 
 doc T C = trait [self : DocSig'<T><T> & GraphicSig<T><C> & ColorSig<C> & Draw T C] implements Draw T C => {
   init = { x = 0; y = 0; width = 600; height = 600; color = Black(); level = 3 };
-  draw = \attr ->
-    let center = Rect({ x = attr.x + attr.width/3; y = attr.y + attr.height/3; width = attr.width/3; height = attr.height/3; color = White() }) in
-    if attr.level == 0 then center else
-      let opt = { width = attr.width/3; height = attr.height/3; level = attr.level - 1 } in
+  draw = \{..} ->
+    let center = Rect({ x = x + width/3; y = y + height/3; width = width/3; height = height/3; color = White() }) in
+    if level == 0 then center else
+      let opt = { width = width/3; height = height/3; level = level - 1 } in
       let arr = [
-        draw (opt,{ x = attr.x; y = attr.y });
-        draw (opt,{ x = attr.x + attr.width/3; y = attr.y });
-        draw (opt,{ x = attr.x + attr.width*2/3; y = attr.y });
-        draw (opt,{ x = attr.x; y = attr.y + attr.height/3 });
-        draw (opt,{ x = attr.x + attr.width*2/3; y = attr.y + attr.height/3 });
-        draw (opt,{ x = attr.x; y = attr.y + attr.height*2/3 });
-        draw (opt,{ x = attr.x + attr.width/3; y = attr.y + attr.height*2/3 });
-        draw (opt,{ x = attr.x + attr.width*2/3; y = attr.y + attr.height*2/3 });
+        draw (opt,{ x = x; y = y });
+        draw (opt,{ x = x + width/3; y = y });
+        draw (opt,{ x = x + width*2/3; y = y });
+        draw (opt,{ x = x; y = y + height/3 });
+        draw (opt,{ x = x + width*2/3; y = y + height/3 });
+        draw (opt,{ x = x; y = y + height*2/3 });
+        draw (opt,{ x = x + width/3; y = y + height*2/3 });
+        draw (opt,{ x = x + width*2/3; y = y + height*2/3 });
       ] in fold @T (\(s:T) (x:T) -> Comp(s; x)) center arr;
   body = """
     \Graph { width = init.width; height = init.height } [

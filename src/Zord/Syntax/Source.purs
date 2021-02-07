@@ -6,7 +6,7 @@ import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
 import Data.Foldable (any, intercalate)
 import Data.List (List)
-import Data.Maybe (Maybe, maybe)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..), fst, snd)
 import Text.Parsing.Parser.Pos (Position)
 import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens, (<+>))
@@ -23,7 +23,7 @@ data Ty = TyInt
         | TyAnd Ty Ty
         | TyRcd RcdTyList
         | TyVar Name
-        | TyForall ParamList Ty
+        | TyForall TyParamList Ty
         | TyApp Ty Ty
         | TyAbs Name Ty
         | TyTrait (Maybe Ty) Ty
@@ -43,7 +43,7 @@ instance showTy :: Show Ty where
   show (TyRcd xs) = braces $ showRcdTy xs
   show (TyVar a) = a
   show (TyForall xs t) = parens $
-    "forall" <+> showParams "*" xs <> "." <+> show t
+    "forall" <+> showTyParams xs <> "." <+> show t
   show (TyApp t1 t2) = parens $ show t1 <+> show t2
   show (TyAbs a t) = parens $ "\\" <> a <+> "->" <+> show t
   show (TyTrait ti to) = parens $ "Trait" <+> showMaybe "" ti " % " <> show to
@@ -66,13 +66,13 @@ data Tm = TmInt Int
         | TmIf Tm Tm Tm
         | TmVar Name
         | TmApp Tm Tm
-        | TmAbs ParamList Tm
+        | TmAbs TmParamList Tm
         | TmAnno Tm Ty
         | TmMerge Tm Tm
         | TmRcd (List RcdField)
         | TmPrj Tm Label
         | TmTApp Tm Ty
-        | TmTAbs ParamList Tm
+        | TmTAbs TyParamList Tm
         | TmLet Name Tm Tm
         | TmLetrec Name Ty Tm Tm
         | TmOpen Tm Tm
@@ -83,10 +83,10 @@ data Tm = TmInt Int
         | TmArray (Array Tm)
         | TmPos Position Tm
         | TmType Name (List Name) (List Name) (Maybe Ty) Ty Tm
-        | TmDef Name ParamList ParamList (Maybe Ty) Tm Tm
+        | TmDef Name TyParamList TmParamList (Maybe Ty) Tm Tm
 
 data RcdField = RcdField Boolean Label (Either Tm MethodPattern)
-data MethodPattern = MethodPattern ParamList SelfAnno Label Tm
+data MethodPattern = MethodPattern TmParamList SelfAnno Label Tm
 
 instance showTm :: Show Tm where
   show (TmInt i)    = show i
@@ -100,13 +100,13 @@ instance showTm :: Show Tm where
     "if" <+> show e1 <+> "then" <+> show e2 <+> "else" <+> show e3
   show (TmVar x) = x
   show (TmApp e1 e2) = parens $ show e1 <+> show e2
-  show (TmAbs xs e) = parens $ "\\" <> showParams ":" xs <+> "->" <+> show e
+  show (TmAbs xs e) = parens $ "\\" <> showTmParams xs <+> "->" <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
   show (TmRcd xs) = braces $ showRcdTm xs
   show (TmPrj e l) = show e <> "." <> l
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
-  show (TmTAbs xs e) = parens $ "/\\" <> showParams "*" xs <> "." <+> show e
+  show (TmTAbs xs e) = parens $ "/\\" <> showTyParams xs <> "." <+> show e
   show (TmLet x e1 e2) = parens $
     "let" <+> x <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmLetrec x t e1 e2) = parens $
@@ -125,7 +125,7 @@ instance showTm :: Show Tm where
     intercalate " " (angles <$> sorts) <+> intercalate " " params <+>
     showMaybe "extends " t1 " " <> "=" <+> show t2 <> ";" <+> show e
   show (TmDef x tyParams tmParams t e1 e2) = x <+>
-    showParams' tyParams <+> showParams ":" tmParams <+>
+    showTyParams tyParams <+> showTmParams tmParams <+>
     showMaybe ": " t " " <> "=" <+> show e1 <> ";" <+> show e2
 
 -- Substitution --
@@ -152,30 +152,34 @@ tySubst _ _ t = t
 showMaybe :: forall a. Show a => String -> Maybe a -> String -> String
 showMaybe l m r = maybe "" (\x -> l <> show x <> r) m
 
-type ParamList = List (Tuple Name (Maybe Ty))
+type TyParamList = List TyParam
+type TyParam = Tuple Name (Maybe Ty)
 
-showParams :: String -> ParamList -> String
-showParams s xs = intercalate " " (xs <#> \x ->
-  maybe (fst x) (\t -> parens $ fst x <+> s <+> show t) (snd x)
-)
+showTyParams :: TyParamList -> String
+showTyParams params = intercalate " " $ params <#> \param ->
+  maybe (fst param) (\t -> parens $ fst param <+> "*" <+> show t) (snd param)
 
-showParams' :: ParamList -> String
-showParams' xs = intercalate " " (xs <#> \x ->
-  "@" <> maybe (fst x) (\t -> parens $ fst x <+> "*" <+> show t) (snd x)
-)
+type TmParamList = List TmParam
+data TmParam = TmParam Name (Maybe Ty) | WildCard
+
+showTmParams :: TmParamList -> String
+showTmParams params = intercalate " " $ params <#> \param ->
+  case param of TmParam x (Just t) -> parens $ x <+> ":" <+> show t
+                TmParam x Nothing -> x
+                WildCard -> "{..}"
 
 type RcdTyList = List (Tuple Label Ty)
 
 showRcdTy :: RcdTyList -> String
-showRcdTy xs = intercalate "; " (xs <#> \(Tuple l t) -> l <+> ":" <+> show t)
+showRcdTy xs = intercalate "; " $ xs <#> \(Tuple l t) -> l <+> ":" <+> show t
 
 showRcdTm :: List RcdField -> String
-showRcdTm xs = intercalate "; " (xs <#> \(RcdField o l e) ->
-  (if o then "override " else "") <> showField l e)
+showRcdTm xs = intercalate "; " $ xs <#> \(RcdField o l e) ->
+  (if o then "override " else "") <> showField l e
   where showField :: Label -> Either Tm MethodPattern -> String
         showField l (Left e) = l <+> "=" <+> show e
         showField l (Right (MethodPattern params self l' e)) =
-          parens (l <+> showParams ":" params <+> showSelf self) <>
+          parens (l <+> showTmParams params <+> showSelf self) <>
           "." <> l' <+> "=" <+> show e
 
 type SelfAnno = Maybe (Tuple Name Ty)

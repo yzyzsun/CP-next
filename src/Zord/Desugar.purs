@@ -6,14 +6,19 @@ import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
 import Data.List (List(..), foldl, foldr, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Tuple (Tuple(..), snd)
+import Data.Tuple (Tuple(..))
 import Zord.Syntax.Common (foldl1)
-import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), Ty(..))
+import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..))
 
 -- typing-related desugaring is delayed until synthesizing
 desugar :: Tm -> Tm
 
-desugar (TmAbs xs e) = foldr (\x s -> TmAbs (singleton x) s) (desugar e) xs
+desugar (TmAbs xs e) = foldr desugarParams (desugar e) xs
+  where desugarParams x s = case x of
+          TmParam _ _ -> abs x s
+          WildCard -> abs (TmParam wildcard Nothing) (TmOpen (TmVar wildcard) s)
+        abs param body = TmAbs (singleton param) body
+        wildcard = "#wildcard"
 desugar (TmTAbs xs e) =
   foldr (\x s -> TmTAbs (singleton (rmap disjointness x)) s) (desugar e) xs
   where disjointness t = Just (fromMaybe TyTop t)
@@ -40,8 +45,11 @@ desugar (TmDef x tyParams tmParams t e1 e2) =
   case t of Just t' -> TmLetrec x (ty t') tm (desugar e2)
             Nothing -> TmLet x tm (desugar e2)
   where tm = desugar (TmTAbs tyParams (TmAbs tmParams e1))
-        ty t' = TyForall tyParams (foldr TyArrow t' (tmParams <#>
-                                                     snd >>> fromMaybe TyTop))
+        ty t' = TyForall tyParams (foldr TyArrow t' (tyOf <$> tmParams))
+        -- TODO: param types should be inferred
+        tyOf p = case p of TmParam _ (Just t') -> t'
+                           TmParam _ Nothing -> TyTop
+                           WildCard -> TyTop
 
 desugar (TmUnary op e) = TmUnary op (desugar e)
 desugar (TmBinary op e1 e2) = TmBinary op (desugar e1) (desugar e2)

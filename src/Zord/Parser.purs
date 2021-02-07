@@ -20,7 +20,7 @@ import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (anyChar, char, satisfy, skipSpaces, string)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
-import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), Ty(..))
+import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..), TyParam)
 
 type SParser a = Parser String a
 
@@ -45,14 +45,14 @@ tyDef p = do
 tmDef :: SParser Tm -> SParser Tm
 tmDef p = do
   x <- lowerIdentifier
-  tyParams <- many (try (params upperIdentifier "*"))
-  tmParams <- many (params lowerIdentifier ":")
+  tys <- many (try $ tyParams false)
+  tms <- many tmParams
   t <- optional (symbol ":" *> ty)
   symbol "="
   e1 <- expr
   symbol ";"
   e2 <- p
-  pure $ TmDef x tyParams tmParams t e1 e2
+  pure $ TmDef x tys tms t e1 e2
 
 -- Expressions --
 
@@ -95,7 +95,7 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
 lambdaAbs :: SParser Tm
 lambdaAbs = do
   symbol "\\"
-  xs <- some (params lowerIdentifier ":")
+  xs <- some tmParams
   symbol "->"
   e <- expr
   pure $ TmAbs xs e
@@ -103,7 +103,7 @@ lambdaAbs = do
 tyLambdaAbs :: SParser Tm
 tyLambdaAbs = do
   symbol "/\\"
-  xs <- some (params upperIdentifier "*")
+  xs <- some (tyParams true)
   symbol "."
   e <- expr
   pure $ TmTAbs xs e
@@ -227,7 +227,7 @@ methodPattern p = do
   o <- override
   symbol "("
   l <- identifier
-  parms <- many (params lowerIdentifier ":")
+  parms <- many tmParams
   self <- optional selfAnno
   symbol ")"
   symbol "."
@@ -292,7 +292,7 @@ sortTy t = angles do
 forallTy :: SParser Ty
 forallTy = do
   reserved "forall"
-  xs <- some (params upperIdentifier "*")
+  xs <- some (tyParams true)
   symbol "."
   t <- ty
   pure $ TyForall xs t
@@ -329,10 +329,22 @@ fromIntOrNumber :: Either Int Number -> Tm
 fromIntOrNumber (Left int) = TmInt int
 fromIntOrNumber (Right number) = TmDouble number
 
-params :: SParser String -> String -> SParser (Tuple Name (Maybe Ty))
-params id s = Tuple <$> param <*> pure Nothing <|>
-              parens (Tuple <$> param <* symbol s <*> (Just <$> ty))
-  where param = id <|> underscore
+tyParams :: Boolean -> SParser TyParam
+tyParams us = Tuple <$> id <*> pure Nothing <|>
+           parens (Tuple <$> id <* symbol "*" <*> (Just <$> ty))
+  where id = if us then underscore <|> upperIdentifier else upperIdentifier
+
+tmParams :: SParser TmParam
+tmParams = choice [ parensNameColonType
+                  , TmParam <$> id <@> Nothing
+                  , WildCard <$ braces (symbol "..")
+                  ]
+  where parensNameColonType = parens do
+          x <- id
+          symbol ":"
+          t <- ty
+          pure $ TmParam x (Just t)
+        id = lowerIdentifier <|> underscore
 
 selfAnno :: SParser (Tuple Name Ty)
 selfAnno = brackets $ Tuple <$> lowerIdentifier <* symbol ":" <*> ty

@@ -17,12 +17,12 @@ type GraphicSig<Graphic><Color> = {
 };
 
 svg = trait implements GraphicSig<HTML><Hex> => {
-  (Line attr).html = "<line x1=\"" ++ toString attr.x1 ++ "\" y1=\"" ++ toString attr.y1 ++ "\" x2=\"" ++ toString attr.x2 ++ "\" y2=\"" ++ toString attr.y2 ++ "\" stroke=\"" ++ attr.color.hex ++ "\" stroke-width=\"" ++ toString attr.width ++ "\" />";
-  (Rect attr).html = "<rect x=\"" ++ toString attr.x ++ "\" y=\"" ++ toString attr.y ++ "\" width=\"" ++ toString attr.width ++ "\" height=\"" ++ toString attr.height ++ "\" fill=\"" ++ attr.color.hex ++ "\" />";
-  (Circle attr).html = "<circle cx=\"" ++ toString attr.cx ++ "\" cy=\"" ++ toString attr.cy ++ "\" r=\"" ++ toString attr.r ++ "\" fill=\"" ++ attr.color.hex ++ "\" />";
-  (Ellipse attr).html = "<ellipse cx=\"" ++ toString attr.cx ++ "\" cy=\"" ++ toString attr.cy ++ "\" rx=\"" ++ toString attr.rx ++ "\" ry=\"" ++ toString attr.ry ++ "\" fill=\"" ++ attr.color.hex ++ "\" />";
-  (Path attr).html = "<path d=\"" ++ attr.d ++ "\" fill=\"" ++ attr.fill.hex ++ "\" stroke=\"" ++ attr.stroke.hex ++ "\" stroke-width=\"" ++ toString attr.width ++ "\" />";
-  (Text attr e).html = "<text x=\"" ++ toString attr.x ++ "\" y=\"" ++ toString attr.y ++ "\" fill=\"" ++ attr.color.hex ++ "\">" ++ e.html ++ "</text>";
+  (Line {..}).html = "<line x1=\"" ++ toString x1 ++ "\" y1=\"" ++ toString y1 ++ "\" x2=\"" ++ toString x2 ++ "\" y2=\"" ++ toString y2 ++ "\" stroke=\"" ++ color.hex ++ "\" stroke-width=\"" ++ toString width ++ "\" />";
+  (Rect {..}).html = "<rect x=\"" ++ toString x ++ "\" y=\"" ++ toString y ++ "\" width=\"" ++ toString width ++ "\" height=\"" ++ toString height ++ "\" fill=\"" ++ color.hex ++ "\" />";
+  (Circle {..}).html = "<circle cx=\"" ++ toString cx ++ "\" cy=\"" ++ toString cy ++ "\" r=\"" ++ toString r ++ "\" fill=\"" ++ color.hex ++ "\" />";
+  (Ellipse {..}).html = "<ellipse cx=\"" ++ toString cx ++ "\" cy=\"" ++ toString cy ++ "\" rx=\"" ++ toString rx ++ "\" ry=\"" ++ toString ry ++ "\" fill=\"" ++ color.hex ++ "\" />";
+  (Path {..}).html = "<path d=\"" ++ d ++ "\" fill=\"" ++ fill.hex ++ "\" stroke=\"" ++ stroke.hex ++ "\" stroke-width=\"" ++ toString width ++ "\" />";
+  (Text {..} e).html = "<text x=\"" ++ toString x ++ "\" y=\"" ++ toString y ++ "\" fill=\"" ++ color.hex ++ "\">" ++ e.html ++ "</text>";
   (Use id tr).html = "<use href=\"#" ++ id ++ "\" transform=\"" ++ tr ++ "\" />";
   (Group id e).html = "<g id=\"" ++ id ++ "\">" ++ e.html ++ "</g>";
   (Defs e).html = "<defs>" ++ e.html ++ "</defs>";
