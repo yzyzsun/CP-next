@@ -84,10 +84,8 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
                  , reserved "true"  $> TmBool true
                  , reserved "false" $> TmBool false
                  , symbol "()" $> TmUnit
-                 , lowerIdentifier <#> TmVar
-                 , char '$' *> upperIdentifier <#> TmVar
-                 , construction e
-                 , brackets $ TmArray <<< toUnfoldable <$> sepEndBySemi e
+                 , identifier <#> TmVar
+                 , brackets $ TmArray <<< toUnfoldable <$> sepEndBySemi expr
                  , recordLit e
                  , parens e
                  ]
@@ -190,7 +188,7 @@ document p = do
         cmd <- stringTill (char '{' <|> char '(' <|> char '[')
         let ctor = TmVar (String.trim cmd)
         e <- optional $ TmApp ctor <$> recordLit p <|>
-          foldl TmApp ctor <$> between (symbol "(") (char ')') (sepEndBySemi p)
+          foldl TmApp ctor <$> between (symbol "(") (char ')') (many (dotexpr p))
         docs <- many (try $ skipSpaces *> between (char '[') (char ']') (document p))
         pure $ TmNew (foldl TmApp (fromMaybe ctor e) docs)
     more <- document p
@@ -204,12 +202,6 @@ newStr s = TmNew (TmApp (TmVar "Str") s)
 
 newComp :: Tm -> Tm -> Tm
 newComp x y = TmNew (TmApp (TmApp (TmVar "Comp") x) y)
-
-construction :: SParser Tm -> SParser Tm
-construction p = do
-  ctor <- upperIdentifier
-  args <- parens $ sepEndBySemi p
-  pure $ TmConstruction ctor args
 
 recordLit :: SParser Tm -> SParser Tm
 recordLit p = braces $ TmRcd <$> sepEndBySemi (try (recordField p) <|> methodPattern p)

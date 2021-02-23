@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
-import Data.List (List(..), foldl, foldr, singleton)
+import Data.List (List(..), foldr, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Zord.Syntax.Common (foldl1)
@@ -36,8 +36,6 @@ desugar (TmTrait self sig e1 e2) =
   let self'@(Tuple x _) = fromMaybe (Tuple "self" TyTop) self in
   TmTrait (Just self') (Just (fromMaybe TyTop sig))
           (desugar <$> e1) (TmOpen (TmVar x) (desugar e2))
-desugar (TmConstruction ctor args) =
-  TmNew (foldl TmApp (TmVar ctor) (desugar <$> args))
 desugar (TmType a sorts params (Just t1) t2 e) =
   TmType a sorts params Nothing (TyAnd t1 t2) (desugar e)
 -- TODO: def should always be desugared to letrec

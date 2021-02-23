@@ -16,7 +16,7 @@ printAdd = trait implements AddSig<Print> => {
   (Add e1 e2).print = "(" ++ e1.print ++ " + " ++ e2.print ++ ")";
 };
 expAdd Exp = trait [self : AddSig<Exp>] => {
-  exp = Add(Lit(4); Lit(8));
+  exp = new Add (new Lit 4) (new Lit 8);
 };
 
 type MulSig<Exp> extends AddSig<Exp> = {
@@ -29,7 +29,7 @@ printMul = trait implements MulSig<Print> inherits printAdd => {
   (Mul e1 e2).print = "(" ++ e1.print ++ " * " ++ e2.print ++ ")";
 };
 expMul Exp = trait [self : MulSig<Exp>] inherits expAdd @Exp => {
-  override exp = Mul(super.exp; Lit(4));
+  override exp = new Mul super.exp (new Lit 4);
 };
 
 e = new evalMul , printMul , expMul @(Eval & Print);

@@ -19,9 +19,9 @@ type Draw Graphic Color = {
 };
 
 doc T C = trait [self : DocSig'<T><T> & GraphicSig<T><C> & ColorSig<C> & Draw T C] implements Draw T C => {
-  init = { x = 0; y = 0; width = 600; height = 600; color = Black(); level = 3 };
+  init = { x = 0; y = 0; width = 600; height = 600; color = new Black; level = 3 };
   draw = \{..} ->
-    let center = Rect({ x = x + width/3; y = y + height/3; width = width/3; height = height/3; color = White() }) in
+    let center = new Rect { x = x + width/3; y = y + height/3; width = width/3; height = height/3; color = new White } in
     if level == 0 then center else
       let opt = { width = width/3; height = height/3; level = level - 1 } in
       let arr = [
@@ -33,11 +33,11 @@ doc T C = trait [self : DocSig'<T><T> & GraphicSig<T><C> & ColorSig<C> & Draw T 
         draw (opt,{ x = x; y = y + height*2/3 });
         draw (opt,{ x = x + width/3; y = y + height*2/3 });
         draw (opt,{ x = x + width*2/3; y = y + height*2/3 });
-      ] in fold @T (\(s:T) (x:T) -> Comp(s; x)) center arr;
+      ] in fold @T (\(s:T) (x:T) -> new Comp s x) center arr;
   body = """
     \Graph { width = init.width; height = init.height } [
       \Rect(init)
-      \Group("Sierpiński"; draw init)
+      \Group("Sierpiński" (draw init))
     ]
   """;
 };
