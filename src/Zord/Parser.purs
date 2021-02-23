@@ -5,13 +5,14 @@ import Prelude hiding (between)
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array as Array
-import Data.Char.Unicode (isLower)
+import Data.Char.Unicode (isLower, isUpper)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, some, toUnfoldable)
 import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, optional)
 import Data.String as String
 import Data.String.CodeUnits as CodeUnits
+import Data.String.Unsafe (charAt)
 import Data.Tuple (Tuple(..))
 import Text.Parsing.Parser (Parser, fail, position)
 import Text.Parsing.Parser.Combinators (between, choice, lookAhead, manyTill, sepEndBy, try)
@@ -185,12 +186,12 @@ document p = do
         e <- p <* char ')'
         pure $ newStr (TmToString e)
       else do
-        cmd <- stringTill (char '{' <|> char '(' <|> char '[')
-        let ctor = TmVar (String.trim cmd)
-        e <- optional $ TmApp ctor <$> recordLit p <|>
-          foldl TmApp ctor <$> between (symbol "(") (char ')') (many (dotexpr p))
+        cmd <- String.trim <$> stringTill (char '{' <|> char '(' <|> char '[')
+        e <- optional $ TmApp (TmVar cmd) <$> recordLit p <|>
+          foldl TmApp (TmVar cmd) <$> between (symbol "(") (char ')') (many (dotexpr p))
         docs <- many (try $ skipSpaces *> between (char '[') (char ']') (document p))
-        pure $ TmNew (foldl TmApp (fromMaybe ctor e) docs)
+        pure <<< (if isUpper (charAt 0 cmd) then TmNew else identity) $
+          foldl TmApp (fromMaybe (TmVar cmd) e) docs
     more <- document p
     pure $ newComp (newComp str res) more
 

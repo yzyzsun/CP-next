@@ -37,7 +37,7 @@ doc T C = trait [self : DocSig'<T><T> & GraphicSig<T><C> & ColorSig<C> & Draw T 
   body = """
     \Graph { width = init.width; height = init.height } [
       \Rect(init)
-      \Group("Sierpiński" (draw init))
+      \draw(init)
     ]
   """;
 };
