@@ -1,18 +1,12 @@
 const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const isWebpackDevServer = process.argv.some(a => path.basename(a) === 'webpack-dev-server');
 const isWatch = process.argv.some(a => a === '--watch');
 
 module.exports = {
-  mode: 'development',
-  entry: './plground/index.js',
+  entry: './app.js',
   module: {
     rules: [
-      {
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
-      },
       {
         test: /\.purs$/,
         exclude: /node_modules/,
@@ -29,13 +23,10 @@ module.exports = {
       },
     ],
   },
-  plugins: [
-    new HtmlWebpackPlugin({ template: './plground/index.html', inject: 'head' }),
-  ],
-  devtool: 'source-map',
   performance: { hints: false },
   output: {
     filename: 'bundle.js',
-    path: path.resolve(__dirname, 'plground/public'),
+    path: path.resolve(__dirname, 'backend/app/assets/javascripts'),
+    library: 'bundle',
   },
 };

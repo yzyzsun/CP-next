@@ -1,0 +1,125 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <a href="/" class="navbar-brand">PLGround</a>
+  <div class="navbar-nav">
+    <a href class="nav-link" data-toggle="modal" data-target="#modal">About</a>
+  </div>
+  <div class="ml-auto">
+    <button class="btn btn-outline-primary" id="render">Render</button>
+  </div>
+</nav>
+<div class="modal fade" id="modal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title">About PLGround</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          PLGround provides a wiki-like document repository.
+          Documents are written in Zord and rendered with an in-browser interpreter.
+          Zord is a functional programming language that advocates compositional programming.
+        </p>
+        <p><em>Code Repo:</em> <a href="https://github.com/yzyzsun/zord">https://github.com/yzyzsun/zord</a></p>
+        <p><em>Contributors:</em> <a href="https://yzsun.me">Yaozhu Sun</a> and <a href="https://i.cs.hku.hk/~bruno/">Bruno Oliveira</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="modal-sign" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-body"></div>
+    </div>
+  </div>
+</div>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-6 px-0" id="editor"></div>
+    <div class="col-lg-6">
+      <div class="m-3 p-3 bg-light" id="panel">
+        <div class="row justify-content-between form-group">
+          <% if @user %>
+            <div class="text-secondary mt-2 ml-3">
+              🖖 Welcome, <%= @user.email %>!
+            </div>
+            <div class="mr-3">
+              <%= link_to "Log out", destroy_user_session_path, method: :delete, class: "btn btn-secondary" %>
+            </div>
+          <% else %>
+            <div class="text-secondary mt-2 ml-3">
+              👋 Hi, visitor!
+            </div>
+            <div class="mr-3">
+              <a href class="btn btn-secondary" id="login">Log in</a>
+              <a href class="btn btn-secondary" id="signup">Sign up</a>
+            </div>
+          <% end %>
+        </div>
+        <div class="row justify-content-around">
+          <div class="col-sm-6 row px-0 form-group">
+            <label for="access" class="col-4 col-form-label">Access</label>
+            <div class="col-8">
+              <select <%= @doc ? "disabled" : "" %> id="access" class="custom-select">
+                <option <%= @user ? "" : "disabled" %> value="priv">Private (invisible to others)</option>
+                <option value="pub">Public (uneditable to others)</option>
+                <option value="open" selected>Open (anyone can edit)</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-sm-6 row px-0 form-group">
+            <label for="mode" class="col-4 col-form-label">Mode</label>
+            <div class="col-8">
+              <select id="mode" class="custom-select">
+                <option value="program" selected>Program</option>
+                <option value="module">Module</option>
+                <option value="doc_only">Doc-only</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="d-none row form-group" id="providing">
+          <label for="provide-factory" class="col-2 col-form-label">Providing</label>
+          <div class="col-10">
+            <input id="provide-factory" class="form-control" placeholder="a factory which can be opened for doc-only use">
+          </div>
+        </div>
+        <div class="d-none row form-group" id="requiring">
+          <label for="require-module" class="col-2 col-form-label">Requiring</label>
+          <div class="col-10">
+            <input id="require-module" class="form-control">
+          </div>
+        </div>
+        <div class="row justify-content-between">
+          <% if @doc %>
+            <div class="mt-2 ml-3">
+              Owner: <%= @doc.user ? @doc.user.email : "<anonymous>" %>
+              <% unless @doc.open? || @doc.user == @user %>
+                <span class="text-secondary">(you cannot edit in place)</span>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="text-secondary mt-2 ml-3">
+              Feel free to create a new document.
+            </div>
+          <% end %>
+          <div>
+            <% if @doc && (@doc.open? || @doc.user == @user) %>
+              <button class="btn btn-success" id="save">Save</button>
+            <% end %>
+            <button class="btn btn-outline-success mr-3" id="save-as">Save as...</button>
+          </div>
+        </div>
+        <div class="row">
+          <small class="text-secondary ml-auto" id="saved"></small>
+        </div>
+      </div>
+      <div class="m-4" id="output">
+        Click the button in the top right corner or press Ctrl+Enter (or Cmd+Return on ) to render the document.<br><br>
+      </div>
+      <div class="m-4" id="error"></div>
+    </div>
+  </div>
+</div>
