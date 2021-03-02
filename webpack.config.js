@@ -1,9 +1,7 @@
 const path = require('path');
 
-const isWebpackDevServer = process.argv.some(a => path.basename(a) === 'webpack-dev-server');
-const isWatch = process.argv.some(a => a === '--watch');
-
 module.exports = {
+  mode: 'production',
   entry: './app.js',
   module: {
     rules: [
@@ -16,7 +14,6 @@ module.exports = {
             options: {
               spago: true,
               pscIde: true,
-              watch: isWebpackDevServer || isWatch,
             },
           },
         ],

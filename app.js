@@ -1,7 +1,7 @@
-import { EditorState, EditorView, basicSetup } from '@codemirror/next/basic-setup';
-import { keymap } from '@codemirror/next/view';
-import { styleTags, tags as t } from '@codemirror/next/highlight';
-import { LanguageSupport, LezerLanguage, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/next/language';
+import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup';
+import { keymap } from '@codemirror/view';
+import { LanguageSupport, LezerLanguage, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/language';
+import { styleTags, tags as t } from '@codemirror/highlight';
 import { parser } from './zord';
 
 const zordLanguage = LezerLanguage.define({

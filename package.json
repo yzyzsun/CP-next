@@ -7,30 +7,25 @@
     "start": "spago run",
     "test": "spago test",
     "vscode": "cd vscode && vsce package",
-    "lezer": "lezer-generator --noTerms --output plground/zord plground/zord.grammar",
-    "webpack": "npm run lezer && webpack -p",
-    "webpack:dev": "webpack-dev-server --open",
-    "rackup": "npm run webpack && cd plground && rackup"
+    "grammar": "lezer-generator --noTerms --output zord zord.grammar",
+    "build": "npm run grammar && webpack",
+    "server": "cd backend && rails server"
   },
   "repository": "github:yzyzsun/zord",
   "author": "Yaozhu Sun",
   "license": "Apache-2.0",
   "homepage": "https://plground.org",
   "devDependencies": {
-    "@codemirror/next": "^0.16.0",
-    "bootstrap": "^4.6.0",
-    "css-loader": "^3.6.0",
-    "html-webpack-plugin": "^4.5.1",
-    "jquery": "^3.5.1",
-    "lezer-generator": "^0.13.2",
-    "popper.js": "^1.16.1",
+    "@codemirror/basic-setup": "^0.17.1",
+    "@codemirror/highlight": "^0.17.3",
+    "@codemirror/language": "^0.17.5",
+    "@codemirror/view": "^0.17.11",
+    "lezer-generator": "^0.13.3",
     "purescript": "^0.13.8",
-    "purs-loader": "^3.7.1",
-    "spago": "^0.19.0",
-    "style-loader": "^1.2.1",
-    "vsce": "^1.84.0",
-    "webpack": "^4.46.0",
-    "webpack-cli": "^3.3.12",
-    "webpack-dev-server": "^3.11.2"
+    "purs-loader": "^3.7.2",
+    "spago": "^0.19.1",
+    "vsce": "^1.85.1",
+    "webpack": "^5.24.2",
+    "webpack-cli": "^4.5.0"
   }
 }
