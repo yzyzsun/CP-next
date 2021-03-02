@@ -22,7 +22,7 @@ TypeDef {
 }
 
 TermDef {
-  TermNameDecl typeParam* termParam* ~conflict (":" type)? "=" expression ";"
+  TermNameDecl typeParam* termParam* (":" type)? "=" expression ";"
 }
 
 type {
@@ -67,7 +67,12 @@ lexpr {
 }
 
 fexpr {
-  aexpr (aexpr | "@" atype)* | aexpr ("." Label)+ | aexpr ("\\" RecordType)+
+  dotexpr (dotexpr | "@" atype)* |
+  dotexpr ("\\" RecordType)+
+}
+
+dotexpr {
+  aexpr ("." Label)+
 }
 
 aexpr {
@@ -86,8 +91,9 @@ MethodPattern {
   parens<LabelDecl termParam* SelfAnno?> "." RecordField
 }
 
-typeParam { underscore | TypeNameDecl | parens<TypeNameDecl "*" type> }
-termParam { underscore | TermNameDecl | parens<TermNameDecl ":" type> }
+typeParam { TypeNameDecl | parens<TypeNameDecl "*" type> }
+termParam { termId | parens<termId ":" type> | braces<".."> }
+termId { underscore | TermNameDecl }
 SelfAnno { brackets<TermNameDecl ":" type> }
 
 kw<word> { @specialize[@name={word}]<lowerid, word> }
