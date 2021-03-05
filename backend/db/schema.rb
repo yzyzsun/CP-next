@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_02_28_115719) do
+ActiveRecord::Schema.define(version: 2021_03_04_061808) do
 
   create_table "docs", force: :cascade do |t|
     t.string "name"
@@ -22,17 +22,17 @@ ActiveRecord::Schema.define(version: 2021_02_28_115719) do
     t.datetime "updated_at", precision: 6, null: false
     t.integer "access", null: false
     t.integer "user_id"
-    t.index ["name"], name: "index_docs_on_name", unique: true
+    t.index ["user_id", "name"], name: "index_docs_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_docs_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
-    t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
     t.datetime "remember_created_at"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["email"], name: "index_users_on_email", unique: true
+    t.string "username", default: "", null: false
+    t.index ["username"], name: "index_users_on_username", unique: true
   end
 
   add_foreign_key "docs", "users"

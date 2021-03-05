@@ -38,12 +38,8 @@ function preprocess(code) {
 }
 
 function fetchDoc(name) {
-  return fetchJson('/docs/' + name).then(json => json.code)
+  return fetch('/docs/' + name).then(res => res.text())
     .catch(err => { throw new Error('Document not found: ' + name); });
-}
-
-function fetchJson(url) {
-  return fetch(url).then(res => res.json());
 }
 
 function validate(name) {
@@ -55,53 +51,19 @@ function validate(name) {
   }
 }
 
-const headers = { 'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content') };
-
-const pathname = window.location.pathname.slice(1);
-
-const view = editorView(
-  pathname ? editorState('loading...', false) : editorState('', true)
-);
-
-if (pathname) fetchJson('/docs/' + pathname).then(json => {
-  view.setState(editorState(json.code, true));
-  $('#access').val(json.access);
-  $('#mode').val(json.mode);
-  $('#mode').change();
-  $('#provide-factory').val(json.provide_factory);
-  $('#require-module').val(json.require_module);
-  interpret();
-}).catch(err => {
-  alert('Document not found; redirecting to home page');
-  window.location.replace('/');
-}); else fetchJson('/docs').then(json => {
-  $('#output').append('<ul>');
-  for (const name of json.sort()) {
-    $('#output').append(`<li><a href="/${name}">${name}</a></li>`);
-  }
-  $('#output').append('</ul>');
-  $('#save').prop('disabled', true);
-});
+const code = $('#code').val();
+const view = editorView(editorState(code, true));
+if (code) interpret();
 
 $('#render').on('click', interpret);
 
 $('#mode').on('change', () => {
-  if ($('#mode').val() == 'module') $('#providing').removeClass('d-none');
-  else $('#providing').addClass('d-none');
-  if ($('#mode').val() == 'doc_only') $('#requiring').removeClass('d-none');
-  else $('#requiring').addClass('d-none');
+  if ($('#mode').val() == 'module') $('#providing').removeClass('d-none').addClass('d-flex');
+  else $('#providing').removeClass('d-flex').addClass('d-none');
+  if ($('#mode').val() == 'doc_only') $('#requiring').removeClass('d-none').addClass('d-flex');
+  else $('#requiring').removeClass('d-flex').addClass('d-none');
 });
-
-function modal(prep) {
-  $('#modal-sign .modal-body').load('/users/sign_' + prep, () => {
-    $('#modal-sign a').hide();
-    $('#modal-sign').modal('show');
-  });
-  return false;
-}
-
-$('#login').on('click', () => modal('in'));
-$('#signup').on('click', () => modal('up'));
+$('#mode').change();
 
 function formData(name) {
   const data = new FormData();
@@ -114,9 +76,12 @@ function formData(name) {
   return data;
 }
 
+const headers = { 'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content') };
+
 $('#save').on('click', () => {
-  const init = { method: 'PUT', body: formData(pathname), headers };
-  fetch('/docs/' + pathname, init).then(res => {
+  const docname = window.location.pathname.split('/').slice(-1)[0];
+  const init = { method: 'PUT', body: formData(docname), headers };
+  fetch('/docs/' + docname, init).then(res => {
     $('#saved').text(res.ok ? 'Last saved: ' + new Date()
       : 'Unknown error occurred when saving...');
   }).catch(err => { $('#saved').text(err.message); });

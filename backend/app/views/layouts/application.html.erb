@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PLGround</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "application", media: "all" %>
+    <%= javascript_include_tag "application" %>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <a href="/" class="navbar-brand">PLGround</a>
+      <div class="navbar-nav">
+        <a href class="nav-link" data-toggle="modal" data-target="#modal">About</a>
+      </div>
+    </nav>
+    <%= render partial: "shared/about", layout: "shared/modal", locals: { title: "About PLGround", id: "modal" } %>
+    <% if notice %><div class="alert alert-primary mb-0"><%= notice %></div><% end %>
+    <% if alert %><div class="alert alert-danger mb-0"><%= alert %></div><% end %>
+
+    <%= yield %>
+
+    <% if @enable_script %>
+      <%= javascript_include_tag "bundle" %>
+      <%= javascript_include_tag "home" %>
+    <% end %>
+  </body>
+</html>

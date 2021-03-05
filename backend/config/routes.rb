@@ -1,7 +1,8 @@
 Rails.application.routes.draw do
   # For details on the DSL available within this file, see https://guides.rubyonrails.org/routing.html
   root "home#index"
-  resources :docs, except: [:new, :edit]
+  resources :docs, only: [:create, :show, :update, :destory]
   devise_for :users
-  get "/:id", to: "home#doc"
+  get "/:username", to: "home#user"
+  get "/:username/:doc", to: "home#doc"
 end
