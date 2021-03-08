@@ -1,5 +1,3 @@
--- module svg --
-
 open color;
 
 type HTML = { html : String };

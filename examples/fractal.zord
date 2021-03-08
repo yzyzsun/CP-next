@@ -42,4 +42,4 @@ doc T C = trait [self : DocSig'<T><T> & GraphicSig<T><C> & ColorSig<C> & Draw T 
   """;
 };
 
-(new doc @HTML @Hex , html' , svg , color).body
+(new doc @HTML @Hex , html' , svg , color).body.html

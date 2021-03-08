@@ -1,5 +1,3 @@
--- module doc --
-
 type HTML = { html : String };
 type LaTeX = { latex : String };
 

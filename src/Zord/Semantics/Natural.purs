@@ -72,15 +72,6 @@ eval = runTrampoline <<< go <<< tmHoas
     go e = unsafeCrashWith $ "Zord.Semantics.Natural.eval: " <>
       "well-typed programs don't get stuck, but got " <> show e
 
-evalDoc :: Tm -> String
-evalDoc e = case eval e of
-  TmString s -> s
-  TmInt i    -> show i
-  TmDouble d -> show d
-  TmBool b   -> show b
-  TmUnit -> ""
-  e' -> evalDoc $ TmPrj e' "html"
-
 typedReduce :: Tm -> Ty -> Maybe Tm
 typedReduce e _ | not (isValue e) = unsafeCrashWith $
   "Zord.Semantics.Natural.typedReduce: " <> show e <> " is not a value"

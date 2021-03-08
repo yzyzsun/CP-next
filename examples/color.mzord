@@ -1,5 +1,3 @@
--- module color --
-
 type Hex = { hex : String };
 
 type ColorSig<Color> = {

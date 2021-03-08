@@ -16,7 +16,9 @@ function interpret() {
     $('#output').text('This is a module file.');
   } else {
     const run = prog => preprocess(prog).then(code => {
-      $('#output').html(Zord.interpret(code)(Zord.Doc.value)());
+      output = Zord.interpret(code)(Zord.BigStep.value)();
+      if (output.startsWith('"')) output = JSON.parse(output);
+      $('#output').html(output);
     }).catch(err => {
       $('#error').text(err);
     });
@@ -24,7 +26,7 @@ function interpret() {
     if (mode == 'doc_only') {
       const lib = $('#require-module').val();
       fetchJson(lib).then(json => run(
-        `${json.code} open ${json.provide_factory} in """${code}"""`
+        `${json.code} open ${json.provide_factory} in """${code}""".html`
       )).catch(err => {
         $('#error').text(err);
       });

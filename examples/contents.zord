@@ -51,4 +51,4 @@ doc T = trait [self : ContentsSig<T>] => {
   ]"""
 };
 
-(new doc @(HTML & TOC) , contents , toc).body
+(new doc @(HTML & TOC) , contents , toc).body.html
