@@ -23,9 +23,11 @@ function interpret() {
     const code = view.state.doc.toString();
     if (mode == 'doc_only') {
       const lib = $('#require-module').val();
-      fetchJson('/docs/' + lib).then(json => run(
+      fetchJson(lib).then(json => run(
         `${json.code} open ${json.provide_factory} in """${code}"""`
-      ));
+      )).catch(err => {
+        $('#error').text(err);
+      });
     } else { run(code); }
   }
 }
@@ -38,8 +40,13 @@ function preprocess(code) {
 }
 
 function fetchDoc(name) {
-  return fetch('/docs/' + name).then(res => res.text())
-    .catch(err => { throw new Error('Document not found: ' + name); });
+  return fetch('/docs/' + name, { headers: { 'Accept': 'text/plain' } })
+    .then(res => res.text());
+}
+
+function fetchJson(name) {
+  return fetch('/docs/' + name, { headers: { 'Accept': 'application/json' } })
+    .then(res => res.json());
 }
 
 function validate(name) {
@@ -67,7 +74,7 @@ $('#mode').change();
 
 function formData(name) {
   const data = new FormData();
-  data.append('name', name);
+  if (name) data.append('name', name);
   data.append('code', view.state.doc.toString());
   data.append('access', $('#access').val());
   data.append('mode', $('#mode').val());
@@ -79,11 +86,10 @@ function formData(name) {
 const headers = { 'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content') };
 
 $('#save').on('click', () => {
-  const docname = window.location.pathname.split('/').slice(-1)[0];
-  const init = { method: 'PUT', body: formData(docname), headers };
-  fetch('/docs/' + docname, init).then(res => {
+  const init = { method: 'PUT', body: formData(), headers };
+  fetch(window.location.pathname, init).then(res => {
     $('#saved').text(res.ok ? 'Last saved: ' + new Date()
-      : 'Unknown error occurred when saving...');
+      : 'You are not authorized to change this document.');
   }).catch(err => { $('#saved').text(err.message); });
   interpret();
 });
@@ -92,7 +98,7 @@ $('#save-as').on('click', () => {
   const name = prompt('Please enter the document name to save:');
   const init = { method: 'POST', body: formData(name), headers };
   if (name && validate(name)) fetch('/docs/', init).then(res => {
-    if (res.ok) window.location.assign('/' + name);
+    if (res.ok) res.text().then(path => { window.location.assign(path); });
     else alert('Document name aleady occupied: ' + name);
   }).catch(err => alert(err.message));
 });

@@ -1,11 +1,11 @@
 class DocsController < ApplicationController
-  before_action :set_doc, only: [:update, :destroy]
+  before_action :set_doc, only: [:show, :destroy]
 
   def create
     if user_signed_in?
       doc = current_user.docs.build(doc_params)
       if doc.save
-        head :ok
+        doc.path
       else
         head :unprocessable_entity
       end
@@ -15,19 +15,29 @@ class DocsController < ApplicationController
   end
 
   def show
-    render plain: @doc.code
-  end
-
-  def update
-    if @doc.update(doc_params)
-      head :ok
-    else
-      head :unprocessable_entity
+    respond_to do |format|
+      format.text { render plain: @doc.code }
+      format.json
     end
   end
 
-  def destory
+  def destroy
     @doc.destroy
+    redirect_to :root
+  end
+
+  def update
+    user = User.find_by(username: params[:username])
+    doc = Doc.find_by(user: user, name: params[:doc])
+    if doc.open? || doc.user == current_user
+      if doc.update(doc_params)
+        head :ok
+      else
+        head :unprocessable_entity
+      end
+    else
+      head :unauthorized
+    end
   end
 
   private

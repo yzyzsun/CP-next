@@ -47,15 +47,21 @@
                  value="<%= @doc&.require_module %>">
         </div>
         <% if user_signed_in? %>
-          <div class="d-flex mt-3">
-            <select <%= "disabled" if @doc %> id="access" class="custom-select w-auto">
+          <div class="d-flex flex-wrap mt-3">
+            <select <%= "disabled" if @doc && @doc.user != current_user %> id="access" class="custom-select w-auto">
               <option <%= "selected" if @doc&.open? %> value="open">Open (anyone can edit)</option>
               <option <%= "selected" if @doc&.pub? %> value="pub">Pub (uneditable to others)</option>
               <option <%= "selected" if @doc&.priv? %> value="priv">Priv (invisible to others)</option>
             </select>
             <div class="ml-auto">
-              <% if @doc && @doc.user == current_user %>
-                <button class="btn btn-success" id="save">Save</button>
+              <% if @doc %>
+                <% if @doc.user == current_user %>
+                  <%= link_to "Delete", "/docs/#{@doc.name}", class: "btn btn-danger",
+                      method: :delete, data: { confirm: "Are you sure to delete this document?" } %>
+                <% end %>
+                <% if @doc.open? || @doc.user == current_user %>
+                  <button class="btn btn-success" id="save">Save</button>
+                <% end %>
               <% end %>
               <button class="btn btn-outline-success" id="save-as">Save as...</button>
             </div>
@@ -67,7 +73,7 @@
       </div>
       <div class="m-4" id="output">
         <p class="text-secondary">Click the [Render] button above or press Ctrl+Enter (or Cmd+Return on ) to render the document.</p>
-        <% if @docs %>
+        <% if @docs&.any? %>
           <p>
             <% if @user %>
               Browse <%= current_user == @user ? "your" : @user.username + "'s public" %> documents:
