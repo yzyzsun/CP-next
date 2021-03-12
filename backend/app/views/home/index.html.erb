@@ -29,7 +29,7 @@
           <label for="mode" class="col-form-label">Mode</label>
           <select id="mode" class="custom-select w-auto ml-3">
             <option <%= "selected" if @doc&.program? %> value="program" selected>Program</option>
-            <option <%= "selected" if @doc&.module? %> value="module">Module</option>
+            <option <%= "selected" if @doc&.library? %> value="library">Library</option>
             <option <%= "selected" if @doc&.doc_only? %> value="doc_only">Doc-only</option>
           </select>
           <button class="btn btn-primary ml-auto" id="render">Render</button>
@@ -41,10 +41,10 @@
                  value="<%= @doc&.provide_factory %>">
         </div>
         <div class="d-flex mt-1" id="requiring">
-          <label for="require-module" class="col-form-label">Requiring</label>
-          <input id="require-module" class="form-control flex-grow-1 ml-3"
-                 placeholder="a module which provides a factory"
-                 value="<%= @doc&.require_module %>">
+          <label for="require-library" class="col-form-label">Requiring</label>
+          <input id="require-library" class="form-control flex-grow-1 ml-3"
+                 placeholder="a library which provides a factory"
+                 value="<%= @doc&.require_library %>">
         </div>
         <% if user_signed_in? %>
           <div class="d-flex flex-wrap mt-3">

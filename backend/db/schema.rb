@@ -10,18 +10,18 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_03_04_061808) do
+ActiveRecord::Schema.define(version: 2021_03_11_123819) do
 
   create_table "docs", force: :cascade do |t|
     t.string "name"
     t.text "code", null: false
     t.integer "mode", null: false
     t.string "provide_factory"
-    t.string "require_module"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.integer "access", null: false
     t.integer "user_id"
+    t.string "require_library"
     t.index ["user_id", "name"], name: "index_docs_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_docs_on_user_id"
   end

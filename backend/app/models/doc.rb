@@ -1,5 +1,5 @@
 class Doc < ApplicationRecord
-  enum mode: [:program, :module, :doc_only]
+  enum mode: [:program, :library, :doc_only]
   enum access: [:priv, :pub, :open]
   belongs_to :user
   validates :name, uniqueness: { scope: :user }
