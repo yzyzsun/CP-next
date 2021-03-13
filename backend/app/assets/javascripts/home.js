@@ -11,6 +11,7 @@ function editorView(state) {
 function interpret() {
   $('#output').empty();
   $('#error').empty();
+  $('#require-library').removeClass('is-invalid');
   const mode = $('#mode').val();
   if (mode == 'library') {
     $('#output').text('This is a library.');
@@ -22,17 +23,25 @@ function interpret() {
     }).catch(err => {
       $('#error').text(err);
     });
+    const libErr = msg => {
+      $('#require-library').addClass('is-invalid');
+      $('#error').text(msg);
+    };
     const code = view.state.doc.toString();
     if (mode == 'doc_only') {
       const lib = $('#require-library').val();
+      if (!lib) {
+        libErr('Doc-only mode requires a library.');
+        return;
+      }
       const arr = lib.split('/');
       const user = arr.length == 1 ? namespace : arr[0];
       const name = arr.slice(-1)[0];
-      fetchDocJson(name, user).then(json => run(
-        `${json.code} open ${json.provide_factory} in """${code}""".html`
-      )).catch(err => {
-        $('#error').text(err);
-      });
+      fetchDocJson(name, user).then(json => {
+        if (json.mode != 'library') libErr(`'${name}' is not a library.`);
+        else if (!json.provide_factory) libErr(`'${name}' does not provide a factory.`);
+        else run(`${json.code} open ${json.provide_factory} in """${code}""".html`);
+      }).catch(err => libErr(err));
     } else { run(code); }
   }
 }

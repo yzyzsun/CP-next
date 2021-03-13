@@ -4,7 +4,7 @@ Rails.application.routes.draw do
   resources :docs, only: [:create, :destroy]
   get "/docs", to: "docs#show"
   put "/docs", to: "docs#update"
-  devise_for :users
+  devise_for :users, controllers: { registrations: "registrations" }
   get "/:username", to: "home#user"
   get "/:username/:doc", to: "home#doc"
 end

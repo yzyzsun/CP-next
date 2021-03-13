@@ -5,6 +5,7 @@ class DocsController < ApplicationController
     if user_signed_in?
       doc = current_user.docs.build(doc_params)
       if doc.save
+        File.write doc.file, params[:code]
         render plain: doc.path
       else
         head :unprocessable_entity
@@ -17,8 +18,12 @@ class DocsController < ApplicationController
   def destroy
     doc = Doc.find_by(user: current_user, name: params[:id])
     if doc
-      doc.destroy
-      redirect_to :root
+      if doc.destroy
+        File.delete doc.file
+        redirect_to :root
+      else
+        :unprocessable_entity
+      end
     else
       head :not_found
     end
@@ -30,14 +35,17 @@ class DocsController < ApplicationController
     else
       respond_to do |format|
         format.text { render plain: @doc.code }
-        format.json { render json: @doc }
+        format.json { render json: @doc, methods: :code }
       end
     end
   end
 
   def update
     if @doc.open? || @doc.user == current_user
+      old_file = @doc.file
       if @doc.update(doc_params)
+        File.delete old_file
+        File.write @doc.file, params[:code]
         head :ok
       else
         head :unprocessable_entity
@@ -55,6 +63,6 @@ class DocsController < ApplicationController
     end
 
     def doc_params
-      params.permit(:name, :code, :access, :mode, :provide_factory, :require_library)
+      params.permit(:name, :access, :mode, :provide_factory, :require_library)
     end
 end
