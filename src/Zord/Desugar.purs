@@ -32,6 +32,9 @@ desugar (TmRcd xs) =
       RcdField o l <<< Left <<< desugar $
         TmAbs params (TmTrait self Nothing Nothing
           (TmRcd (singleton (RcdField false l' (Left e)))))
+    desugarField (DefaultPattern self l e) =
+      let self' = fromMaybe (Tuple "self" TyTop) self in
+      DefaultPattern (Just self') l (desugar e)
 desugar (TmTrait self sig e1 e2) =
   let self'@(Tuple x _) = fromMaybe (Tuple "self" TyTop) self in
   TmTrait (Just self') (Just (fromMaybe TyTop sig))

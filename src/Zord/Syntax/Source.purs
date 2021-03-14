@@ -85,6 +85,7 @@ data Tm = TmInt Int
         | TmDef Name TyParamList TmParamList (Maybe Ty) Tm Tm
 
 data RcdField = RcdField Boolean Label (Either Tm MethodPattern)
+              | DefaultPattern SelfAnno Label Tm
 data MethodPattern = MethodPattern TmParamList SelfAnno Label Tm
 
 instance showTm :: Show Tm where
@@ -111,7 +112,7 @@ instance showTm :: Show Tm where
   show (TmLetrec x t e1 e2) = parens $
     "letrec" <+> x <+> ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
-  show (TmTrait self sig e1 e2) = parens $ "trait" <+> showSelf self <+>
+  show (TmTrait self sig e1 e2) = parens $ "trait" <+> showSelf "" self <+>
     showMaybe "implements " sig " " <> showMaybe "inherits " e1 " " <>
     "=>" <+> show e2
   show (TmNew e) = parens $ "new" <+> show e
@@ -171,15 +172,16 @@ showRcdTy :: RcdTyList -> String
 showRcdTy xs = intercalate "; " $ xs <#> \(Tuple l t) -> l <+> ":" <+> show t
 
 showRcdTm :: List RcdField -> String
-showRcdTm xs = intercalate "; " $ xs <#> \(RcdField o l e) ->
-  (if o then "override " else "") <> showField l e
+showRcdTm xs = intercalate "; " $ xs <#> case _ of
+  RcdField o l e -> (if o then "override " else "") <> showField l e
+  DefaultPattern self l e -> showSelf "_" self <> "." <> l <+> "=" <+> show e
   where showField :: Label -> Either Tm MethodPattern -> String
         showField l (Left e) = l <+> "=" <+> show e
         showField l (Right (MethodPattern params self l' e)) =
-          parens (l <+> showTmParams params <+> showSelf self) <>
+          parens (l <+> showTmParams params <+> showSelf "" self) <>
           "." <> l' <+> "=" <+> show e
 
 type SelfAnno = Maybe (Tuple Name Ty)
 
-showSelf :: SelfAnno -> String
-showSelf = maybe "" \(Tuple x t) -> brackets $ x <+> ":" <+> show t
+showSelf :: String -> SelfAnno -> String
+showSelf = flip maybe \(Tuple x t) -> brackets $ x <+> ":" <+> show t

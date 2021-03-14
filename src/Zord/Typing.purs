@@ -4,13 +4,14 @@ import Prelude
 
 import Data.Array as Array
 import Data.Either (Either(..))
-import Data.List (List(..), elem, filter, foldr, last, null, singleton)
-import Data.Maybe (Maybe(..))
+import Data.List (List(..), elem, filter, foldr, last, notElem, null, singleton)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Traversable (traverse)
-import Data.Tuple (Tuple(..), fst, uncurry)
+import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import Zord.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
+import Zord.Desugar (desugar)
 import Zord.Subtyping (isTopLike, (<:), (===))
 import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..), fromJust, (<+>))
 import Zord.Syntax.Core as C
@@ -197,6 +198,9 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
         Just (Tuple _ ty) ->
           S.TmRcd (singleton (S.RcdField o l (Left (inferFromSig ty e))))
         _ -> r
+    inferFromSig (S.TyRcd xs) (S.TmRcd (Cons (S.DefaultPattern s l e) Nil)) =
+      desugar <<< S.TmRcd $ filter (\x -> fst x `notElem` patterns) xs <#> \x ->
+        S.RcdField false (fst x) (Right (S.MethodPattern (paramsFromTy (snd x)) s l e))
     inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons (S.TmParam x Nothing) Nil) e) =
       S.TmAbs (singleton (S.TmParam x (Just targ))) (inferFromSig tret e)
     inferFromSig (S.TyArrow targ tret) (S.TmAbs param@(Cons (S.TmParam _ (Just _)) Nil) e) =
@@ -208,6 +212,17 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     combineRcd (S.TyAnd (S.TyRcd xs) r) = xs <> combineRcd r
     combineRcd (S.TyAnd l r) = combineRcd l <> combineRcd r
     combineRcd _ = Nil
+    patterns :: List Name
+    patterns = patternsFromRcd (S.TmMerge (fromMaybe S.TmUnit me1) ne2)
+    patternsFromRcd :: S.Tm -> List Name
+    patternsFromRcd (S.TmPos _ e) = patternsFromRcd e
+    patternsFromRcd (S.TmOpen _ e) = patternsFromRcd e
+    patternsFromRcd (S.TmMerge e1 e2) = patternsFromRcd e1 <> patternsFromRcd e2
+    patternsFromRcd (S.TmRcd (Cons (S.RcdField _ l _) Nil)) = singleton l
+    patternsFromRcd _ = Nil
+    paramsFromTy :: S.Ty -> S.TmParamList
+    paramsFromTy (S.TyArrow targ tret) = Cons (S.TmParam "_" (Just targ)) (paramsFromTy tret)
+    paramsFromTy _ = Nil
     selectOverride :: S.Tm -> List Label
     selectOverride (S.TmPos _ e) = selectOverride e
     selectOverride (S.TmOpen _ e) = selectOverride e

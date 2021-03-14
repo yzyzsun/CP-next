@@ -79,8 +79,14 @@ aexpr {
   TermName | Number | HereDoc | String | Unit |
   kw<"true"> | kw<"false"> | kw<"undefined"> |
   Array { brackets<sepEndBySemi<expression>> } |
-  Record { braces<sepEndBySemi<kw<"override">? (RecordField | MethodPattern)>> } |
-  parens<expression>
+  Record | parens<expression>
+}
+
+Record {
+  braces<sepEndBySemi<
+    kw<"override">? (RecordField | MethodPattern) |
+    (underscore | SelfAnno) "." RecordField
+  >>
 }
 
 RecordField {

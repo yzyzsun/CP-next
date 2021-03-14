@@ -205,7 +205,8 @@ newComp :: Tm -> Tm -> Tm
 newComp x y = TmNew (TmApp (TmApp (TmVar "Comp") x) y)
 
 recordLit :: SParser Tm -> SParser Tm
-recordLit p = braces $ TmRcd <$> sepEndBySemi (try (recordField p) <|> methodPattern p)
+recordLit p = braces $ TmRcd <$> sepEndBySemi
+  (try (recordField p) <|> methodPattern p <|> defaultPattern p)
 
 recordField :: SParser Tm -> SParser RcdField
 recordField p = do
@@ -228,6 +229,15 @@ methodPattern p = do
   symbol "="
   e <- p
   pure $ RcdField o l (Right (MethodPattern parms self l' e))
+
+defaultPattern :: SParser Tm -> SParser RcdField
+defaultPattern p = do
+  self <- Just <$> selfAnno <|> Nothing <$ underscore
+  symbol "."
+  l <- identifier
+  symbol "="
+  e <- p
+  pure $ DefaultPattern self l e
 
 operators :: OperatorTable Identity String Tm
 operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
