@@ -47,14 +47,16 @@ function interpret() {
 }
 
 function preprocess(code) {
-  const regexp = /^\s*open\s+(?:(\w+)\/)?(\w+)\s*;\s*$/m;
+  const regexp = /open\s+(?:(\w+)\/)?(\w+)\s*;/;
   const found = code.match(regexp);
   if (!found) {
     return new Promise((resolve, reject) => resolve(code));
   } else {
     const user = found[1] || namespace;
     const name = found[2];
-    return fetchDocText(name, user).then(doc => preprocess(code.replace(regexp, doc)));
+    return fetchDocText(name, user).then(doc =>
+      preprocess(code.replace(regexp, doc.replace(/[\r\n]+/g, ' ')))
+    );
   }
 }
 
