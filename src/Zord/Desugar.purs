@@ -10,7 +10,7 @@ import Data.Tuple (Tuple(..))
 import Zord.Syntax.Common (foldl1)
 import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..))
 
--- typing-related desugaring is delayed until synthesizing
+-- typing-related desugaring is delayed until type inference
 desugar :: Tm -> Tm
 
 desugar (TmAbs xs e) = foldr desugarParams (desugar e) xs

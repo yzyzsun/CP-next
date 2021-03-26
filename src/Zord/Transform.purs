@@ -90,8 +90,8 @@ expand (S.TyApp t1 t2) = do
           -- some TyVar may be wrongly captured by a but impossible by #a.
           pure $ S.tySubst b to (S.tySubst a ti t)
         _ -> throwTypeError $
-          "sig" <+> show t1' <+> "expected a sort, but got" <+> show t2'
-    _ -> throwTypeError $ "type" <+> show t1' <+> "is not applicable"
+          "sig" <+> show t1 <+> "expected a sort, but got" <+> show t2
+    _ -> throwTypeError $ "type" <+> show t1 <+> "is not applicable"
 expand (S.TyAbs a t) = addTyBind a someTy $ S.TyAbs a <$> expand t
 expand (S.TyTrait ti to) = S.TyTrait <$> traverse expand ti <*> expand to
 expand (S.TySort ti to) = do
@@ -108,6 +108,8 @@ expand (S.TySort ti to) = do
 expand (S.TyArray t) = S.TyArray <$> expand t
 expand t = pure t
 
+-- If a type declaration is parametrized with sorts,
+-- the input/output occurrences should be distinguished.
 transformTyDef :: S.Ty -> Typing S.Ty
 transformTyDef = expand >=> distinguish false true
 

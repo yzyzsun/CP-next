@@ -23,7 +23,7 @@ import Zord.Semantics.NaturalClosure as Closure
 import Zord.Semantics.NaturalSubstitution as Subst
 import Zord.Semantics.StepTrace as StepTrace
 import Zord.Semantics.Substitution as SmallStep
-import Zord.Typing (synthesize)
+import Zord.Typing (infer)
 
 data Mode = SmallStep | StepTrace | BigStep | Subst | Closure
 
@@ -33,7 +33,7 @@ instance showMode :: Show Mode where show = genericShow
 interpret :: String -> Mode -> Effect String
 interpret code mode = case runParser code (whiteSpace *> program <* eof) of
   Left err -> throw $ showParseError err code
-  Right e -> let e' = desugar e in case runTyping (synthesize e') of
+  Right e -> let e' = desugar e in case runTyping (infer e') of
     Left err -> throw $ showTypeError err
     Right (Tuple e'' t) -> case mode of
       SmallStep -> pure $ show (SmallStep.eval e'')

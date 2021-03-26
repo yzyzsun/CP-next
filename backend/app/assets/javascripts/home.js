@@ -22,6 +22,7 @@ function interpret() {
       $('#output').html(output);
     }).catch(err => {
       $('#error').text(err);
+      $('#error').html($('#error').html().replace(/\n/g, '<br>'));
     });
     const libErr = msg => {
       $('#require-library').addClass('is-invalid');

@@ -18,39 +18,39 @@ import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
 import Zord.Transform (duringTransformation, transform, transformTyDef)
 
-synthesize :: S.Tm -> Typing (Tuple C.Tm C.Ty)
-synthesize (S.TmInt i)    = pure $ Tuple (C.TmInt i) C.TyInt
-synthesize (S.TmDouble d) = pure $ Tuple (C.TmDouble d) C.TyDouble
-synthesize (S.TmString s) = pure $ Tuple (C.TmString s) C.TyString
-synthesize (S.TmBool b)   = pure $ Tuple (C.TmBool b) C.TyBool
-synthesize S.TmUnit = pure $ Tuple C.TmUnit C.TyTop
-synthesize (S.TmUnary Neg e) = do
-  Tuple e' t <- synthesize e
+infer :: S.Tm -> Typing (Tuple C.Tm C.Ty)
+infer (S.TmInt i)    = pure $ Tuple (C.TmInt i) C.TyInt
+infer (S.TmDouble d) = pure $ Tuple (C.TmDouble d) C.TyDouble
+infer (S.TmString s) = pure $ Tuple (C.TmString s) C.TyString
+infer (S.TmBool b)   = pure $ Tuple (C.TmBool b) C.TyBool
+infer S.TmUnit = pure $ Tuple C.TmUnit C.TyTop
+infer (S.TmUnary Neg e) = do
+  Tuple e' t <- infer e
   let core = C.TmUnary Neg e'
   case t of C.TyInt    -> pure $ Tuple core C.TyInt
             C.TyDouble -> pure $ Tuple core C.TyDouble
             _ -> throwTypeError $ "Neg is not defined for" <+> show t
-synthesize (S.TmUnary Not e) = do
-  Tuple e' t <- synthesize e
+infer (S.TmUnary Not e) = do
+  Tuple e' t <- infer e
   let core = pure $ Tuple (C.TmUnary Not e') C.TyBool
   case t of C.TyBool -> core
             _ -> throwTypeError $ "Not is not defined for" <+> show t
-synthesize (S.TmUnary Len e) = do
-  Tuple e' t <- synthesize e
+infer (S.TmUnary Len e) = do
+  Tuple e' t <- infer e
   let core = pure $ Tuple (C.TmUnary Len e') C.TyInt
   case t of C.TyArray _ -> core
             _ -> throwTypeError $ "Len is not defined for" <+> show t
-synthesize (S.TmBinary (Arith op) e1 e2) = do
-  Tuple e1' t1 <- synthesize e1
-  Tuple e2' t2 <- synthesize e2
+infer (S.TmBinary (Arith op) e1 e2) = do
+  Tuple e1' t1 <- infer e1
+  Tuple e2' t2 <- infer e2
   let core = C.TmBinary (Arith op) e1' e2'
   case t1, t2 of C.TyInt,    C.TyInt    -> pure $ Tuple core C.TyInt
                  C.TyDouble, C.TyDouble -> pure $ Tuple core C.TyDouble
                  _, _ -> throwTypeError $ "ArithOp is not defined between" <+>
                                           show t1 <+> "and" <+> show t2
-synthesize (S.TmBinary (Comp op) e1 e2) = do
-  Tuple e1' t1 <- synthesize e1
-  Tuple e2' t2 <- synthesize e2
+infer (S.TmBinary (Comp op) e1 e2) = do
+  Tuple e1' t1 <- infer e1
+  Tuple e2' t2 <- infer e2
   let core = pure $ Tuple (C.TmBinary (Comp op) e1' e2') C.TyBool
   case t1, t2 of C.TyInt,    C.TyInt    -> core
                  C.TyDouble, C.TyDouble -> core
@@ -58,57 +58,57 @@ synthesize (S.TmBinary (Comp op) e1 e2) = do
                  C.TyBool,   C.TyBool   -> core
                  _, _ -> throwTypeError $ "CompOp is not defined between" <+>
                                           show t1 <+> "and" <+> show t2
-synthesize (S.TmBinary (Logic op) e1 e2) = do
-  Tuple e1' t1 <- synthesize e1
-  Tuple e2' t2 <- synthesize e2
+infer (S.TmBinary (Logic op) e1 e2) = do
+  Tuple e1' t1 <- infer e1
+  Tuple e2' t2 <- infer e2
   let core = pure $ Tuple (C.TmBinary (Logic op) e1' e2') C.TyBool
   case t1, t2 of C.TyBool, C.TyBool -> core
                  _, _ -> throwTypeError $ "LogicOp is not defined between" <+>
                                           show t1 <+> "and" <+> show t2
-synthesize (S.TmBinary Append e1 e2) = do
-  Tuple e1' t1 <- synthesize e1
-  Tuple e2' t2 <- synthesize e2
+infer (S.TmBinary Append e1 e2) = do
+  Tuple e1' t1 <- infer e1
+  Tuple e2' t2 <- infer e2
   let core = C.TmBinary Append e1' e2'
   case t1, t2 of C.TyString, C.TyString -> pure $ Tuple core C.TyString
                  C.TyArray t1', C.TyArray t2'
                   | t1' === t2' -> pure $ Tuple core (C.TyArray t1')
                  _, _ -> throwTypeError $ "Append is not defined between" <+>
                                           show t1 <+> "and" <+> show t2
-synthesize (S.TmBinary Index e1 e2) = do
-  Tuple e1' t1 <- synthesize e1
-  Tuple e2' t2 <- synthesize e2
+infer (S.TmBinary Index e1 e2) = do
+  Tuple e1' t1 <- infer e1
+  Tuple e2' t2 <- infer e2
   let core = C.TmBinary Index e1' e2'
   case t1, t2 of C.TyArray t1', C.TyInt -> pure $ Tuple core t1'
                  _, _ -> throwTypeError $ "Index is not defined between" <+>
                                           show t1 <+> "and" <+> show t2
-synthesize (S.TmIf e1 e2 e3) = do
-  Tuple e1' t1 <- synthesize e1
+infer (S.TmIf e1 e2 e3) = do
+  Tuple e1' t1 <- infer e1
   if t1 === C.TyBool then do
-    Tuple e2' t2 <- synthesize e2
-    Tuple e3' t3 <- synthesize e3
+    Tuple e2' t2 <- infer e2
+    Tuple e3' t3 <- infer e3
     if t2 === t3 then pure $ Tuple (C.TmIf e1' e2' e3') t2
     else throwTypeError $ "if-branches expected the same type, but got" <+>
                           show t2 <+> "and" <+> show t3
   else throwTypeError $ "if-condition expected Bool, but got" <+> show t1
-synthesize (S.TmVar x) = Tuple (C.TmVar x) <$> lookupTmBind x
-synthesize (S.TmApp e1 e2) = do
-  Tuple e1' t1 <- synthesize e1
-  Tuple e2' t2 <- synthesize e2
+infer (S.TmVar x) = Tuple (C.TmVar x) <$> lookupTmBind x
+infer (S.TmApp e1 e2) = do
+  Tuple e1' t1 <- infer e1
+  Tuple e2' t2 <- infer e2
   Tuple (C.TmApp e1' e2') <$> distApp t1 (Left t2)
-synthesize (S.TmAbs (Cons (S.TmParam x (Just targ)) Nil) e) = do
+infer (S.TmAbs (Cons (S.TmParam x (Just targ)) Nil) e) = do
   targ' <- transform targ
-  Tuple e' tret <- addTmBind x targ' $ synthesize e
+  Tuple e' tret <- addTmBind x targ' $ infer e
   pure $ Tuple (C.TmAbs x e' targ' tret) (C.TyArrow targ' tret false)
-synthesize (S.TmAbs (Cons (S.TmParam x Nothing) Nil) e) = throwTypeError
-  "lambda parameters should be annotated (type inference is not implemented)"
-synthesize (S.TmAnno e ta) = do
-  Tuple e' t <- synthesize e
+infer (S.TmAbs (Cons (S.TmParam x Nothing) Nil) e) = throwTypeError $
+  "lambda parameter" <+> show x <+> "should be annotated with a type"
+infer (S.TmAnno e ta) = do
+  Tuple e' t <- infer e
   ta' <- transform ta
   if t <: ta' then pure $ Tuple (C.TmAnno e' ta') ta' else throwTypeError $
-    "annotated" <+> show ta' <+> "is not a supertype of synthesized" <+> show t
-synthesize (S.TmMerge e1 e2) = do
-  Tuple e1' t1 <- synthesize e1
-  Tuple e2' t2 <- synthesize e2
+    "annotated" <+> show ta <+> "is not a supertype of inferred" <+> show t
+infer (S.TmMerge e1 e2) = do
+  Tuple e1' t1 <- infer e1
+  Tuple e2' t2 <- infer e2
   case t1, t2 of
     C.TyArrow targ1 tret1 true, C.TyArrow targ2 tret2 true -> do
       disjoint tret1 tret2
@@ -118,40 +118,40 @@ synthesize (S.TmMerge e1 e2) = do
       disjoint t1 t2
       pure $ Tuple (C.TmMerge e1' e2') (C.TyAnd t1 t2)
   where appToSelf e = C.TmApp e (C.TmVar "self")
-synthesize (S.TmRcd (Cons (S.RcdField _ l (Left e)) Nil)) = do
-  Tuple e' t <- synthesize e
+infer (S.TmRcd (Cons (S.RcdField _ l (Left e)) Nil)) = do
+  Tuple e' t <- infer e
   pure $ Tuple (C.TmRcd l t e') (C.TyRcd l t)
-synthesize (S.TmPrj e l) = do
-  Tuple e' t <- synthesize e
+infer (S.TmPrj e l) = do
+  Tuple e' t <- infer e
   case selectLabel t l of
     Just t' -> pure $ Tuple (C.TmPrj e' l) t'
     _ -> throwTypeError $ show t <+> "has no label named" <+> show l
-synthesize (S.TmTApp e ta) = do
-  Tuple e' tf <- synthesize e
+infer (S.TmTApp e ta) = do
+  Tuple e' tf <- infer e
   ta' <- transform ta
   Tuple (C.TmTApp e' ta') <$> distApp tf (Right ta')
-synthesize (S.TmTAbs (Cons (Tuple a (Just td)) Nil) e) = do
+infer (S.TmTAbs (Cons (Tuple a (Just td)) Nil) e) = do
   td' <- transform td
-  Tuple e' t <- addTyBind a td' $ synthesize e
+  Tuple e' t <- addTyBind a td' $ infer e
   pure $ Tuple (C.TmTAbs a td' e' t) (C.TyForall a td' t)
-synthesize (S.TmLet x e1 e2) = do
-  Tuple e1' t1 <- synthesize e1
-  Tuple e2' t2 <- addTmBind x t1 $ synthesize e2
+infer (S.TmLet x e1 e2) = do
+  Tuple e1' t1 <- infer e1
+  Tuple e2' t2 <- addTmBind x t1 $ infer e2
   pure $ Tuple (letIn x e1' t1 e2' t2) t2
-synthesize (S.TmLetrec x t e1 e2) = do
+infer (S.TmLetrec x t e1 e2) = do
   t' <- transform t
-  Tuple e1' t1 <- addTmBind x t' $ synthesize e1
+  Tuple e1' t1 <- addTmBind x t' $ infer e1
   if t1 <: t' then do
-    Tuple e2' t2 <- addTmBind x t' $ synthesize e2
+    Tuple e2' t2 <- addTmBind x t' $ infer e2
     pure $ Tuple (letIn x (C.TmFix x e1' t') t' e2' t2) t2
   else throwTypeError $
-    "annotated" <+> show t' <+> "is not a supertype of synthesized" <+> show t1
+    "annotated" <+> show t <+> "is not a supertype of inferred" <+> show t1
 -- TODO: find a more efficient algorithm
-synthesize (S.TmOpen e1 e2) = do
-  Tuple e1' t1 <- synthesize e1
+infer (S.TmOpen e1 e2) = do
+  Tuple e1' t1 <- infer e1
   let ls = foldr Cons Nil (labels t1)
   let bs = ls <#> \l -> Tuple l (fromJust (selectLabel t1 l))
-  Tuple e2' t2 <- foldr (uncurry addTmBind) (synthesize e2) bs
+  Tuple e2' t2 <- foldr (uncurry addTmBind) (infer e2) bs
   let open (Tuple l t) e = letIn l (C.TmPrj e1' l) t e t2
   pure $ Tuple (foldr open e2' bs) t2
   where
@@ -159,34 +159,34 @@ synthesize (S.TmOpen e1 e2) = do
     labels (C.TyAnd t1 t2) = Set.union (labels t1) (labels t2)
     labels (C.TyRcd l _) = Set.singleton l
     labels _ = Set.empty
-synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
+infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
   t' <- transform t
   Tuple sig' e2 <- inferFromSig `duringTransformation` Tuple sig ne2
   Tuple ret tret <- case me1 of
     Just e1 -> do
       -- TODO: self-reference may have a different name in super-trait
-      Tuple e1' t1 <- addTmBind self t' $ synthesize e1
+      Tuple e1' t1 <- addTmBind self t' $ infer e1
       case t1 of
         C.TyArrow ti to true -> do
           if t' <: ti then do
             Tuple e2' t2 <-
-              addTmBind self t' $ addTmBind "super" to $ synthesize e2
-            to' <- override to e2
+              addTmBind self t' $ addTmBind "super" to $ infer e2
+            let to' = override to e2
             disjoint to' t2
             let tret = C.TyAnd to' t2
             let ret = letIn "super" (C.TmApp e1' (C.TmVar self)) to
                       (C.TmMerge (C.TmAnno (C.TmVar "super") to') e2') tret
             pure $ Tuple ret tret
-          else throwTypeError $ "self-type" <+> show t' <+>
+          else throwTypeError $ "self-type" <+> show t <+>
             "is not a subtype of inherited self-type" <+> show to
-        _ -> throwTypeError $ "inherits expected a trait, but got" <+> show t1
+        _ -> throwTypeError $ "expected to inherit a trait, but got" <+> show t1
     Nothing -> do
-      Tuple e2' t2 <- addTmBind self t' $ synthesize e2
+      Tuple e2' t2 <- addTmBind self t' $ infer e2
       pure $ Tuple e2' t2
   if tret <: sig' then pure $ trait self ret t' tret
-  else throwTypeError $ show tret <+> "does not implement" <+> show sig'
+  else throwTypeError $ "the trait does not implement" <+> show sig
   where
-    -- TODO: type inference is not complete
+    -- TODO: inference is not complete
     inferFromSig :: S.Ty -> S.Tm -> S.Tm
     inferFromSig rs@(S.TyAnd _ _) e = inferFromSig (S.TyRcd $ combineRcd rs) e
     inferFromSig s (S.TmPos p e) = S.TmPos p (inferFromSig s e)
@@ -229,51 +229,49 @@ synthesize (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     selectOverride (S.TmMerge e1 e2) = selectOverride e1 <> selectOverride e2
     selectOverride (S.TmRcd (Cons (S.RcdField true l _) Nil)) = singleton l
     selectOverride _ = Nil
-    removeOverride :: C.Ty -> List Label -> Tuple Boolean C.Ty
+    removeOverride :: C.Ty -> List Label -> C.Ty
     removeOverride (C.TyAnd t1 t2) ls =
-      let Tuple o1 t1 = removeOverride t1 ls in
-      let Tuple o2 t2 = removeOverride t2 ls in
-      let tuple = Tuple (o1 || o2) in case t1, t2 of
-        C.TyTop, C.TyTop -> tuple C.TyTop
-        C.TyTop, _       -> tuple t2
-        _,       C.TyTop -> tuple t1
-        _,       _       -> tuple (C.TyAnd t1 t2)
-    removeOverride (C.TyRcd l _) ls | l `elem` ls = Tuple true C.TyTop
-    removeOverride ty _ = Tuple false ty
-    override :: C.Ty -> S.Tm -> Typing C.Ty
+      let t1' = removeOverride t1 ls in
+      let t2' = removeOverride t2 ls in
+      case t1', t2' of
+        C.TyTop, C.TyTop -> C.TyTop
+        C.TyTop, _       -> t2'
+        _,       C.TyTop -> t1'
+        _,       _       -> C.TyAnd t1' t2'
+    removeOverride (C.TyRcd l _) ls | l `elem` ls = C.TyTop
+    removeOverride ty _ = ty
+    override :: C.Ty -> S.Tm -> C.Ty
     override ty e = let ls = selectOverride e in
-      if null ls then pure ty else case removeOverride ty ls of
-        Tuple true ty' -> pure ty'
-        Tuple false _  -> throwTypeError $ show ty <+> "is not overridden"
-synthesize (S.TmNew e) = do
-  Tuple e' t <- synthesize e
+      if null ls then ty else removeOverride ty ls
+infer (S.TmNew e) = do
+  Tuple e' t <- infer e
   case t of
     C.TyArrow ti to true ->
       if to <: ti then
         pure $ Tuple (C.TmFix "self" (C.TmApp e' (C.TmVar "self")) to) to
-      else throwTypeError $ "input" <+> show ti <+>
-        "is not a supertype of output" <+> show to <+> "in Trait"
+      else throwTypeError $ "Trait input" <+> show ti <+>
+        "is not a supertype of Trait output" <+> show to
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
-synthesize (S.TmToString e) = do
-  Tuple e' t <- synthesize e
+infer (S.TmToString e) = do
+  Tuple e' t <- infer e
   if t == C.TyInt || t == C.TyDouble || t == C.TyString || t == C.TyBool
   then pure $ Tuple (C.TmToString e') C.TyString
   else throwTypeError $ "cannot show" <+> show t
-synthesize (S.TmArray arr) = do
+infer (S.TmArray arr) = do
   if Array.null arr then
     pure $ Tuple (C.TmArray C.TyBot []) (C.TyArray C.TyBot)
   else do
-    ets <- traverse synthesize arr
+    ets <- traverse infer arr
     let Tuple es ts = Array.unzip ets
     let t = fromJust (Array.head ts)
     if Array.all (_ === t) ts then pure $ Tuple (C.TmArray t es) (C.TyArray t)
     else throwTypeError $ "elements of" <+> show (S.TmArray arr) <+>
-                          "should have the same type"
+                          "should all have the same type"
 -- TODO: save original terms instead of desugared ones
-synthesize (S.TmPos p e) = setPos (Pos p e) $ synthesize e
-synthesize (S.TmType a sorts params Nothing t e) = do
+infer (S.TmPos p e) = setPos (Pos p e) $ infer e
+infer (S.TmType a sorts params Nothing t e) = do
   t' <- addSorts <<< addTyBinds $ transformTyDef t
-  addTyAlias a (sig t') $ synthesize e
+  addTyAlias a (sig t') $ infer e
   where
     dualSorts :: List (Tuple Name Name)
     dualSorts = sorts <#> \sort -> Tuple sort ("#" <> sort)
@@ -283,7 +281,7 @@ synthesize (S.TmType a sorts params Nothing t e) = do
     addTyBinds typing = foldr (flip addTyBind C.TyTop) typing params
     sig :: S.Ty -> S.Ty
     sig t' = foldr (uncurry S.TySig) (foldr S.TyAbs t' params) dualSorts
-synthesize e = throwTypeError $ show e <+> "should have been desugared"
+infer e = throwTypeError $ show e <+> "should have been desugared"
 
 distApp :: C.Ty -> Either C.Ty C.Ty -> Typing C.Ty
 distApp C.TyTop _ = pure C.TyTop
