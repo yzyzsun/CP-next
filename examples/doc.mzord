@@ -3,21 +3,18 @@ type LaTeX = { latex : String };
 
 type DocSig<Element> = {
   Comp : Element -> Element -> Element;
-  Empty : Element;
   Str : String -> Element;
   Endl : Element;
 };
 
 html = trait implements DocSig<HTML> => {
   (Comp l r).html = l.html ++ r.html;
-  (Empty).html = "";
   (Str s).html = s;
   (Endl).html = "<br>";
 };
 
 latex = trait implements DocSig<LaTeX> => {
   (Comp l r).latex = l.latex ++ r.latex;
-  (Empty).latex = "";
   (Str s).latex = s;
   (Endl).latex = "\\\\";
 };

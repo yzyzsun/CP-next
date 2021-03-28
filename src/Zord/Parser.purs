@@ -8,8 +8,8 @@ import Data.Array as Array
 import Data.Char.Unicode (isLower, isUpper)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
-import Data.List (List, foldl, many, some, toUnfoldable)
-import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, optional)
+import Data.List (List, foldl, many, null, some, toUnfoldable)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, optional)
 import Data.String as String
 import Data.String.CodeUnits as CodeUnits
 import Data.String.Unsafe (charAt)
@@ -18,9 +18,9 @@ import Text.Parsing.Parser (Parser, fail, position)
 import Text.Parsing.Parser.Combinators (between, choice, lookAhead, manyTill, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
-import Text.Parsing.Parser.String (anyChar, char, satisfy, skipSpaces, string)
+import Text.Parsing.Parser.String (anyChar, char, satisfy, string)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..), foldl1)
 import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..), TyParam)
 
 type SParser a = Parser String a
@@ -174,29 +174,28 @@ hereDocument p = between tripleQuotes tripleQuotes $ document p
 
 document :: SParser Tm -> SParser Tm
 document p = do
-  s <- stringTill (char '\\' <|> char ']' <|> tripleQuotes $> '"')
-  let str = if String.null s then newCtor "Empty"
-                             else newStr (TmString s)
-  bs  <- optional (char '\\')
-  if isNothing bs then pure str else do
-    bs' <- optional (char '\\')
-    res <- if isJust bs' then pure $ newCtor "Endl" else do
-      paren <- optional (symbol "(")
-      if isJust paren then do
-        e <- p <* char ')'
-        pure $ newStr (TmToString e)
-      else do
-        cmd <- String.trim <$> stringTill (char '{' <|> char '(' <|> char '[')
-        e <- optional $ TmApp (TmVar cmd) <$> recordLit p <|>
-          foldl TmApp (TmVar cmd) <$> between (symbol "(") (char ')') (many (dotexpr p))
-        docs <- many (try $ skipSpaces *> between (char '[') (char ']') (document p))
-        pure <<< (if isUpper (charAt 0 cmd) then TmNew else identity) $
-          foldl TmApp (fromMaybe (TmVar cmd) e) docs
-    more <- document p
-    pure $ newComp (newComp str res) more
+  docs <- many (backslash <|> plaintext)
+  pure $ if null docs then newStr (TmString "") else foldl1 newComp docs
+  where
+    backslash = char '\\' *> (command <|> interpolation <|> newline)
+    command = do
+      cmd <- identifier
+      e <- optional $ TmApp (TmVar cmd) <$> recordLit p <|>
+        foldl TmApp (TmVar cmd) <$> between (symbol "(") (char ')') (many (dotexpr p))
+      docs <- many (between (symbol "[") (char ']') (document p))
+      pure <<< (if isUpper (charAt 0 cmd) then TmNew else identity) $
+        foldl TmApp (fromMaybe (TmVar cmd) e) docs
+    interpolation = newStr <<< TmToString <$> parens p
+    newline = char '\\' $> newEndl
+    plaintext = do
+      s <- stringTill (char '\\' <|> char ']' <|> tripleQuotes $> '"')
+      if String.null s then fail "empty document" else pure $ newStr (TmString s)
 
 newCtor :: String -> Tm
 newCtor = TmNew <<< TmVar
+
+newEndl :: Tm
+newEndl = newCtor "Endl"
 
 newStr :: Tm -> Tm
 newStr s = TmNew (TmApp (TmVar "Str") s)
