@@ -161,10 +161,10 @@ type TmParamList = List TmParam
 data TmParam = TmParam Name (Maybe Ty) | WildCard
 
 showTmParams :: TmParamList -> String
-showTmParams params = intercalate " " $ params <#> \param ->
-  case param of TmParam x (Just t) -> parens $ x <+> ":" <+> show t
-                TmParam x Nothing -> x
-                WildCard -> "{..}"
+showTmParams params = intercalate " " $ params <#> case _ of
+  TmParam x (Just t) -> parens $ x <+> ":" <+> show t
+  TmParam x Nothing -> x
+  WildCard -> "{..}"
 
 type RcdTyList = List (Tuple Label Ty)
 

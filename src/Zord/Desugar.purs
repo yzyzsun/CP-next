@@ -48,9 +48,9 @@ desugar (TmDef x tyParams tmParams t e1 e2) =
   where tm = desugar (TmTAbs tyParams (TmAbs tmParams e1))
         ty t' = TyForall tyParams (foldr TyArrow t' (tyOf <$> tmParams))
         -- TODO: param types should be inferred
-        tyOf p = case p of TmParam _ (Just t') -> t'
-                           TmParam _ Nothing -> TyTop
-                           WildCard -> TyTop
+        tyOf = case _ of TmParam _ (Just t') -> t'
+                         TmParam _ Nothing -> TyTop
+                         WildCard -> TyTop
 
 desugar (TmUnary op e) = TmUnary op (desugar e)
 desugar (TmBinary op e1 e2) = TmBinary op (desugar e1) (desugar e2)
