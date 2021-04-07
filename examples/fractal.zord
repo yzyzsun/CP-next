@@ -34,12 +34,12 @@ doc T C = trait [self : DocSig'<T><T> & GraphicSig<T><C> & ColorSig<C> & Draw T 
         draw (opt,{ x = x + width/3; y = y + height*2/3 });
         draw (opt,{ x = x + width*2/3; y = y + height*2/3 });
       ] in fold @T (\(s:T) (x:T) -> new Comp s x) center arr;
-  body = """
+  body = `
     \Graph { width = init.width; height = init.height } [
       \Rect(init)
       \draw(init)
     ]
-  """;
+  `;
 };
 
 (new doc @HTML @Hex , html' , svg , color).body.html

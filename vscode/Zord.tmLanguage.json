@@ -36,13 +36,13 @@
       "match": "\\b(override)\\b"
     },
     {
-      "name": "string.quoted.triple.zord",
-      "begin": "\"\"\"",
-      "end": "\"\"\""
-    },
-    {
       "name": "string.quoted.double.zord",
       "match": "\"([^\\\\\"]|\\\\.)*\"?"
+    },
+    {
+      "name": "string.interpolated.zord",
+      "begin": "`",
+      "end": "`"
     }
   ]
 }

@@ -18,7 +18,7 @@ import Text.Parsing.Parser (Parser, fail, position)
 import Text.Parsing.Parser.Combinators (between, choice, lookAhead, manyTill, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
-import Text.Parsing.Parser.String (anyChar, char, satisfy, string)
+import Text.Parsing.Parser.String (anyChar, char, satisfy)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..), foldl1)
 import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..), TyParam)
@@ -80,7 +80,7 @@ dotexpr e = aexpr e >>= \e' -> foldl (#) e' <$>
 
 aexpr :: SParser Tm -> SParser Tm
 aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
-                 , lexeme $ hereDocument e
+                 , between (char '`') (symbol "`") $ document e
                  , stringLiteral <#> TmString
                  , reserved "true"  $> TmBool true
                  , reserved "false" $> TmBool false
@@ -169,9 +169,6 @@ toString = do
   e <- dotexpr expr
   pure $ TmToString e
 
-hereDocument :: SParser Tm -> SParser Tm
-hereDocument p = between tripleQuotes tripleQuotes $ document p
-
 document :: SParser Tm -> SParser Tm
 document p = do
   docs <- many (backslash <|> plaintext)
@@ -188,7 +185,7 @@ document p = do
     interpolation = newStr <<< TmToString <$> parens p
     newline = char '\\' $> newEndl
     plaintext = do
-      s <- stringTill (char '\\' <|> char ']' <|> tripleQuotes $> '"')
+      s <- stringTill (char '\\' <|> char ']' <|> char '`')
       if String.null s then fail "empty document" else pure $ newStr (TmString s)
 
 newCtor :: String -> Tm
@@ -393,9 +390,6 @@ symbol s = zord.symbol s $> unit
 
 underscore :: SParser String
 underscore = zord.symbol "_"
-
-tripleQuotes :: SParser String
-tripleQuotes = string "\"\"\""
 
 lexeme :: forall a. SParser a -> SParser a
 lexeme = zord.lexeme

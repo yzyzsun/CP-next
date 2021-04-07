@@ -13,7 +13,8 @@ const zordLanguage = LezerLanguage.define({
       }),
       foldNodeProp.add({
         RecordType(tree) { return { from: tree.from + 1, to: tree.to - 1 } },
-        Record(tree) { return { from: tree.from + 1, to: tree.to - 1 } },
+        Record(tree)     { return { from: tree.from + 1, to: tree.to - 1 } },
+        Document(tree)   { return { from: tree.from + 1, to: tree.to - 1 } },
       }),
       styleTags({
         'type extends let letrec trait implements inherits': t.definitionKeyword,
@@ -29,7 +30,7 @@ const zordLanguage = LezerLanguage.define({
         BlockComment: t.blockComment,
         Number: t.number,
         String: t.string,
-        HereDoc: t.docString,
+        Document: t.docString,
         TypeOp: t.typeOperator,
         ArithOp: t.arithmeticOperator,
         LogicOp: t.logicOperator,
@@ -46,7 +47,7 @@ const zordLanguage = LezerLanguage.define({
     ],
   }),
   languageData: {
-    closeBrackets: { brackets: ['{', '(', '[', '"'] },
+    closeBrackets: { brackets: ['{', '(', '[', '"', '`'] },
     commentTokens: { line: '--', block: { open: '{-', close: '-}' } },
   },
 });

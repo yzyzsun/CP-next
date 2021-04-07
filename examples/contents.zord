@@ -24,7 +24,7 @@ toc = trait implements ContentsSig<HTML % TOC> => {
 };
 
 doc T = trait [self : ContentsSig<T>] => {
-  body = """\WithTOC[
+  body = `\WithTOC[
     \Section[Welcome to \Emph[PLGround]!]
       \Href("https://plground.org")[PLGround] provides a wiki-like open document repository. \\
       Documents are written in Zord and rendered with an in-browser interpreter.
@@ -40,7 +40,7 @@ doc T = trait [self : ContentsSig<T>] => {
         ]
     \Section[What is more...]
       Please refer to our paper...
-  ]"""
+  ]`
 };
 
 (new doc @(HTML & TOC) , contents , toc).body.html

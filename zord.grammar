@@ -76,7 +76,7 @@ dotexpr {
 }
 
 aexpr {
-  TermName | Number | HereDoc | String | Unit |
+  TermName | Number | String | Document | Unit |
   kw<"true"> | kw<"false"> | kw<"undefined"> |
   Array { brackets<sepEndBySemi<expression>> } |
   Record | parens<expression>
@@ -145,10 +145,7 @@ Label { lowerid | upperid }
     "0o" octit+ | "0O" octit+
   }
 
-  HereDoc { '"""' doc_1* '"""' }
-  doc_1 { !["] | '"' doc_2 }
-  doc_2 { !["] | '"' doc_3 }
-  doc_3 { !["] }
+  Document { '`' ![`]* '`' }
 
   String { '"' (![\\\n"] | "\\" _)* '"'? }
 
@@ -170,7 +167,6 @@ Label { lowerid | upperid }
   minus[@name=ArithOp] { "-" }
   modulo[@name=ArithOp] { "%" }
 
-  @precedence { HereDoc, String }
   @precedence { LineComment, minus }
   @precedence { BlockComment, "{" }
   @precedence { CompareOp, "<" }
