@@ -49,7 +49,7 @@ preprocess path program = case match openRegex program of
     preprocess path $ replace openRegex (replace lineRegex " " text) program
   Nothing -> pure program
   where openRegex = fromRight (regex """open\s+(\w+)\s*;""" noFlags)
-        lineRegex = fromRight (regex """[\r\n]+""" global)
+        lineRegex = fromRight (regex """(--.*)?[\r\n]+""" global)
         ext name = name <> ".mzord"
 
 execute :: String -> Mode -> Effect Unit

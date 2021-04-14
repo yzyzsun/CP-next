@@ -56,7 +56,7 @@ function preprocess(code) {
     const user = found[1] || namespace;
     const name = found[2];
     return fetchDocText(name, user).then(doc =>
-      preprocess(code.replace(regexp, doc.replace(/[\r\n]+/g, ' ')))
+      preprocess(code.replace(regexp, doc.replace(/(--.*)?[\r\n]+/g, ' ')))
     );
   }
 }
