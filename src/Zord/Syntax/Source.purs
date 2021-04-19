@@ -84,9 +84,9 @@ data Tm = TmInt Int
         | TmType Name (List Name) (List Name) (Maybe Ty) Ty Tm
         | TmDef Name TyParamList TmParamList (Maybe Ty) Tm Tm
 
-data RcdField = RcdField Boolean Label (Either Tm MethodPattern)
-              | DefaultPattern SelfAnno Label Tm
-data MethodPattern = MethodPattern TmParamList SelfAnno Label Tm
+data RcdField = RcdField Boolean Label TmParamList (Either Tm MethodPattern)
+              | DefaultPattern MethodPattern
+data MethodPattern = MethodPattern SelfAnno Label TmParamList Tm
 
 instance showTm :: Show Tm where
   show (TmInt i)    = show i
@@ -173,13 +173,14 @@ showRcdTy xs = intercalate "; " $ xs <#> \(Tuple l t) -> l <+> ":" <+> show t
 
 showRcdTm :: List RcdField -> String
 showRcdTm xs = intercalate "; " $ xs <#> case _ of
-  RcdField o l e -> (if o then "override " else "") <> showField l e
-  DefaultPattern self l e -> showSelf "_" self <> "." <> l <+> "=" <+> show e
-  where showField :: Label -> Either Tm MethodPattern -> String
-        showField l (Left e) = l <+> "=" <+> show e
-        showField l (Right (MethodPattern params self l' e)) =
-          parens (l <+> showTmParams params <+> showSelf "" self) <>
-          "." <> l' <+> "=" <+> show e
+  RcdField o l p e -> (if o then "override " else "") <> showField l p e
+  DefaultPattern (MethodPattern self l p e) ->
+    showSelf "_" self <> "." <> l <+> showTmParams p <+> "=" <+> show e
+  where showField :: Label -> TmParamList -> Either Tm MethodPattern -> String
+        showField l p (Left e) = l <+> showTmParams p <+> "=" <+> show e
+        showField l p (Right (MethodPattern self l' p' e)) =
+          parens (l <+> showTmParams p <+> showSelf "" self) <>
+          "." <> l' <+> showTmParams p' <+> "=" <+> show e
 
 type SelfAnno = Maybe (Tuple Name Ty)
 

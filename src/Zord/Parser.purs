@@ -208,32 +208,35 @@ recordField :: SParser Tm -> SParser RcdField
 recordField p = do
   o <- override
   l <- identifier
+  params <- many tmParams
   symbol "="
   e <- p
-  pure $ RcdField o l (Left e)
+  pure $ RcdField o l params (Left e)
 
 methodPattern :: SParser Tm -> SParser RcdField
 methodPattern p = do
   o <- override
   symbol "("
   l <- identifier
-  parms <- many tmParams
+  params <- many tmParams
   self <- optional selfAnno
   symbol ")"
   symbol "."
   l' <- identifier
+  params' <- many tmParams
   symbol "="
   e <- p
-  pure $ RcdField o l (Right (MethodPattern parms self l' e))
+  pure $ RcdField o l params (Right (MethodPattern self l' params' e))
 
 defaultPattern :: SParser Tm -> SParser RcdField
 defaultPattern p = do
   self <- Just <$> selfAnno <|> Nothing <$ underscore
   symbol "."
   l <- identifier
+  params <- many tmParams
   symbol "="
   e <- p
-  pure $ DefaultPattern self l e
+  pure $ DefaultPattern (MethodPattern self l params e)
 
 operators :: OperatorTable Identity String Tm
 operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)

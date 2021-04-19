@@ -11,7 +11,7 @@ import Data.Set as Set
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import Zord.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
-import Zord.Desugar (desugar)
+import Zord.Desugar (desugar, desugarMethodPattern)
 import Zord.Subtyping (isTopLike, (<:), (===))
 import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..), fromJust, (<+>))
 import Zord.Syntax.Core as C
@@ -124,7 +124,7 @@ infer (S.TmMerge e1 e2) = do
       disjoint t1 t2
       pure $ Tuple (C.TmMerge e1' e2') (C.TyAnd t1 t2)
   where appToSelf e = C.TmApp e (C.TmVar "self")
-infer (S.TmRcd (Cons (S.RcdField _ l (Left e)) Nil)) = do
+infer (S.TmRcd (Cons (S.RcdField _ l Nil (Left e)) Nil)) = do
   Tuple e' t <- infer e
   pure $ Tuple (C.TmRcd l t e') (C.TyRcd l t)
 infer (S.TmPrj e l) = do
@@ -190,7 +190,8 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
       Tuple e2' t2 <- addTmBind self t' $ infer e2
       pure $ Tuple e2' t2
   if tret <: sig' then pure $ trait self ret t' tret
-  else throwTypeError $ "the trait does not implement" <+> show sig
+  else throwTypeError $ "the trait does not implement" <+> show sig <>
+                        ", whose type is" <+> show tret
   where
     -- TODO: inference is not complete
     inferFromSig :: S.Ty -> S.Tm -> S.Tm
@@ -199,18 +200,24 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     inferFromSig s (S.TmOpen e1 e2) = S.TmOpen e1 (inferFromSig s e2)
     inferFromSig s (S.TmMerge e1 e2) =
       S.TmMerge (inferFromSig s e1) (inferFromSig s e2)
-    inferFromSig (S.TyRcd xs) r@(S.TmRcd (Cons (S.RcdField o l (Left e)) Nil)) =
+    inferFromSig (S.TyRcd xs) r@(S.TmRcd (Cons (S.RcdField o l Nil (Left e)) Nil)) =
       case last $ filter (\x -> fst x == l) xs of
         Just (Tuple _ ty) ->
-          S.TmRcd (singleton (S.RcdField o l (Left (inferFromSig ty e))))
+          S.TmRcd (singleton (S.RcdField o l Nil (Left (inferFromSig ty e))))
         _ -> r
-    inferFromSig (S.TyRcd xs) (S.TmRcd (Cons (S.DefaultPattern s l e) Nil)) =
-      desugar <<< S.TmRcd $ filter (\x -> fst x `notElem` patterns) xs <#> \x ->
-        S.RcdField false (fst x) (Right (S.MethodPattern (paramsFromTy (snd x)) s l e))
+    inferFromSig (S.TyRcd xs) (S.TmRcd (Cons (S.DefaultPattern pat) Nil)) =
+      let S.MethodPattern _ l _ _ = pat in
+      desugar <<< S.TmRcd $ filter (\x -> fst x `notElem` patterns l) xs <#> \x ->
+        let Tuple params ty = paramsAndInnerTy (snd x) in
+        let e = inferFromSig ty (desugarMethodPattern pat) in
+        S.RcdField false (fst x) params (Left e)
     inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons (S.TmParam x Nothing) Nil) e) =
       S.TmAbs (singleton (S.TmParam x (Just targ))) (inferFromSig tret e)
-    inferFromSig (S.TyArrow targ tret) (S.TmAbs param@(Cons (S.TmParam _ (Just _)) Nil) e) =
+    inferFromSig (S.TyArrow targ tret)
+                 (S.TmAbs param@(Cons (S.TmParam _ (Just _)) Nil) e) =
       S.TmAbs param (inferFromSig tret e)
+    inferFromSig (S.TyTrait ti to) (S.TmTrait self' sig' e1 e2) =
+      S.TmTrait self' sig' e1 (inferFromSig to e2)
     inferFromSig _ e = e
     combineRcd :: S.Ty -> S.RcdTyList
     combineRcd (S.TyAnd (S.TyRcd xs) (S.TyRcd ys)) = xs <> ys
@@ -218,22 +225,32 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     combineRcd (S.TyAnd (S.TyRcd xs) r) = xs <> combineRcd r
     combineRcd (S.TyAnd l r) = combineRcd l <> combineRcd r
     combineRcd _ = Nil
-    patterns :: List Name
-    patterns = patternsFromRcd (S.TmMerge (fromMaybe S.TmUnit me1) ne2)
-    patternsFromRcd :: S.Tm -> List Name
-    patternsFromRcd (S.TmPos _ e) = patternsFromRcd e
-    patternsFromRcd (S.TmOpen _ e) = patternsFromRcd e
-    patternsFromRcd (S.TmMerge e1 e2) = patternsFromRcd e1 <> patternsFromRcd e2
-    patternsFromRcd (S.TmRcd (Cons (S.RcdField _ l _) Nil)) = singleton l
-    patternsFromRcd _ = Nil
-    paramsFromTy :: S.Ty -> S.TmParamList
-    paramsFromTy (S.TyArrow targ tret) = Cons (S.TmParam "_" (Just targ)) (paramsFromTy tret)
-    paramsFromTy _ = Nil
+    patterns :: Label -> List Label
+    patterns l = patternsFromRcd (S.TmMerge (fromMaybe S.TmUnit me1) ne2) l
+    patternsFromRcd :: S.Tm -> Label -> List Label
+    patternsFromRcd (S.TmPos _ e) l = patternsFromRcd e l
+    patternsFromRcd (S.TmOpen _ e) l = patternsFromRcd e l
+    patternsFromRcd (S.TmMerge e1 e2) l = patternsFromRcd e1 l <> patternsFromRcd e2 l
+    patternsFromRcd (S.TmRcd (Cons (S.RcdField _ l' _ (Left e)) Nil)) l =
+      if innerLabel e == l then singleton l' else Nil
+    patternsFromRcd _ _ = Nil
+    innerLabel :: S.Tm -> Label
+    innerLabel (S.TmPos _ e) = innerLabel e
+    innerLabel (S.TmOpen _ e) = innerLabel e
+    innerLabel (S.TmAbs _ e) = innerLabel e
+    innerLabel (S.TmTrait _ _ _ e) = innerLabel e
+    innerLabel (S.TmRcd (Cons (S.RcdField _ l _ _) Nil)) = l
+    innerLabel _ = "#nothing"
+    paramsAndInnerTy :: S.Ty -> Tuple S.TmParamList S.Ty
+    paramsAndInnerTy (S.TyArrow targ tret) =
+      let Tuple params ty = paramsAndInnerTy tret in
+      Tuple (Cons (S.TmParam "_" (Just targ)) params) ty
+    paramsAndInnerTy ty = Tuple Nil ty
     selectOverride :: S.Tm -> List Label
     selectOverride (S.TmPos _ e) = selectOverride e
     selectOverride (S.TmOpen _ e) = selectOverride e
     selectOverride (S.TmMerge e1 e2) = selectOverride e1 <> selectOverride e2
-    selectOverride (S.TmRcd (Cons (S.RcdField true l _) Nil)) = singleton l
+    selectOverride (S.TmRcd (Cons (S.RcdField true l _ _) Nil)) = singleton l
     selectOverride _ = Nil
     removeOverride :: C.Ty -> List Label -> C.Ty
     removeOverride (C.TyAnd t1 t2) ls =
@@ -249,6 +266,9 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     override :: C.Ty -> S.Tm -> C.Ty
     override ty e = let ls = selectOverride e in
       if null ls then ty else removeOverride ty ls
+infer (S.TmTrait self sig e1 e2) =
+  infer $ S.TmTrait (Just (fromMaybe (Tuple "self" S.TyTop) self))
+                    (Just (fromMaybe S.TyTop sig)) e1 e2
 infer (S.TmNew e) = do
   Tuple e' t <- infer e
   case t of

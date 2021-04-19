@@ -27,14 +27,14 @@ desugar (TmRcd xs) =
   foldl1 TmMerge (xs <#> \x -> TmRcd (singleton (desugarField x)))
   where
     desugarField :: RcdField -> RcdField
-    desugarField (RcdField o l (Left e)) = RcdField o l (Left (desugar e))
-    desugarField (RcdField o l (Right (MethodPattern params self l' e))) =
-      RcdField o l <<< Left <<< desugar $
-        TmAbs params (TmTrait self Nothing Nothing
-          (TmRcd (singleton (RcdField false l' (Left e)))))
-    desugarField (DefaultPattern self l e) =
+    -- TODO: override inner traits instead of outer ones
+    desugarField (RcdField o l p f) =
+      RcdField o l Nil <<< Left <<< desugar <<< TmAbs p $ case f of
+        Left e -> e
+        Right pat -> desugarMethodPattern pat
+    desugarField (DefaultPattern (MethodPattern self l p e)) =
       let self' = fromMaybe (Tuple "self" TyTop) self in
-      DefaultPattern (Just self') l (desugar e)
+      DefaultPattern (MethodPattern (Just self') l Nil (desugar $ TmAbs p e))
 desugar (TmTrait self sig e1 e2) =
   let self'@(Tuple x _) = fromMaybe (Tuple "self" TyTop) self in
   TmTrait (Just self') (Just (fromMaybe TyTop sig))
@@ -69,3 +69,7 @@ desugar (TmPos p e) = TmPos p (desugar e)
 desugar (TmType a sorts params Nothing t2 e) =
   TmType a sorts params Nothing t2 (desugar e)
 desugar e = e
+
+desugarMethodPattern :: MethodPattern -> Tm
+desugarMethodPattern (MethodPattern self l p e) =
+  TmTrait self Nothing Nothing (TmRcd (singleton (RcdField false l p (Left e))))
