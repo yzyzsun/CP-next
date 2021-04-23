@@ -216,8 +216,9 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     inferFromSig (S.TyArrow targ tret)
                  (S.TmAbs param@(Cons (S.TmParam _ (Just _)) Nil) e) =
       S.TmAbs param (inferFromSig tret e)
-    inferFromSig (S.TyTrait ti to) (S.TmTrait self' sig' e1 e2) =
-      S.TmTrait self' sig' e1 (inferFromSig to e2)
+    inferFromSig (S.TyTrait ti to) (S.TmTrait (Just (Tuple self' t')) sig' e1 e2) =
+      let t'' = if t' == S.TyTop then fromMaybe S.TyTop ti else t' in
+      S.TmTrait (Just (Tuple self' t'')) sig' e1 (inferFromSig to e2)
     inferFromSig _ e = e
     combineRcd :: S.Ty -> S.RcdTyList
     combineRcd (S.TyAnd (S.TyRcd xs) (S.TyRcd ys)) = xs <> ys
