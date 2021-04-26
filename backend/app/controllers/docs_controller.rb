@@ -63,6 +63,6 @@ class DocsController < ApplicationController
     end
 
     def doc_params
-      params.permit(:name, :access, :mode, :provide_factory, :require_library)
+      params.permit(:name, :access, :mode, :provide_factory, :require_library, :html_cache)
     end
 end

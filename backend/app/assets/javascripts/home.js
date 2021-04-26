@@ -1,34 +1,43 @@
 const Zord = bundle.Zord;
 
+const namespace = window.location.pathname.split('/')[1];
+const docname = window.location.pathname.split('/')[2];
+
 function editorState(doc, editable) {
-  return bundle.editorState(doc, editable, interpret);
+  return bundle.editorState(doc, editable, () => interpret(() => {}));
 }
 
 function editorView(state) {
   return bundle.editorView(state, document.getElementById('editor'));
 }
 
-function interpret() {
+const view = editorView(editorState($('#code').val(), true));
+
+function interpret(callback) {
+  const run = prog => preprocess(prog).then(code => {
+    output = Zord.interpret(code)(Zord.BigStep.value)();
+    if (output.startsWith('"')) output = JSON.parse(output);
+    $('#output').html(output);
+    callback();
+  }).catch(err => {
+    $('#error').text(err);
+    $('#error').html($('#error').html().replace(/\n/g, '<br>'));
+    callback();
+  });
+  const libErr = msg => {
+    $('#require-library').addClass('is-invalid');
+    $('#error').text(msg);
+    callback();
+  };
+
   $('#output').empty();
   $('#error').empty();
   $('#require-library').removeClass('is-invalid');
+  const code = view.state.doc.toString();
   const mode = $('#mode').val();
   if (mode == 'library') {
-    $('#output').text('This is a library.');
+    run(code + '"This library has been type checked."');
   } else {
-    const run = prog => preprocess(prog).then(code => {
-      output = Zord.interpret(code)(Zord.BigStep.value)();
-      if (output.startsWith('"')) output = JSON.parse(output);
-      $('#output').html(output);
-    }).catch(err => {
-      $('#error').text(err);
-      $('#error').html($('#error').html().replace(/\n/g, '<br>'));
-    });
-    const libErr = msg => {
-      $('#require-library').addClass('is-invalid');
-      $('#error').text(msg);
-    };
-    const code = view.state.doc.toString();
     if (mode == 'doc_only') {
       const lib = $('#require-library').val();
       if (!lib) {
@@ -87,14 +96,7 @@ function validate(name) {
   }
 }
 
-const namespace = window.location.pathname.split('/')[1];
-const docname = window.location.pathname.split('/')[2];
-
-const code = $('#code').val();
-const view = editorView(editorState(code, true));
-if (code) interpret();
-
-$('#render').on('click', interpret);
+$('#render').on('click', () => interpret(() => {}));
 
 $('#mode').on('change', () => {
   if ($('#mode').val() == 'library') $('#providing').removeClass('d-none').addClass('d-flex');
@@ -113,18 +115,20 @@ function formData(name, user) {
   data.append('mode', $('#mode').val());
   data.append('provide_factory', $('#provide-factory').val());
   data.append('require_library', $('#require-library').val());
+  data.append('html_cache', $('#output').html());
   return data;
 }
 
 const headers = { 'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content') };
 
 $('#save').on('click', () => {
-  const init = { method: 'PUT', body: formData(docname, namespace), headers };
-  fetch('/docs', init).then(res => {
-    $('#saved').text(res.ok ? 'Last saved: ' + new Date()
-      : 'You are not authorized to change this document.');
-  }).catch(err => { $('#saved').text(err.message); });
-  interpret();
+  interpret(() => {
+    const init = { method: 'PUT', body: formData(docname, namespace), headers };
+    fetch('/docs', init).then(res => {
+      $('#saved').text(res.ok ? 'Last saved: ' + new Date()
+        : 'You are not authorized to change this document.');
+    }).catch(err => { $('#saved').text(err.message); });
+  });
 });
 
 $('#save-as').on('click', () => {

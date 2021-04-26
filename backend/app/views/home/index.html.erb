@@ -72,20 +72,24 @@
         </div>
       </div>
       <div class="m-4" id="output">
-        <p class="text-secondary">Click the [Render] button above or press Ctrl+Enter (or Cmd+Return on ) to render the document.</p>
-        <% if @docs&.any? %>
-          <p>
-            <% if @user %>
-              Browse <%= current_user == @user ? "your" : @user.username + "'s public" %> documents:
-            <% else %>
-              Browse all public documents:
-            <% end %>
-          </p>
-          <ul><% @docs.each do |doc| %>
-            <li>
-              <%= link_to (@user ? "" : "#{doc.user.username}/") + "#{doc.name} (#{doc.access})", doc.path %>
-            </li>
-          <% end %></ul>
+        <% if @doc %>
+          <%== @doc.html_cache %>
+        <% else %>
+          <p class="text-secondary">Click the [Render] button above or press Ctrl+Enter (or Cmd+Return on ) to render the document.</p>
+          <% if @docs&.any? %>
+            <p>
+              <% if @user %>
+                Browse <%= current_user == @user ? "your" : @user.username + "'s public" %> documents:
+              <% else %>
+                Browse all public documents:
+              <% end %>
+            </p>
+            <ul><% @docs.each do |doc| %>
+              <li>
+                <%= link_to (@user ? "" : "#{doc.user.username}/") + "#{doc.name} (#{doc.access})", doc.path %>
+              </li>
+            <% end %></ul>
+          <% end %>
         <% end %>
       </div>
       <div class="m-4" id="error"></div>

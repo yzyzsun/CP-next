@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_03_13_133841) do
+ActiveRecord::Schema.define(version: 2021_04_26_063413) do
 
   create_table "docs", force: :cascade do |t|
     t.string "name"
@@ -21,6 +21,7 @@ ActiveRecord::Schema.define(version: 2021_03_13_133841) do
     t.integer "access", null: false
     t.integer "user_id"
     t.string "require_library"
+    t.text "html_cache"
     t.index ["user_id", "name"], name: "index_docs_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_docs_on_user_id"
   end
