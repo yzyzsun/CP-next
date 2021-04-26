@@ -4,21 +4,26 @@ import Prelude hiding (between)
 
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
+import Control.Monad.State (gets, modify_)
 import Data.Array as Array
+import Data.Array.NonEmpty (head)
 import Data.Char.Unicode (isLower, isUpper)
-import Data.Either (Either(..))
+import Data.Either (Either(..), fromRight)
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, null, some, toUnfoldable)
 import Data.Maybe (Maybe(..), fromMaybe, isJust, optional)
-import Data.String as String
-import Data.String.CodeUnits as CodeUnits
+import Data.String.CodeUnits as SCU
+import Data.String.Regex (Regex, match, regex, replace)
+import Data.String.Regex.Flags (noFlags)
 import Data.String.Unsafe (charAt)
 import Data.Tuple (Tuple(..))
-import Text.Parsing.Parser (Parser, fail, position)
-import Text.Parsing.Parser.Combinators (between, choice, lookAhead, manyTill, sepEndBy, try)
+import Partial.Unsafe (unsafePartial)
+import Text.Parsing.Parser (ParseState(..), Parser, fail, position)
+import Text.Parsing.Parser.Combinators (between, choice, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
-import Text.Parsing.Parser.String (anyChar, char, satisfy)
+import Text.Parsing.Parser.Pos (updatePosString)
+import Text.Parsing.Parser.String (char, satisfy)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..), foldl1)
 import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..), TyParam)
@@ -86,7 +91,7 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
                  , reserved "false" $> TmBool false
                  , symbol "()" $> TmUnit
                  , identifier <#> TmVar
-                 , brackets $ TmArray <<< toUnfoldable <$> sepEndBySemi expr
+                 , brackets $ TmArray <<< toUnfoldable <$> sepEndBySemi e
                  , recordLit e
                  , parens e
                  ]
@@ -184,9 +189,8 @@ document p = do
         foldl TmApp (fromMaybe (TmVar cmd) e) docs
     interpolation = newStr <<< TmToString <$> parens p
     newline = char '\\' $> newEndl
-    plaintext = do
-      s <- stringTill (char '\\' <|> char ']' <|> char '`')
-      if String.null s then fail "empty document" else pure $ newStr (TmString s)
+    plaintext = newStr <<< TmString <$> stringMatching re
+    re = unsafePartial (fromRight (regex """^[^\\\]`]+""" noFlags))
 
 newCtor :: String -> Tm
 newCtor = TmNew <<< TmVar
@@ -423,9 +427,9 @@ ident identStart = lexeme $ try do
   let languageDef = unGenLanguageDef zordDef
   c <- identStart
   cs <- Array.many languageDef.identLetter
-  let word = CodeUnits.singleton c <> CodeUnits.fromCharArray cs
+  let word = SCU.singleton c <> SCU.fromCharArray cs
   if not (Array.elem word languageDef.reservedNames) then pure word
-  else fail $ "reserved word " <> show word
+  else fail $ "Unexpected reserved word " <> show word
 
 lowerIdentifier :: SParser String
 lowerIdentifier = ident lower
@@ -433,6 +437,14 @@ lowerIdentifier = ident lower
 upperIdentifier :: SParser String
 upperIdentifier = ident upper
 
-stringTill :: forall a. SParser a -> SParser String
-stringTill p =
-  CodeUnits.fromCharArray <<< toUnfoldable <$> manyTill anyChar (lookAhead p)
+stringMatching :: Regex -> SParser String
+stringMatching re = do
+  input <- gets \(ParseState input _ _) -> input
+  case match re input of
+    Just arr -> case head arr of
+      Just str -> do
+        modify_ \(ParseState _ position _) ->
+          ParseState (replace re "" input) (updatePosString position str) true
+        pure str
+      Nothing -> fail $ "Failed to match " <> show re
+    Nothing -> fail $ "Failed to match " <> show re
