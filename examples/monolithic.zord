@@ -1,3 +1,5 @@
+--> 46
+
 type Mono = {
   eval : Int;
   plus : Int -> Int;
