@@ -90,6 +90,7 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
                  , reserved "true"  $> TmBool true
                  , reserved "false" $> TmBool false
                  , symbol "()" $> TmUnit
+                 , reserved "undefined" $> TmUndefined
                  , identifier <#> TmVar
                  , brackets $ TmArray <<< toUnfoldable <$> sepEndBySemi e
                  , recordLit e
@@ -364,9 +365,9 @@ override = do
 
 zordDef :: LanguageDef
 zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
-  [ "true", "false", "trait", "implements", "inherits", "override", "new"
-  , "if", "then", "else", "let", "letrec", "open", "in", "toString"
-  , "type", "extends", "forall"
+  [ "true", "false", "undefined", "if", "then", "else", "toString"
+  , "trait", "implements", "inherits", "override", "new"
+  , "let", "letrec", "open", "in", "type", "extends", "forall"
   , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait", "Array"
   ]
 }

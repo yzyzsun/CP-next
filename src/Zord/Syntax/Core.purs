@@ -53,6 +53,7 @@ data Tm = TmInt Int
         | TmString String
         | TmBool Boolean
         | TmUnit
+        | TmUndefined
         | TmUnary UnOp Tm
         | TmBinary BinOp Tm Tm
         | TmIf Tm Tm Tm
@@ -79,7 +80,8 @@ instance showTm :: Show Tm where
   show (TmDouble n) = show n
   show (TmString s) = show s
   show (TmBool b)   = show b
-  show (TmUnit)     = "()"
+  show TmUnit       = "()"
+  show TmUndefined  = "undefined"
   show (TmUnary op e) = show op <> show e
   show (TmBinary op e1 e2) = parens $ show e1 <+> show op <+> show e2
   show (TmIf e1 e2 e3) = parens $

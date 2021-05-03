@@ -23,7 +23,8 @@ infer (S.TmInt i)    = pure $ Tuple (C.TmInt i) C.TyInt
 infer (S.TmDouble d) = pure $ Tuple (C.TmDouble d) C.TyDouble
 infer (S.TmString s) = pure $ Tuple (C.TmString s) C.TyString
 infer (S.TmBool b)   = pure $ Tuple (C.TmBool b) C.TyBool
-infer S.TmUnit = pure $ Tuple C.TmUnit C.TyTop
+infer S.TmUnit       = pure $ Tuple C.TmUnit C.TyTop
+infer S.TmUndefined  = pure $ Tuple C.TmUndefined C.TyBot
 -- Int is always prioritized over Double: e.g. -(1.0,2) = -2
 infer (S.TmUnary Neg e) = do
   Tuple e' t <- infer e
