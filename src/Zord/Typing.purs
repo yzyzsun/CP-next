@@ -2,9 +2,9 @@ module Zord.Typing where
 
 import Prelude
 
-import Data.Array as Array
+import Data.Array (all, elem, head, notElem, null, unzip)
 import Data.Either (Either(..))
-import Data.List (List(..), elem, filter, foldr, last, notElem, null, singleton)
+import Data.List (List(..), filter, foldr, last, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set)
 import Data.Set as Set
@@ -191,8 +191,8 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
       Tuple e2' t2 <- addTmBind self t' $ infer e2
       pure $ Tuple e2' t2
   if tret <: sig' then pure $ trait self ret t' tret
-  else throwTypeError $ "the trait does not implement" <+> show sig <>
-                        ", whose type is" <+> show tret
+  else throwTypeError $ show sig <+> "is not implemented by the trait," <+>
+                        "whose type is" <+> show tret
   where
     -- TODO: inference is not complete
     inferFromSig :: S.Ty -> S.Tm -> S.Tm
@@ -227,15 +227,15 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     combineRcd (S.TyAnd (S.TyRcd xs) r) = xs <> combineRcd r
     combineRcd (S.TyAnd l r) = combineRcd l <> combineRcd r
     combineRcd _ = Nil
-    patterns :: Label -> List Label
+    patterns :: Label -> Array Label
     patterns l = patternsFromRcd (S.TmMerge (fromMaybe S.TmUnit me1) ne2) l
-    patternsFromRcd :: S.Tm -> Label -> List Label
+    patternsFromRcd :: S.Tm -> Label -> Array Label
     patternsFromRcd (S.TmPos _ e) l = patternsFromRcd e l
     patternsFromRcd (S.TmOpen _ e) l = patternsFromRcd e l
     patternsFromRcd (S.TmMerge e1 e2) l = patternsFromRcd e1 l <> patternsFromRcd e2 l
     patternsFromRcd (S.TmRcd (Cons (S.RcdField _ l' _ (Left e)) Nil)) l =
-      if innerLabel e == l then singleton l' else Nil
-    patternsFromRcd _ _ = Nil
+      if innerLabel e == l then [l'] else []
+    patternsFromRcd _ _ = []
     innerLabel :: S.Tm -> Label
     innerLabel (S.TmPos _ e) = innerLabel e
     innerLabel (S.TmOpen _ e) = innerLabel e
@@ -248,13 +248,15 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
       let Tuple params ty = paramsAndInnerTy tret in
       Tuple (Cons (S.TmParam "_" (Just targ)) params) ty
     paramsAndInnerTy ty = Tuple Nil ty
-    selectOverride :: S.Tm -> List Label
+    selectOverride :: S.Tm -> Array Label
     selectOverride (S.TmPos _ e) = selectOverride e
     selectOverride (S.TmOpen _ e) = selectOverride e
     selectOverride (S.TmMerge e1 e2) = selectOverride e1 <> selectOverride e2
-    selectOverride (S.TmRcd (Cons (S.RcdField true l _ _) Nil)) = singleton l
-    selectOverride _ = Nil
-    removeOverride :: C.Ty -> List Label -> C.Ty
+    -- TODO: only override the inner field if it's a method pattern
+    selectOverride (S.TmRcd (Cons (S.RcdField true l _ _) Nil)) = [l]
+    selectOverride _ = []
+    -- TODO: make sure every field overrides some field in super-trait
+    removeOverride :: C.Ty -> Array Label -> C.Ty
     removeOverride (C.TyAnd t1 t2) ls =
       let t1' = removeOverride t1 ls in
       let t2' = removeOverride t2 ls in
@@ -280,19 +282,50 @@ infer (S.TmNew e) = do
       else throwTypeError $ "Trait input" <+> show ti <+>
         "is not a supertype of Trait output" <+> show to
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
+infer (S.TmForward e1 e2) = do
+  Tuple e1' t1 <- infer e1
+  Tuple e2' t2 <- infer e2
+  case t1 of
+    C.TyArrow ti to true ->
+      if t2 <: ti then pure $ Tuple (C.TmApp e1' e2') to
+      else throwTypeError $ "expected to forward to a subtype of" <+> show ti <>
+                            ", but got" <+> show t2
+    _ -> throwTypeError $ "expected to forward from a trait, but got" <+> show t1
+infer (S.TmExclude e te) = do
+  Tuple e' t <- infer e
+  te' <- transform te
+  case t of
+    C.TyArrow ti to true -> case te' of
+      -- TODO: support intersection of multiple record types
+      C.TyRcd l tl ->
+        let Tuple overridden to' = exclude to l tl in
+        let t' = C.TyArrow ti to' true in
+        if overridden then pure $ Tuple (C.TmAnno e' t') t'
+        else throwTypeError $ show e <+> "does not contain a field of" <+> show te
+      _ -> throwTypeError $ "expected to exclude a single-field record type," <+>
+                            "but got" <+> show te
+    _ -> throwTypeError $ "expected to exclude from a trait, but got" <+> show e
+  where
+    exclude :: C.Ty -> Label -> C.Ty -> Tuple Boolean C.Ty
+    exclude (C.TyAnd t1 t2) l t =
+      let Tuple o1 t1' = exclude t1 l t in
+      let Tuple o2 t2' = exclude t2 l t in
+      Tuple (o1 || o2) (C.TyAnd t1' t2')
+    exclude (C.TyRcd l' t') l t | l == l' && t' === t = Tuple true C.TyTop
+    exclude t _ _ = Tuple false t
 infer (S.TmToString e) = do
   Tuple e' t <- infer e
   if t == C.TyInt || t == C.TyDouble || t == C.TyString || t == C.TyBool
   then pure $ Tuple (C.TmToString e') C.TyString
   else throwTypeError $ "cannot show" <+> show t
 infer (S.TmArray arr) = do
-  if Array.null arr then
+  if null arr then
     pure $ Tuple (C.TmArray C.TyBot []) (C.TyArray C.TyBot)
   else do
     ets <- traverse infer arr
-    let Tuple es ts = Array.unzip ets
-    let t = fromJust (Array.head ts)
-    if Array.all (_ === t) ts then pure $ Tuple (C.TmArray t es) (C.TyArray t)
+    let Tuple es ts = unzip ets
+    let t = fromJust (head ts)
+    if all (_ === t) ts then pure $ Tuple (C.TmArray t es) (C.TyArray t)
     else throwTypeError $ "elements of" <+> show (S.TmArray arr) <+>
                           "should all have the same type"
 -- TODO: save original terms instead of desugared ones

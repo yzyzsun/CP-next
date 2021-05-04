@@ -66,7 +66,10 @@ expr :: SParser Tm
 expr = fix $ \e -> position >>= \p -> TmPos p <$> colonexpr e
 
 colonexpr :: SParser Tm -> SParser Tm
-colonexpr e = opexpr e >>= \e' -> TmAnno e' <$ symbol ":" <*> ty <|> pure e'
+colonexpr e = opexpr e >>= \e' ->
+  TmAnno e' <$ symbol ":" <*> ty <|>
+  TmExclude e' <$ symbol "\\" <*> ty <|>
+  pure e'
 
 opexpr :: SParser Tm -> SParser Tm
 opexpr e = buildExprParser operators $ lexpr e
@@ -266,6 +269,7 @@ operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
               ]
             , [ Infix (reservedOp "&&" $> TmBinary (Logic And)) AssocRight ]
             , [ Infix (reservedOp "||" $> TmBinary (Logic Or )) AssocRight ]
+            , [ Infix (reservedOp "^" $> TmForward) AssocLeft ]
             , [ Infix (reservedOp "," $> TmMerge) AssocLeft ]
             ]
 
