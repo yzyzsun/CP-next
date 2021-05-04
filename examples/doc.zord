@@ -1,3 +1,5 @@
+--| Pass
+
 open doc;
 
 doc T = trait [self : DocSig'<T>] => {

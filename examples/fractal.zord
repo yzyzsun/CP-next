@@ -1,3 +1,5 @@
+--| Pass
+
 open doc;
 open svg;
 
