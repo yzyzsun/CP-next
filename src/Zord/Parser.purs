@@ -33,7 +33,7 @@ type SParser a = Parser String a
 -- Program --
 
 program :: SParser Tm
-program = fix $ \p -> tyDef p <|> try (tmDef p) <|> expr
+program = fix $ \p -> tyDef p <|> tmDef p <|> expr
 
 tyDef :: SParser Tm -> SParser Tm
 tyDef p = do
@@ -50,15 +50,17 @@ tyDef p = do
 
 tmDef :: SParser Tm -> SParser Tm
 tmDef p = do
-  x <- lowerIdentifier
-  tys <- many (try $ tyParams false)
-  tms <- many tmParams
-  t <- optional (symbol ":" *> ty)
-  symbol "="
+  def <- try do
+    x <- lowerIdentifier
+    tys <- many (try $ tyParams false)
+    tms <- many tmParams
+    t <- optional (symbol ":" *> ty)
+    symbol "="
+    pure $ TmDef x tys tms t
   e1 <- expr
   symbol ";"
   e2 <- p
-  pure $ TmDef x tys tms t e1 e2
+  pure $ def e1 e2
 
 -- Expressions --
 
@@ -209,21 +211,20 @@ newComp :: Tm -> Tm -> Tm
 newComp x y = TmNew (TmApp (TmApp (TmVar "Comp") x) y)
 
 recordLit :: SParser Tm -> SParser Tm
-recordLit p = braces $ TmRcd <$> sepEndBySemi
-  (try (recordField p) <|> methodPattern p <|> defaultPattern p)
+recordLit p = braces $ TmRcd <$> sepEndBySemi do
+  o <- isJust <$> optional (reserved "override")
+  recordField p o <|> methodPattern p o <|> defaultPattern p
 
-recordField :: SParser Tm -> SParser RcdField
-recordField p = do
-  o <- override
+recordField :: SParser Tm -> Boolean -> SParser RcdField
+recordField p o = do
   l <- identifier
   params <- many tmParams
   symbol "="
   e <- p
   pure $ RcdField o l params (Left e)
 
-methodPattern :: SParser Tm -> SParser RcdField
-methodPattern p = do
-  o <- override
+methodPattern :: SParser Tm -> Boolean -> SParser RcdField
+methodPattern p o = do
   symbol "("
   l <- identifier
   params <- many tmParams
@@ -359,11 +360,6 @@ tmParams = choice [ parensNameColonType
 
 selfAnno :: SParser (Tuple Name Ty)
 selfAnno = brackets $ Tuple <$> lowerIdentifier <* symbol ":" <*> ty
-
-override :: SParser Boolean
-override = do
-  m <- optional (reserved "override")
-  pure $ isJust m
 
 -- Lexer --
 
