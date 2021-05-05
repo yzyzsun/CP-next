@@ -3,15 +3,15 @@ const Zord = bundle.Zord;
 const namespace = window.location.pathname.split('/')[1];
 const docname = window.location.pathname.split('/')[2];
 
-function editorState(doc, editable) {
-  return bundle.editorState(doc, editable, () => interpret(() => {}));
+function editorState(doc, colorable) {
+  return bundle.editorState(doc, () => interpret(() => {}), true, colorable);
 }
 
 function editorView(state) {
   return bundle.editorView(state, document.getElementById('editor'));
 }
 
-const view = editorView(editorState($('#code').val(), true));
+const view = editorView(editorState($('#code').val(), false));
 
 function interpret(callback) {
   const run = prog => preprocess(prog).then(code => {
@@ -101,8 +101,13 @@ $('#render').on('click', () => interpret(() => {}));
 $('#mode').on('change', () => {
   if ($('#mode').val() == 'library') $('#providing').removeClass('d-none').addClass('d-flex');
   else $('#providing').removeClass('d-flex').addClass('d-none');
-  if ($('#mode').val() == 'doc_only') $('#requiring').removeClass('d-none').addClass('d-flex');
-  else $('#requiring').removeClass('d-flex').addClass('d-none');
+  if ($('#mode').val() == 'doc_only') {
+    $('#requiring').removeClass('d-none').addClass('d-flex');
+    view.setState(editorState(view.state.doc.toString(), false));
+  } else {
+    $('#requiring').removeClass('d-flex').addClass('d-none');
+    view.setState(editorState(view.state.doc.toString(), true));
+  }
 });
 $('#mode').change();
 

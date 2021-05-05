@@ -1,7 +1,7 @@
 <%= form_with model: User.new, url: user_session_path do |f| %>
   <div class="form-group">
     <%= f.label :username %>
-    <%= f.text_field :username, autofocus: true, autocomplete: "username",
+    <%= f.text_field :username, autocomplete: "username",
         required: true, class: "form-control" %>
   </div>
 

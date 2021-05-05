@@ -52,15 +52,15 @@ const zordLanguage = LezerLanguage.define({
   },
 });
 
-export function editorState(doc, editable, binding) {
+export function editorState(doc, binding, editable, colorable) {
   return EditorState.create({
     doc,
     extensions: [
       basicSetup,
       EditorView.lineWrapping,
-      EditorView.editable.of(editable),
       keymap.of([{ key: 'Mod-Enter', run: binding }]),
-      new LanguageSupport(zordLanguage),
+      EditorView.editable.of(editable),
+      ...(colorable ? [new LanguageSupport(zordLanguage)] : []),
     ],
   });
 }
