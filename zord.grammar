@@ -1,13 +1,14 @@
 @precedence {
-  index @left,
-  times @left,
-  plus  @left,
-  comp  @left,
-  and   @right,
-  or    @right,
-  merge @left,
-  forward @right,
-  intersect @left,
+  index @left
+  times @left
+  plus @left
+  append @left
+  comp @left
+  and @right
+  or @right
+  forward @left
+  merge @left
+  intersect @left
   arrow @right
 }
 
@@ -41,18 +42,19 @@ atype {
 
 RecordType { braces<sepEndBySemi<LabelDecl ":" type>> }
 
-expression { opexpr ~conflict (":" type)? }
+expression { opexpr ~conflict (":" type | "\\" type)? }
 
 opexpr {
   lexpr | minus opexpr | LogicOp<"!"> opexpr | LengthOp opexpr |
   opexpr !index IndexOp opexpr |
   opexpr !times (ArithOp<"*" | "/"> | modulo) opexpr |
   opexpr !plus (ArithOp<"+"> | minus) opexpr |
+  opexpr !append AppendOp opexpr |
   opexpr !comp CompareOp opexpr |
   opexpr !and LogicOp<"&&"> opexpr |
-  opexpr !or  LogicOp<"||"> opexpr |
-  opexpr !merge MergeOp opexpr |
-  opexpr !forward ForwardOp opexpr
+  opexpr !or LogicOp<"||"> opexpr |
+  opexpr !forward ForwardOp opexpr |
+  opexpr !merge MergeOp opexpr
 }
 
 lexpr {
@@ -67,8 +69,7 @@ lexpr {
 }
 
 fexpr {
-  dotexpr (dotexpr | "@" atype)* |
-  dotexpr ("\\" RecordType)+
+  dotexpr | fexpr (dotexpr | "@" atype)
 }
 
 dotexpr {
@@ -83,9 +84,8 @@ aexpr {
 }
 
 Record {
-  braces<sepEndBySemi<
-    kw<"override">? (RecordField | MethodPattern) |
-    (underscore | SelfAnno) "." RecordField
+  braces<kw<"override">? sepEndBySemi<
+    RecordField | MethodPattern | (underscore | SelfAnno) "." RecordField
   >>
 }
 
@@ -158,6 +158,7 @@ Label { lowerid | upperid }
   TypeOp<op> { op }
   ArithOp<op> { op }
   LogicOp<op> { op }
+  AppendOp { "++" }
   CompareOp { "<" "="? | ">" "="? | "==" | "!=" }
   MergeOp { "," }
   ForwardOp { "^" }
