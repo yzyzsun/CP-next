@@ -38,7 +38,7 @@ check code = case mexpected of
       Just err -> expectError interpretation
       Nothing -> interpretation $> unit
     Nothing -> fail "no expectation on the first line"
-  where mexpected = map trim <<< stripPrefix (Pattern "-->") <<<
+  where mexpected = map trim $ stripPrefix (Pattern "-->") $
                     takeWhile (_ /= codePointFromChar '\n') $ code
         mpassed = trim <$> stripPrefix (Pattern "--|") code
         interpretation = interpret code BigStep

@@ -191,8 +191,8 @@ document p = do
       e <- optional $ TmApp (TmVar cmd) <$> recordLit p <|>
         foldl TmApp (TmVar cmd) <$> between (symbol "(") (char ')') (many (dotexpr p))
       docs <- many (between (symbol "[") (char ']') (document p))
-      pure <<< (if isUpper (charAt 0 cmd) then TmNew else identity) $
-        foldl TmApp (fromMaybe (TmVar cmd) e) docs
+      let f = if isUpper (charAt 0 cmd) then TmNew else identity
+      pure $ f (foldl TmApp (fromMaybe (TmVar cmd) e) docs)
     interpolation = newStr <<< TmToString <$> parens p
     newline = char '\\' $> newEndl
     plaintext = newStr <<< TmString <$> stringMatching re

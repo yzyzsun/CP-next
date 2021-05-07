@@ -62,7 +62,7 @@ step e = unsafeCrashWith $ "Zord.Semantics.Closure.step: " <>
 typedReduce :: Tm -> Ty -> Eval (Maybe Tm)
 typedReduce e _ | not (isValue e) = unsafeCrashWith $
   "Zord.Semantics.Closure.typedReduce: " <> show e <> " is not a value"
-typedReduce _ t | isTopLike t = pure <<< Just $ TmUnit
+typedReduce _ t | isTopLike t = pure $ Just $ TmUnit
 typedReduce v t | Just (Tuple t1 t2) <- split t = do
   m1 <- typedReduce v t1
   m2 <- typedReduce v t2
@@ -71,19 +71,19 @@ typedReduce (TmMerge v1 v2) t = do
   m1 <- typedReduce v1 t
   m2 <- typedReduce v2 t
   pure $ m1 <|> m2
-typedReduce (TmInt i)    TyInt    = pure <<< Just $ TmInt i
-typedReduce (TmDouble n) TyDouble = pure <<< Just $ TmDouble n
-typedReduce (TmString s) TyString = pure <<< Just $ TmString s
+typedReduce (TmInt i)    TyInt    = pure $ Just $ TmInt i
+typedReduce (TmDouble n) TyDouble = pure $ Just $ TmDouble n
+typedReduce (TmString s) TyString = pure $ Just $ TmString s
 typedReduce (TmBool b)   TyBool   = pure (Just (TmBool b))
 typedReduce (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2) = do
   t1' <- local (const env) $ expand t1
-  if l1 == l2 && t1' <: t2 then pure <<< Just $ TmClosure env (TmRcd l2 t2 e)
+  if l1 == l2 && t1' <: t2 then pure $ Just $ TmClosure env (TmRcd l2 t2 e)
   else pure Nothing
 typedReduce (TmClosure env (TmAbs x e targ1 tret1)) (TyArrow targ2 tret2 _) = do
   targ1' <- local (const env) $ expand targ1
   tret1' <- local (const env) $ expand tret1
   if targ2 <: targ1' && tret1' <: tret2 then
-    pure <<< Just $ TmClosure env (TmAbs x e targ1' tret2)
+    pure $ Just $ TmClosure env (TmAbs x e targ1' tret2)
   else pure Nothing
 typedReduce (TmClosure env (TmTAbs a1 td1 e t1)) (TyForall a2 td2 t2) = do
   td1' <- local (const env) $ expand td1
@@ -91,11 +91,11 @@ typedReduce (TmClosure env (TmTAbs a1 td1 e t1)) (TyForall a2 td2 t2) = do
   t1' <- local (const env') $ expand t1
   -- TODO: a1 can be different from a2
   if a1 == a2 && td2 <: td1' && t1' <: t2 then
-    pure <<< Just $ TmClosure env' (TmTAbs a2 td1' e t2)
+    pure $ Just $ TmClosure env' (TmTAbs a2 td1' e t2)
   else pure Nothing
 typedReduce (TmClosure env (TmArray t1 arr)) (TyArray t2) = do
   t1' <- local (const env) $ expand t1
-  if t1' <: t2 then pure <<< Just $ TmClosure env (TmArray t2 arr)
+  if t1' <: t2 then pure $ Just $ TmClosure env (TmArray t2 arr)
   else pure Nothing
 typedReduce _ _ = pure Nothing
 

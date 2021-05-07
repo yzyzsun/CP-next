@@ -98,7 +98,7 @@ typedReduce _ _ = Nothing
 paraApp :: Tm -> Either Tm Ty -> Tm
 paraApp TmUnit _ = TmUnit
 paraApp (TmHAbs abs targ tret) (Left e2) =
-  TmAnno (abs (TmRef <<< new $ TmAnno e2 targ)) tret
+  TmAnno (abs $ TmRef $ new $ TmAnno e2 targ) tret
 paraApp (TmHTAbs tabs _ tf) (Right ta) = TmAnno (tabs ta) (tf ta)
 paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
 paraApp v e = unsafeCrashWith $ "Zord.Semantics.Natural.paraApp: " <>

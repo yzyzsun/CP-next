@@ -29,7 +29,7 @@ desugar (TmRcd xs) =
     desugarField :: RcdField -> RcdField
     -- TODO: override inner traits instead of outer ones
     desugarField (RcdField o l p f) =
-      RcdField o l Nil <<< Left <<< desugar <<< TmAbs p $ case f of
+      RcdField o l Nil $ Left $ desugar $ TmAbs p $ case f of
         Left e -> e
         Right pat -> desugarMethodPattern pat
     desugarField (DefaultPattern (MethodPattern self l p e)) =

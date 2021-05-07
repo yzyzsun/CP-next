@@ -22,10 +22,10 @@ endoS :: String -> EndoS
 endoS s = Endo (s <> _)
 
 computation :: String -> Eval Unit
-computation w = tell <<< endoS $ "↓ Step-" <> w <> "\n"
+computation w = tell $ endoS $ "↓ Step-" <> w <> "\n"
 
 congruence :: String -> Eval Unit
-congruence w = tell <<< endoS $ "→ Step-" <> w <> "\n"
+congruence w = tell $ endoS $ "→ Step-" <> w <> "\n"
 
 eval :: Tm -> Tuple Tm ShowS
 eval = go >>> runWriter >>> rmap unwrap

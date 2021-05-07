@@ -208,7 +208,7 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
         _ -> r
     inferFromSig (S.TyRcd xs) (S.TmRcd (Cons (S.DefaultPattern pat) Nil)) =
       let S.MethodPattern _ l _ _ = pat in
-      desugar <<< S.TmRcd $ filter (\x -> fst x `notElem` patterns l) xs <#> \x ->
+      desugar $ S.TmRcd $ filter (\x -> fst x `notElem` patterns l) xs <#> \x ->
         let Tuple params ty = paramsAndInnerTy (snd x) in
         let e = inferFromSig ty (desugarMethodPattern pat) in
         S.RcdField false (fst x) params (Left e)
@@ -331,7 +331,7 @@ infer (S.TmArray arr) = do
 -- TODO: save original terms instead of desugared ones
 infer (S.TmPos p e) = setPos (Pos p e) $ infer e
 infer (S.TmType a sorts params Nothing t e) = do
-  t' <- addSorts <<< addTyBinds $ transformTyDef t
+  t' <- addSorts $ addTyBinds $ transformTyDef t
   addTyAlias a (sig t') $ infer e
   where
     dualSorts :: List (Tuple Name Name)
