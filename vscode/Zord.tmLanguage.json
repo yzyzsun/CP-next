@@ -29,7 +29,7 @@
     },
     {
       "name": "storage.type.zord",
-      "match": "\\b(Int|Double|Bool|String|Top|Bot|Trait|Array)\\b"
+      "match": "\\b(Int|Double|Bool|String|Top|Bot|Trait)\\b"
     },
     {
       "name": "storage.modifier.zord",

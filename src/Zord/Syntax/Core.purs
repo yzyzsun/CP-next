@@ -42,7 +42,7 @@ instance showTy :: Show Ty where
   show (TyVar a) = a
   show (TyForall a td t) = parens $
     "∀" <> a <+> "*" <+> show td <> "." <+> show t
-  show (TyArray t) = parens $ "Array" <+> show t
+  show (TyArray t) = brackets $ show t
 
 derive instance eqTy :: Eq Ty
 

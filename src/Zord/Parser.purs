@@ -281,7 +281,7 @@ ty = fix \t -> buildExprParser toperators $ bty t
 
 bty :: SParser Ty -> SParser Ty
 bty t = foldl TyApp <$> aty t <*> many (aty t <|> sortTy t) <|>
-        forallTy <|> traitTy <|> arrayTy
+        forallTy <|> traitTy
 
 aty :: SParser Ty -> SParser Ty
 aty t = choice [ reserved "Int"    $> TyInt
@@ -291,6 +291,7 @@ aty t = choice [ reserved "Int"    $> TyInt
                , reserved "Top"    $> TyTop
                , reserved "Bot"    $> TyBot
                , upperIdentifier <#> TyVar
+               , brackets t <#> TyArray
                , recordTy
                , parens t
                ]
@@ -316,12 +317,6 @@ traitTy = do
     ti <- optional (try (ty <* symbol "%"))
     to <- ty
     pure $ TyTrait ti to
-
-arrayTy :: SParser Ty
-arrayTy = do
-  reserved "Array"
-  te <- aty ty
-  pure $ TyArray te
 
 recordTy :: SParser Ty
 recordTy = braces $ TyRcd <$> sepEndBySemi do
@@ -368,7 +363,7 @@ zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "undefined", "if", "then", "else", "toString"
   , "trait", "implements", "inherits", "override", "new"
   , "let", "letrec", "open", "in", "type", "extends", "forall"
-  , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait", "Array"
+  , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
   ]
 }
 

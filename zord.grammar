@@ -28,7 +28,7 @@ TermDef {
 
 type {
   btype | kw<"forall"> typeParam+ "." type |
-  kW<"Trait"> angles<typeWithPercent> | kW<"Array"> atype |
+  kW<"Trait"> angles<typeWithPercent> |
   type !arrow TypeOp<"->"> type |
   type !intersect TypeOp<"&"> type
 }
@@ -37,7 +37,7 @@ btype { atype (atype | angles<typeWithPercent>)* }
 
 atype {
   kW<"Int"> | kW<"Double"> | kW<"String"> | kW<"Bool"> | kW<"Top"> | kW<"Bot"> |
-  TypeName | RecordType | parens<type>
+  TypeName | RecordType | brackets<type> | parens<type>
 }
 
 RecordType { braces<sepEndBySemi<LabelDecl ":" type>> }

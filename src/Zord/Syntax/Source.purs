@@ -50,7 +50,7 @@ instance showTy :: Show Ty where
   show (TySort ti to) = angles $ show ti <> showMaybe " % " to ""
   show (TySig a b t) = parens $
     "\\" <> angles (a <+> "%" <+> b) <+> "->" <+> show t
-  show (TyArray t) = parens $ "Array" <+> show t
+  show (TyArray t) = brackets $ show t
 
 derive instance eqTy :: Eq Ty
 

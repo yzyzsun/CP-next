@@ -11,9 +11,9 @@ html' = trait implements DocSig'<HTML><HTML> inherits html => {
   (Graph {..} e).html = "<svg width=\"" ++ toString width ++ "\" height=\"" ++ toString height ++ "\">" ++ e.html ++ "</svg>"
 };
 
-fold' T (f : T -> T -> T) (z : T) (xs : Array T) (i : Int) : T =
+fold' T (f : T -> T -> T) (z : T) (xs : [T]) (i : Int) : T =
   if i == 0 then z else f (fold' @T f z xs (i-1)) (xs!!(i-1));
-fold T (f : T -> T -> T) (z : T) (xs : Array T) = fold' @T f z xs (#xs);
+fold T (f : T -> T -> T) (z : T) (xs : [T]) = fold' @T f z xs (#xs);
 
 type Draw Graphic Color = {
   init : { x: Int; y: Int; width: Int; height: Int; color: Color; level: Int };
