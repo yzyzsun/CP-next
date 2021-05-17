@@ -9,9 +9,10 @@ import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (binop, selectLabel, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (BinOp(..), fromJust)
+import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (Tm(..), Ty(..), done, new, read, tmHoas, tyHoas, write)
 import Zord.Trampoline (Trampoline, bind, pure, runTrampoline)
+import Zord.Util (unsafeFromJust)
 
 eval :: Tm -> Tm
 eval = runTrampoline <<< go <<< tmHoas
@@ -45,9 +46,9 @@ eval = runTrampoline <<< go <<< tmHoas
     go e@(TmHFix fix t) = go $ TmAnno (fix e) t
     go (TmAnno e t) = do
       e' <- go' e
-      go $ fromJust (typedReduce e' t)
+      go $ unsafeFromJust (typedReduce e' t)
       where go' :: Tm -> Trampoline Tm
-            go' (TmAnno e' t') = go' e'
+            go' (TmAnno e' _) = go' e'
             go' e' = go e'
     go (TmMerge e1 e2) = do
       e1' <- go e1

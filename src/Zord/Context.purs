@@ -8,7 +8,7 @@ import Data.Either (Either)
 import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Text.Parsing.Parser.Pos (Position)
-import Zord.Syntax.Common (Name, (<+>))
+import Zord.Syntax.Common (Name)
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
 
@@ -37,7 +37,7 @@ lookupTmBind name = do
   env <- asks (_.tmBindEnv)
   case lookup name env of
     Just t -> pure t
-    Nothing -> throwTypeError $ "term variable" <+> show name <+> "is undefined"
+    Nothing -> throwTypeError $ "term variable " <> show name <> " is undefined"
 
 lookupTyBind :: Name -> Typing (Maybe C.Ty)
 lookupTyBind name = lookup name <$> asks (_.tyBindEnv)

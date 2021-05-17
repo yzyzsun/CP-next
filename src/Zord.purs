@@ -5,8 +5,8 @@ import Prelude
 import Data.Array ((!!))
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
+import Data.Show.Generic (genericShow)
 import Data.String (Pattern(..), split)
 import Data.String.CodeUnits (charAt)
 import Data.Tuple (Tuple(..))
@@ -35,7 +35,7 @@ interpret code mode = case runParser code (whiteSpace *> program <* eof) of
   Left err -> throw $ showParseError err code
   Right e -> let e' = desugar e in case runTyping (infer e') of
     Left err -> throw $ showTypeError err
-    Right (Tuple e'' t) -> case mode of
+    Right (Tuple e'' _) -> case mode of
       SmallStep -> pure $ show (SmallStep.eval e'')
       StepTrace -> let Tuple _ s = StepTrace.eval e'' in pure $
         show e <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s ""
@@ -53,7 +53,7 @@ showPosition (Position { line: line, column: column }) =
   show line <> ":" <> show column
 
 showParseError :: ParseError -> String -> String
-showParseError (ParseError msg pos) source =
+showParseError (ParseError _ pos) source =
   showPosition pos <> ": parse error" <>
   case sought pos of Just char -> " on input " <> show char
                      Nothing -> ""

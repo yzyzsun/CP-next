@@ -35,7 +35,7 @@ check code = case mexpected of
                       expected `shouldEqual` output
   Nothing -> case mpassed of
     Just rest -> case stripPrefix (Pattern "Error") rest of
-      Just err -> expectError interpretation
+      Just _ -> expectError interpretation
       Nothing -> interpretation $> unit
     Nothing -> fail "no expectation on the first line"
   where mexpected = map trim $ stripPrefix (Pattern "-->") $

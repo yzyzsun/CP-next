@@ -9,7 +9,8 @@ import Data.List (List)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..), fst, snd)
 import Text.Parsing.Parser.Pos (Position)
-import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens, (<+>))
+import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
+import Zord.Util ((<+>))
 
 -- Types --
 
@@ -124,7 +125,7 @@ instance showTm :: Show Tm where
   show (TmExclude e t) = parens $ show e <+> "\\" <+> show t
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
-  show (TmPos p e) = show e
+  show (TmPos _pos e) = show e
   show (TmType a sorts params t1 t2 e) = "type" <+> a <+>
     intercalate " " (angles <$> sorts) <+> intercalate " " params <+>
     showMaybe "extends " t1 " " <> "=" <+> show t2 <> ";" <+> show e

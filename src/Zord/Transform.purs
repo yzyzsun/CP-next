@@ -4,16 +4,16 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Bitraversable (rtraverse)
-import Data.Char.Unicode (isUpper)
+import Data.CodePoint.Unicode (isUpper)
 import Data.List (List(..), foldr)
 import Data.Maybe (Maybe(..))
-import Data.String.Unsafe (charAt)
+import Data.String (codePointAt)
 import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import Zord.Context (Typing, addTyBind, lookupSort, lookupTyAlias, lookupTyBind, throwTypeError)
-import Zord.Syntax.Common (foldl1, (<+>))
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
+import Zord.Util (foldl1, unsafeFromJust, (<+>))
 
 transform :: S.Ty -> Typing C.Ty
 transform = expand >=> translate
@@ -69,7 +69,7 @@ expand (S.TyVar a) = do
   mtd <- lookupTyBind a
   ms <- lookupSort a
   case void mtd <|> void ms of
-    Just unit -> pure $ S.TyVar a
+    Just _ -> pure $ S.TyVar a
     Nothing -> do
       mt <- lookupTyAlias a
       case mt of
@@ -118,8 +118,8 @@ distinguish isCtor isOut (S.TyArrow t1 t2) =
   S.TyArrow <$> distinguish isCtor (not isOut) t1 <*> distinguish isCtor isOut t2
 distinguish isCtor isOut (S.TyAnd t1 t2) =
   S.TyAnd <$> distinguish isCtor isOut t1 <*> distinguish isCtor isOut t2
-distinguish isCtor isOut (S.TyRcd xs) = S.TyRcd <$> for xs \(Tuple l t) ->
-  Tuple l <$> distinguish (isUpper (charAt 0 l)) isOut t
+distinguish _ isOut (S.TyRcd xs) = S.TyRcd <$> for xs \(Tuple l t) ->
+  Tuple l <$> distinguish (isUpper $ unsafeFromJust $ codePointAt 0 l) isOut t
 distinguish isCtor true t@(S.TyVar a) = do
   mb <- lookupSort a
   case mb of Just b -> do if isCtor then pure $ S.TyTrait (Just t) (S.TyVar b)

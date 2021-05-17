@@ -6,8 +6,9 @@ import Data.Either (Either(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (binop, selectLabel, toString, unop)
 import Zord.Semantics.Substitution (paraApp, typedReduce)
-import Zord.Syntax.Common (BinOp(..), fromJust)
+import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (Tm(..), tmSubst)
+import Zord.Util (unsafeFromJust)
 
 eval :: Tm -> Tm
 eval e@(TmInt _)    = e
@@ -28,9 +29,9 @@ eval (TmIf e1 e2 e3) = case eval e1 of
 eval (TmApp e1 e2) = eval $ paraApp (eval e1) (Left e2)
 eval e@(TmAbs _ _ _ _) = e
 eval (TmFix x e t) = eval $ TmAnno (tmSubst x (TmFix x e t) e) t
-eval (TmAnno e t) = eval $ fromJust (typedReduce (eval' e) t)
+eval (TmAnno e t) = eval $ unsafeFromJust (typedReduce (eval' e) t)
   where eval' :: Tm -> Tm
-        eval' (TmAnno e' t') = eval' e'
+        eval' (TmAnno e' _) = eval' e'
         eval' e' = eval e'
 eval (TmMerge e1 e2) = TmMerge (eval e1) (eval e2)
 eval e@(TmRcd _ _ _) = e

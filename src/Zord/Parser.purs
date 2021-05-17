@@ -7,17 +7,16 @@ import Control.Lazy (fix)
 import Control.Monad.State (gets, modify_)
 import Data.Array as Array
 import Data.Array.NonEmpty (head)
-import Data.Char.Unicode (isLower, isUpper)
-import Data.Either (Either(..), fromRight)
+import Data.CodePoint.Unicode (isLower, isUpper)
+import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, null, some, toUnfoldable)
 import Data.Maybe (Maybe(..), fromMaybe, isJust, optional)
+import Data.String (codePointAt, codePointFromChar)
 import Data.String.CodeUnits as SCU
 import Data.String.Regex (Regex, match, regex, replace)
 import Data.String.Regex.Flags (noFlags)
-import Data.String.Unsafe (charAt)
 import Data.Tuple (Tuple(..))
-import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (ParseState(..), Parser, fail, position)
 import Text.Parsing.Parser.Combinators (between, choice, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
@@ -25,8 +24,9 @@ import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.Pos (updatePosString)
 import Text.Parsing.Parser.String (char, satisfy)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..), foldl1)
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
 import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..), TyParam)
+import Zord.Util (foldl1, unsafeFromJust, unsafeFromRight)
 
 type SParser a = Parser String a
 
@@ -191,12 +191,12 @@ document p = do
       e <- optional $ TmApp (TmVar cmd) <$> recordLit p <|>
         foldl TmApp (TmVar cmd) <$> between (symbol "(") (char ')') (many (dotexpr p))
       docs <- many (between (symbol "[") (char ']') (document p))
-      let f = if isUpper (charAt 0 cmd) then TmNew else identity
+      let f = if isUpper $ unsafeFromJust $ codePointAt 0 cmd then TmNew else identity
       pure $ f (foldl TmApp (fromMaybe (TmVar cmd) e) docs)
     interpolation = newStr <<< TmToString <$> parens p
     newline = char '\\' $> newEndl
     plaintext = newStr <<< TmString <$> stringMatching re
-    re = unsafePartial (fromRight (regex """^[^\\\]`]+""" noFlags))
+    re = unsafeFromRight $ regex """^[^\\\]`]+""" noFlags
 
 newCtor :: String -> Tm
 newCtor = TmNew <<< TmVar
@@ -416,7 +416,7 @@ sepEndBySemi :: forall a. SParser a -> SParser (List a)
 sepEndBySemi p = sepEndBy p (symbol ";")
 
 lower :: SParser Char
-lower = satisfy isLower
+lower = satisfy $ isLower <<< codePointFromChar
 
 ident :: SParser Char -> SParser String
 ident identStart = lexeme $ try do

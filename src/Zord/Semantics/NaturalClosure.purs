@@ -9,8 +9,9 @@ import Data.Maybe (Maybe(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Closure (Eval, binop', closure, expand, paraApp, selectLabel', typedReduce, unop')
 import Zord.Semantics.Common (toString)
-import Zord.Syntax.Common (BinOp(..), fromJust)
+import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (EvalBind(..), Tm(..))
+import Zord.Util (unsafeFromJust)
 
 eval :: Tm -> Tm
 eval tm = runReader (go tm) empty
@@ -48,9 +49,9 @@ eval tm = runReader (go tm) empty
       e' <- go' e
       t' <- expand t
       s <- typedReduce e' t'
-      go $ fromJust s
+      go $ unsafeFromJust s
       where go' :: Tm -> Eval Tm
-            go' (TmAnno e' t') = go' e'
+            go' (TmAnno e' _) = go' e'
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go e@(TmRcd _ _ _) = closure e

@@ -2,10 +2,6 @@ module Zord.Syntax.Common where
 
 import Prelude
 
-import Data.List (List(..), foldl)
-import Data.Maybe (Maybe(..))
-import Partial.Unsafe (unsafeCrashWith)
-
 type Name  = String
 type Label = String
 
@@ -16,7 +12,7 @@ data Kind = KnStar
 
 instance showKind :: Show Kind where
   show KnStar = "*"
-  show (KnArr k1 k2) = show k1 <+> "→" <+> show k2
+  show (KnArr k1 k2) = show k1 <> " → " <> show k2
 
 derive instance eqKind :: Eq Kind
 
@@ -67,27 +63,14 @@ instance showLogicOp :: Show LogicOp where
 
 -- Helpers --
 
-beside :: String -> String -> String
-beside s1 s2 = s1 <> " " <> s2
-
-infixr 5 beside as <+>
-
 parens :: String -> String
 parens str = "(" <> str <> ")"
 
 braces :: String -> String
-braces str = "{" <+> str <+> "}"
+braces str = "{ " <> str <> " }"
 
 angles :: String -> String
-angles str = "<" <+> str <+> ">"
+angles str = "<" <> str <> ">"
 
 brackets :: String -> String
-brackets str = "[" <+> str <+> "]"
-
-foldl1 :: forall a. (a -> a -> a) -> List a -> a
-foldl1 _ Nil = unsafeCrashWith "foldl1: empty list"
-foldl1 f (Cons x xs) = foldl f x xs
-
-fromJust :: forall a. Maybe a -> a
-fromJust (Just x) = x
-fromJust Nothing = unsafeCrashWith "fromJust: unexpected Nothing"
+brackets str = "[" <> str <> "]"

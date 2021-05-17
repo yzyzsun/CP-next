@@ -7,8 +7,8 @@ import Data.Either (Either(..))
 import Data.List (List(..), foldr, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
-import Zord.Syntax.Common (foldl1)
 import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..))
+import Zord.Util (foldl1)
 
 -- typing-related desugaring is delayed until type inference
 desugar :: Tm -> Tm

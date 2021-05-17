@@ -13,10 +13,11 @@ import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import Zord.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
 import Zord.Desugar (desugar, desugarMethodPattern)
 import Zord.Subtyping (isTopLike, (<:), (===))
-import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..), fromJust, (<+>))
+import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
 import Zord.Syntax.Core as C
 import Zord.Syntax.Source as S
 import Zord.Transform (duringTransformation, transform, transformTyDef)
+import Zord.Util (unsafeFromJust, (<+>))
 
 infer :: S.Tm -> Typing (Tuple C.Tm C.Ty)
 infer (S.TmInt i)    = pure $ Tuple (C.TmInt i) C.TyInt
@@ -106,7 +107,7 @@ infer (S.TmAbs (Cons (S.TmParam x (Just targ)) Nil) e) = do
   targ' <- transform targ
   Tuple e' tret <- addTmBind x targ' $ infer e
   pure $ Tuple (C.TmAbs x e' targ' tret) (C.TyArrow targ' tret false)
-infer (S.TmAbs (Cons (S.TmParam x Nothing) Nil) e) = throwTypeError $
+infer (S.TmAbs (Cons (S.TmParam x Nothing) Nil) _) = throwTypeError $
   "lambda parameter" <+> show x <+> "should be annotated with a type"
 infer (S.TmAnno e ta) = do
   Tuple e' t <- infer e
@@ -157,7 +158,7 @@ infer (S.TmLetrec x t e1 e2) = do
 infer (S.TmOpen e1 e2) = do
   Tuple e1' t1 <- infer e1
   let ls = foldr Cons Nil (labels t1)
-  let bs = ls <#> \l -> Tuple l (fromJust (selectLabel t1 l))
+  let bs = ls <#> \l -> Tuple l (unsafeFromJust (selectLabel t1 l))
   Tuple e2' t2 <- foldr (uncurry addTmBind) (infer e2) bs
   let open (Tuple l t) e = letIn l (C.TmPrj e1' l) t e t2
   pure $ Tuple (foldr open e2' bs) t2
@@ -214,7 +215,7 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
         S.RcdField false (fst x) params (Left e)
     inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons (S.TmParam x Nothing) Nil) e) =
       S.TmAbs (singleton (S.TmParam x (Just targ))) (inferFromSig tret e)
-    inferFromSig (S.TyArrow targ tret)
+    inferFromSig (S.TyArrow _ tret)
                  (S.TmAbs param@(Cons (S.TmParam _ (Just _)) Nil) e) =
       S.TmAbs param (inferFromSig tret e)
     inferFromSig (S.TyTrait ti to) (S.TmTrait (Just (Tuple self' t')) sig' e1 e2) =
@@ -324,7 +325,7 @@ infer (S.TmArray arr) = do
   else do
     ets <- traverse infer arr
     let Tuple es ts = unzip ets
-    let t = fromJust (head ts)
+    let t = unsafeFromJust $ head ts
     if all (_ === t) ts then pure $ Tuple (C.TmArray t es) (C.TyArray t)
     else throwTypeError $ "elements of" <+> show (S.TmArray arr) <+>
                           "should all have the same type"

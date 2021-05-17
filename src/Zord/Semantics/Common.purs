@@ -56,7 +56,7 @@ binop (Comp Ge ) (TmBool b1) (TmBool b2) = TmBool (b1 >= b2)
 binop (Logic And) (TmBool b1) (TmBool b2) = TmBool (b1 && b2)
 binop (Logic Or ) (TmBool b1) (TmBool b2) = TmBool (b1 || b2)
 binop Append (TmString s1) (TmString s2) = TmString (s1 <> s2)
-binop Append (TmArray t1 l1) (TmArray t2 l2) = TmArray t1 (l1 <> l2)
+binop Append (TmArray t l1) (TmArray _ l2) = TmArray t (l1 <> l2)
 binop Index (TmArray t arr) (TmInt i) = case arr !! i of
   Just e -> TmAnno e t
   Nothing -> unsafeCrashWith $ "Zord.Semantics.Common.binop: the index " <>

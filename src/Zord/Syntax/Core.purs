@@ -6,7 +6,8 @@ import Data.Either (Either(..))
 import Data.Foldable (intercalate)
 import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
-import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens, (<+>))
+import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
+import Zord.Util ((<+>))
 
 foreign import data TmRef :: Type
 foreign import new :: Tm -> TmRef
@@ -36,7 +37,7 @@ instance showTy :: Show Ty where
   show TyBool   = "Bool"
   show TyTop    = "⊤"
   show TyBot    = "⊥"
-  show (TyArrow t1 t2 isTrait) = parens $ show t1 <+> "→" <+> show t2
+  show (TyArrow t1 t2 _isTrait) = parens $ show t1 <+> "→" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
   show (TyRcd l t) = braces $ l <+> ":" <+> show t
   show (TyVar a) = a
@@ -90,10 +91,10 @@ instance showTm :: Show Tm where
   show (TmApp e1 e2) = parens $ show e1 <+> show e2
   show (TmAbs x e targ tret) = parens $
     "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "→" <+> show tret
-  show (TmHAbs abs targ tret) = angles $
+  show (TmHAbs _abs targ tret) = angles $
     "HOAS" <+> show targ <+> "→" <+> show tret
   show (TmFix x e t) = parens $ "fix" <+> x <> "." <+> show e <+> ":" <+> show t
-  show (TmHFix fix t) = angles $ "HOAS fix" <+> show t
+  show (TmHFix _fix t) = angles $ "HOAS fix" <+> show t
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
   show (TmRcd l t e) = braces $ l <+> ":" <+> show t <+> "=" <+> show e
@@ -101,12 +102,12 @@ instance showTm :: Show Tm where
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs a td e t) = parens $ "Λ" <> a <> "." <+> show e <+>
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
-  show (TmHTAbs tabs td tf) = angles $ "HOAS ∀*" <+> show td
+  show (TmHTAbs _tabs td _tf) = angles $ "HOAS ∀*" <+> show td
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray t arr) = parens $
     brackets (intercalate "; " (show <$> arr)) <+> ": Array" <+> show t
-  show (TmClosure env e) = angles $ "Closure" <+> show e
-  show (TmRef ref) = angles $ "Ref"
+  show (TmClosure _env e) = angles $ "Closure" <+> show e
+  show (TmRef _ref) = angles $ "Ref"
 
 -- HOAS --
 

@@ -9,8 +9,8 @@ import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (binop, selectLabel, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (fromJust)
 import Zord.Syntax.Core (Tm(..), Ty(..), tmSubst, tmTSubst, tySubst)
+import Zord.Util (unsafeFromJust)
 
 eval :: Tm -> Tm
 eval e | isValue e = e
@@ -22,14 +22,14 @@ step (TmUnary op e) | isValue e = unop op e
 step (TmBinary op e1 e2) | isValue e1 && isValue e2 = binop op e1 e2
                          | isValue e1 = TmBinary op e1 (step e2)
                          | otherwise  = TmBinary op (step e1) e2
-step (TmIf (TmBool true)  e2 e3) = e2
-step (TmIf (TmBool false) e2 e3) = e3
+step (TmIf (TmBool true)  e _) = e
+step (TmIf (TmBool false) _ e) = e
 step (TmIf e1 e2 e3) = TmIf (step e1) e2 e3
 step (TmApp e1 e2) | isValue e1 = paraApp e1 (Left e2)
                    | otherwise  = TmApp (step e1) e2
 step (TmFix x e t) = TmAnno (tmSubst x (TmFix x e t) e) t
-step (TmAnno (TmAnno e t') t) = TmAnno e t
-step (TmAnno e t) | isValue e = fromJust (typedReduce e t)
+step (TmAnno (TmAnno e _) t) = TmAnno e t
+step (TmAnno e t) | isValue e = unsafeFromJust (typedReduce e t)
                   | otherwise = TmAnno (step e) t
 step (TmMerge e1 e2) | isValue e1 = TmMerge e1 (step e2)
                      | isValue e2 = TmMerge (step e1) e2

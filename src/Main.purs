@@ -5,7 +5,7 @@ import Prelude
 import Ansi.Codes (Color(..))
 import Ansi.Output (foreground, withGraphics)
 import Data.Array.NonEmpty ((!!))
-import Data.Either (Either(..), fromRight)
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromJust)
 import Data.String (Pattern(..), stripPrefix)
 import Data.String.Regex (match, regex, replace)
@@ -22,6 +22,7 @@ import Node.Path (concat, dirname)
 import Node.ReadLine (Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
 import Partial.Unsafe (unsafePartial)
 import Zord (Mode(..), interpret)
+import Zord.Util (unsafeFromRight)
 
 showSeconds :: Milliseconds -> String
 showSeconds (Milliseconds n) = show (n / 1000.0) <> "s"
@@ -48,8 +49,8 @@ preprocess path program = case match openRegex program of
     text <- readTextFile (concat [path, ext name])
     preprocess path $ replace openRegex (replace lineRegex " " text) program
   Nothing -> pure program
-  where openRegex = fromRight (regex """open\s+(\w+)\s*;""" noFlags)
-        lineRegex = fromRight (regex """(--.*)?[\r\n]+""" global)
+  where openRegex = unsafeFromRight $ regex """open\s+(\w+)\s*;""" noFlags
+        lineRegex = unsafeFromRight $ regex """(--.*)?[\r\n]+""" global
         ext name = name <> ".mzord"
 
 execute :: String -> Mode -> Effect Unit
@@ -66,15 +67,15 @@ main :: Effect Unit
 main = do
   log "Zord REPL, version 0.1.1 (press Ctrl-C to quit)"
   interface <- createConsoleInterface noCompletion
-  setPrompt "> " 2 interface
+  setPrompt "> " interface
   prompt interface
-  setLineHandler interface $ handler interface BigStep
+  flip setLineHandler interface $ handler interface BigStep
   where
     handler :: Interface -> Mode -> String -> Effect Unit
     handler interface mode input = do
       case stripPrefix (Pattern ":mode ") input of
         Just m -> do
-          let setMode = setLineHandler interface <<< handler interface
+          let setMode = flip setLineHandler interface <<< handler interface
           case m of "SmallStep" -> setMode SmallStep
                     "StepTrace" -> setMode StepTrace
                     "BigStep" -> setMode BigStep
