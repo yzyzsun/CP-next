@@ -25,9 +25,10 @@ step (TmBinary op e1 e2) | isValue e1 && isValue e2 = binop op e1 e2
 step (TmIf (TmBool true)  e _) = e
 step (TmIf (TmBool false) _ e) = e
 step (TmIf e1 e2 e3) = TmIf (step e1) e2 e3
-step (TmApp e1 e2) | isValue e1 = paraApp e1 (Left e2)
-                   | otherwise  = TmApp (step e1) e2
-step (TmFix x e t) = TmAnno (tmSubst x (TmFix x e t) e) t
+step (TmApp e1 e2 coercive) | isValue e1 && coercive = paraApp e1 (Left e2)
+                            | isValue e1 && not coercive = app e1 e2
+                            | otherwise = TmApp (step e1) e2 coercive
+step fix@(TmFix x e _) = tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = TmAnno e t
 step (TmAnno e t) | isValue e = unsafeFromJust (typedReduce e t)
                   | otherwise = TmAnno (step e) t
@@ -70,10 +71,15 @@ paraApp :: Tm -> Either Tm Ty -> Tm
 paraApp TmUnit _ = TmUnit
 paraApp (TmAbs x e1 targ tret) (Left e2) =
   TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
-paraApp (TmTAbs a _ e t) (Right ta) = TmAnno (tmTSubst a ta e) (tySubst a ta t)
+paraApp (TmTAbs a _ e _) (Right ta) = tmTSubst a ta e
 paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
 paraApp v e = unsafeCrashWith $ "Zord.Semantics.Substitution.paraApp: " <>
   "impossible application " <> show v <> " • " <> show e
+
+app :: Tm -> Tm -> Tm
+app (TmAbs x e1 _ _) e2 = tmSubst x e2 e1
+app e _ = unsafeCrashWith $
+  "Zord.Semantics.Substitution.app: " <> show e <> " is not applicable"
 
 isValue :: Tm -> Boolean
 isValue (TmInt _)    = true

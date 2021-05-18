@@ -102,7 +102,7 @@ infer (S.TmVar x) = Tuple (C.TmVar x) <$> lookupTmBind x
 infer (S.TmApp e1 e2) = do
   Tuple e1' t1 <- infer e1
   Tuple e2' t2 <- infer e2
-  Tuple (C.TmApp e1' e2') <$> distApp t1 (Left t2)
+  Tuple (C.TmApp e1' e2' true) <$> distApp t1 (Left t2)
 infer (S.TmAbs (Cons (S.TmParam x (Just targ)) Nil) e) = do
   targ' <- transform targ
   Tuple e' tret <- addTmBind x targ' $ infer e
@@ -125,7 +125,7 @@ infer (S.TmMerge e1 e2) = do
     _, _ -> do
       disjoint t1 t2
       pure $ Tuple (C.TmMerge e1' e2') (C.TyAnd t1 t2)
-  where appToSelf e = C.TmApp e (C.TmVar "self")
+  where appToSelf e = C.TmApp e (C.TmVar "self") true
 infer (S.TmRcd (Cons (S.RcdField _ l Nil (Left e)) Nil)) = do
   Tuple e' t <- infer e
   pure $ Tuple (C.TmRcd l t e') (C.TyRcd l t)
@@ -149,11 +149,13 @@ infer (S.TmLet x e1 e2) = do
 infer (S.TmLetrec x t e1 e2) = do
   t' <- transform t
   Tuple e1' t1 <- addTmBind x t' $ infer e1
-  if t1 <: t' then do
+  -- The return type is constrained to be equivalent to the annotated type
+  -- in order to avoid extra typed reduction.
+  if t1 === t' then do
     Tuple e2' t2 <- addTmBind x t' $ infer e2
     pure $ Tuple (letIn x (C.TmFix x e1' t') t' e2' t2) t2
   else throwTypeError $
-    "annotated" <+> show t <+> "is not a supertype of inferred" <+> show t1
+    "annotated" <+> show t' <+> "is different from inferred" <+> show t1
 -- TODO: find a more efficient algorithm
 infer (S.TmOpen e1 e2) = do
   Tuple e1' t1 <- infer e1
@@ -182,7 +184,7 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
             let to' = override to e2
             disjoint to' t2
             let tret = C.TyAnd to' t2
-            let ret = letIn "super" (C.TmApp e1' (C.TmVar self)) to
+            let ret = letIn "super" (C.TmApp e1' (C.TmVar self) true) to
                       (C.TmMerge (C.TmAnno (C.TmVar "super") to') e2') tret
             pure $ Tuple ret tret
           else throwTypeError $ "self-type" <+> show t <+>
@@ -279,7 +281,7 @@ infer (S.TmNew e) = do
   case t of
     C.TyArrow ti to true ->
       if to <: ti then
-        pure $ Tuple (C.TmFix "self" (C.TmApp e' (C.TmVar "self")) to) to
+        pure $ Tuple (C.TmFix "self" (C.TmApp e' (C.TmVar "self") true) to) to
       else throwTypeError $ "Trait input" <+> show ti <+>
         "is not a supertype of Trait output" <+> show to
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
@@ -288,7 +290,7 @@ infer (S.TmForward e1 e2) = do
   Tuple e2' t2 <- infer e2
   case t1 of
     C.TyArrow ti to true ->
-      if t2 <: ti then pure $ Tuple (C.TmApp e1' e2') to
+      if t2 <: ti then pure $ Tuple (C.TmApp e1' e2' true) to
       else throwTypeError $ "expected to forward to a subtype of" <+> show ti <>
                             ", but got" <+> show t2
     _ -> throwTypeError $ "expected to forward from a trait, but got" <+> show t1
@@ -383,7 +385,7 @@ disjoint t1 t2 | t1 /= t2  = pure unit
 
 
 letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
-letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2) e1
+letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2) e1 false
 
 trait :: Name -> C.Tm -> C.Ty -> C.Ty -> Tuple C.Tm C.Ty
 trait x e targ tret = Tuple (C.TmAbs x e targ tret) (C.TyArrow targ tret true)

@@ -39,11 +39,11 @@ eval = runTrampoline <<< go <<< tmHoas
         TmBool false -> go e3
         _ -> unsafeCrashWith $
           "Zord.Semantics.Natural.eval: impossible if " <> show e1' <> " ..."
-    go (TmApp e1 e2) = do
+    go (TmApp e1 e2 coercive) = do
       e1' <- go e1
-      go $ paraApp e1' (Left e2)
+      go $ if coercive then paraApp e1' (Left e2) else app e1' e2
     go e@(TmHAbs _ _ _) = pure e
-    go e@(TmHFix fix t) = go $ TmAnno (fix e) t
+    go e@(TmHFix fix _) = go $ fix e
     go (TmAnno e t) = do
       e' <- go' e
       go $ unsafeFromJust (typedReduce e' t)
@@ -100,10 +100,15 @@ paraApp :: Tm -> Either Tm Ty -> Tm
 paraApp TmUnit _ = TmUnit
 paraApp (TmHAbs abs targ tret) (Left e2) =
   TmAnno (abs $ TmRef $ new $ TmAnno e2 targ) tret
-paraApp (TmHTAbs tabs _ tf) (Right ta) = TmAnno (tabs ta) (tf ta)
+paraApp (TmHTAbs tabs _ _) (Right ta) = tabs ta
 paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
 paraApp v e = unsafeCrashWith $ "Zord.Semantics.Natural.paraApp: " <>
   "impossible application " <> show v <> " • " <> show e
+
+app :: Tm -> Tm -> Tm
+app (TmHAbs f _ _) e = f $ TmRef $ new e
+app e _ = unsafeCrashWith $
+  "Zord.Semantics.Natural.app: " <> show e <> " is not applicable"
 
 isValue :: Tm -> Boolean
 isValue (TmInt _)    = true

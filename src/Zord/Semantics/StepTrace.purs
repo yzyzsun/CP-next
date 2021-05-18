@@ -10,7 +10,7 @@ import Data.Newtype (unwrap)
 import Data.Tuple (Tuple)
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (binop, selectLabel, toString, unop)
-import Zord.Semantics.Substitution (isValue, paraApp, typedReduce)
+import Zord.Semantics.Substitution (app, isValue, paraApp, typedReduce)
 import Zord.Syntax.Core (Tm(..), tmSubst)
 import Zord.Util (unsafeFromJust)
 
@@ -44,10 +44,11 @@ step (TmBinary op e1 e2)
 step (TmIf (TmBool true)  e _) = computation "IfTrue"  $> e
 step (TmIf (TmBool false) _ e) = computation "IfFalse" $> e
 step (TmIf e1 e2 e3) = congruence "If" $> TmIf <*> step e1 <@> e2 <@> e3
-step (TmApp e1 e2)
-  | isValue e1 = computation "PApp" $> paraApp e1 (Left e2)
-  | otherwise  = congruence  "AppL" $> TmApp <*> step e1 <@> e2
-step (TmFix x e t) = computation "Fix" $> TmAnno (tmSubst x (TmFix x e t) e) t
+step (TmApp e1 e2 coercive)
+  | isValue e1 && coercive = computation "PApp" $> paraApp e1 (Left e2)
+  | isValue e1 && not coercive = computation "App" $> app e1 e2
+  | otherwise = congruence  "AppL" $> TmApp <*> step e1 <@> e2 <@> coercive
+step fix@(TmFix x e _) = computation "Fix" $> tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = computation "AnnoAnno" $> TmAnno e t
 step (TmAnno e t)
   | isValue e = computation "AnnoV" $> unsafeFromJust (typedReduce e t)

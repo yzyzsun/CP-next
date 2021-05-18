@@ -5,7 +5,7 @@ import Prelude
 import Data.Either (Either(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (binop, selectLabel, toString, unop)
-import Zord.Semantics.Substitution (paraApp, typedReduce)
+import Zord.Semantics.Substitution (app, paraApp, typedReduce)
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (Tm(..), tmSubst)
 import Zord.Util (unsafeFromJust)
@@ -26,9 +26,10 @@ eval (TmIf e1 e2 e3) = case eval e1 of
   TmBool false -> eval e3
   e1' -> unsafeCrashWith $
     "Zord.Semantics.NaturalSubstitution.eval: impossible if " <> show e1' <> " ..."
-eval (TmApp e1 e2) = eval $ paraApp (eval e1) (Left e2)
+eval (TmApp e1 e2 coercive) =
+  eval $ if coercive then paraApp (eval e1) (Left e2) else app (eval e1) e2
 eval e@(TmAbs _ _ _ _) = e
-eval (TmFix x e t) = eval $ TmAnno (tmSubst x (TmFix x e t) e) t
+eval fix@(TmFix x e _) = eval $ tmSubst x fix e
 eval (TmAnno e t) = eval $ unsafeFromJust (typedReduce (eval' e) t)
   where eval' :: Tm -> Tm
         eval' (TmAnno e' _) = eval' e'

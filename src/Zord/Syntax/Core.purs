@@ -59,7 +59,7 @@ data Tm = TmInt Int
         | TmBinary BinOp Tm Tm
         | TmIf Tm Tm Tm
         | TmVar Name
-        | TmApp Tm Tm
+        | TmApp Tm Tm Boolean
         | TmAbs Name Tm Ty Ty
         | TmHAbs (Tm -> Tm) Ty Ty
         | TmFix Name Tm Ty
@@ -88,7 +88,7 @@ instance showTm :: Show Tm where
   show (TmIf e1 e2 e3) = parens $
     "if" <+> show e1 <+> "then" <+> show e2 <+> "else" <+> show e3
   show (TmVar x) = x
-  show (TmApp e1 e2) = parens $ show e1 <+> show e2
+  show (TmApp e1 e2 _coercive) = parens $ show e1 <+> show e2
   show (TmAbs x e targ tret) = parens $
     "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "→" <+> show tret
   show (TmHAbs _abs targ tret) = angles $
@@ -139,7 +139,7 @@ tmConvert env (TmIf e1 e2 e3) =
   TmIf (tmConvert env e1) (tmConvert env e2) (tmConvert env e3)
 tmConvert env (TmVar x) = case lookup x env of Just (Left e) -> e
                                                _ -> TmVar x
-tmConvert env (TmApp e1 e2) = TmApp (tmConvert env e1) (tmConvert env e2)
+tmConvert env (TmApp e1 e2 b) = TmApp (tmConvert env e1) (tmConvert env e2) b
 tmConvert env (TmAbs x e targ tret) =
   TmHAbs (\tm -> tmConvert (insert x (Left tm) env) e)
          (tyConvert env targ) (tyConvert env tret)
@@ -178,7 +178,7 @@ tmSubst x v (TmBinary op e1 e2) = TmBinary op (tmSubst x v e1) (tmSubst x v e2)
 tmSubst x v (TmIf e1 e2 e3) =
   TmIf (tmSubst x v e1) (tmSubst x v e2) (tmSubst x v e3)
 tmSubst x v (TmVar x') = if x == x' then v else TmVar x'
-tmSubst x v (TmApp e1 e2) = TmApp (tmSubst x v e1) (tmSubst x v e2)
+tmSubst x v (TmApp e1 e2 b) = TmApp (tmSubst x v e1) (tmSubst x v e2) b
 tmSubst x v (TmAbs x' e targ tret) =
   TmAbs x' (if x == x' then e else tmSubst x v e) targ tret
 tmSubst x v (TmFix x' e t) = TmFix x' (if x == x' then e else tmSubst x v e) t
@@ -198,7 +198,7 @@ tmTSubst a s (TmBinary op e1 e2) =
   TmBinary op (tmTSubst a s e1) (tmTSubst a s e2)
 tmTSubst a s (TmIf e1 e2 e3) =
   TmIf (tmTSubst a s e1) (tmTSubst a s e2) (tmTSubst a s e3)
-tmTSubst a s (TmApp e1 e2) = TmApp (tmTSubst a s e1) (tmTSubst a s e2)
+tmTSubst a s (TmApp e1 e2 b) = TmApp (tmTSubst a s e1) (tmTSubst a s e2) b
 tmTSubst a s (TmAbs x e targ tret) =
   TmAbs x (tmTSubst a s e) (tySubst a s targ) (tySubst a s tret)
 tmTSubst a s (TmFix x e t) = TmFix x (tmTSubst a s e) (tySubst a s t)

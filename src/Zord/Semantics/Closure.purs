@@ -36,10 +36,12 @@ step (TmIf e1 e2 e3) = TmIf <$> step e1 <@> e2 <@> e3
 step (TmVar x) = ask >>= \env -> case lookup x env of
   Just (TmBind e) -> pure e
   m -> unsafeCrashWith $ "Zord.Semantics.Closure.step: " <> x <> " is " <> show m
-step (TmApp e1 e2) | isValue e1 = paraApp e1 <<< Left <$> closure e2
-                   | otherwise  = TmApp <$> step e1 <@> e2
+step (TmApp e1 e2 coercive)
+  | isValue e1 && coercive = paraApp e1 <<< Left <$> closure e2
+  | isValue e1 && not coercive = app e1 <$> closure e2
+  | otherwise = TmApp <$> step e1 <@> e2 <@> coercive
 step abs@(TmAbs _ _ _ _) = closure abs
-step fix@(TmFix x e t) = closureWithTmBind x fix $ TmAnno e t
+step fix@(TmFix x e _) = closureWithTmBind x fix e
 step (TmAnno (TmAnno e _) t) = pure $ TmAnno e t
 step (TmAnno e t) | isValue e = unsafeFromJust <$> (typedReduce e =<< expand t)
                   | otherwise = TmAnno <$> step e <@> t
@@ -104,11 +106,17 @@ paraApp :: Tm -> Either Tm Ty -> Tm
 paraApp TmUnit _ = TmUnit
 paraApp (TmClosure env (TmAbs x e1 targ tret)) (Left e2) =
   TmClosure (insert x (TmBind (TmAnno e2 targ)) env) (TmAnno e1 tret)
-paraApp (TmClosure env (TmTAbs a _ e t)) (Right ta) =
-  TmClosure (insert a (TyBind (Just ta)) env) (TmAnno e t)
+paraApp (TmClosure env (TmTAbs a _ e _)) (Right ta) =
+  TmClosure (insert a (TyBind (Just ta)) env) e
 paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
 paraApp v e = unsafeCrashWith $ "Zord.Semantics.Closure.paraApp: " <>
   "impossible application " <> show v <> " • " <> show e
+
+app :: Tm -> Tm -> Tm
+app (TmClosure env (TmAbs x e1 _ _)) e2 =
+  TmClosure (insert x (TmBind e2) env) e1
+app e _ = unsafeCrashWith $
+  "Zord.Semantics.Closure.app: " <> show e <> " is not applicable"
 
 selectLabel' :: Tm -> Label -> Tm
 selectLabel' (TmClosure env (TmRcd l' t e)) l

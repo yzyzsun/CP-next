@@ -7,7 +7,7 @@ import Data.Either (Either(..))
 import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Closure (Eval, binop', closure, expand, paraApp, selectLabel', typedReduce, unop')
+import Zord.Semantics.Closure (Eval, app, binop', closure, expand, paraApp, selectLabel', typedReduce, unop')
 import Zord.Semantics.Common (toString)
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (EvalBind(..), Tm(..))
@@ -38,13 +38,12 @@ eval tm = runReader (go tm) empty
       Just (TmBind e) -> go e
       m -> unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
         "variable " <> show x <> " is " <> show m
-    go (TmApp e1 e2) = do
+    go (TmApp e1 e2 coercive) = do
       e1' <- go e1
       e2' <- closure e2
-      go $ paraApp e1' (Left e2')
+      go $ if coercive then paraApp e1' (Left e2') else app e1' e2'
     go e@(TmAbs _ _ _ _) = closure e
-    go fix@(TmFix x e t) =
-      local (\env -> insert x (TmBind fix) env) (go $ TmAnno e t)
+    go fix@(TmFix x e _) = local (\env -> insert x (TmBind fix) env) (go e)
     go (TmAnno e t) = do
       e' <- go' e
       t' <- expand t
