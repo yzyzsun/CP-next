@@ -7,7 +7,7 @@ import Data.Either (Either(..))
 import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Closure (Eval, app, binop', closure, expand, paraApp, selectLabel', typedReduce, unop')
+import Zord.Semantics.Closure (Eval, app, binop', closure, expand, paraApp, selectLabel, typedReduce, unop')
 import Zord.Semantics.Common (toString)
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (EvalBind(..), Tm(..))
@@ -54,7 +54,7 @@ eval tm = runReader (go tm) empty
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go e@(TmRcd _ _ _) = closure e
-    go (TmPrj e l) = go e >>= \e' -> go $ selectLabel' e' l
+    go (TmPrj e l) = go e >>= \e' -> go $ selectLabel e' l
     go (TmTApp e t) = do
       e' <- go e
       t' <- expand t

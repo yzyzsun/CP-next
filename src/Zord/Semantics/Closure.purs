@@ -10,7 +10,7 @@ import Data.Map (empty, insert, lookup, union)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (binop, selectLabel, toString, unop)
+import Zord.Semantics.Common (binop, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
 import Zord.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..))
@@ -49,7 +49,7 @@ step (TmMerge e1 e2) | isValue e1 = TmMerge e1 <$> step e2
                      | isValue e2 = TmMerge <$> step e1 <@> e2
                      | otherwise  = TmMerge <$> step e1 <*> step e2
 step rcd@(TmRcd _ _ _) = closure rcd
-step (TmPrj e l) | isValue e = pure $ selectLabel' e l
+step (TmPrj e l) | isValue e = pure $ selectLabel e l
                  | otherwise = TmPrj <$> step e <@> l
 step (TmTApp e t) | isValue e = paraApp e <<< Right <$> expand t
                   | otherwise = TmTApp <$> step e <@> t
@@ -118,10 +118,14 @@ app (TmClosure env (TmAbs x e1 _ _)) e2 =
 app e _ = unsafeCrashWith $
   "Zord.Semantics.Closure.app: " <> show e <> " is not applicable"
 
-selectLabel' :: Tm -> Label -> Tm
-selectLabel' (TmClosure env (TmRcd l' t e)) l
-  | l == l' = TmClosure env (TmAnno e t)
-selectLabel' e l = selectLabel e l
+selectLabel :: Tm -> Label -> Tm
+selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
+  TmUnit, TmUnit -> TmUnit
+  TmUnit, e2' -> e2'
+  e1', TmUnit -> e1'
+  e1', e2' -> TmMerge e1' e2'
+selectLabel (TmClosure env (TmRcd l' t e)) l | l == l' = TmClosure env (TmAnno e t)
+selectLabel _ _ = TmUnit
 
 unop' :: UnOp -> Tm -> Tm
 unop' Len (TmClosure _ (TmArray _ arr)) = TmInt (length arr)
