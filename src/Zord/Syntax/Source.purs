@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
-import Data.Foldable (any, intercalate)
+import Data.Foldable (class Foldable, any, intercalate, null)
 import Data.List (List)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..), fst, snd)
@@ -47,7 +47,7 @@ instance showTy :: Show Ty where
     "forall" <+> showTyParams xs <> "." <+> show t
   show (TyApp t1 t2) = parens $ show t1 <+> show t2
   show (TyAbs a t) = parens $ "\\" <> a <+> "->" <+> show t
-  show (TyTrait ti to) = parens $ "Trait" <+> showMaybe "" ti " % " <> show to
+  show (TyTrait ti to) = "Trait" <> angles (showMaybe "" ti " % " <> show to)
   show (TySort ti to) = angles $ show ti <> showMaybe " % " to ""
   show (TySig a b t) = parens $
     "\\" <> angles (a <+> "%" <+> b) <+> "->" <+> show t
@@ -105,7 +105,7 @@ instance showTm :: Show Tm where
     "if" <+> show e1 <+> "then" <+> show e2 <+> "else" <+> show e3
   show (TmVar x) = x
   show (TmApp e1 e2) = parens $ show e1 <+> show e2
-  show (TmAbs xs e) = parens $ "\\" <> showTmParams xs <+> "->" <+> show e
+  show (TmAbs xs e) = parens $ "\\" <> showTmParams xs <> "->" <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
   show (TmRcd xs) = braces $ showRcdTm xs
@@ -117,7 +117,7 @@ instance showTm :: Show Tm where
   show (TmLetrec x t e1 e2) = parens $
     "letrec" <+> x <+> ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
-  show (TmTrait self sig e1 e2) = parens $ "trait" <+> showSelf "" self <+>
+  show (TmTrait self sig e1 e2) = parens $ "trait" <> showSelf "" self <+>
     showMaybe "implements " sig " " <> showMaybe "inherits " e1 " " <>
     "=>" <+> show e2
   show (TmNew e) = parens $ "new" <+> show e
@@ -127,10 +127,10 @@ instance showTm :: Show Tm where
   show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
   show (TmPos _pos e) = show e
   show (TmType a sorts params t1 t2 e) = "type" <+> a <+>
-    intercalate " " (angles <$> sorts) <+> intercalate " " params <+>
+    intercalate' " " (angles <$> sorts) <> intercalate' " " params <>
     showMaybe "extends " t1 " " <> "=" <+> show t2 <> ";" <+> show e
   show (TmDef x tyParams tmParams t e1 e2) = x <+>
-    showTyParams tyParams <+> showTmParams tmParams <+>
+    showTyParams tyParams <> showTmParams tmParams <>
     showMaybe ": " t " " <> "=" <+> show e1 <> ";" <+> show e2
 
 -- Substitution --
@@ -154,6 +154,9 @@ tySubst _ _ t = t
 
 -- Helpers --
 
+intercalate' :: forall f m. Foldable f => Monoid m => m -> f m -> m
+intercalate' sep xs = if null xs then mempty else intercalate sep xs <> sep
+
 showMaybe :: forall a. Show a => String -> Maybe a -> String -> String
 showMaybe l m r = maybe "" (\x -> l <> show x <> r) m
 
@@ -161,14 +164,14 @@ type TyParamList = List TyParam
 type TyParam = Tuple Name (Maybe Ty)
 
 showTyParams :: TyParamList -> String
-showTyParams params = intercalate " " $ params <#> \param ->
+showTyParams params = intercalate' " " $ params <#> \param ->
   maybe (fst param) (\t -> parens $ fst param <+> "*" <+> show t) (snd param)
 
 type TmParamList = List TmParam
 data TmParam = TmParam Name (Maybe Ty) | WildCard
 
 showTmParams :: TmParamList -> String
-showTmParams params = intercalate " " $ params <#> case _ of
+showTmParams params = intercalate' " " $ params <#> case _ of
   TmParam x (Just t) -> parens $ x <+> ":" <+> show t
   TmParam x Nothing -> x
   WildCard -> "{..}"
@@ -182,12 +185,12 @@ showRcdTm :: List RcdField -> String
 showRcdTm xs = intercalate "; " $ xs <#> case _ of
   RcdField o l p e -> (if o then "override " else "") <> showField l p e
   DefaultPattern (MethodPattern self l p e) ->
-    showSelf "_" self <> "." <> l <+> showTmParams p <+> "=" <+> show e
+    showSelf "_" self <> "." <> l <+> showTmParams p <> "=" <+> show e
   where showField :: Label -> TmParamList -> Either Tm MethodPattern -> String
-        showField l p (Left e) = l <+> showTmParams p <+> "=" <+> show e
+        showField l p (Left e) = l <+> showTmParams p <> "=" <+> show e
         showField l p (Right (MethodPattern self l' p' e)) =
-          parens (l <+> showTmParams p <+> showSelf "" self) <>
-          "." <> l' <+> showTmParams p' <+> "=" <+> show e
+          parens (" " <> l <+> showTmParams p <> showSelf "" self) <>
+          "." <> l' <+> showTmParams p' <> "=" <+> show e
 
 type SelfAnno = Maybe (Tuple Name Ty)
 
