@@ -8,7 +8,6 @@ import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.String (Pattern(..), split)
-import Data.String.CodeUnits (charAt)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Exception (throw)
@@ -43,23 +42,21 @@ interpret code mode = case runParser code (whiteSpace *> program <* eof) of
       Subst -> pure $ show (Subst.eval e'')
       Closure -> pure $ show (Closure.eval e'')
 
-seek :: String -> Int -> Int -> Maybe Char
-seek str line column = (split (Pattern "\n") str) !! line' >>= charAt column'
-  where line' = line - 1
-        column' = column - 1
-
 showPosition :: Position -> String
 showPosition (Position { line: line, column: column }) =
   show line <> ":" <> show column
 
 showParseError :: ParseError -> String -> String
-showParseError (ParseError _ pos) source =
-  showPosition pos <> ": parse error" <>
-  case sought pos of Just char -> " on input " <> show char
-                     Nothing -> ""
+showParseError (ParseError _ pos@(Position { line: l, column: c })) source =
+  showPosition pos <> ": parse error:\n" <>
+  case seek l of Just line -> line <> "\n" <> rep (c-1) " " <> "^"
+                 Nothing -> ""
   where
-    sought :: Position -> Maybe Char
-    sought (Position { line: line, column: column }) = seek source line column
+    seek :: Int -> Maybe String
+    seek line = (split (Pattern "\n") source) !! (line - 1)
+    rep :: Int -> String -> String
+    rep n s | n <= 0 = ""
+            | otherwise = s <> rep (n-1) s
 
 showTypeError :: TypeError -> String
 showTypeError (TypeError msg UnknownPos) = msg

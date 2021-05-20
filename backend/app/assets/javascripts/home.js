@@ -50,7 +50,7 @@ function interpret(callback) {
       fetchDocJson(name, user).then(json => {
         if (json.mode != 'library') libErr(`'${name}' is not a library.`);
         else if (!json.provide_factory) libErr(`'${name}' does not provide a factory.`);
-        else run(`${json.code} open ${json.provide_factory} in \`${code}\`.html`);
+        else run(`open ${name}; open ${json.provide_factory} in \`${code}\`.html`);
       }).catch(err => libErr(err));
     } else { run(code); }
   }
