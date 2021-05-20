@@ -4,13 +4,12 @@ import Prelude
 
 import Control.Monad.Writer (Writer, runWriter, tell)
 import Data.Bifunctor (rmap)
-import Data.Either (Either(..))
 import Data.Monoid.Endo (Endo(..))
 import Data.Newtype (unwrap)
 import Data.Tuple (Tuple)
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (binop, selectLabel, toString, unop)
-import Zord.Semantics.Substitution (app, isValue, paraApp, typedReduce)
+import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
+import Zord.Semantics.Substitution (isValue, paraApp, typedReduce)
 import Zord.Syntax.Core (Tm(..), tmSubst)
 import Zord.Util (unsafeFromJust)
 
@@ -45,9 +44,9 @@ step (TmIf (TmBool true)  e _) = computation "IfTrue"  $> e
 step (TmIf (TmBool false) _ e) = computation "IfFalse" $> e
 step (TmIf e1 e2 e3) = congruence "If" $> TmIf <*> step e1 <@> e2 <@> e3
 step (TmApp e1 e2 coercive)
-  | isValue e1 && coercive = computation "PApp" $> paraApp e1 (Left e2)
-  | isValue e1 && not coercive = computation "App" $> app e1 e2
-  | otherwise = congruence  "AppL" $> TmApp <*> step e1 <@> e2 <@> coercive
+  | isValue e1 = computation "PApp" $>
+                  paraApp e1 ((if coercive then TmAnnoArg else TmArg) e2)
+  | otherwise  = congruence  "AppL" $> TmApp <*> step e1 <@> e2 <@> coercive
 step fix@(TmFix x e _) = computation "Fix" $> tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = computation "AnnoAnno" $> TmAnno e t
 step (TmAnno e t)
@@ -61,7 +60,7 @@ step (TmPrj e l)
   | isValue e = computation "PProj" $> selectLabel e l
   | otherwise = congruence  "Proj"  $> TmPrj <*> step e <@> l
 step (TmTApp e t)
-  | isValue e = computation "PTApp" $> paraApp e (Right t)
+  | isValue e = computation "PTApp" $> paraApp e (TyArg t)
   | otherwise = congruence  "TApp"  $> TmTApp <*> step e <@> t
 step (TmToString e)
   | isValue e = computation "ToStringV" $> toString e

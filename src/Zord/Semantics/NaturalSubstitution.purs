@@ -2,10 +2,9 @@ module Zord.Semantics.NaturalSubstitution where
 
 import Prelude
 
-import Data.Either (Either(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (binop, selectLabel, toString, unop)
-import Zord.Semantics.Substitution (app, paraApp, typedReduce)
+import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
+import Zord.Semantics.Substitution (paraApp, typedReduce)
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (Tm(..), tmSubst)
 import Zord.Util (unsafeFromJust)
@@ -27,7 +26,7 @@ eval (TmIf e1 e2 e3) = case eval e1 of
   e1' -> unsafeCrashWith $
     "Zord.Semantics.NaturalSubstitution.eval: impossible if " <> show e1' <> " ..."
 eval (TmApp e1 e2 coercive) =
-  eval $ if coercive then paraApp (eval e1) (Left e2) else app (eval e1) e2
+  eval $ paraApp (eval e1) ((if coercive then TmAnnoArg else TmArg) e2)
 eval e@(TmAbs _ _ _ _) = e
 eval fix@(TmFix x e _) = eval $ tmSubst x fix e
 eval (TmAnno e t) = eval $ unsafeFromJust (typedReduce (eval' e) t)
@@ -37,7 +36,7 @@ eval (TmAnno e t) = eval $ unsafeFromJust (typedReduce (eval' e) t)
 eval (TmMerge e1 e2) = TmMerge (eval e1) (eval e2)
 eval e@(TmRcd _ _ _) = e
 eval (TmPrj e l) = eval $ selectLabel (eval e) l
-eval (TmTApp e t) = eval $ paraApp (eval e) (Right t)
+eval (TmTApp e t) = eval $ paraApp (eval e) (TyArg t)
 eval e@(TmTAbs _ _ _ _) = e
 eval (TmToString e) = toString (eval e)
 eval e@(TmArray _ _) = e

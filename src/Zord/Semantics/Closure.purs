@@ -5,12 +5,11 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Reader (Reader, ask, local, runReader)
 import Data.Array (length, (!!))
-import Data.Either (Either(..))
 import Data.Map (empty, insert, lookup, union)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (binop, toString, unop)
+import Zord.Semantics.Common (Arg(..), binop, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
 import Zord.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..))
@@ -36,10 +35,9 @@ step (TmIf e1 e2 e3) = TmIf <$> step e1 <@> e2 <@> e3
 step (TmVar x) = ask >>= \env -> case lookup x env of
   Just (TmBind e) -> pure e
   m -> unsafeCrashWith $ "Zord.Semantics.Closure.step: " <> x <> " is " <> show m
-step (TmApp e1 e2 coercive)
-  | isValue e1 && coercive = paraApp e1 <<< Left <$> closure e2
-  | isValue e1 && not coercive = app e1 <$> closure e2
-  | otherwise = TmApp <$> step e1 <@> e2 <@> coercive
+step (TmApp e1 e2 coercive) | isValue e1 = paraApp e1 <<< arg <$> closure e2
+                            where arg = if coercive then TmAnnoArg else TmArg
+                            | otherwise = TmApp <$> step e1 <@> e2 <@> coercive
 step abs@(TmAbs _ _ _ _) = closure abs
 step fix@(TmFix x e _) = closureWithTmBind x fix e
 step (TmAnno (TmAnno e _) t) = pure $ TmAnno e t
@@ -51,7 +49,7 @@ step (TmMerge e1 e2) | isValue e1 = TmMerge e1 <$> step e2
 step rcd@(TmRcd _ _ _) = closure rcd
 step (TmPrj e l) | isValue e = pure $ selectLabel e l
                  | otherwise = TmPrj <$> step e <@> l
-step (TmTApp e t) | isValue e = paraApp e <<< Right <$> expand t
+step (TmTApp e t) | isValue e = paraApp e <<< TyArg <$> expand t
                   | otherwise = TmTApp <$> step e <@> t
 step tabs@(TmTAbs _ _ _ _) = closure tabs
 step (TmToString e) | isValue e = pure $ toString e
@@ -102,21 +100,17 @@ typedReduce (TmClosure env (TmArray t1 arr)) (TyArray t2) = do
   else pure Nothing
 typedReduce _ _ = pure Nothing
 
-paraApp :: Tm -> Either Tm Ty -> Tm
+paraApp :: Tm -> Arg -> Tm
 paraApp TmUnit _ = TmUnit
-paraApp (TmClosure env (TmAbs x e1 targ tret)) (Left e2) =
-  TmClosure (insert x (TmBind (TmAnno e2 targ)) env) (TmAnno e1 tret)
-paraApp (TmClosure env (TmTAbs a _ e _)) (Right ta) =
-  TmClosure (insert a (TyBind (Just ta)) env) e
-paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
-paraApp v e = unsafeCrashWith $ "Zord.Semantics.Closure.paraApp: " <>
-  "impossible application " <> show v <> " • " <> show e
-
-app :: Tm -> Tm -> Tm
-app (TmClosure env (TmAbs x e1 _ _)) e2 =
+paraApp (TmClosure env (TmAbs x e1 _ _)) (TmArg e2) =
   TmClosure (insert x (TmBind e2) env) e1
-app e _ = unsafeCrashWith $
-  "Zord.Semantics.Closure.app: " <> show e <> " is not applicable"
+paraApp (TmClosure env (TmAbs x e1 targ tret)) (TmAnnoArg e2) =
+  TmClosure (insert x (TmBind (TmAnno e2 targ)) env) (TmAnno e1 tret)
+paraApp (TmClosure env (TmTAbs a _ e _)) (TyArg ta) =
+  TmClosure (insert a (TyBind (Just ta)) env) e
+paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
+paraApp v arg = unsafeCrashWith $ "Zord.Semantics.Closure.paraApp: " <>
+  "impossible application " <> show v <> " • " <> show arg
 
 selectLabel :: Tm -> Label -> Tm
 selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of

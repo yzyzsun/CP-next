@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), UnOp(..))
-import Zord.Syntax.Core (Tm(..))
+import Zord.Syntax.Core (Tm(..), Ty)
 
 unop :: UnOp -> Tm -> Tm
 unop Neg (TmInt i)       = TmInt    (negate i)
@@ -96,3 +96,10 @@ selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
   e1', e2' -> TmMerge e1' e2'
 selectLabel (TmRcd l' t e) l | l == l' = TmAnno e t
 selectLabel _ _ = TmUnit
+
+data Arg = TmArg Tm | TmAnnoArg Tm | TyArg Ty
+
+instance showArg :: Show Arg where
+  show (TmArg tm) = show tm
+  show (TmAnnoArg tm) = show tm
+  show (TyArg ty) = show ty

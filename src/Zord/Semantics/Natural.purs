@@ -3,11 +3,10 @@ module Zord.Semantics.Natural where
 import Prelude hiding (bind, pure)
 
 import Control.Alt ((<|>))
-import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (binop, selectLabel, toString, unop)
+import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (Tm(..), Ty(..), done, new, read, tmHoas, tyHoas, write)
@@ -41,7 +40,7 @@ eval = runTrampoline <<< go <<< tmHoas
           "Zord.Semantics.Natural.eval: impossible if " <> show e1' <> " ..."
     go (TmApp e1 e2 coercive) = do
       e1' <- go e1
-      go $ if coercive then paraApp e1' (Left e2) else app e1' e2
+      go $ paraApp e1' ((if coercive then TmAnnoArg else TmArg) e2)
     go e@(TmHAbs _ _ _) = pure e
     go e@(TmHFix fix _) = go $ fix e
     go (TmAnno e t) = do
@@ -60,7 +59,7 @@ eval = runTrampoline <<< go <<< tmHoas
       go $ selectLabel e' l
     go (TmTApp e t) = do
       e' <- go e
-      go $ paraApp e' (Right t)
+      go $ paraApp e' (TyArg t)
     go e@(TmHTAbs _ _ _) = pure e
     go (TmToString e) = do
       e' <- go e
@@ -96,19 +95,15 @@ typedReduce (TmHTAbs tabs td1 tf1) (TyForall a td2 t2)
 typedReduce (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 typedReduce _ _ = Nothing
 
-paraApp :: Tm -> Either Tm Ty -> Tm
+paraApp :: Tm -> Arg -> Tm
 paraApp TmUnit _ = TmUnit
-paraApp (TmHAbs abs targ tret) (Left e2) =
-  TmAnno (abs $ TmRef $ new $ TmAnno e2 targ) tret
-paraApp (TmHTAbs tabs _ _) (Right ta) = tabs ta
-paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
-paraApp v e = unsafeCrashWith $ "Zord.Semantics.Natural.paraApp: " <>
-  "impossible application " <> show v <> " • " <> show e
-
-app :: Tm -> Tm -> Tm
-app (TmHAbs f _ _) e = f $ TmRef $ new e
-app e _ = unsafeCrashWith $
-  "Zord.Semantics.Natural.app: " <> show e <> " is not applicable"
+paraApp (TmHAbs abs _ _) (TmArg e) = abs $ TmRef $ new e
+paraApp (TmHAbs abs targ tret) (TmAnnoArg e) =
+  TmAnno (abs $ TmRef $ new $ TmAnno e targ) tret
+paraApp (TmHTAbs tabs _ _) (TyArg ta) = tabs ta
+paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
+paraApp v arg = unsafeCrashWith $ "Zord.Semantics.Natural.paraApp: " <>
+  "impossible application " <> show v <> " • " <> show arg
 
 isValue :: Tm -> Boolean
 isValue (TmInt _)    = true

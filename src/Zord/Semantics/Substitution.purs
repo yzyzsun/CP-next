@@ -3,11 +3,10 @@ module Zord.Semantics.Substitution where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (binop, selectLabel, toString, unop)
+import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax.Core (Tm(..), Ty(..), tmSubst, tmTSubst, tySubst)
 import Zord.Util (unsafeFromJust)
@@ -25,9 +24,9 @@ step (TmBinary op e1 e2) | isValue e1 && isValue e2 = binop op e1 e2
 step (TmIf (TmBool true)  e _) = e
 step (TmIf (TmBool false) _ e) = e
 step (TmIf e1 e2 e3) = TmIf (step e1) e2 e3
-step (TmApp e1 e2 coercive) | isValue e1 && coercive = paraApp e1 (Left e2)
-                            | isValue e1 && not coercive = app e1 e2
-                            | otherwise = TmApp (step e1) e2 coercive
+step (TmApp e1 e2 coercive)
+  | isValue e1 = paraApp e1 ((if coercive then TmAnnoArg else TmArg) e2)
+  | otherwise  = TmApp (step e1) e2 coercive
 step fix@(TmFix x e _) = tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = TmAnno e t
 step (TmAnno e t) | isValue e = unsafeFromJust (typedReduce e t)
@@ -37,7 +36,7 @@ step (TmMerge e1 e2) | isValue e1 = TmMerge e1 (step e2)
                      | otherwise  = TmMerge (step e1) (step e2)
 step (TmPrj e l) | isValue e = selectLabel e l
                  | otherwise = TmPrj (step e) l
-step (TmTApp e t) | isValue e = paraApp e (Right t)
+step (TmTApp e t) | isValue e = paraApp e (TyArg t)
                   | otherwise = TmTApp (step e) t
 step (TmToString e) | isValue e = toString e
                     | otherwise = TmToString (step e)
@@ -67,19 +66,15 @@ typedReduce (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
 typedReduce (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 typedReduce _ _ = Nothing
 
-paraApp :: Tm -> Either Tm Ty -> Tm
+paraApp :: Tm -> Arg -> Tm
 paraApp TmUnit _ = TmUnit
-paraApp (TmAbs x e1 targ tret) (Left e2) =
+paraApp (TmAbs x e1 _ _) (TmArg e2) = tmSubst x e2 e1
+paraApp (TmAbs x e1 targ tret) (TmAnnoArg e2) =
   TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
-paraApp (TmTAbs a _ e _) (Right ta) = tmTSubst a ta e
-paraApp (TmMerge v1 v2) et = TmMerge (paraApp v1 et) (paraApp v2 et)
-paraApp v e = unsafeCrashWith $ "Zord.Semantics.Substitution.paraApp: " <>
-  "impossible application " <> show v <> " • " <> show e
-
-app :: Tm -> Tm -> Tm
-app (TmAbs x e1 _ _) e2 = tmSubst x e2 e1
-app e _ = unsafeCrashWith $
-  "Zord.Semantics.Substitution.app: " <> show e <> " is not applicable"
+paraApp (TmTAbs a _ e _) (TyArg ta) = tmTSubst a ta e
+paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
+paraApp v arg = unsafeCrashWith $ "Zord.Semantics.Substitution.paraApp: " <>
+  "impossible application " <> show v <> " • " <> show arg
 
 isValue :: Tm -> Boolean
 isValue (TmInt _)    = true

@@ -96,7 +96,8 @@ infer (S.TmVar x) = Tuple (C.TmVar x) <$> lookupTmBind x
 infer (S.TmApp e1 e2) = do
   Tuple e1' t1 <- infer e1
   Tuple e2' t2 <- infer e2
-  Tuple (C.TmApp e1' e2' true) <$> distApp t1 (Left t2)
+  case app t1 t2 of Just t -> pure $ Tuple (C.TmApp e1' e2' false) t
+                    _ -> Tuple (C.TmApp e1' e2' true) <$> distApp t1 (Left t2)
 infer (S.TmAbs (Cons (S.TmParam x (Just targ)) Nil) e) = do
   targ' <- transform targ
   Tuple e' tret <- addTmBind x targ' $ infer e
@@ -352,6 +353,10 @@ distApp (C.TyAnd t1 t2) t = do
   t2' <- distApp t2 t
   pure $ C.TyAnd t1' t2'
 distApp t _ = throwTypeError $ show t <+> "is not applicable"
+
+app :: C.Ty -> C.Ty -> Maybe C.Ty
+app (C.TyArrow targ tret _) t | t === targ = Just tret
+app _ _ = Nothing
 
 disjoint :: C.Ty -> C.Ty -> Typing Unit
 disjoint t _ | isTopLike t = pure unit

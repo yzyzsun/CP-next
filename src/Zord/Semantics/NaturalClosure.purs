@@ -3,12 +3,11 @@ module Zord.Semantics.NaturalClosure where
 import Prelude
 
 import Control.Monad.Reader (ask, local, runReader)
-import Data.Either (Either(..))
 import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Closure (Eval, app, binop', closure, expand, paraApp, selectLabel, typedReduce, unop')
-import Zord.Semantics.Common (toString)
+import Zord.Semantics.Closure (Eval, binop', closure, expand, paraApp, selectLabel, typedReduce, unop')
+import Zord.Semantics.Common (Arg(..), toString)
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (EvalBind(..), Tm(..))
 import Zord.Util (unsafeFromJust)
@@ -41,7 +40,7 @@ eval tm = runReader (go tm) empty
     go (TmApp e1 e2 coercive) = do
       e1' <- go e1
       e2' <- closure e2
-      go $ if coercive then paraApp e1' (Left e2') else app e1' e2'
+      go $ paraApp e1' ((if coercive then TmAnnoArg else TmArg) e2')
     go e@(TmAbs _ _ _ _) = closure e
     go fix@(TmFix x e _) = local (\env -> insert x (TmBind fix) env) (go e)
     go (TmAnno e t) = do
@@ -58,7 +57,7 @@ eval tm = runReader (go tm) empty
     go (TmTApp e t) = do
       e' <- go e
       t' <- expand t
-      go $ paraApp e' (Right t')
+      go $ paraApp e' (TyArg t')
     go e@(TmTAbs _ _ _ _) = closure e
     go (TmToString e) = toString <$> go e
     go e@(TmClosure _ (TmRcd _ _ _)) = pure e
