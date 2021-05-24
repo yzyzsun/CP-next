@@ -169,7 +169,8 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
   Tuple sig' e2 <- inferFromSig `duringTransformation` Tuple sig ne2
   Tuple ret tret <- case me1 of
     Just e1 -> do
-      -- TODO: self-reference may have a different name in super-trait
+      -- self may be used in e1 (e.g. trait [self:T] inherits f self => ...)
+      -- this self has nothing to do with that self in the super-trait
       Tuple e1' t1 <- addTmBind self t' $ infer e1
       case t1 of
         C.TyArrow ti to true -> do
