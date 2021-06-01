@@ -80,10 +80,10 @@ typedReduce (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2) = do
   t1' <- local (const env) $ expand t1
   if l1 == l2 && t1' <: t2 then pure $ Just $ TmClosure env (TmRcd l2 t2 e)
   else pure Nothing
-typedReduce (TmClosure env (TmAbs x e targ1 tret1)) (TyArrow targ2 tret2 _) = do
+typedReduce (TmClosure env (TmAbs x e targ1 tret1)) (TyArrow _ tret2 _) = do
   targ1' <- local (const env) $ expand targ1
   tret1' <- local (const env) $ expand tret1
-  if targ2 <: targ1' && tret1' <: tret2 then
+  if tret1' <: tret2 then
     pure $ Just $ TmClosure env (TmAbs x e targ1' tret2)
   else pure Nothing
 typedReduce (TmClosure env (TmTAbs a1 td1 e t1)) (TyForall a2 td2 t2) = do
