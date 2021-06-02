@@ -79,9 +79,9 @@ main = do
           case m of "SmallStep" -> setMode SmallStep
                     "StepTrace" -> setMode StepTrace
                     "BigStep" -> setMode BigStep
-                    "Subst" -> setMode Subst
+                    "HOAS" -> setMode HOAS
                     "Closure" -> setMode Closure
-                    _ -> error $ "unknown mode (available: SmallStep StepTrace BigStep Subst Closure)"
+                    _ -> error $ "unknown mode (available: SmallStep StepTrace BigStep HOAS Closure)"
         Nothing -> do
           case stripPrefix (Pattern ":load ") input of
             Just file -> do

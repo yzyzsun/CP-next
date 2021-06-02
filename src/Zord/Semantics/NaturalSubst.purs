@@ -1,10 +1,10 @@
-module Zord.Semantics.NaturalSubstitution where
+module Zord.Semantics.NaturalSubst where
 
 import Prelude
 
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
-import Zord.Semantics.Substitution (paraApp, typedReduce)
+import Zord.Semantics.Subst (paraApp, typedReduce)
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (Tm(..), tmSubst)
 import Zord.Util (unsafeFromJust)
@@ -24,7 +24,7 @@ eval (TmIf e1 e2 e3) = case eval e1 of
   TmBool true  -> eval e2
   TmBool false -> eval e3
   e1' -> unsafeCrashWith $
-    "Zord.Semantics.NaturalSubstitution.eval: impossible if " <> show e1' <> " ..."
+    "Zord.Semantics.NaturalSubst.eval: impossible if " <> show e1' <> " ..."
 eval (TmApp e1 e2 coercive) =
   eval $ paraApp (eval e1) ((if coercive then TmAnnoArg else TmArg) e2)
 eval e@(TmAbs _ _ _ _) = e
@@ -40,5 +40,5 @@ eval (TmTApp e t) = eval $ paraApp (eval e) (TyArg t)
 eval e@(TmTAbs _ _ _ _) = e
 eval (TmToString e) = toString (eval e)
 eval e@(TmArray _ _) = e
-eval e = unsafeCrashWith $ "Zord.Semantics.NaturalSubstitution.eval: " <>
+eval e = unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
   "well-typed programs don't get stuck, but got " <> show e

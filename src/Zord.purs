@@ -17,14 +17,14 @@ import Text.Parsing.Parser.String (eof)
 import Zord.Context (Pos(..), TypeError(..), runTyping)
 import Zord.Desugar (desugar)
 import Zord.Parser (program, whiteSpace)
-import Zord.Semantics.Natural as BigStep
+import Zord.Semantics.HOAS as HOAS
 import Zord.Semantics.NaturalClosure as Closure
-import Zord.Semantics.NaturalSubstitution as Subst
+import Zord.Semantics.NaturalSubst as BigStep
 import Zord.Semantics.StepTrace as StepTrace
-import Zord.Semantics.Substitution as SmallStep
+import Zord.Semantics.Subst as SmallStep
 import Zord.Typing (infer)
 
-data Mode = SmallStep | StepTrace | BigStep | Subst | Closure
+data Mode = SmallStep | StepTrace | BigStep | HOAS | Closure
 
 derive instance genericMode :: Generic Mode _
 instance showMode :: Show Mode where show = genericShow
@@ -39,7 +39,7 @@ interpret code mode = case runParser code (whiteSpace *> program <* eof) of
       StepTrace -> let Tuple _ s = StepTrace.eval e'' in pure $
         show e <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s ""
       BigStep -> pure $ show (BigStep.eval e'')
-      Subst -> pure $ show (Subst.eval e'')
+      HOAS -> pure $ show (HOAS.eval e'')
       Closure -> pure $ show (Closure.eval e'')
 
 showPosition :: Position -> String

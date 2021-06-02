@@ -1,4 +1,4 @@
-module Zord.Semantics.Substitution where
+module Zord.Semantics.Subst where
 
 import Prelude
 
@@ -40,12 +40,12 @@ step (TmTApp e t) | isValue e = paraApp e (TyArg t)
                   | otherwise = TmTApp (step e) t
 step (TmToString e) | isValue e = toString e
                     | otherwise = TmToString (step e)
-step e = unsafeCrashWith $ "Zord.Semantics.Substitution.step: " <>
+step e = unsafeCrashWith $ "Zord.Semantics.Subst.step: " <>
   "well-typed programs don't get stuck, but got " <> show e
 
 typedReduce :: Tm -> Ty -> Maybe Tm
 typedReduce e _ | not (isValue e) = unsafeCrashWith $
-  "Zord.Semantics.Substitution.typedReduce: " <> show e <> " is not a value"
+  "Zord.Semantics.Subst.typedReduce: " <> show e <> " is not a value"
 typedReduce _ t | isTopLike t = Just TmUnit
 typedReduce v t | Just (Tuple t1 t2) <- split t = do
   v1 <- typedReduce v t1
@@ -73,7 +73,7 @@ paraApp (TmAbs x e1 targ tret) (TmAnnoArg e2) =
   TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
 paraApp (TmTAbs a _ e _) (TyArg ta) = tmTSubst a ta e
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
-paraApp v arg = unsafeCrashWith $ "Zord.Semantics.Substitution.paraApp: " <>
+paraApp v arg = unsafeCrashWith $ "Zord.Semantics.Subst.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
 
 isValue :: Tm -> Boolean

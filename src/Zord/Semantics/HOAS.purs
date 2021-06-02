@@ -1,4 +1,4 @@
-module Zord.Semantics.Natural where
+module Zord.Semantics.HOAS where
 
 import Prelude hiding (bind, pure)
 
@@ -37,7 +37,7 @@ eval = runTrampoline <<< go <<< tmHoas
         TmBool true  -> go e2
         TmBool false -> go e3
         _ -> unsafeCrashWith $
-          "Zord.Semantics.Natural.eval: impossible if " <> show e1' <> " ..."
+          "Zord.Semantics.HOAS.eval: impossible if " <> show e1' <> " ..."
     go (TmApp e1 e2 coercive) = do
       e1' <- go e1
       go $ paraApp e1' ((if coercive then TmAnnoArg else TmArg) e2)
@@ -69,12 +69,12 @@ eval = runTrampoline <<< go <<< tmHoas
       e' <- go e
       pure $ write e' ref
       where e = read ref
-    go e = unsafeCrashWith $ "Zord.Semantics.Natural.eval: " <>
+    go e = unsafeCrashWith $ "Zord.Semantics.HOAS.eval: " <>
       "well-typed programs don't get stuck, but got " <> show e
 
 typedReduce :: Tm -> Ty -> Maybe Tm
 typedReduce e _ | not (isValue e) = unsafeCrashWith $
-  "Zord.Semantics.Natural.typedReduce: " <> show e <> " is not a value"
+  "Zord.Semantics.HOAS.typedReduce: " <> show e <> " is not a value"
 typedReduce _ t | isTopLike t = Just TmUnit
 typedReduce v t | Just (Tuple t1 t2) <- split t =
   case typedReduce v t1, typedReduce v t2 of
@@ -102,7 +102,7 @@ paraApp (TmHAbs abs targ tret) (TmAnnoArg e) =
   TmAnno (abs $ TmRef $ new $ TmAnno e targ) tret
 paraApp (TmHTAbs tabs _ _) (TyArg ta) = tabs ta
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
-paraApp v arg = unsafeCrashWith $ "Zord.Semantics.Natural.paraApp: " <>
+paraApp v arg = unsafeCrashWith $ "Zord.Semantics.HOAS.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
 
 isValue :: Tm -> Boolean

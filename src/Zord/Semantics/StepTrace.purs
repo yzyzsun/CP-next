@@ -9,7 +9,7 @@ import Data.Newtype (unwrap)
 import Data.Tuple (Tuple)
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
-import Zord.Semantics.Substitution (isValue, paraApp, typedReduce)
+import Zord.Semantics.Subst (isValue, paraApp, typedReduce)
 import Zord.Syntax.Core (Tm(..), tmSubst)
 import Zord.Util (unsafeFromJust)
 
