@@ -41,16 +41,18 @@ desugar (TmTrait self sig e1 e2) =
           (desugar <$> e1) (TmOpen (TmVar x) (desugar e2))
 desugar (TmType a sorts params (Just t1) t2 e) =
   TmType a sorts params Nothing (TyAnd t1 t2) (desugar e)
--- TODO: def should always be desugared to letrec
-desugar (TmDef x tyParams tmParams t e1 e2) =
-  case t of Just t' -> TmLetrec x (ty t') tm (desugar e2)
-            Nothing -> TmLet x tm (desugar e2)
-  where tm = desugar (TmTAbs tyParams (TmAbs tmParams e1))
-        ty t' = TyForall tyParams (foldr TyArrow t' (tyOf <$> tmParams))
-        -- TODO: param types should be inferred
-        tyOf = case _ of TmParam _ (Just t') -> t'
-                         TmParam _ Nothing -> TyTop
-                         WildCard -> TyTop
+-- TODO: it may be better to always desugar def to letrec
+desugar (TmDef x tyParams tmParams t e1 e2) = desugar $
+  case t of Just t' -> TmLetrec x tyParams tmParams t' e1 e2
+            Nothing -> TmLet x tyParams tmParams e1 e2
+desugar (TmLet x tyParams tmParams e1 e2) =
+  TmLet x Nil Nil (desugar (TmTAbs tyParams (TmAbs tmParams e1))) (desugar e2)
+desugar (TmLetrec x tyParams tmParams t e1 e2) =
+  TmLetrec x Nil Nil t' (desugar (TmTAbs tyParams (TmAbs tmParams e1))) (desugar e2)
+  where t' = TyForall tyParams (foldr TyArrow t (tyOf <$> tmParams))
+        tyOf = case _ of TmParam _ (Just ty) -> ty
+                         TmParam _ Nothing -> TyBot
+                         WildCard -> TyBot
 
 desugar (TmUnary op e) = TmUnary op (desugar e)
 desugar (TmBinary op e1 e2) = TmBinary op (desugar e1) (desugar e2)
@@ -60,8 +62,6 @@ desugar (TmAnno e t) = TmAnno (desugar e) t
 desugar (TmMerge e1 e2) = TmMerge (desugar e1) (desugar e2)
 desugar (TmPrj e l) = TmPrj (desugar e) l
 desugar (TmTApp e t) = TmTApp (desugar e) t
-desugar (TmLet x e1 e2) = TmLet x (desugar e1) (desugar e2)
-desugar (TmLetrec x t e1 e2) = TmLetrec x t (desugar e1) (desugar e2)
 desugar (TmOpen e1 e2) = TmOpen (desugar e1) (desugar e2)
 desugar (TmNew e) = TmNew (desugar e)
 desugar (TmForward e1 e2) = TmForward (desugar e1) (desugar e2)

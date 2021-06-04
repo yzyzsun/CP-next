@@ -75,8 +75,8 @@ data Tm = TmInt Int
         | TmPrj Tm Label
         | TmTApp Tm Ty
         | TmTAbs TyParamList Tm
-        | TmLet Name Tm Tm
-        | TmLetrec Name Ty Tm Tm
+        | TmLet Name TyParamList TmParamList Tm Tm
+        | TmLetrec Name TyParamList TmParamList Ty Tm Tm
         | TmOpen Tm Tm
         | TmTrait SelfAnno (Maybe Ty) (Maybe Tm) Tm
         | TmNew Tm
@@ -88,6 +88,7 @@ data Tm = TmInt Int
         | TmType Name (List Name) (List Name) (Maybe Ty) Ty Tm
         | TmDef Name TyParamList TmParamList (Maybe Ty) Tm Tm
 
+-- TODO: add type parameters
 data RcdField = RcdField Boolean Label TmParamList (Either Tm MethodPattern)
               | DefaultPattern MethodPattern
 data MethodPattern = MethodPattern SelfAnno Label TmParamList Tm
@@ -112,10 +113,12 @@ instance showTm :: Show Tm where
   show (TmPrj e l) = show e <> "." <> l
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs xs e) = parens $ "/\\" <> showTyParams xs <> "." <+> show e
-  show (TmLet x e1 e2) = parens $
-    "let" <+> x <+> "=" <+> show e1 <+> "in" <+> show e2
-  show (TmLetrec x t e1 e2) = parens $
-    "letrec" <+> x <+> ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
+  show (TmLet x tyParams tmParams e1 e2) = parens $
+    "let" <+> x <+> showTyParams tyParams <> showTmParams tmParams <>
+    "=" <+> show e1 <+> "in" <+> show e2
+  show (TmLetrec x tyParams tmParams t e1 e2) = parens $
+    "letrec" <+> x <+> showTyParams tyParams <> showTmParams tmParams <>
+    ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
   show (TmTrait self sig e1 e2) = parens $ "trait" <> showSelf "" self <+>
     showMaybe "implements " sig " " <> showMaybe "inherits " e1 " " <>

@@ -60,8 +60,8 @@ opexpr {
 lexpr {
   fexpr | Lambda { "\\" termParam+ "->" expression } |
   BigLambda { "/\\" typeParam+ "." expression } |
-  Let { kw<"let"> TermNameDecl "=" expression kw<"in"> expression } |
-  LetRec { kw<"letrec"> TermNameDecl ":" type "=" expression kw<"in"> expression } |
+  Let { kw<"let"> TermNameDecl typeParam* termParam* "=" expression kw<"in"> expression } |
+  LetRec { kw<"letrec"> TermNameDecl typeParam* termParam* ":" type "=" expression kw<"in"> expression } |
   Open { kw<"open"> expression kw<"in"> expression } |
   IfElse { kw<"if"> expression kw<"then"> expression kw<"else"> expression } |
   Trait { kw<"trait"> SelfAnno? (kw<"implements"> type)? (kw<"inherits"> opexpr)? "=>" opexpr } |

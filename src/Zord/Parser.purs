@@ -52,7 +52,7 @@ tmDef :: SParser Tm -> SParser Tm
 tmDef p = do
   def <- try do
     x <- lowerIdentifier
-    tys <- many (try $ tyParams false)
+    tys <- many $ try $ tyParams false
     tms <- many tmParams
     t <- optional (symbol ":" *> ty)
     symbol "="
@@ -148,23 +148,27 @@ letIn :: SParser Tm
 letIn = do
   reserved "let"
   x <- lowerIdentifier
+  tys <- many $ try $ tyParams false
+  tms <- many tmParams
   symbol "="
   e1 <- expr
   reserved "in"
   e2 <- expr
-  pure $ TmLet x e1 e2
+  pure $ TmLet x tys tms e1 e2
 
 letrec :: SParser Tm
 letrec = do
   reserved "letrec"
   x <- lowerIdentifier
+  tys <- many $ try $ tyParams false
+  tms <- many tmParams
   symbol ":"
   t <- ty
   symbol "="
   e1 <- expr
   reserved "in"
   e2 <- expr
-  pure $ TmLetrec x t e1 e2
+  pure $ TmLetrec x tys tms t e1 e2
 
 open :: SParser Tm
 open = do
