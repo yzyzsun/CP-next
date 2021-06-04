@@ -11,7 +11,7 @@ import Data.CodePoint.Unicode (isLower, isUpper)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, null, some, toUnfoldable)
-import Data.Maybe (Maybe(..), fromMaybe, isJust, optional)
+import Data.Maybe (Maybe(..), isJust, optional)
 import Data.String (codePointAt, codePointFromChar)
 import Data.String.CodeUnits as SCU
 import Data.String.Regex (Regex, match, regex, replace)
@@ -22,7 +22,7 @@ import Text.Parsing.Parser.Combinators (between, choice, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.Pos (updatePosString)
-import Text.Parsing.Parser.String (char, satisfy, skipSpaces)
+import Text.Parsing.Parser.String (char, satisfy)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
 import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..), TyParam)
@@ -188,36 +188,29 @@ document p = do
     backslash = char '\\' *> (command <|> interpolation <|> newline)
     command = do
       cmd <- identifier
-      e <- optional $ recordArg cmd <|> juxtaArgs cmd
-      docs <- many $ try $ skipSpaces *> bracketsWithoutConsumingSpace (document p)
+      args <- many $ choice [ parensWithoutTrailingSpace p
+                            , bracesWithoutTrailingSpace recordArg
+                            , bracketsWithoutConsumingSpace $ document p
+                            ]
       let f = if isUpper $ unsafeFromJust $ codePointAt 0 cmd then TmNew else identity
-      pure $ f (foldl TmApp (fromMaybe (TmVar cmd) e) docs)
-    recordArg cmd = TmApp (TmVar cmd) <<< TmRcd <$>
-      between (symbol "{") (char '}') (sepEndBySemi $ recordField p false)
-    juxtaArgs cmd = foldl TmApp (TmVar cmd) <$>
-      parensWithoutTrailingSpace (many (dotexpr p))
+      pure $ f (foldl TmApp (TmVar cmd) args)
+    recordArg = TmRcd <$> sepEndBySemi (recordField p false)
     interpolation = newStr <<< TmToString <$> parensWithoutTrailingSpace p
     newline = char '\\' $> newEndl
     plaintext = newStr <<< TmString <$> stringMatching re
     re = unsafeFromRight $ regex """^[^\\\]`]+""" noFlags
+    newEndl = TmNew (TmVar "Endl")
+    newStr s = TmNew (TmApp (TmVar "Str") s)
+    newComp x y = TmNew (TmApp (TmApp (TmVar "Comp") x) y)
 
 parensWithoutTrailingSpace :: forall a. SParser a -> SParser a
 parensWithoutTrailingSpace = between (symbol "(") (char ')')
 
+bracesWithoutTrailingSpace :: forall a. SParser a -> SParser a
+bracesWithoutTrailingSpace = between (symbol "{") (char '}')
+
 bracketsWithoutConsumingSpace :: forall a. SParser a -> SParser a
 bracketsWithoutConsumingSpace = between (char '[') (char ']')
-
-newCtor :: String -> Tm
-newCtor = TmNew <<< TmVar
-
-newEndl :: Tm
-newEndl = newCtor "Endl"
-
-newStr :: Tm -> Tm
-newStr s = TmNew (TmApp (TmVar "Str") s)
-
-newComp :: Tm -> Tm -> Tm
-newComp x y = TmNew (TmApp (TmApp (TmVar "Comp") x) y)
 
 recordLit :: SParser Tm -> SParser Tm
 recordLit p = braces $ TmRcd <$> sepEndBySemi do
