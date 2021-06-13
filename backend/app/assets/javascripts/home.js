@@ -3,15 +3,15 @@ const Zord = bundle.Zord;
 const namespace = window.location.pathname.split('/')[1];
 const docname = window.location.pathname.split('/')[2];
 
-function editorState(doc, colorable) {
-  return bundle.editorState(doc, () => interpret(() => {}), true, colorable);
+function editorState(doc) {
+  return bundle.editorState(doc, () => interpret(() => {}));
 }
 
 function editorView(state) {
   return bundle.editorView(state, document.getElementById('editor'));
 }
 
-const view = editorView(editorState($('#code').val(), false));
+const view = editorView(editorState($('#code').val()));
 
 function interpret(callback) {
   const run = prog => preprocess(prog).then(code => {
@@ -103,10 +103,10 @@ $('#mode').on('change', () => {
   else $('#providing').removeClass('d-flex').addClass('d-none');
   if ($('#mode').val() == 'doc_only') {
     $('#requiring').removeClass('d-none').addClass('d-flex');
-    view.setState(editorState(view.state.doc.toString(), false));
+    view.dispatch({ effects: bundle.language.reconfigure([]) });
   } else {
     $('#requiring').removeClass('d-flex').addClass('d-none');
-    view.setState(editorState(view.state.doc.toString(), true));
+    view.dispatch({ effects: bundle.language.reconfigure(bundle.languageSupport) });
   }
 });
 $('#mode').change();

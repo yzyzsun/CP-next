@@ -1,6 +1,8 @@
-import { EditorState, EditorView, basicSetup } from '@codemirror/basic-setup';
-import { keymap } from '@codemirror/view';
-import { LanguageSupport, LezerLanguage, continuedIndent, indentNodeProp, foldNodeProp } from '@codemirror/language';
+import { basicSetup } from '@codemirror/basic-setup';
+import { Compartment, EditorState } from '@codemirror/state';
+import { EditorView, keymap } from '@codemirror/view';
+import { defaultTabBinding } from '@codemirror/commands';
+import { LanguageSupport, LezerLanguage, continuedIndent, foldNodeProp, indentNodeProp } from '@codemirror/language';
 import { styleTags, tags as t } from '@codemirror/highlight';
 import { parser } from './zord';
 
@@ -52,15 +54,18 @@ const zordLanguage = LezerLanguage.define({
   },
 });
 
-export function editorState(doc, binding, editable, colorable) {
+export const language = new Compartment;
+export const languageSupport = new LanguageSupport(zordLanguage);
+
+export function editorState(doc, binding) {
   return EditorState.create({
     doc,
     extensions: [
       basicSetup,
       EditorView.lineWrapping,
-      keymap.of([{ key: 'Mod-Enter', run: binding }]),
-      EditorView.editable.of(editable),
-      ...(colorable ? [new LanguageSupport(zordLanguage)] : []),
+      EditorState.tabSize.of(2),
+      keymap.of([defaultTabBinding, { key: 'Mod-Enter', run: binding }]),
+      language.of([]),
     ],
   });
 }
