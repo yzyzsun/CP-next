@@ -99,7 +99,7 @@ selectLabel _ _ = TmUnit
 
 data Arg = TmArg Tm | TmAnnoArg Tm | TyArg Ty
 
-instance showArg :: Show Arg where
+instance Show Arg where
   show (TmArg tm) = show tm
   show (TmAnnoArg tm) = show tm
   show (TyArg ty) = show ty

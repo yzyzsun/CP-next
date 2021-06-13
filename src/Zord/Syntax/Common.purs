@@ -10,17 +10,17 @@ type Label = String
 data Kind = KnStar
           | KnArr Kind Kind
 
-instance showKind :: Show Kind where
+instance Show Kind where
   show KnStar = "*"
   show (KnArr k1 k2) = show k1 <> " → " <> show k2
 
-derive instance eqKind :: Eq Kind
+derive instance Eq Kind
 
 -- Operators --
 
 data UnOp = Neg | Not | Len
 
-instance showUnOp :: Show UnOp where
+instance Show UnOp where
   show Neg = "-"
   show Not = "!"
   show Len = "#"
@@ -35,21 +35,21 @@ data ArithOp = Add | Sub | Mul | Div | Mod
 data CompOp  = Eql | Neq | Lt | Le | Gt | Ge
 data LogicOp = And | Or
 
-instance showBinOp :: Show BinOp where
+instance Show BinOp where
   show (Arith op) = show op
   show (Comp  op) = show op
   show (Logic op) = show op
   show Append = "++"
   show Index = "!!"
 
-instance showArithOp :: Show ArithOp where
+instance Show ArithOp where
   show Add = "+"
   show Sub = "-"
   show Mul = "*"
   show Div = "/"
   show Mod = "%"
 
-instance showCompOp :: Show CompOp where
+instance Show CompOp where
   show Eql = "=="
   show Neq = "!="
   show Lt  = "<"
@@ -57,7 +57,7 @@ instance showCompOp :: Show CompOp where
   show Gt  = ">"
   show Ge  = ">="
 
-instance showLogicOp :: Show LogicOp where
+instance Show LogicOp where
   show And = "&&"
   show Or  = "||"
 

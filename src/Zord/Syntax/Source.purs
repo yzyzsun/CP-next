@@ -32,7 +32,7 @@ data Ty = TyInt
         | TySig Name Name Ty
         | TyArray Ty
 
-instance showTy :: Show Ty where
+instance Show Ty where
   show TyInt    = "Int"
   show TyDouble = "Double"
   show TyString = "String"
@@ -53,7 +53,7 @@ instance showTy :: Show Ty where
     "\\" <> angles (a <+> "%" <+> b) <+> "->" <+> show t
   show (TyArray t) = brackets $ show t
 
-derive instance eqTy :: Eq Ty
+derive instance Eq Ty
 
 -- Terms --
 
@@ -93,7 +93,7 @@ data RcdField = RcdField Boolean Label TmParamList (Either Tm MethodPattern)
               | DefaultPattern MethodPattern
 data MethodPattern = MethodPattern SelfAnno Label TmParamList Tm
 
-instance showTm :: Show Tm where
+instance Show Tm where
   show (TmInt i)    = show i
   show (TmDouble n) = show n
   show (TmString s) = show s

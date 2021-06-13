@@ -18,7 +18,7 @@
   "devDependencies": {
     "@codemirror/basic-setup": "^0.18.2",
     "lezer-generator": "^0.13.4",
-    "purescript": "^0.14.1",
+    "purescript": "^0.14.2",
     "purs-loader": "^3.7.2",
     "spago": "^0.20.3",
     "vsce": "^1.88.0",

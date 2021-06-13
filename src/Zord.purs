@@ -26,8 +26,8 @@ import Zord.Typing (infer)
 
 data Mode = SmallStep | StepTrace | BigStep | HOAS | Closure
 
-derive instance genericMode :: Generic Mode _
-instance showMode :: Show Mode where show = genericShow
+derive instance Generic Mode _
+instance Show Mode where show = genericShow
 
 interpret :: String -> Mode -> Effect String
 interpret code mode = case runParser code (whiteSpace *> program <* eof) of

@@ -30,7 +30,7 @@ data Ty = TyInt
         | TyForall Name Ty Ty
         | TyArray Ty
 
-instance showTy :: Show Ty where
+instance Show Ty where
   show TyInt    = "Int"
   show TyDouble = "Double"
   show TyString = "String"
@@ -46,7 +46,7 @@ instance showTy :: Show Ty where
     "∀" <> a <+> "*" <+> show td <> "." <+> show t
   show (TyArray t) = brackets $ show t
 
-derive instance eqTy :: Eq Ty
+derive instance Eq Ty
 
 -- Terms --
 
@@ -77,7 +77,7 @@ data Tm = TmInt Int
         | TmClosure EvalEnv Tm
         | TmRef TmRef
 
-instance showTm :: Show Tm where
+instance Show Tm where
   show (TmInt i)    = show i
   show (TmDouble n) = show n
   show (TmString s) = show s
@@ -220,7 +220,7 @@ type EvalEnv = Map Name EvalBind
 
 data EvalBind = TmBind Tm | TyBind (Maybe Ty)
 
-instance showEvalBind :: Show EvalBind where
+instance Show EvalBind where
   show (TmBind e) = show e
   show (TyBind (Just t)) = show t
   show (TyBind Nothing) = "*"
