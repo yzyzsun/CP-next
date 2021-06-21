@@ -8,8 +8,9 @@ import Data.Array.NonEmpty ((!!))
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromJust)
 import Data.String (Pattern(..), stripPrefix)
-import Data.String.Regex (match, regex, replace)
+import Data.String.Regex (match, replace)
 import Data.String.Regex.Flags (global, noFlags)
+import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Time (diff)
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
@@ -22,7 +23,6 @@ import Node.Path (concat, dirname)
 import Node.ReadLine (Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
 import Partial.Unsafe (unsafePartial)
 import Zord (Mode(..), interpret)
-import Zord.Util (unsafeFromRight)
 
 showSeconds :: Milliseconds -> String
 showSeconds (Milliseconds n) = show (n / 1000.0) <> "s"
@@ -49,8 +49,8 @@ preprocess path program = case match openRegex program of
     text <- readTextFile (concat [path, ext name])
     preprocess path $ replace openRegex (replace lineRegex " " text) program
   Nothing -> pure program
-  where openRegex = unsafeFromRight $ regex """open\s+(\w+)\s*;""" noFlags
-        lineRegex = unsafeFromRight $ regex """(--.*)?[\r\n]+""" global
+  where openRegex = unsafeRegex """open\s+(\w+)\s*;""" noFlags
+        lineRegex = unsafeRegex """(--.*)?[\r\n]+""" global
         ext name = name <> ".mzord"
 
 execute :: String -> Mode -> Effect Unit

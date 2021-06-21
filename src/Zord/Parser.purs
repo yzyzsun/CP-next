@@ -14,8 +14,9 @@ import Data.List (List, foldl, many, null, some, toUnfoldable)
 import Data.Maybe (Maybe(..), isJust, optional)
 import Data.String (codePointAt, codePointFromChar)
 import Data.String.CodeUnits as SCU
-import Data.String.Regex (Regex, match, regex, replace)
+import Data.String.Regex (Regex, match, replace)
 import Data.String.Regex.Flags (noFlags)
+import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Tuple (Tuple(..))
 import Text.Parsing.Parser (ParseState(..), Parser, fail, position)
 import Text.Parsing.Parser.Combinators (between, choice, sepEndBy, try)
@@ -26,7 +27,7 @@ import Text.Parsing.Parser.String (char, satisfy)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
 import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..), TyParam)
-import Zord.Util (foldl1, unsafeFromJust, unsafeFromRight)
+import Zord.Util (foldl1, unsafeFromJust)
 
 type SParser a = Parser String a
 
@@ -202,7 +203,7 @@ document p = do
     interpolation = newStr <<< TmToString <$> parensWithoutTrailingSpace p
     newline = char '\\' $> newEndl
     plaintext = newStr <<< TmString <$> stringMatching re
-    re = unsafeFromRight $ regex """^[^\\\]`]+""" noFlags
+    re = unsafeRegex """^[^\\\]`]+""" noFlags
     newEndl = TmNew (TmVar "Endl")
     newStr s = TmNew (TmApp (TmVar "Str") s)
     newComp x y = TmNew (TmApp (TmApp (TmVar "Comp") x) y)

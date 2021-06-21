@@ -2,7 +2,6 @@ module Zord.Util where
 
 import Prelude
 
-import Data.Either (Either(..))
 import Data.List (List(..), foldl)
 import Data.Maybe (Maybe(..))
 import Partial.Unsafe (unsafeCrashWith)
@@ -24,7 +23,3 @@ foldr1 f (Cons x xs) = f x (foldr1 f xs)
 unsafeFromJust :: forall a. Maybe a -> a
 unsafeFromJust Nothing = unsafeCrashWith "unsafeFromJust: unexpected Nothing"
 unsafeFromJust (Just x) = x
-
-unsafeFromRight :: forall a b. Either a b -> b
-unsafeFromRight (Left _) = unsafeCrashWith "unsafeFromRight: unexpected Left"
-unsafeFromRight (Right x) = x
