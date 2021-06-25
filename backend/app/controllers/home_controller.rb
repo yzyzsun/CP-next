@@ -17,7 +17,7 @@ class HomeController < ApplicationController
 
   def doc
     @doc = Doc.find_by(user: @user, name: params[:doc])
-    @doc = nil if @doc.priv? && @doc.user != current_user
+    @doc = nil if @doc && @doc.priv? && @doc.user != current_user
     if @doc
       render :index
     else
