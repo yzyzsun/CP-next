@@ -7,7 +7,7 @@ import Ansi.Output (foreground, withGraphics)
 import Data.Array.NonEmpty ((!!))
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), fromJust)
-import Data.String (Pattern(..), stripPrefix)
+import Data.String (Pattern(..), stripPrefix, trim)
 import Data.String.Regex (match, replace)
 import Data.String.Regex.Flags (global, noFlags)
 import Data.String.Regex.Unsafe (unsafeRegex)
@@ -73,19 +73,20 @@ main = do
   where
     handler :: Interface -> Mode -> String -> Effect Unit
     handler interface mode input = do
-      case stripPrefix (Pattern ":mode ") input of
+      let s = trim input
+      case stripPrefix (Pattern ":mode") s of
         Just m -> do
           let setMode = flip setLineHandler interface <<< handler interface
-          case m of "SmallStep" -> setMode SmallStep
-                    "StepTrace" -> setMode StepTrace
-                    "BigStep" -> setMode BigStep
-                    "HOAS" -> setMode HOAS
-                    "Closure" -> setMode Closure
-                    _ -> error $ "unknown mode (available: SmallStep StepTrace BigStep HOAS Closure)"
+          case trim m of
+            "SmallStep" -> setMode SmallStep
+            "StepTrace" -> setMode StepTrace
+            "BigStep"   -> setMode BigStep
+            "HOAS"      -> setMode HOAS
+            "Closure"   -> setMode Closure
+            _ -> error $ "unknown mode (available: SmallStep StepTrace BigStep HOAS Closure)"
         Nothing -> do
-          case stripPrefix (Pattern ":load ") input of
-            Just file -> do
-              program <- load file
-              execute program mode
+          case stripPrefix (Pattern ":load") s of
+            Just f -> do program <- load $ trim f
+                         execute program mode
             Nothing -> execute input mode
       prompt interface
