@@ -1,7 +1,15 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>PLGround</title>
+    <title>
+      <% if @doc %>
+        Doc <%= @doc.name %> |
+      <% end %>
+      <% if @user %>
+        User <%= @user.username %> |
+      <% end %>
+      PLGround
+    </title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>

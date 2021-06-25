@@ -17,7 +17,7 @@
             </div>
           <% else %>
             <div class="text-secondary mt-2">
-              👋 Hi! Log in to save documents~
+              👋 Hi, log in to save a document!
             </div>
             <div class="ml-auto">
               <a href class="btn btn-secondary" data-toggle="modal" data-target="#modal-login">Log in</a>
@@ -75,20 +75,26 @@
         <% if @doc %>
           <%== @doc.html_cache %>
         <% else %>
-          <p class="text-secondary">Click the [Render] button above or press Ctrl+Enter (or Cmd+Return on ) to render the document.</p>
+          <p class="text-secondary">Click the [Render] button above or press Ctrl+Enter (or Cmd+Return on ) to render a document.</p>
           <% if @docs&.any? %>
-            <p>
-              <% if @user %>
-                Browse <%= current_user == @user ? "your" : @user.username + "'s public" %> documents:
-              <% else %>
-                Browse all public documents:
-              <% end %>
-            </p>
-            <ul><% @docs.each do |doc| %>
-              <li>
-                <%= link_to (@user ? "" : "#{doc.user.username}/") + "#{doc.name} (#{doc.access})", doc.path %>
-              </li>
-            <% end %></ul>
+            <% if @user %>
+              <p>
+                Browse
+                <%= current_user == @user ? "your" : @user.username + "'s public" %>
+                documents:
+              </p>
+              <%= render partial: "shared/docs", locals: { docs: @docs } %>
+            <% else %>
+              <p>Browse all public documents:</p>
+              <ul>
+                <% @docs.group_by { |d| d.user }.each do |user, docs| %>
+                  <li>
+                    <%= link_to "User #{user.username}", "/#{user.username}" %>
+                    <%= render partial: "shared/docs", locals: { docs: docs } %>
+                  </li>
+                <% end %>
+              </ul>
+            <% end %>
           <% end %>
         <% end %>
       </div>
