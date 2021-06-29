@@ -82,7 +82,7 @@ baseChart (data : [Data]) = trait [self : Base] implements Base => open factory 
       \Line{ x1 = margin; y1 = y; x2 = width; y2 = y; color = new Black; width = 1 }
     ` else `
       \Line{ x1 = x; y1 = y - 5; x2 = x; y2 = y; color = new Black; width = 1 }
-      \Text{ x = x - 10; y = y + 15; color = new Black }[\Str((d!!i).month)]
+      \Text{ x = x - 10; y = y + 15; color = new Black }[\((d!!i).month)]
       \xAxis'(i+1)
     ` in xAxis' 0;
   yAxis = letrec yAxis' (i:Int) : HTML = open config in
@@ -93,7 +93,7 @@ baseChart (data : [Data]) = trait [self : Base] implements Base => open factory 
     ` in yAxis' 0;
   caption = letrec caption' (n:Int) : String =
     if n == #data - 1 then (data!!n).name else (data!!n).name ++ " vs " ++ caption' (n+1)
-    in `\Text{ x = 50; y = 10; color = new Black }[\Str(caption' 0)]`;
+    in `\Text{ x = 50; y = 10; color = new Black }[\(caption' 0)]`;
 };
 
 lineStrategy = trait [self : Base] implements Render => open factory in {
@@ -132,7 +132,7 @@ legendDecorator (base : ChartT) =
   override caption = letrec legends' (n:Int) : HTML = open config in
     if n == #data_ then `` else let datum = data_ !! n in `
       \Rect{ x = margin + 20 + 50*n; y = margin - 20; width = 5; height = 5; color = datum.color }
-      \Text{ x = margin + 30 + 50*n; y = margin - 15; color = new Black }[\Str(datum.name)]
+      \Text{ x = margin + 30 + 50*n; y = margin - 15; color = new Black }[\(datum.name)]
       \legends'(n+1)
     ` in `\legends'(0)`
 };
@@ -163,10 +163,10 @@ dataLabelDecorator (base : ChartT) =
 axisLabelDecorator (labels : [String]) (base : ChartT) =
     trait [self : Chart] implements Chart inherits base => open factory in {
   override xAxis = let sx = super.xAxis : HTML in open config in `\sx
-    \Text{ x = (width + margin) / 2; y = height - margin + 30; color = new Gray }[\Str(labels!!0)]
+    \Text{ x = (width + margin) / 2; y = height - margin + 30; color = new Gray }[\(labels!!0)]
   `;
   override yAxis = let sy = super.yAxis : HTML in open config in `\sy
-    \Text{ x = margin - 30; y = height - margin - 10; color = new Gray }[\Str(labels!!1)]
+    \Text{ x = margin - 30; y = height - margin - 10; color = new Gray }[\(labels!!1)]
   `;
 };
 

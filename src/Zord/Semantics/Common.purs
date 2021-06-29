@@ -81,9 +81,9 @@ unsafeCrashWithBinop op v1 v2 = unsafeCrashWith $
   " between " <> show v1 <> " and " <> show v2
 
 toString :: Tm -> Tm
+toString s@(TmString _) = s
 toString (TmInt i)    = TmString (show i)
 toString (TmDouble n) = TmString (show n)
-toString (TmString s) = TmString (show s)
 toString (TmBool b)   = TmString (show b)
 toString v = unsafeCrashWith $
   "Zord.Semantics.Common.toString: impossible from " <> show v <> " to string"
