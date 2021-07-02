@@ -78,25 +78,35 @@ infer (S.TmBinary Append e1 e2) = do
     pure $ Tuple (C.TmBinary Append (C.TmAnno e1' C.TyString)
                                     (C.TmAnno e2' C.TyString)) C.TyString
   else case t1, t2 of
-    C.TyArray t1', C.TyArray t2' | t1' === t2' ->
-      pure $ Tuple (C.TmBinary Append e1' e2') (C.TyArray t1')
+    C.TyArray t1', C.TyArray t2' ->
+      let core el er ty = Tuple (C.TmBinary Append el er) ty in
+      if t1' === t2' then pure $ core e1' e2' t1
+      else if t2' <: t1' then pure $ core e1' (C.TmAnno e2' t1) t1
+      else if t1' <: t2' then pure $ core (C.TmAnno e1' t2) e2' t2
+      else throwTypeError $
+        "Append expected two arrays of equivalent types or subtypes," <+>
+        "but got" <+> show t1' <+> "and" <+> show t2'
     _, _ -> throwTypeError $
       "Append is not defined between" <+> show t1 <+> "and" <+> show t2
 infer (S.TmBinary Index e1 e2) = do
   Tuple e1' t1 <- infer e1
   Tuple e2' t2 <- infer e2
-  let core = C.TmBinary Index e1' e2'
-  case t1, t2 of C.TyArray t1', C.TyInt -> pure $ Tuple core t1'
-                 _, _ -> throwTypeError $ "Index is not defined between" <+>
-                                          show t1 <+> "and" <+> show t2
+  case t1 of C.TyArray t1' | t2 <: C.TyInt ->
+               pure $ Tuple (C.TmBinary Index e1' (C.TmAnno e2' C.TyInt)) t1'
+             _ -> throwTypeError $ "Index is not defined between" <+>
+                                   show t1 <+> "and" <+> show t2
 infer (S.TmIf e1 e2 e3) = do
   Tuple e1' t1 <- infer e1
   if t1 <: C.TyBool then do
     Tuple e2' t2 <- infer e2
     Tuple e3' t3 <- infer e3
-    if t2 === t3 then pure $ Tuple (C.TmIf (C.TmAnno e1' C.TyBool) e2' e3') t2
-    else throwTypeError $ "if-branches expected the same type, but got" <+>
-                          show t2 <+> "and" <+> show t3
+    let core et ef ty = Tuple (C.TmIf (C.TmAnno e1' C.TyBool) et ef) ty
+    if t2 === t3 then pure $ core e2' e3' t2
+    else if t3 <: t2 then pure $ core e2' (C.TmAnno e3' t2) t2
+    else if t2 <: t3 then pure $ core (C.TmAnno e2' t3) e3' t3
+    else throwTypeError $
+      "if-branches expected two equivalent types or subtypes, but got" <+>
+      show t2 <+> "and" <+> show t3
   else throwTypeError $ "if-condition expected Bool, but got" <+> show t1
 infer (S.TmVar x) = Tuple (C.TmVar x) <$> lookupTmBind x
 infer (S.TmApp e1 e2) = do

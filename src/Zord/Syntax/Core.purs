@@ -106,7 +106,7 @@ instance Show Tm where
   show (TmHTAbs _tabs td _tf) = angles $ "HOAS ∀*" <+> show td
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray t arr) = parens $
-    brackets (intercalate "; " (show <$> arr)) <+> ": Array" <+> show t
+    brackets (intercalate "; " (show <$> arr)) <+> ":" <+> brackets (show t)
   show (TmClosure _env e) = angles $ "Closure" <+> show e
   show (TmRef _ref) = angles $ "Ref"
 

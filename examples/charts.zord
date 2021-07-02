@@ -97,7 +97,7 @@ baseChart (data : [Data]) = trait [self : Base] implements Base => open factory 
 };
 
 lineStrategy = trait [self : Base] implements Render => open factory in {
-  override render = letrec lines' (n:Int) (i:Int) : HTML = open config in
+  render = letrec lines' (n:Int) (i:Int) : HTML = open config in
     if n == #data_ then `` else let c = (data_!!n).color in let d = (data_!!n).d in
     if i == #d - 1 then `\lines'(n+1)(0)` else
     let p1 = (d!!i).price in let p2 = (d!!(i+1)).price in `
@@ -113,7 +113,7 @@ lineStrategy = trait [self : Base] implements Render => open factory in {
 };
 
 barStrategy = trait [self : Base] implements Render => open factory in {
-  override render = letrec bars' (n:Int) (i:Int) : HTML = open config in
+  render = letrec bars' (n:Int) (i:Int) : HTML = open config in
     if n == #data_ then `` else let c = (data_!!n).color in let d = (data_!!n).d in
     if i == #d then `\bars'(n+1)(0)` else let price = (d!!i).price in `
       \Rect{
@@ -139,7 +139,7 @@ legendDecorator (base : ChartT) =
 
 borderDecorator (base : ChartT) =
     trait [self : Chart] implements Chart inherits base => open factory in {
-  override render = let sr = super.render : HTML in open config in `\sr
+  override render = let sr = super.render in open config in `\sr
     \Line{ x1 = margin; y1 = margin; x2 = width; y2 = margin; color = new Black; width = 1 }
     \Line{ x1 = margin; y1 = margin; x2 = margin; y2 = height - margin; color = new Black; width = 1 }
     \Line{ x1 = width - 1; y1 = margin; x2 = width - 1; y2 = height - margin; color = new Black; width = 1 }
@@ -157,15 +157,15 @@ dataLabelDecorator (base : ChartT) =
         color = c;
       }[\(price)]
       \labels'(n)(i+1)
-    ` in let sr = super.render : HTML in `\sr \labels'(0)(0)`;
+    ` in let sr = super.render in `\sr \labels'(0)(0)`;
 };
 
 axisLabelDecorator (labels : [String]) (base : ChartT) =
     trait [self : Chart] implements Chart inherits base => open factory in {
-  override xAxis = let sx = super.xAxis : HTML in open config in `\sx
+  override xAxis = let sx = super.xAxis in open config in `\sx
     \Text{ x = (width + margin) / 2; y = height - margin + 30; color = new Gray }[\(labels!!0)]
   `;
-  override yAxis = let sy = super.yAxis : HTML in open config in `\sy
+  override yAxis = let sy = super.yAxis in open config in `\sy
     \Text{ x = margin - 30; y = height - margin - 10; color = new Gray }[\(labels!!1)]
   `;
 };
@@ -178,18 +178,15 @@ chart = trait implements ChartSig<HTML> => {
   Chart chart = trait => chart.render;
 };
 
-decorateIf (condition : Bool) (decorator : ChartT -> ChartT) (chart : ChartT) =
-  if condition then decorator chart else chart;
-
 doc = trait [self : DocSig<HTML> & GraphicSig<HTML><Hex> & ColorSig<Hex> & ChartSig<HTML>] => {
   body =
     let a = baseChart [apple; tsmc] in
     let b = a , if config.line then lineStrategy else barStrategy in
-    let c = decorateIf config.legend legendDecorator b in
-    let d = decorateIf config.border borderDecorator c in
-    let e = decorateIf config.label.data dataLabelDecorator d in
-    let f = decorateIf (#config.label.axes == 2) (axisLabelDecorator config.label.axes) e in `
-      \Graph{ width = config.width; height = config.height }[\Chart(new e)]
+    let c = if config.legend then legendDecorator b else b in
+    let d = if config.border then borderDecorator c else c in
+    let e = if config.label.data then dataLabelDecorator d else d in
+    let f = if #config.label.axes == 2 then axisLabelDecorator config.label.axes e else e in `
+      \Graph{ width = config.width; height = config.height }[\Chart(new f)]
     `
 };
 
