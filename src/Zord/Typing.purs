@@ -26,56 +26,62 @@ infer (S.TmString s) = pure $ Tuple (C.TmString s) C.TyString
 infer (S.TmBool b)   = pure $ Tuple (C.TmBool b) C.TyBool
 infer S.TmUnit       = pure $ Tuple C.TmUnit C.TyTop
 infer S.TmUndefined  = pure $ Tuple C.TmUndefined C.TyBot
+-- Int is always prioritized over Double: e.g. -(1.0,2) = -2
 infer (S.TmUnary Neg e) = do
   Tuple e' t <- infer e
-  let core = C.TmUnary Neg e'
-  case t of C.TyInt    -> pure $ Tuple core C.TyInt
-            C.TyDouble -> pure $ Tuple core C.TyDouble
-            _ -> throwTypeError $ "Neg is not defined for" <+> show t
+  let core ty = Tuple (C.TmUnary Neg (C.TmAnno e' ty)) ty
+  if t <: C.TyInt then pure $ core C.TyInt
+  else if t <: C.TyDouble then pure $ core C.TyDouble
+  else throwTypeError $ "Neg is not defined for" <+> show t
 infer (S.TmUnary Not e) = do
   Tuple e' t <- infer e
-  let core = pure $ Tuple (C.TmUnary Not e') C.TyBool
-  case t of C.TyBool -> core
-            _ -> throwTypeError $ "Not is not defined for" <+> show t
+  let core = Tuple (C.TmUnary Not (C.TmAnno e' C.TyBool)) C.TyBool
+  if t <: C.TyBool then pure core
+  else throwTypeError $ "Not is not defined for" <+> show t
 infer (S.TmUnary Len e) = do
   Tuple e' t <- infer e
-  let core = pure $ Tuple (C.TmUnary Len e') C.TyInt
-  case t of C.TyArray _ -> core
+  let core = Tuple (C.TmUnary Len e') C.TyInt
+  case t of C.TyArray _ -> pure core
             _ -> throwTypeError $ "Len is not defined for" <+> show t
 infer (S.TmBinary (Arith op) e1 e2) = do
   Tuple e1' t1 <- infer e1
   Tuple e2' t2 <- infer e2
-  let core = C.TmBinary (Arith op) e1' e2'
-  case t1, t2 of C.TyInt,    C.TyInt    -> pure $ Tuple core C.TyInt
-                 C.TyDouble, C.TyDouble -> pure $ Tuple core C.TyDouble
-                 _, _ -> throwTypeError $ "ArithOp is not defined between" <+>
-                                          show t1 <+> "and" <+> show t2
+  let core ty = Tuple (C.TmBinary (Arith op) (C.TmAnno e1' ty)
+                                             (C.TmAnno e2' ty)) ty
+  if t1 <: C.TyInt && t2 <: C.TyInt then pure $ core C.TyInt
+  else if t1 <: C.TyDouble && t2 <: C.TyDouble then pure $ core C.TyDouble
+  else throwTypeError $
+    "ArithOp is not defined between" <+> show t1 <+> "and" <+> show t2
 infer (S.TmBinary (Comp op) e1 e2) = do
   Tuple e1' t1 <- infer e1
   Tuple e2' t2 <- infer e2
-  let core = pure $ Tuple (C.TmBinary (Comp op) e1' e2') C.TyBool
-  case t1, t2 of C.TyInt,    C.TyInt    -> core
-                 C.TyDouble, C.TyDouble -> core
-                 C.TyString, C.TyString -> core
-                 C.TyBool,   C.TyBool   -> core
-                 _, _ -> throwTypeError $ "CompOp is not defined between" <+>
-                                          show t1 <+> "and" <+> show t2
+  let core ty = Tuple (C.TmBinary (Comp op) (C.TmAnno e1' ty)
+                                            (C.TmAnno e2' ty)) C.TyBool
+  if t1 <: C.TyInt && t2 <: C.TyInt then pure $ core C.TyInt
+  else if t1 <: C.TyDouble && t2 <: C.TyDouble then pure $ core C.TyDouble
+  else if t1 <: C.TyString && t2 <: C.TyString then pure $ core C.TyString
+  else if t1 <: C.TyBool && t2 <: C.TyBool then pure $ core C.TyBool
+  else throwTypeError $
+    "CompOp is not defined between" <+> show t1 <+> "and" <+> show t2
 infer (S.TmBinary (Logic op) e1 e2) = do
   Tuple e1' t1 <- infer e1
   Tuple e2' t2 <- infer e2
-  let core = pure $ Tuple (C.TmBinary (Logic op) e1' e2') C.TyBool
-  case t1, t2 of C.TyBool, C.TyBool -> core
-                 _, _ -> throwTypeError $ "LogicOp is not defined between" <+>
-                                          show t1 <+> "and" <+> show t2
+  let core = Tuple (C.TmBinary (Logic op) (C.TmAnno e1' C.TyBool)
+                                          (C.TmAnno e2' C.TyBool)) C.TyBool
+  if t1 <: C.TyBool && t2 <: C.TyBool then pure core
+  else throwTypeError $
+    "LogicOp is not defined between" <+> show t1 <+> "and" <+> show t2
 infer (S.TmBinary Append e1 e2) = do
   Tuple e1' t1 <- infer e1
   Tuple e2' t2 <- infer e2
-  let core = C.TmBinary Append e1' e2'
-  case t1, t2 of C.TyString, C.TyString -> pure $ Tuple core C.TyString
-                 C.TyArray t1', C.TyArray t2'
-                  | t1' === t2' -> pure $ Tuple core (C.TyArray t1')
-                 _, _ -> throwTypeError $ "Append is not defined between" <+>
-                                          show t1 <+> "and" <+> show t2
+  if t1 <: C.TyString && t2 <: C.TyString then
+    pure $ Tuple (C.TmBinary Append (C.TmAnno e1' C.TyString)
+                                    (C.TmAnno e2' C.TyString)) C.TyString
+  else case t1, t2 of
+    C.TyArray t1', C.TyArray t2' | t1' === t2' ->
+      pure $ Tuple (C.TmBinary Append e1' e2') (C.TyArray t1')
+    _, _ -> throwTypeError $
+      "Append is not defined between" <+> show t1 <+> "and" <+> show t2
 infer (S.TmBinary Index e1 e2) = do
   Tuple e1' t1 <- infer e1
   Tuple e2' t2 <- infer e2
@@ -85,10 +91,10 @@ infer (S.TmBinary Index e1 e2) = do
                                           show t1 <+> "and" <+> show t2
 infer (S.TmIf e1 e2 e3) = do
   Tuple e1' t1 <- infer e1
-  if t1 === C.TyBool then do
+  if t1 <: C.TyBool then do
     Tuple e2' t2 <- infer e2
     Tuple e3' t3 <- infer e3
-    if t2 === t3 then pure $ Tuple (C.TmIf e1' e2' e3') t2
+    if t2 === t3 then pure $ Tuple (C.TmIf (C.TmAnno e1' C.TyBool) e2' e3') t2
     else throwTypeError $ "if-branches expected the same type, but got" <+>
                           show t2 <+> "and" <+> show t3
   else throwTypeError $ "if-condition expected Bool, but got" <+> show t1
