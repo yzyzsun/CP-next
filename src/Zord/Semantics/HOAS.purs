@@ -41,7 +41,7 @@ eval = runTrampoline <<< go <<< tmHoas
     go (TmApp e1 e2 coercive) = do
       e1' <- go e1
       go $ paraApp e1' ((if coercive then TmAnnoArg else TmArg) e2)
-    go e@(TmHAbs _ _ _) = pure e
+    go e@(TmHAbs _ _ _ _) = pure e
     go e@(TmHFix fix _) = go $ fix e
     go (TmAnno e t) = do
       e' <- go' e
@@ -84,8 +84,8 @@ typedReduce (TmInt i)    TyInt    = Just $ TmInt i
 typedReduce (TmDouble n) TyDouble = Just $ TmDouble n
 typedReduce (TmString s) TyString = Just $ TmString s
 typedReduce (TmBool b)   TyBool   = Just $ TmBool b
-typedReduce (TmHAbs abs targ1 tret1) (TyArrow _ tret2 _)
-  | tret1 <: tret2 = Just $ TmHAbs abs targ1 tret2
+typedReduce (TmHAbs abs targ1 tret1 _) (TyArrow _ tret2 _)
+  | tret1 <: tret2 = Just $ TmHAbs abs targ1 tret2 true
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
 typedReduce (TmRcd l t e) (TyRcd l' t')
   | l == l' && t <: t' = Just $ TmRcd l t' e
@@ -97,8 +97,9 @@ typedReduce _ _ = Nothing
 
 paraApp :: Tm -> Arg -> Tm
 paraApp TmUnit _ = TmUnit
-paraApp (TmHAbs abs _ _) (TmArg e) = abs $ TmRef $ new e
-paraApp (TmHAbs abs targ tret) (TmAnnoArg e) =
+paraApp (TmHAbs abs _ _ false) (TmArg e) = abs $ TmRef $ new e
+paraApp (TmHAbs abs _ tret true) (TmArg e) = TmAnno (abs $ TmRef $ new e) tret
+paraApp (TmHAbs abs targ tret _) (TmAnnoArg e) =
   TmAnno (abs $ TmRef $ new $ TmAnno e targ) tret
 paraApp (TmHTAbs tabs _ _) (TyArg ta) = tabs ta
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
@@ -111,7 +112,7 @@ isValue (TmDouble _) = true
 isValue (TmString _) = true
 isValue (TmBool _)   = true
 isValue (TmUnit)     = true
-isValue (TmHAbs _ _ _) = true
+isValue (TmHAbs _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true
 isValue (TmHTAbs _ _ _) = true

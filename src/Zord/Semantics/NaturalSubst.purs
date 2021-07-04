@@ -39,7 +39,7 @@ eval = runTrampoline <<< go
       e1' <- go e1
       let arg = if coercive then TmAnnoArg else TmArg
       go $ paraApp e1' (arg (TmRef (new e2)))
-    go e@(TmAbs _ _ _ _) = pure e
+    go e@(TmAbs _ _ _ _ _) = pure e
     go fix@(TmFix x e _) = do
       let ref = new fix
       res <- go $ tmSubst x (TmRef ref) e

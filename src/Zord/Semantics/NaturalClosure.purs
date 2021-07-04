@@ -41,7 +41,7 @@ eval tm = runReader (go tm) empty
       e1' <- go e1
       e2' <- closure e2
       go $ paraApp e1' ((if coercive then TmAnnoArg else TmArg) e2')
-    go e@(TmAbs _ _ _ _) = closure e
+    go e@(TmAbs _ _ _ _ _) = closure e
     go fix@(TmFix x e _) = local (\env -> insert x (TmBind fix) env) (go e)
     go (TmAnno e t) = do
       e' <- go' e
@@ -61,7 +61,7 @@ eval tm = runReader (go tm) empty
     go e@(TmTAbs _ _ _ _) = closure e
     go (TmToString e) = toString <$> go e
     go e@(TmClosure _ (TmRcd _ _ _)) = pure e
-    go e@(TmClosure _ (TmAbs _ _ _ _)) = pure e
+    go e@(TmClosure _ (TmAbs _ _ _ _ _)) = pure e
     go e@(TmClosure _ (TmTAbs _ _ _ _)) = pure e
     go e@(TmClosure _ (TmArray _ _)) = pure e
     go (TmClosure env e) = local (const env) (go e)

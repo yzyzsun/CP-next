@@ -38,7 +38,7 @@ step (TmVar x) = ask >>= \env -> case lookup x env of
 step (TmApp e1 e2 coercive) | isValue e1 = paraApp e1 <<< arg <$> closure e2
                             where arg = if coercive then TmAnnoArg else TmArg
                             | otherwise = TmApp <$> step e1 <@> e2 <@> coercive
-step abs@(TmAbs _ _ _ _) = closure abs
+step abs@(TmAbs _ _ _ _ _) = closure abs
 step fix@(TmFix x e _) = closureWithTmBind x fix e
 step (TmAnno (TmAnno e _) t) = pure $ TmAnno e t
 step (TmAnno e t) | isValue e = unsafeFromJust <$> (typedReduce e =<< expand t)
@@ -80,11 +80,11 @@ typedReduce (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2) = do
   t1' <- local (const env) $ expand t1
   if l1 == l2 && t1' <: t2 then pure $ Just $ TmClosure env (TmRcd l2 t2 e)
   else pure Nothing
-typedReduce (TmClosure env (TmAbs x e targ1 tret1)) (TyArrow _ tret2 _) = do
+typedReduce (TmClosure env (TmAbs x e targ1 tret1 _)) (TyArrow _ tret2 _) = do
   targ1' <- local (const env) $ expand targ1
   tret1' <- local (const env) $ expand tret1
   if tret1' <: tret2 then
-    pure $ Just $ TmClosure env (TmAbs x e targ1' tret2)
+    pure $ Just $ TmClosure env (TmAbs x e targ1' tret2 true)
   else pure Nothing
 typedReduce (TmClosure env (TmTAbs a1 td1 e t1)) (TyForall a2 td2 t2) = do
   td1' <- local (const env) $ expand td1
@@ -102,9 +102,11 @@ typedReduce _ _ = pure Nothing
 
 paraApp :: Tm -> Arg -> Tm
 paraApp TmUnit _ = TmUnit
-paraApp (TmClosure env (TmAbs x e1 _ _)) (TmArg e2) =
+paraApp (TmClosure env (TmAbs x e1 _ _ false)) (TmArg e2) =
   TmClosure (insert x (TmBind e2) env) e1
-paraApp (TmClosure env (TmAbs x e1 targ tret)) (TmAnnoArg e2) =
+paraApp (TmClosure env (TmAbs x e1 _ tret true)) (TmArg e2) =
+  TmClosure (insert x (TmBind e2) env) (TmAnno e1 tret)
+paraApp (TmClosure env (TmAbs x e1 targ tret _)) (TmAnnoArg e2) =
   TmClosure (insert x (TmBind (TmAnno e2 targ)) env) (TmAnno e1 tret)
 paraApp (TmClosure env (TmTAbs a _ e _)) (TyArg ta) =
   TmClosure (insert a (TyBind (Just ta)) env) e
@@ -158,7 +160,7 @@ isValue (TmBool _)   = true
 isValue (TmUnit)     = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmClosure _ (TmRcd _ _ _)) = true
-isValue (TmClosure _ (TmAbs _ _ _ _)) = true
+isValue (TmClosure _ (TmAbs _ _ _ _ _)) = true
 isValue (TmClosure _ (TmTAbs _ _ _ _)) = true
 isValue (TmClosure _ (TmArray _ _)) = true
 isValue _ = false

@@ -117,7 +117,7 @@ infer (S.TmApp e1 e2) = do
 infer (S.TmAbs (Cons (S.TmParam x (Just targ)) Nil) e) = do
   targ' <- transform targ
   Tuple e' tret <- addTmBind x targ' $ infer e
-  pure $ Tuple (C.TmAbs x e' targ' tret) (C.TyArrow targ' tret false)
+  pure $ Tuple (C.TmAbs x e' targ' tret false) (C.TyArrow targ' tret false)
 infer (S.TmAbs (Cons (S.TmParam x Nothing) Nil) _) = throwTypeError $
   "lambda parameter" <+> show x <+> "should be annotated with a type"
 infer (S.TmAnno e ta) = do
@@ -160,13 +160,12 @@ infer (S.TmLet x Nil Nil e1 e2) = do
 infer (S.TmLetrec x Nil Nil t e1 e2) = do
   t' <- transform t
   Tuple e1' t1 <- addTmBind x t' $ infer e1
-  -- The return type is constrained to be equivalent to the annotated type
-  -- in order to avoid extra typed reduction.
-  if t1 === t' then do
+  if t1 <: t' then do
+    let e1'' = if t1 === t' then e1' else C.TmAnno e1' t'
     Tuple e2' t2 <- addTmBind x t' $ infer e2
-    pure $ Tuple (letIn x (C.TmFix x e1' t') t' e2' t2) t2
+    pure $ Tuple (letIn x (C.TmFix x e1'' t') t' e2' t2) t2
   else throwTypeError $
-    "annotated" <+> show t' <+> "is different from inferred" <+> show t1
+    "annotated" <+> show t <+> "is not a supertype of inferred" <+> show t1
 -- TODO: find a more efficient algorithm
 infer (S.TmOpen e1 e2) = do
   Tuple e1' t1 <- infer e1
@@ -401,10 +400,11 @@ disjoint t1 t2 | t1 /= t2  = pure unit
 
 
 letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
-letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2) e1 false
+letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false) e1 false
 
 trait :: Name -> C.Tm -> C.Ty -> C.Ty -> Tuple C.Tm C.Ty
-trait x e targ tret = Tuple (C.TmAbs x e targ tret) (C.TyArrow targ tret true)
+trait x e targ tret = Tuple (C.TmAbs x e targ tret false)
+                            (C.TyArrow targ tret true)
 
 selectLabel :: C.Ty -> Label -> Maybe C.Ty
 selectLabel (C.TyAnd t1 t2) l = case selectLabel t1 l, selectLabel t2 l of

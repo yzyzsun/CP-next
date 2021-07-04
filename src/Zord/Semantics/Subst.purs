@@ -55,8 +55,8 @@ typedReduce (TmInt i)    TyInt    = Just $ TmInt i
 typedReduce (TmDouble n) TyDouble = Just $ TmDouble n
 typedReduce (TmString s) TyString = Just $ TmString s
 typedReduce (TmBool b)   TyBool   = Just $ TmBool b
-typedReduce (TmAbs x e targ1 tret1) (TyArrow _ tret2 _)
-  | tret1 <: tret2 = Just $ TmAbs x e targ1 tret2
+typedReduce (TmAbs x e targ1 tret1 _) (TyArrow _ tret2 _)
+  | tret1 <: tret2 = Just $ TmAbs x e targ1 tret2 true
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
 typedReduce (TmRcd l t e) (TyRcd l' t')
   | l == l' && t <: t' = Just $ TmRcd l t' e
@@ -68,8 +68,9 @@ typedReduce _ _ = Nothing
 
 paraApp :: Tm -> Arg -> Tm
 paraApp TmUnit _ = TmUnit
-paraApp (TmAbs x e1 _ _) (TmArg e2) = tmSubst x e2 e1
-paraApp (TmAbs x e1 targ tret) (TmAnnoArg e2) =
+paraApp (TmAbs x e1 _ _ false) (TmArg e2) = tmSubst x e2 e1
+paraApp (TmAbs x e1 _ tret true) (TmArg e2) = TmAnno (tmSubst x e2 e1) tret
+paraApp (TmAbs x e1 targ tret _) (TmAnnoArg e2) =
   TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
 paraApp (TmTAbs a _ e _) (TyArg ta) = tmTSubst a ta e
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
@@ -82,7 +83,7 @@ isValue (TmDouble _) = true
 isValue (TmString _) = true
 isValue (TmBool _)   = true
 isValue (TmUnit)     = true
-isValue (TmAbs _ _ _ _) = true
+isValue (TmAbs _ _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true
 isValue (TmTAbs _ _ _ _) = true
