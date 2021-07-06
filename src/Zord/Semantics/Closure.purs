@@ -54,6 +54,7 @@ step (TmTApp e t) | isValue e = paraApp e <<< TyArg <$> expand t
 step tabs@(TmTAbs _ _ _ _) = closure tabs
 step (TmToString e) | isValue e = pure $ toString e
                     | otherwise = TmToString <$> step e
+step arr@(TmArray _ _) = closure arr
 step (TmClosure env e) | isValue e = pure e
                        | otherwise = TmClosure env <$> local (const env) (step e)
 step e = unsafeCrashWith $ "Zord.Semantics.Closure.step: " <>
