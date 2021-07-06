@@ -15,7 +15,7 @@ import Zord.Util (unsafeFromJust)
 
 type ShowS = String -> String
 type EndoS = Endo Function String
-type Eval a = Writer EndoS a
+type Eval = Writer EndoS
 
 endoS :: String -> EndoS
 endoS s = Endo (s <> _)

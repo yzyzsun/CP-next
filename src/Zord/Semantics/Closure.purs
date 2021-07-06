@@ -3,9 +3,12 @@ module Zord.Semantics.Closure where
 import Prelude
 
 import Control.Alt ((<|>))
+import Control.Monad.Maybe.Trans (MaybeT, lift, runMaybeT)
 import Control.Monad.Reader (Reader, ask, local, runReader)
+import Control.Plus (empty)
 import Data.Array (length, (!!))
-import Data.Map (empty, insert, lookup, union)
+import Data.Map (insert, lookup, union)
+import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
@@ -15,10 +18,10 @@ import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
 import Zord.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..))
 import Zord.Util (unsafeFromJust)
 
-type Eval a = Reader EvalEnv a
+type Eval = Reader EvalEnv
 
 eval :: Tm -> Tm
-eval tm = runReader (go tm) empty
+eval tm = runReader (go tm) Map.empty
   where go :: Tm -> Eval Tm
         go e | isValue e = pure e
              | otherwise  = step e >>= go
@@ -62,44 +65,40 @@ step e = unsafeCrashWith $ "Zord.Semantics.Closure.step: " <>
 
 -- the second argument has been expanded in Step-AnnoV
 typedReduce :: Tm -> Ty -> Eval (Maybe Tm)
-typedReduce e _ | not (isValue e) = unsafeCrashWith $
-  "Zord.Semantics.Closure.typedReduce: " <> show e <> " is not a value"
-typedReduce _ t | isTopLike t = pure $ Just $ TmUnit
-typedReduce v t | Just (Tuple t1 t2) <- split t = do
-  m1 <- typedReduce v t1
-  m2 <- typedReduce v t2
-  pure $ TmMerge <$> m1 <*> m2
-typedReduce (TmMerge v1 v2) t = do
-  m1 <- typedReduce v1 t
-  m2 <- typedReduce v2 t
-  pure $ m1 <|> m2
-typedReduce (TmInt i)    TyInt    = pure $ Just $ TmInt i
-typedReduce (TmDouble n) TyDouble = pure $ Just $ TmDouble n
-typedReduce (TmString s) TyString = pure $ Just $ TmString s
-typedReduce (TmBool b)   TyBool   = pure (Just (TmBool b))
-typedReduce (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2) = do
-  t1' <- local (const env) $ expand t1
-  if l1 == l2 && t1' <: t2 then pure $ Just $ TmClosure env (TmRcd l2 t2 e)
-  else pure Nothing
-typedReduce (TmClosure env (TmAbs x e targ1 tret1 _)) (TyArrow _ tret2 _) = do
-  targ1' <- local (const env) $ expand targ1
-  tret1' <- local (const env) $ expand tret1
-  if tret1' <: tret2 then
-    pure $ Just $ TmClosure env (TmAbs x e targ1' tret2 true)
-  else pure Nothing
-typedReduce (TmClosure env (TmTAbs a1 td1 e t1)) (TyForall a2 td2 t2) = do
-  td1' <- local (const env) $ expand td1
-  let env' = insert a1 (TyBind Nothing) env
-  t1' <- local (const env') $ expand t1
-  -- TODO: a1 can be different from a2
-  if a1 == a2 && td2 <: td1' && t1' <: t2 then
-    pure $ Just $ TmClosure env' (TmTAbs a2 td1' e t2)
-  else pure Nothing
-typedReduce (TmClosure env (TmArray t1 arr)) (TyArray t2) = do
-  t1' <- local (const env) $ expand t1
-  if t1' <: t2 then pure $ Just $ TmClosure env (TmArray t2 arr)
-  else pure Nothing
-typedReduce _ _ = pure Nothing
+typedReduce tm ty = runMaybeT $ go tm ty
+  where
+    go :: Tm -> Ty -> MaybeT Eval Tm
+    go e _ | not (isValue e) = unsafeCrashWith $
+      "Zord.Semantics.Closure.typedReduce: " <> show e <> " is not a value"
+    go _ t | isTopLike t = pure TmUnit
+    go v t | Just (Tuple t1 t2) <- split t = TmMerge <$> go v t1 <*> go v t2
+    go (TmMerge v1 v2) t = go v1 t <|> go v2 t
+    go (TmInt i)    TyInt    = pure $ TmInt i
+    go (TmDouble n) TyDouble = pure $ TmDouble n
+    go (TmString s) TyString = pure $ TmString s
+    go (TmBool b)   TyBool   = pure $ TmBool b
+    go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2) = do
+      t1' <- lift $ local (const env) $ expand t1
+      if l1 == l2 && t1' <: t2 then pure $ TmClosure env (TmRcd l2 t2 e)
+                               else empty
+    go (TmClosure env (TmAbs x e targ1 tret1 _)) (TyArrow _ tret2 _) = do
+      targ1' <- lift $ local (const env) $ expand targ1
+      tret1' <- lift $ local (const env) $ expand tret1
+      if tret1' <: tret2 then pure $ TmClosure env (TmAbs x e targ1' tret2 true)
+                         else empty
+    go (TmClosure env (TmTAbs a1 td1 e t1)) (TyForall a2 td2 t2) = do
+      td1' <- lift $ local (const env) $ expand td1
+      let env' = insert a1 (TyBind Nothing) env
+      t1' <- lift $ local (const env') $ expand t1
+      -- TODO: a1 can be different from a2
+      if a1 == a2 && td2 <: td1' && t1' <: t2
+      then pure $ TmClosure env' (TmTAbs a2 td1' e t2)
+      else empty
+    go (TmClosure env (TmArray t1 arr)) (TyArray t2) = do
+      t1' <- lift $ local (const env) $ expand t1
+      if t1' <: t2 then pure $ TmClosure env (TmArray t2 arr)
+                   else empty
+    go _ _ = empty
 
 paraApp :: Tm -> Arg -> Tm
 paraApp TmUnit _ = TmUnit
