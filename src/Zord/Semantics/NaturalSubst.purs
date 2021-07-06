@@ -1,13 +1,13 @@
 module Zord.Semantics.NaturalSubst where
 
-import Prelude hiding (bind, pure)
+import Prelude
 
+import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Zord.Semantics.Subst (paraApp, typedReduce)
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (Tm(..), done, new, read, tmSubst, write)
-import Zord.Trampoline (Trampoline, bind, pure, runTrampoline)
 import Zord.Util (unsafeFromJust)
 
 eval :: Tm -> Tm

@@ -2,18 +2,21 @@ module Zord.Semantics.NaturalClosure where
 
 import Prelude
 
-import Control.Monad.Reader (ask, local, runReader)
+import Control.Monad.Reader (ask, local, runReaderT)
+import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Closure (Eval, binop', closure, expand, paraApp, selectLabel, typedReduce, unop')
+import Zord.Semantics.Closure (EvalT, binop', closure, expand, paraApp, selectLabel, typedReduce, unop')
 import Zord.Semantics.Common (Arg(..), toString)
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (EvalBind(..), Tm(..), done, new, read, write)
 import Zord.Util (unsafeFromJust)
 
+type Eval = EvalT Trampoline
+
 eval :: Tm -> Tm
-eval tm = runReader (go tm) empty
+eval tm = runTrampoline (runReaderT (go tm) empty)
   where
     go :: Tm -> Eval Tm
     go e@(TmInt _)    = pure e

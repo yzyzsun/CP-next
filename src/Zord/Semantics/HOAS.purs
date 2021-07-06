@@ -1,8 +1,9 @@
 module Zord.Semantics.HOAS where
 
-import Prelude hiding (bind, pure)
+import Prelude
 
 import Control.Alt ((<|>))
+import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafeCrashWith)
@@ -10,7 +11,6 @@ import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (Tm(..), Ty(..), done, new, read, tmHoas, tyHoas, write)
-import Zord.Trampoline (Trampoline, bind, pure, runTrampoline)
 import Zord.Util (unsafeFromJust)
 
 eval :: Tm -> Tm

@@ -11,6 +11,7 @@
   , "either"
   , "exceptions"
   , "foldable-traversable"
+  , "free"
   , "identity"
   , "lists"
   , "math"

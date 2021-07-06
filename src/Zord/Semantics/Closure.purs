@@ -4,9 +4,10 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Monad.Maybe.Trans (MaybeT, lift, runMaybeT)
-import Control.Monad.Reader (Reader, ask, local, runReader)
+import Control.Monad.Reader (ReaderT, ask, local, runReader)
 import Control.Plus (empty)
 import Data.Array (length, (!!))
+import Data.Identity (Identity)
 import Data.Map (insert, lookup, union)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
@@ -18,15 +19,16 @@ import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
 import Zord.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..))
 import Zord.Util (unsafeFromJust)
 
-type Eval = Reader EvalEnv
+type EvalT :: (Type -> Type) -> Type -> Type
+type EvalT = ReaderT EvalEnv
 
 eval :: Tm -> Tm
 eval tm = runReader (go tm) Map.empty
-  where go :: Tm -> Eval Tm
+  where go :: Tm -> EvalT Identity Tm
         go e | isValue e = pure e
-             | otherwise  = step e >>= go
+             | otherwise = step e >>= go
 
-step :: Tm -> Eval Tm
+step :: forall m. Monad m => Tm -> EvalT m Tm
 step (TmUnary op e) | isValue e = pure $ unop' op e
                     | otherwise = TmUnary op <$> step e
 step (TmBinary op e1 e2) | isValue e1 && isValue e2 = pure $ binop' op e1 e2
@@ -64,10 +66,10 @@ step e = unsafeCrashWith $ "Zord.Semantics.Closure.step: " <>
   "well-typed programs don't get stuck, but got " <> show e
 
 -- the second argument has been expanded in Step-AnnoV
-typedReduce :: Tm -> Ty -> Eval (Maybe Tm)
+typedReduce :: forall m. Monad m => Tm -> Ty -> EvalT m (Maybe Tm)
 typedReduce tm ty = runMaybeT $ go tm ty
   where
-    go :: Tm -> Ty -> MaybeT Eval Tm
+    go :: Tm -> Ty -> MaybeT (EvalT m) Tm
     go e _ | not (isValue e) = unsafeCrashWith $
       "Zord.Semantics.Closure.typedReduce: " <> show e <> " is not a value"
     go _ t | isTopLike t = pure TmUnit
@@ -137,7 +139,7 @@ binop' Index (TmClosure env (TmArray t arr)) (TmInt i) = case arr !! i of
     show i <> " is out of bounds for " <> show (TmArray t arr)
 binop' op v1 v2 = binop op v1 v2
 
-expand :: Ty -> Eval Ty
+expand :: forall m. Monad m => Ty -> EvalT m Ty
 expand (TyArrow t1 t2 isTrait) = TyArrow <$> expand t1 <*> expand t2 <@> isTrait
 expand (TyAnd t1 t2) = TyAnd <$> expand t1 <*> expand t2
 expand (TyRcd l t) = TyRcd l <$> expand t
@@ -165,8 +167,8 @@ isValue (TmClosure _ (TmTAbs _ _ _ _)) = true
 isValue (TmClosure _ (TmArray _ _)) = true
 isValue _ = false
 
-closure :: Tm -> Eval Tm
+closure :: forall m. Monad m => Tm -> EvalT m Tm
 closure e = ask >>= \env -> pure $ TmClosure env e
 
-closureWithTmBind :: Name -> Tm -> Tm -> Eval Tm
+closureWithTmBind :: forall m. Monad m => Name -> Tm -> Tm -> EvalT m Tm
 closureWithTmBind name tm e = local (\env -> insert name (TmBind tm) env) (closure e)
