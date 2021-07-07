@@ -6,7 +6,7 @@ import Ansi.Codes (Color(..))
 import Ansi.Output (foreground, withGraphics)
 import Data.Array.NonEmpty ((!!))
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), stripPrefix, trim)
 import Data.String.Regex (match, replace)
 import Data.String.Regex.Flags (global, noFlags)
@@ -21,8 +21,8 @@ import Node.Encoding (Encoding(..))
 import Node.FS.Sync as Sync
 import Node.Path (concat, dirname)
 import Node.ReadLine (Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
-import Partial.Unsafe (unsafePartial)
 import Zord (Mode(..), interpret)
+import Zord.Util (unsafeFromJust)
 
 showSeconds :: Milliseconds -> String
 showSeconds (Milliseconds n) = show (n / 1000.0) <> "s"
@@ -40,12 +40,12 @@ load :: String -> Effect String
 load file = do
   let path = dirname file
   program <- readTextFile file
-  unsafePartial (preprocess path program)
+  preprocess path program
 
-preprocess :: Partial => String -> String -> Effect String
+preprocess :: String -> String -> Effect String
 preprocess path program = case match openRegex program of
   Just arr -> do
-    let name = fromJust (fromJust (arr !! 1))
+    let name = unsafeFromJust $ unsafeFromJust $ arr !! 1
     text <- readTextFile (concat [path, ext name])
     preprocess path $ replace openRegex (replace lineRegex " " text) program
   Nothing -> pure program
