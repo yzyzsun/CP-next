@@ -48,9 +48,9 @@ function interpret(callback) {
       const user = arr.length == 1 ? namespace : arr[0];
       const name = arr.slice(-1)[0];
       fetchDocJson(name, user).then(json => {
-        if (json.mode != 'library') libErr(`'${name}' is not a library.`);
-        else if (!json.provide_factory) libErr(`'${name}' does not provide a factory.`);
-        else run(`open ${name}; open ${json.provide_factory} in \`${code}\`.html`);
+        if (json.mode != 'library') libErr(`'${lib}' is not a library.`);
+        else if (!json.provide_factory) libErr(`'${lib}' does not provide a factory.`);
+        else run(`open ${lib}; open ${json.provide_factory} in \`${code}\`.html`);
       }).catch(err => libErr(err));
     } else { run(code); }
   }
@@ -65,7 +65,9 @@ function preprocess(code) {
     const user = found[1] || namespace;
     const name = found[2];
     return fetchDocText(name, user).then(doc =>
-      preprocess(code.replace(regexp, doc.replace(/(--.*)?[\r\n]+/g, ' ')))
+      preprocess(code.replace(regexp,
+        doc.replace(/open\s+(\w+)\s*;/g, `open ${user}/$1;`)
+           .replace(/(--.*)?[\r\n]+/g, ' ')))
     );
   }
 }
