@@ -47,10 +47,10 @@ instance Show Ty where
     "forall" <+> showTyParams xs <> "." <+> show t
   show (TyApp t1 t2) = parens $ show t1 <+> show t2
   show (TyAbs a t) = parens $ "\\" <> a <+> "->" <+> show t
-  show (TyTrait ti to) = "Trait" <> angles (showMaybe "" ti " % " <> show to)
-  show (TySort ti to) = angles $ show ti <> showMaybe " % " to ""
-  show (TySig a b t) = parens $
-    "\\" <> angles (a <+> "%" <+> b) <+> "->" <+> show t
+  show (TyTrait ti to) = "Trait" <> angles (showMaybe "" ti " => " <> show to)
+  show (TySort ti to) = angles $ show ti <> showMaybe " => " to ""
+  show (TySig a b t) = -- \<a, b> accepts an expanded form of original <I => O>
+    parens $ "\\" <> angles (a <> "," <+> b) <+> "->" <+> show t
   show (TyArray t) = brackets $ show t
 
 derive instance Eq Ty
@@ -85,7 +85,7 @@ data Tm = TmInt Int
         | TmToString Tm
         | TmArray (Array Tm)
         | TmPos Position Tm
-        | TmType Name (List Name) (List Name) (Maybe Ty) Ty Tm
+        | TmType Name (List Name) (List Name) Ty Tm
         | TmDef Name TyParamList TmParamList (Maybe Ty) Tm Tm
 
 -- TODO: add type parameters
@@ -129,9 +129,12 @@ instance Show Tm where
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
   show (TmPos _pos e) = show e
-  show (TmType a sorts params t1 t2 e) = "type" <+> a <+>
+  -- `type A<T> extends B<T> = ...` can be rewritten as `type A<T> = B<T> & ...`
+  -- because sort argument expansion from B<T> to B<T, #T> already prevents
+  -- distinguishing output occurrences of T in B any more.
+  show (TmType a sorts params t e) = "type" <+> a <+>
     intercalate' " " (angles <$> sorts) <> intercalate' " " params <>
-    showMaybe "extends " t1 " " <> "=" <+> show t2 <> ";" <+> show e
+    "=" <+> show t <> ";" <+> show e
   show (TmDef x tyParams tmParams t e1 e2) = x <+>
     showTyParams tyParams <> showTmParams tmParams <>
     showMaybe ": " t " " <> "=" <+> show e1 <> ";" <+> show e2

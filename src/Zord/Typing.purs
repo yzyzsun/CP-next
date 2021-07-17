@@ -344,7 +344,7 @@ infer (S.TmArray arr) = do
                           "should all have the same type"
 -- TODO: save original terms instead of desugared ones
 infer (S.TmPos p e) = setPos (Pos p e) $ infer e
-infer (S.TmType a sorts params Nothing t e) = do
+infer (S.TmType a sorts params t e) = do
   t' <- addSorts $ addTyBinds $ transformTyDef t
   addTyAlias a (sig t') $ infer e
   where

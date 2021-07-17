@@ -42,12 +42,11 @@ tyDef p = do
   a <- upperIdentifier
   sorts <- many (angles upperIdentifier)
   parms <- many upperIdentifier
-  t1 <- optional (reserved "extends" *> ty)
   symbol "="
-  t2 <- ty
+  t <- ty
   symbol ";"
   e <- p
-  pure $ TmType a sorts parms t1 t2 e
+  pure $ TmType a sorts parms t e
 
 tmDef :: SParser Tm -> SParser Tm
 tmDef p = do
@@ -306,7 +305,7 @@ aty t = choice [ reserved "Int"    $> TyInt
 sortTy :: SParser Ty -> SParser Ty
 sortTy t = angles do
   ti <- t
-  to <- optional (symbol "%" *> t)
+  to <- optional (symbol "=>" *> t)
   pure $ TySort ti to
 
 forallTy :: SParser Ty
@@ -321,7 +320,7 @@ traitTy :: SParser Ty
 traitTy = do
   reserved "Trait"
   angles do
-    ti <- optional (try (ty <* symbol "%"))
+    ti <- optional (try (ty <* symbol "=>"))
     to <- ty
     pure $ TyTrait ti to
 
@@ -369,7 +368,7 @@ zordDef :: LanguageDef
 zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "undefined", "if", "then", "else", "toString"
   , "trait", "implements", "inherits", "override", "new"
-  , "let", "letrec", "open", "in", "type", "extends", "forall"
+  , "let", "letrec", "open", "in", "type", "forall"
   , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
   ]
 }

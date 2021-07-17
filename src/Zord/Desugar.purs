@@ -39,8 +39,6 @@ desugar (TmTrait self sig e1 e2) =
   let self'@(Tuple x _) = fromMaybe (Tuple "self" TyTop) self in
   TmTrait (Just self') (Just (fromMaybe TyTop sig))
           (desugar <$> e1) (TmOpen (TmVar x) (desugar e2))
-desugar (TmType a sorts params (Just t1) t2 e) =
-  TmType a sorts params Nothing (TyAnd t1 t2) (desugar e)
 -- TODO: it may be better to always desugar def to letrec
 desugar (TmDef x tyParams tmParams t e1 e2) = desugar $
   case t of Just t' -> TmLetrec x tyParams tmParams t' e1 e2
@@ -68,8 +66,7 @@ desugar (TmForward e1 e2) = TmForward (desugar e1) (desugar e2)
 desugar (TmExclude e t) = TmExclude (desugar e) t
 desugar (TmArray arr) = TmArray (desugar <$> arr)
 desugar (TmPos p e) = TmPos p (desugar e)
-desugar (TmType a sorts params Nothing t2 e) =
-  TmType a sorts params Nothing t2 (desugar e)
+desugar (TmType a sorts params t e) = TmType a sorts params t (desugar e)
 desugar e = e
 
 desugarMethodPattern :: MethodPattern -> Tm

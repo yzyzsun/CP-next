@@ -19,7 +19,7 @@ const zordLanguage = LezerLanguage.define({
         Document(tree)   { return { from: tree.from + 1, to: tree.to - 1 } },
       }),
       styleTags({
-        'type extends let letrec trait implements inherits': t.definitionKeyword,
+        'type let letrec trait implements inherits': t.definitionKeyword,
         'if then else new open in toString forall Int Double Bool String Top Bot Trait': t.keyword,
         'override': t.modifier,
         'true false undefined': t.atom,

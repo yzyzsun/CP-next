@@ -19,7 +19,7 @@ latex = trait implements DocSig<LaTeX> => {
   (Endl).latex = "\\\\";
 };
 
-type DocSig'<Element> extends DocSig<Element> = {
+type DocSig'<Element> = DocSig<Element> & {
   Section : Element -> Element;
   SubSection : Element -> Element;
   SubSubSection : Element -> Element;

@@ -19,7 +19,7 @@ open { kw<"open"> (lowerid | upperid) ";" }
 definition { TypeDef | TermDef }
 
 TypeDef {
-  kw<"type"> TypeNameDecl angles<TypeNameDecl>* TypeNameDecl* (kw<"extends"> type)? "=" type ";"
+  kw<"type"> TypeNameDecl angles<TypeNameDecl>* TypeNameDecl* "=" type ";"
 }
 
 TermDef {
@@ -28,12 +28,12 @@ TermDef {
 
 type {
   btype | kw<"forall"> typeParam+ "." type |
-  kW<"Trait"> angles<typeWithPercent> |
+  kW<"Trait"> angles<sort> |
   type !arrow TypeOp<"->"> type |
   type !intersect TypeOp<"&"> type
 }
 
-btype { atype (atype | angles<typeWithPercent>)* }
+btype { atype (atype | angles<sort>)* }
 
 atype {
   kW<"Int"> | kW<"Double"> | kW<"String"> | kW<"Bool"> | kW<"Top"> | kW<"Bot"> |
@@ -47,7 +47,7 @@ expression { opexpr ~conflict (":" type | "\\" type)? }
 opexpr {
   lexpr | minus opexpr | LogicOp<"!"> opexpr | LengthOp opexpr |
   opexpr !index IndexOp opexpr |
-  opexpr !times (ArithOp<"*" | "/"> | modulo) opexpr |
+  opexpr !times ArithOp<"*" | "/" | "%"> opexpr |
   opexpr !plus (ArithOp<"+"> | minus) opexpr |
   opexpr !append AppendOp opexpr |
   opexpr !comp CompareOp opexpr |
@@ -111,7 +111,7 @@ brackets<contents> { "[" contents "]" }
 angles<contents> { "<" contents ">" }
 
 sepEndBySemi<clause> { (clause ";")* clause? }
-typeWithPercent { atype ("%" atype)? }
+sort { atype ("=>" atype)? }
 
 TypeNameDecl { upperid }
 TypeName { upperid }
@@ -166,11 +166,9 @@ Label { lowerid | upperid }
   LengthOp { "#" }
 
   minus[@name=ArithOp] { "-" }
-  modulo[@name=ArithOp] { "%" }
 
   @precedence { LineComment, minus }
   @precedence { BlockComment, "{" }
   @precedence { CompareOp, "<" }
-  @precedence { modulo, "%" }
 
 }

@@ -25,7 +25,7 @@
     },
     {
       "name": "keyword.zord",
-      "match": "\\b(type|extends|forall|trait|implements|inherits|new|if|then|else|let|letrec|open|in|toString)\\b"
+      "match": "\\b(type|forall|trait|implements|inherits|new|if|then|else|let|letrec|open|in|toString)\\b"
     },
     {
       "name": "storage.type.zord",

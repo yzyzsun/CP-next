@@ -19,7 +19,7 @@ expAdd Exp = trait [self : AddSig<Exp>] => {
   exp = new Add (new Lit 4) (new Lit 8);
 };
 
-type MulSig<Exp> extends AddSig<Exp> = {
+type MulSig<Exp> = AddSig<Exp> & {
   Mul : Exp -> Exp -> Exp;
 };
 evalMul = trait implements MulSig<Eval> inherits evalAdd => {

@@ -37,7 +37,7 @@ instance Show Ty where
   show TyBool   = "Bool"
   show TyTop    = "⊤"
   show TyBot    = "⊥"
-  show (TyArrow ti to true) = "Trait" <> angles (show ti <+> "%" <+> show to)
+  show (TyArrow ti to true) = "Trait" <> angles (show ti <+> "=>" <+> show to)
   show (TyArrow t1 t2 false) = parens $ show t1 <+> "→" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
   show (TyRcd l t) = braces $ l <+> ":" <+> show t

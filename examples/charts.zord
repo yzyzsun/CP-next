@@ -72,7 +72,7 @@ type Base = {
 };
 type Render = { render : HTML };
 type Chart = Base & Render;
-type ChartT = Trait<Chart % Chart>;
+type ChartT = Trait<Chart => Chart>;
 
 baseChart (data : [Data]) = trait [self : Base] implements Base => open factory in {
   data_ = data;

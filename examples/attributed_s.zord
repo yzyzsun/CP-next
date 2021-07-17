@@ -19,7 +19,7 @@ printNum = trait implements ExpSig<Print> => {
   (Add e1 e2).print = "(" ++ e1.print ++ " + " ++ e2.print ++ ")";
 };
 
-printChild = trait implements ExpSig<Eval % Print> => {
+printChild = trait implements ExpSig<Eval => Print> => {
   (Lit     n).print = toString n;
   (Add e1 e2).print = if e2.eval == 0 then e1.print
                       else "(" ++ e1.print ++ " + " ++ e2.print ++ ")";
@@ -31,17 +31,17 @@ printInh = trait implements ExpSig<Eval&Print> inherits evalNum => {
                       else "(" ++ e1.print ++ " + " ++ e2.print ++ ")";
 };
 
-printSelf = trait implements ExpSig<Eval % Print> => {
+printSelf = trait implements ExpSig<Eval => Print> => {
   (Lit     n).print = toString n;
   (Add e1 e2).print = if self.eval == 0 then "0"
                       else "(" ++ e1.print ++ " + " ++ e2.print ++ ")";
 };
 
-printMutual = trait implements ExpSig<PrintAux % Print> => {
+printMutual = trait implements ExpSig<PrintAux => Print> => {
   (Lit     n).print = toString n;
   (Add e1 e2).print = e1.printAux ++ " + " ++ e2.printAux;
 };
-printAux = trait implements ExpSig<Print % PrintAux> => {
+printAux = trait implements ExpSig<Print => PrintAux> => {
   (Lit     n).printAux = self.print;
   (Add e1 e2).printAux = "(" ++ self.print ++ ")";
 };

@@ -16,7 +16,7 @@ type Pos = { pos : Int };
 type InhPos = { pos1 : Pos -> Int; pos2 : Pos -> Cnt -> Int };
 type PrintPos Ctx = { print : Pos&Ctx -> String };
 
-printPos (Ctx * Pos) = trait [self : InhPos] implements ExpSig<Cnt % PrintPos Ctx> => {
+printPos (Ctx * Pos) = trait [self : InhPos] implements ExpSig<Cnt => PrintPos Ctx> => {
   (Lit     n).print inh = "{" ++ toString inh.pos ++ "}";
   (Add e1 e2).print inh =
     "(" ++ e1.print ({ pos = pos1 inh } , (inh:Ctx)) ++ "+" ++

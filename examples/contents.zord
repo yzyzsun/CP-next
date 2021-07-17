@@ -4,11 +4,11 @@ open doc;
 
 type TOC = { toc : String };
 
-type ContentsSig<Element> extends DocSig'<Element> = {
+type ContentsSig<Element> = DocSig'<Element> & {
   WithTOC : Element -> Element;
 };
 
-contents = trait implements ContentsSig<TOC % HTML> inherits html' => {
+contents = trait implements ContentsSig<TOC => HTML> inherits html' => {
   (WithTOC e).html = self.toc ++ e.html;
 };
 
@@ -16,7 +16,7 @@ listItem (l:Int) (s:String) : String =
   if l == 0 then "<li>" ++ s ++ "</li>"
   else "<li style=\"list-style-type:none\"><ul>" ++ listItem (l-1) s ++ "</ul></li>";
 
-toc = trait implements ContentsSig<HTML % TOC> => {
+toc = trait implements ContentsSig<HTML => TOC> => {
   (Comp l r).toc = l.toc ++ r.toc;
   (Section e).toc = listItem 0 e.html;
   (SubSection e).toc = listItem 1 e.html;
