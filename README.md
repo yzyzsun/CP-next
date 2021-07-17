@@ -15,7 +15,7 @@ Zord is a functional programming language that advocates compositional programmi
 ```
 $ npm start
 ...
-Zord REPL, version 0.1.1 (press Ctrl-C to quit)
+Zord REPL, version x.x.x (press Ctrl-C to quit)
 
 > :load examples/bench.zord
 832

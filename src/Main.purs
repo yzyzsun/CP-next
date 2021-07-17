@@ -65,7 +65,7 @@ execute program mode = do
 
 main :: Effect Unit
 main = do
-  log "Zord REPL, version 0.1.1 (press Ctrl-C to quit)"
+  log "Zord REPL, version 0.1.2 (press Ctrl-C to quit)"
   interface <- createConsoleInterface noCompletion
   setPrompt "> " interface
   prompt interface
