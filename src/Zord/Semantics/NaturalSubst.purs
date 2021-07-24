@@ -3,12 +3,12 @@ module Zord.Semantics.NaturalSubst where
 import Prelude
 
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
+import Data.Maybe (Maybe(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Zord.Semantics.Subst (paraApp, typedReduce)
 import Zord.Syntax.Common (BinOp(..))
-import Zord.Syntax.Core (Tm(..), done, new, read, tmSubst, write)
-import Zord.Util (unsafeFromJust)
+import Zord.Syntax.Core (Tm(..), done, new, read, tmSubst, unfold, write)
 
 eval :: Tm -> Tm
 eval = runTrampoline <<< go
@@ -34,7 +34,7 @@ eval = runTrampoline <<< go
         TmBool true  -> go e2
         TmBool false -> go e3
         _ -> unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
-                               " impossible if " <> show e1' <> " ..."
+                               "impossible if " <> show e1' <> " ..."
     go (TmApp e1 e2 coercive) = do
       e1' <- go e1
       let arg = if coercive then TmAnnoArg else TmArg
@@ -44,9 +44,12 @@ eval = runTrampoline <<< go
       let ref = new fix
       res <- go $ tmSubst x (TmRef ref) e
       pure $ write res ref
-    go (TmAnno e t) = do
+    go anno@(TmAnno e t) = do
       e' <- go' e
-      go $ unsafeFromJust (typedReduce e' t)
+      case typedReduce e' t of
+        Just e'' -> go e''
+        Nothing -> unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
+                                     "impossible typed reduction " <> show anno
       where go' :: Tm -> Trampoline Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
@@ -62,6 +65,15 @@ eval = runTrampoline <<< go
       e' <- go e
       go $ paraApp e' (TyArg t)
     go e@(TmTAbs _ _ _ _) = pure e
+    go (TmFold t e) = do
+      e' <- go e
+      pure $ TmFold t e'
+    go (TmUnfold e) = do
+      e' <- go e
+      case e' of
+        TmFold t v -> go $ TmAnno v (unfold t)
+        _ -> unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
+                               "impossible unfold " <> show e'
     go (TmToString e) = do
       e' <- go e
       pure $ toString e'

@@ -10,8 +10,7 @@ import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Closure (EvalT, binop', closure, expand, paraApp, selectLabel, typedReduce, unop')
 import Zord.Semantics.Common (Arg(..), toString)
 import Zord.Syntax.Common (BinOp(..))
-import Zord.Syntax.Core (EvalBind(..), Tm(..), done, new, read, write)
-import Zord.Util (unsafeFromJust)
+import Zord.Syntax.Core (EvalBind(..), Tm(..), done, new, read, unfold, write)
 
 type Eval = EvalT Trampoline
 
@@ -47,11 +46,14 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       go $ paraApp e1' (arg (TmRef (new e2')))
     go e@(TmAbs _ _ _ _ _) = closure e
     go (TmFix x e _) = local (\env -> insert x (TmBind e) env) (go e)
-    go (TmAnno e t) = do
+    go anno@(TmAnno e t) = do
       e' <- go' e
       t' <- expand t
       s <- typedReduce e' t'
-      go $ unsafeFromJust s
+      case s of
+        Just e'' -> go e''
+        Nothing -> unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
+                                     "impossible typed reduction " <> show anno
       where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
@@ -63,6 +65,15 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       t' <- expand t
       go $ paraApp e' (TyArg t')
     go e@(TmTAbs _ _ _ _) = closure e
+    go (TmFold t e) = do
+      e' <- go e
+      pure $ TmFold t e'
+    go (TmUnfold e) = do
+      e' <- go e
+      case e' of
+        TmFold t v -> go $ TmAnno v (unfold t)
+        _ -> unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
+                               "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
     go e@(TmArray _ _) = closure e
     go (TmRef ref) = if done ref then pure e else do

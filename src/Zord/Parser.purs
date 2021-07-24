@@ -78,7 +78,8 @@ opexpr e = buildExprParser operators $ lexpr e
 
 lexpr :: SParser Tm -> SParser Tm
 lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|> trait <|> new <|>
-          ifThenElse <|> letIn <|> letrec <|> open <|> toString
+          ifThenElse <|> letIn <|> letrec <|> open <|> toString <|>
+          fold <|> unfold
 
 fexpr :: SParser Tm -> SParser Tm
 fexpr e = dotexpr e >>= \e' -> foldl (#) e' <$>
@@ -184,6 +185,20 @@ toString = do
   e <- dotexpr expr
   pure $ TmToString e
 
+fold :: SParser Tm
+fold = do
+  reserved "fold"
+  symbol "@"
+  t <- aty ty
+  e <- dotexpr expr
+  pure $ TmFold t e
+
+unfold :: SParser Tm
+unfold = do
+  reserved "unfold"
+  e <- dotexpr expr
+  pure $ TmUnfold e
+
 document :: SParser Tm -> SParser Tm
 document p = do
   docs <- many (backslash <|> plaintext)
@@ -287,7 +302,7 @@ ty = fix \t -> buildExprParser toperators $ bty t
 
 bty :: SParser Ty -> SParser Ty
 bty t = foldl TyApp <$> aty t <*> many (aty t <|> sortTy t) <|>
-        forallTy <|> traitTy
+        forallTy <|> traitTy <|> muTy
 
 aty :: SParser Ty -> SParser Ty
 aty t = choice [ reserved "Int"    $> TyInt
@@ -323,6 +338,14 @@ traitTy = do
     ti <- optional (try (ty <* symbol "=>"))
     to <- ty
     pure $ TyTrait ti to
+
+muTy :: SParser Ty
+muTy = do
+  reserved "mu"
+  a <- upperIdentifier
+  symbol "."
+  t <- ty
+  pure $ TyRec a t
 
 recordTy :: SParser Ty
 recordTy = braces $ TyRcd <$> sepEndBySemi do
@@ -367,8 +390,8 @@ selfAnno = brackets $ Tuple <$> lowerIdentifier <* symbol ":" <*> ty
 zordDef :: LanguageDef
 zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "undefined", "if", "then", "else", "toString"
-  , "trait", "implements", "inherits", "override", "new"
-  , "let", "letrec", "open", "in", "type", "forall"
+  , "trait", "implements", "inherits", "override", "new", "fold", "unfold"
+  , "let", "letrec", "open", "in", "type", "forall", "mu"
   , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
   ]
 }

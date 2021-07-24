@@ -28,6 +28,7 @@ data Ty = TyInt
         | TyRcd Label Ty
         | TyVar Name
         | TyForall Name Ty Ty
+        | TyRec Name Ty
         | TyArray Ty
 
 instance Show Ty where
@@ -44,6 +45,7 @@ instance Show Ty where
   show (TyVar a) = a
   show (TyForall a td t) = parens $
     "∀" <> a <+> "*" <+> show td <> "." <+> show t
+  show (TyRec a t) = parens $ "μ" <+> a <> "." <+> show t
   show (TyArray t) = brackets $ show t
 
 derive instance Eq Ty
@@ -72,6 +74,8 @@ data Tm = TmInt Int
         | TmTApp Tm Ty
         | TmTAbs Name Ty Tm Ty
         | TmHTAbs (Ty -> Tm) Ty (Ty -> Ty)
+        | TmFold Ty Tm
+        | TmUnfold Tm
         | TmToString Tm
         | TmArray Ty (Array Tm)
         | TmClosure EvalEnv Tm
@@ -104,6 +108,8 @@ instance Show Tm where
   show (TmTAbs a td e t) = parens $ "Λ" <> a <> "." <+> show e <+>
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
   show (TmHTAbs _tabs td _tf) = angles $ "HOAS ∀*" <+> show td
+  show (TmFold t e) = parens $ "fold @" <> show t <+> show e
+  show (TmUnfold e) = parens $ "unfold" <+> show e
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray t arr) = parens $
     brackets (intercalate "; " (show <$> arr)) <+> ":" <+> brackets (show t)
@@ -122,6 +128,7 @@ tyHoas = tyHoas' empty
 tyHoas' :: HoasEnv -> Name -> Ty -> Ty -> Ty
 tyHoas' env a t = \ty -> tyConvert (insert a (Right ty) env) t
 
+-- convert TyTAbs-bounded TyVar's to type variables in HoasEnv
 tyConvert :: HoasEnv -> Ty -> Ty
 tyConvert env (TyArrow t1 t2 b) = TyArrow (tyConvert env t1) (tyConvert env t2) b
 tyConvert env (TyAnd t1 t2) = TyAnd (tyConvert env t1) (tyConvert env t2)
@@ -129,6 +136,7 @@ tyConvert env (TyRcd l t) = TyRcd l (tyConvert env t)
 tyConvert env (TyVar a) = case lookup a env of Just (Right t) -> t
                                                _ -> TyVar a
 tyConvert env (TyForall a td t) = TyForall a (tyConvert env td) (tyConvert env t)
+tyConvert env (TyRec a t) = TyRec a (tyConvert env t)
 tyConvert env (TyArray t) = TyArray (tyConvert env t)
 tyConvert _ t = t
 
@@ -154,6 +162,8 @@ tmConvert env (TmTApp e t) = TmTApp (tmConvert env e) (tyConvert env t)
 tmConvert env (TmTAbs a td e t) =
   TmHTAbs (\ty -> tmConvert (insert a (Right ty) env) e)
           (tyConvert env td) (tyHoas' env a t)
+tmConvert env (TmFold t e) = TmFold (tyConvert env t) (tmConvert env e)
+tmConvert env (TmUnfold e) = TmUnfold (tmConvert env e)
 tmConvert env (TmToString e) = TmToString (tmConvert env e)
 tmConvert env (TmArray t arr) = TmArray (tyConvert env t) (tmConvert env <$> arr)
 tmConvert _ e = e
@@ -170,8 +180,13 @@ tySubst a s (TyRcd l t) = TyRcd l (tySubst a s t)
 tySubst a s (TyVar a') = if a == a' then s else TyVar a'
 tySubst a s (TyForall a' td t) =
   TyForall a' (tySubst a s td) (if a == a' then t else tySubst a s t)
+tySubst a s (TyRec a' t) = TyRec a' (if a == a' then t else tySubst a s t)
 tySubst a s (TyArray t) = TyArray (tySubst a s t)
 tySubst _ _ t = t
+
+unfold :: Ty -> Ty
+unfold mu@(TyRec a t) = tySubst a mu t
+unfold t = t
 
 tmSubst :: Name -> Tm -> Tm -> Tm
 tmSubst x v (TmUnary op e) = TmUnary op (tmSubst x v e)
@@ -189,6 +204,8 @@ tmSubst x v (TmRcd l t e) = TmRcd l t (tmSubst x v e)
 tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
 tmSubst x v (TmTAbs a td e t) = TmTAbs a td (tmSubst x v e) t
+tmSubst x v (TmFold t e) = TmFold t (tmSubst x v e)
+tmSubst x v (TmUnfold e) = TmUnfold (tmSubst x v e)
 tmSubst x v (TmToString e) = TmToString (tmSubst x v e)
 tmSubst x v (TmArray t arr) = TmArray t (tmSubst x v <$> arr)
 tmSubst _ _ e = e
@@ -210,6 +227,8 @@ tmTSubst a s (TmPrj e l) = TmPrj (tmTSubst a s e) l
 tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmTAbs a' td e t) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
                                   (if a == a' then t else tySubst a s t)
+tmTSubst a s (TmFold t e) = TmFold (tySubst a s t) (tmTSubst a s e)
+tmTSubst a s (TmUnfold e) = TmUnfold (tmTSubst a s e)
 tmTSubst a s (TmToString e) = TmToString (tmTSubst a s e)
 tmTSubst a s (TmArray t arr) = TmArray (tySubst a s t) (tmTSubst a s <$> arr)
 tmTSubst _ _ e = e

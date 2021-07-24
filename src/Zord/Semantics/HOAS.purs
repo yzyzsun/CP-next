@@ -10,8 +10,7 @@ import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax.Common (BinOp(..))
-import Zord.Syntax.Core (Tm(..), Ty(..), done, new, read, tmHoas, tyHoas, write)
-import Zord.Util (unsafeFromJust)
+import Zord.Syntax.Core (Tm(..), Ty(..), done, new, read, tmHoas, tyHoas, unfold, write)
 
 eval :: Tm -> Tm
 eval = runTrampoline <<< go <<< tmHoas
@@ -43,9 +42,12 @@ eval = runTrampoline <<< go <<< tmHoas
       go $ paraApp e1' ((if coercive then TmAnnoArg else TmArg) e2)
     go e@(TmHAbs _ _ _ _) = pure e
     go e@(TmHFix fix _) = go $ fix e
-    go (TmAnno e t) = do
+    go anno@(TmAnno e t) = do
       e' <- go' e
-      go $ unsafeFromJust (typedReduce e' t)
+      case typedReduce e' t of
+        Just e'' -> go e''
+        Nothing -> unsafeCrashWith $
+          "Zord.Semantics.HOAS.eval: impossible typed reduction " <> show anno
       where go' :: Tm -> Trampoline Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
@@ -61,6 +63,15 @@ eval = runTrampoline <<< go <<< tmHoas
       e' <- go e
       go $ paraApp e' (TyArg t)
     go e@(TmHTAbs _ _ _) = pure e
+    go (TmFold t e) = do
+      e' <- go e
+      pure $ TmFold t e'
+    go (TmUnfold e) = do
+      e' <- go e
+      case e' of
+        TmFold t v -> go $ TmAnno v (unfold t)
+        _ -> unsafeCrashWith $ "Zord.Semantics.HOAS.eval: " <>
+                               "impossible unfold " <> show e'
     go (TmToString e) = do
       e' <- go e
       pure $ toString e'
@@ -92,6 +103,7 @@ typedReduce (TmRcd l t e) (TyRcd l' t')
 typedReduce (TmHTAbs tabs td1 tf1) (TyForall a td2 t2)
   | td2 <: td1 && tf1 (TyVar a) <: t2
   = Just $ TmHTAbs tabs td1 (tyHoas a t2)
+typedReduce (TmFold t e) t'@(TyRec _ _) | t <: t' = Just $ TmFold t' e
 typedReduce (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 typedReduce _ _ = Nothing
 
@@ -116,5 +128,6 @@ isValue (TmHAbs _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true
 isValue (TmHTAbs _ _ _) = true
+isValue (TmFold _ e) = isValue e
 isValue (TmArray _ _) = true
 isValue _ = false

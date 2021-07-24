@@ -16,7 +16,7 @@ import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (Arg(..), binop, toString, unop)
 import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
-import Zord.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..))
+import Zord.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..), unfold)
 import Zord.Util (unsafeFromJust)
 
 type EvalT :: (Type -> Type) -> Type -> Type
@@ -57,6 +57,9 @@ step (TmPrj e l) | isValue e = pure $ selectLabel e l
 step (TmTApp e t) | isValue e = paraApp e <<< TyArg <$> expand t
                   | otherwise = TmTApp <$> step e <@> t
 step tabs@(TmTAbs _ _ _ _) = closure tabs
+step (TmFold t e) = TmFold t <$> step e
+step (TmUnfold (TmFold t e)) = pure $ TmAnno e (unfold t)
+step (TmUnfold e) = TmUnfold <$> step e
 step (TmToString e) | isValue e = pure $ toString e
                     | otherwise = TmToString <$> step e
 step arr@(TmArray _ _) = closure arr
@@ -79,6 +82,7 @@ typedReduce tm ty = runMaybeT $ go tm ty
     go (TmDouble n) TyDouble = pure $ TmDouble n
     go (TmString s) TyString = pure $ TmString s
     go (TmBool b)   TyBool   = pure $ TmBool b
+    go (TmFold t e) t'@(TyRec _ _) | t <: t' = pure $ TmFold t' e
     go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2) = do
       t1' <- lift $ local (const env) $ expand t1
       if l1 == l2 && t1' <: t2 then pure $ TmClosure env (TmRcd l2 t2 e)
@@ -151,6 +155,9 @@ expand (TyForall a td t) = do
   td' <- expand td
   t' <- local (\env -> insert a (TyBind Nothing) env) (expand t)
   pure $ TyForall a td' t'
+expand (TyRec a t) = do
+  t' <- local (\env -> insert a (TyBind Nothing) env) (expand t)
+  pure $ TyRec a t'
 expand (TyArray t) = TyArray <$> expand t
 expand t = pure t
 
@@ -161,6 +168,7 @@ isValue (TmString _) = true
 isValue (TmBool _)   = true
 isValue (TmUnit)     = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
+isValue (TmFold _ e) = isValue e
 isValue (TmClosure _ (TmRcd _ _ _)) = true
 isValue (TmClosure _ (TmAbs _ _ _ _ _)) = true
 isValue (TmClosure _ (TmTAbs _ _ _ _)) = true

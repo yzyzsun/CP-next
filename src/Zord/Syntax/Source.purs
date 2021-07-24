@@ -25,6 +25,7 @@ data Ty = TyInt
         | TyRcd RcdTyList
         | TyVar Name
         | TyForall TyParamList Ty
+        | TyRec Name Ty
         | TyApp Ty Ty
         | TyAbs Name Ty
         | TyTrait (Maybe Ty) Ty
@@ -45,6 +46,7 @@ instance Show Ty where
   show (TyVar a) = a
   show (TyForall xs t) = parens $
     "forall" <+> showTyParams xs <> "." <+> show t
+  show (TyRec a t) = parens $ "mu" <+> a <> "." <+> show t
   show (TyApp t1 t2) = parens $ show t1 <+> show t2
   show (TyAbs a t) = parens $ "\\" <> a <+> "->" <+> show t
   show (TyTrait ti to) = "Trait" <> angles (showMaybe "" ti " => " <> show to)
@@ -82,6 +84,8 @@ data Tm = TmInt Int
         | TmNew Tm
         | TmForward Tm Tm
         | TmExclude Tm Ty
+        | TmFold Ty Tm
+        | TmUnfold Tm
         | TmToString Tm
         | TmArray (Array Tm)
         | TmPos Position Tm
@@ -126,6 +130,8 @@ instance Show Tm where
   show (TmNew e) = parens $ "new" <+> show e
   show (TmForward e1 e2) = parens $ show e1 <+> "^" <+> show e2
   show (TmExclude e t) = parens $ show e <+> "\\" <+> show t
+  show (TmFold t e) = parens $ "fold @" <> show t <+> show e
+  show (TmUnfold e) = parens $ "unfold" <+> show e
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
   show (TmPos _pos e) = show e
@@ -149,6 +155,7 @@ tySubst a s (TyRcd xs) = TyRcd (rmap (tySubst a s) <$> xs)
 tySubst a s (TyVar a') = if a == a' then s else TyVar a'
 tySubst a s (TyForall xs t) = TyForall (rmap (map (tySubst a s)) <$> xs)
   (if any ((_ == a) <<< fst) xs then t else tySubst a s t)
+tySubst a s (TyRec a' t) = TyRec a' (if a == a' then t else tySubst a s t)
 tySubst a s (TyApp t1 t2) = TyApp (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyAbs a' t) = TyAbs a' (if a == a' then t else tySubst a s t)
 tySubst a s (TyTrait ti to) = TyTrait (tySubst a s <$> ti) (tySubst a s to)

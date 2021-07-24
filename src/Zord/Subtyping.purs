@@ -15,8 +15,10 @@ subtype (TyArrow targ1 tret1 _) (TyArrow targ2 tret2 _) = targ2 <: targ1 &&
 subtype (TyAnd t1 t2) t3 = t1 <: t3 || t2 <: t3
 subtype (TyRcd l1 t1) (TyRcd l2 t2) = l1 == l2 && t1 <: t2
 subtype (TyForall a1 td1 t1) (TyForall a2 td2 t2) =
-  td2 <: td1 && tySubst a1 freshVar t1 <: tySubst a2 freshVar t2
-  where freshVar = TyVar "#fresh"
+  td2 <: td1 && t1 <: tySubst a2 (TyVar a1) t2
+subtype (TyRec a1 t1) (TyRec a2 t2) =
+  tySubst a1 (TyRcd a1 t1) t1 <: tySubst a2 (TyRcd a1 t2') t2
+  where t2' = tySubst a2 (TyVar a1) t2
 subtype (TyArray t1) (TyArray t2) = t1 <: t2
 subtype t1 t2 | t1 == t2  = true
               | otherwise = false
@@ -34,8 +36,10 @@ isTopLike (TyArrow _ t _) = isTopLike t
 isTopLike (TyAnd t1 t2) = isTopLike t1 && isTopLike t2
 isTopLike (TyRcd _ t) = isTopLike t
 isTopLike (TyForall _ _ t) = isTopLike t
+isTopLike (TyRec _ t) = isTopLike t
 isTopLike _ = false
 
+-- TODO: add distributive subtyping to recursive types
 split :: Ty -> Maybe (Tuple Ty Ty)
 split (TyAnd t1 t2) = Just $ Tuple t1 t2
 split (TyArrow targ tret b) = split tret >>= \(Tuple tret1 tret2) ->
@@ -51,8 +55,8 @@ aeq (TyArrow t1 t2 _) (TyArrow t3 t4 _) = t1 === t3 && t2 === t4
 aeq (TyAnd t1 t2) (TyAnd t3 t4) = t1 === t3 && t2 === t4
 aeq (TyRcd l1 t1) (TyRcd l2 t2) = l1 == l2 && t1 === t2
 aeq (TyForall a1 td1 t1) (TyForall a2 td2 t2) =
-  td1 === td2 && tySubst a1 freshVar t1 === tySubst a2 freshVar t2
-  where freshVar = TyVar "#fresh"
+  td1 === td2 && t1 === tySubst a2 (TyVar a1) t2
+aeq (TyRec a1 t1) (TyRec a2 t2) = t1 === tySubst a2 (TyVar a1) t2
 aeq (TyArray t1) (TyArray t2) = t1 === t2
 aeq t1 t2 | t1 == t2  = true
           | otherwise = false

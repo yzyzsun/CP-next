@@ -327,6 +327,19 @@ infer (S.TmExclude e te) = do
       Tuple (o1 || o2) (C.TyAnd t1' t2')
     exclude (C.TyRcd l' t') l t | l == l' && t' === t = Tuple true C.TyTop
     exclude t _ _ = Tuple false t
+infer (S.TmFold t e) = do
+  t' <- transform t
+  case t' of
+    C.TyRec _ _ -> do
+      Tuple e' t'' <- infer e
+      if t'' <: C.unfold t' then pure $ Tuple (C.TmFold t' e') t'
+      else throwTypeError $ "cannot fold" <+> show e <+> "to" <+> show t
+    _ -> throwTypeError $ "fold expected a recursive type, but got" <+> show t
+infer (S.TmUnfold e) = do
+  Tuple e' t <- infer e
+  case t of
+    C.TyRec _ _ -> pure $ Tuple (C.TmUnfold e') (C.unfold t)
+    _ -> throwTypeError $ "unfold expected a recursive type, but got" <+> show t
 infer (S.TmToString e) = do
   Tuple e' t <- infer e
   if t == C.TyInt || t == C.TyDouble || t == C.TyString || t == C.TyBool
@@ -390,14 +403,17 @@ disjoint (C.TyVar a) t = do
     Nothing -> throwTypeError $ "type variable" <+> show a <+> "is undefined"
 disjoint t (C.TyVar a) = disjoint (C.TyVar a) t
 disjoint (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) =
-  addTyBind freshName (C.TyAnd td1 td2) $
-  disjoint (C.tySubst a1 freshVar t1) (C.tySubst a2 freshVar t2)
-  where freshName = a1 <> " or " <> a2
-        freshVar = C.TyVar freshName
+  disjointTyBind a1 t1 a2 t2 (C.TyAnd td1 td2)
+disjoint (C.TyRec a1 t1) (C.TyRec a2 t2) = disjointTyBind a1 t1 a2 t2 C.TyBot
 disjoint t1 t2 | t1 /= t2  = pure unit
                | otherwise = throwTypeError $
   show t1 <+> "and" <+> show t2 <+> "are not disjoint"
 
+disjointTyBind :: Name -> C.Ty -> Name -> C.Ty -> C.Ty -> Typing Unit
+disjointTyBind a1 t1 a2 t2 td = addTyBind freshName td $
+  disjoint (C.tySubst a1 freshVar t1) (C.tySubst a2 freshVar t2)
+  where freshName = a1 <> " or " <> a2
+        freshVar = C.TyVar freshName
 
 letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
 letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false) e1 false
