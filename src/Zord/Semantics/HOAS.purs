@@ -12,18 +12,18 @@ import Zord.Subtyping (isTopLike, split, (<:))
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (Tm(..), Ty(..), done, new, read, tmHoas, tyHoas, unfold, write)
 
+type Eval = Trampoline
+
 eval :: Tm -> Tm
 eval = runTrampoline <<< go <<< tmHoas
   where
-    go :: Tm -> Trampoline Tm
+    go :: Tm -> Eval Tm
     go e@(TmInt _)    = pure e
     go e@(TmDouble _) = pure e
     go e@(TmString _) = pure e
     go e@(TmBool _)   = pure e
     go TmUnit = pure TmUnit
-    go (TmUnary op e) = do
-      e' <- go e
-      pure $ unop op e'
+    go (TmUnary op e) = unop op <$> go e
     go (TmBinary op e1 e2) = do
       e1' <- go e1
       e2' <- go e2
@@ -48,33 +48,22 @@ eval = runTrampoline <<< go <<< tmHoas
         Just e'' -> go e''
         Nothing -> unsafeCrashWith $
           "Zord.Semantics.HOAS.eval: impossible typed reduction " <> show anno
-      where go' :: Tm -> Trampoline Tm
+      where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
-    go (TmMerge e1 e2) = do
-      e1' <- go e1
-      e2' <- go e2
-      pure $ TmMerge e1' e2'
+    go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go e@(TmRcd _ _ _) = pure e
-    go (TmPrj e l) = do
-      e' <- go e
-      go $ selectLabel e' l
-    go (TmTApp e t) = do
-      e' <- go e
-      go $ paraApp e' (TyArg t)
+    go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
+    go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmHTAbs _ _ _) = pure e
-    go (TmFold t e) = do
-      e' <- go e
-      pure $ TmFold t e'
-    go (TmUnfold e) = do
-      e' <- go e
-      case e' of
-        TmFold t v -> go $ TmAnno v (unfold t)
-        _ -> unsafeCrashWith $ "Zord.Semantics.HOAS.eval: " <>
-                               "impossible unfold " <> show e'
-    go (TmToString e) = do
-      e' <- go e
-      pure $ toString e'
+    go (TmFold t e) = TmFold t <$> go e
+    go (TmUnfold t e) = if isTopLike t then pure TmUnit else go e >>= go'
+      where go' :: Tm -> Eval Tm
+            go' e'@(TmMerge _ _) = go' <=< go $ TmAnno e' t
+            go' (TmFold _ v) = go $ TmAnno v (unfold t)
+            go' e' = unsafeCrashWith $ "Zord.Semantics.HOAS.eval: " <>
+                                       "impossible unfold " <> show e'
+    go (TmToString e) = toString <$> go e
     go e@(TmArray _ _) = pure e
     go (TmRef ref) = if done ref then pure e else do
       e' <- go e
@@ -103,7 +92,7 @@ typedReduce (TmRcd l t e) (TyRcd l' t')
 typedReduce (TmHTAbs tabs td1 tf1) (TyForall a td2 t2)
   | td2 <: td1 && tf1 (TyVar a) <: t2
   = Just $ TmHTAbs tabs td1 (tyHoas a t2)
-typedReduce (TmFold t e) t'@(TyRec _ _) | t <: t' = Just $ TmFold t' e
+typedReduce (TmFold t v) t'@(TyRec _ _) | t <: t' = Just $ TmFold t' v
 typedReduce (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 typedReduce _ _ = Nothing
 

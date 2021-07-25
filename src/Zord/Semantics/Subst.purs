@@ -39,8 +39,10 @@ step (TmPrj e l) | isValue e = selectLabel e l
 step (TmTApp e t) | isValue e = paraApp e (TyArg t)
                   | otherwise = TmTApp (step e) t
 step (TmFold t e) = TmFold t (step e)
-step (TmUnfold (TmFold t e)) = TmAnno e (unfold t)
-step (TmUnfold e) = TmUnfold (step e)
+step (TmUnfold t e) | isTopLike t = TmUnit
+                    | TmFold _ e' <- e = TmAnno e' (unfold t)
+                    | TmMerge _ _ <- e = TmUnfold t (TmAnno e t)
+                    | otherwise = TmUnfold t (step e)
 step (TmToString e) | isValue e = toString e
                     | otherwise = TmToString (step e)
 step e = unsafeCrashWith $ "Zord.Semantics.Subst.step: " <>
@@ -66,7 +68,7 @@ typedReduce (TmRcd l t e) (TyRcd l' t')
 typedReduce (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
   | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2
   = Just $ TmTAbs a2 td1 (tmTSubst a1 (TyVar a2) e) t2
-typedReduce (TmFold t e) t'@(TyRec _ _) | t <: t' = Just $ TmFold t' e
+typedReduce (TmFold t v) t'@(TyRec _ _) | t <: t' = Just $ TmFold t' v
 typedReduce (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 typedReduce _ _ = Nothing
 

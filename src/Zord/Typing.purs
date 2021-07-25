@@ -328,18 +328,15 @@ infer (S.TmExclude e te) = do
     exclude (C.TyRcd l' t') l t | l == l' && t' === t = Tuple true C.TyTop
     exclude t _ _ = Tuple false t
 infer (S.TmFold t e) = do
-  t' <- transform t
-  case t' of
-    C.TyRec _ _ -> do
-      Tuple e' t'' <- infer e
-      if t'' <: C.unfold t' then pure $ Tuple (C.TmFold t' e') t'
-      else throwTypeError $ "cannot fold" <+> show e <+> "to" <+> show t
-    _ -> throwTypeError $ "fold expected a recursive type, but got" <+> show t
-infer (S.TmUnfold e) = do
-  Tuple e' t <- infer e
-  case t of
-    C.TyRec _ _ -> pure $ Tuple (C.TmUnfold e') (C.unfold t)
-    _ -> throwTypeError $ "unfold expected a recursive type, but got" <+> show t
+  t' <- transformTyRec t
+  Tuple e' t'' <- infer e
+  if t'' <: C.unfold t' then pure $ Tuple (C.TmFold t' e') t'
+  else throwTypeError $ "cannot fold" <+> show e <+> "to" <+> show t
+infer (S.TmUnfold t e) = do
+  t' <- transformTyRec t
+  Tuple e' t'' <- infer e
+  if t'' <: t' then pure $ Tuple (C.TmUnfold t' e') (C.unfold t')
+  else throwTypeError $ "cannot unfold" <+> show e <+> "to" <+> show t
 infer (S.TmToString e) = do
   Tuple e' t <- infer e
   if t == C.TyInt || t == C.TyDouble || t == C.TyString || t == C.TyBool
@@ -421,6 +418,13 @@ letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false) e1 false
 trait :: Name -> C.Tm -> C.Ty -> C.Ty -> Tuple C.Tm C.Ty
 trait x e targ tret = Tuple (C.TmAbs x e targ tret false)
                             (C.TyArrow targ tret true)
+
+transformTyRec :: S.Ty -> Typing C.Ty
+transformTyRec t = do
+  t' <- transform t
+  case t' of C.TyRec _ _ -> pure t'
+             _ -> throwTypeError $
+               "fold/unfold expected a recursive type, but got" <+> show t
 
 selectLabel :: C.Ty -> Label -> Maybe C.Ty
 selectLabel (C.TyAnd t1 t2) l = case selectLabel t1 l, selectLabel t2 l of

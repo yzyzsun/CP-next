@@ -7,21 +7,22 @@ import Data.Maybe (Maybe(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Zord.Semantics.Subst (paraApp, typedReduce)
+import Zord.Subtyping (isTopLike)
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (Tm(..), done, new, read, tmSubst, unfold, write)
+
+type Eval = Trampoline
 
 eval :: Tm -> Tm
 eval = runTrampoline <<< go
   where
-    go :: Tm -> Trampoline Tm
+    go :: Tm -> Eval Tm
     go e@(TmInt _)    = pure e
     go e@(TmDouble _) = pure e
     go e@(TmString _) = pure e
     go e@(TmBool _)   = pure e
     go TmUnit = pure TmUnit
-    go (TmUnary op e) = do
-      e' <- go e
-      pure $ unop op e'
+    go (TmUnary op e) = unop op <$> go e
     go (TmBinary op e1 e2) = do
       e1' <- go e1
       e2' <- go e2
@@ -50,33 +51,22 @@ eval = runTrampoline <<< go
         Just e'' -> go e''
         Nothing -> unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
                                      "impossible typed reduction " <> show anno
-      where go' :: Tm -> Trampoline Tm
+      where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
-    go (TmMerge e1 e2) = do
-      e1' <- go e1
-      e2' <- go e2
-      pure $ TmMerge e1' e2'
+    go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go e@(TmRcd _ _ _) = pure e
-    go (TmPrj e l) = do
-      e' <- go e
-      go $ selectLabel e' l
-    go (TmTApp e t) = do
-      e' <- go e
-      go $ paraApp e' (TyArg t)
+    go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
+    go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmTAbs _ _ _ _) = pure e
-    go (TmFold t e) = do
-      e' <- go e
-      pure $ TmFold t e'
-    go (TmUnfold e) = do
-      e' <- go e
-      case e' of
-        TmFold t v -> go $ TmAnno v (unfold t)
-        _ -> unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
-                               "impossible unfold " <> show e'
-    go (TmToString e) = do
-      e' <- go e
-      pure $ toString e'
+    go (TmFold t e) = TmFold t <$> go e
+    go (TmUnfold t e) = if isTopLike t then pure TmUnit else go e >>= go'
+      where go' :: Tm -> Eval Tm
+            go' e'@(TmMerge _ _) = go' <=< go $ TmAnno e' t
+            go' (TmFold _ v) = go $ TmAnno v (unfold t)
+            go' e' = unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
+                                       "impossible unfold " <> show e'
+    go (TmToString e) = toString <$> go e
     go e@(TmArray _ _) = pure e
     go (TmRef ref) = if done ref then pure e else do
       e' <- go e

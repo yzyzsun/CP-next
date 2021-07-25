@@ -75,7 +75,7 @@ data Tm = TmInt Int
         | TmTAbs Name Ty Tm Ty
         | TmHTAbs (Ty -> Tm) Ty (Ty -> Ty)
         | TmFold Ty Tm
-        | TmUnfold Tm
+        | TmUnfold Ty Tm
         | TmToString Tm
         | TmArray Ty (Array Tm)
         | TmClosure EvalEnv Tm
@@ -109,7 +109,7 @@ instance Show Tm where
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
   show (TmHTAbs _tabs td _tf) = angles $ "HOAS ∀*" <+> show td
   show (TmFold t e) = parens $ "fold @" <> show t <+> show e
-  show (TmUnfold e) = parens $ "unfold" <+> show e
+  show (TmUnfold t e) = parens $ "unfold @" <> show t <+> show e
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray t arr) = parens $
     brackets (intercalate "; " (show <$> arr)) <+> ":" <+> brackets (show t)
@@ -163,7 +163,7 @@ tmConvert env (TmTAbs a td e t) =
   TmHTAbs (\ty -> tmConvert (insert a (Right ty) env) e)
           (tyConvert env td) (tyHoas' env a t)
 tmConvert env (TmFold t e) = TmFold (tyConvert env t) (tmConvert env e)
-tmConvert env (TmUnfold e) = TmUnfold (tmConvert env e)
+tmConvert env (TmUnfold t e) = TmUnfold (tyConvert env t) (tmConvert env e)
 tmConvert env (TmToString e) = TmToString (tmConvert env e)
 tmConvert env (TmArray t arr) = TmArray (tyConvert env t) (tmConvert env <$> arr)
 tmConvert _ e = e
@@ -205,7 +205,7 @@ tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
 tmSubst x v (TmTAbs a td e t) = TmTAbs a td (tmSubst x v e) t
 tmSubst x v (TmFold t e) = TmFold t (tmSubst x v e)
-tmSubst x v (TmUnfold e) = TmUnfold (tmSubst x v e)
+tmSubst x v (TmUnfold t e) = TmUnfold t (tmSubst x v e)
 tmSubst x v (TmToString e) = TmToString (tmSubst x v e)
 tmSubst x v (TmArray t arr) = TmArray t (tmSubst x v <$> arr)
 tmSubst _ _ e = e
@@ -228,7 +228,7 @@ tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmTAbs a' td e t) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
                                   (if a == a' then t else tySubst a s t)
 tmTSubst a s (TmFold t e) = TmFold (tySubst a s t) (tmTSubst a s e)
-tmTSubst a s (TmUnfold e) = TmUnfold (tmTSubst a s e)
+tmTSubst a s (TmUnfold t e) = TmUnfold (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmToString e) = TmToString (tmTSubst a s e)
 tmTSubst a s (TmArray t arr) = TmArray (tySubst a s t) (tmTSubst a s <$> arr)
 tmTSubst _ _ e = e

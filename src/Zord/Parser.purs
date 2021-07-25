@@ -196,8 +196,10 @@ fold = do
 unfold :: SParser Tm
 unfold = do
   reserved "unfold"
+  symbol "@"
+  t <- aty ty
   e <- dotexpr expr
-  pure $ TmUnfold e
+  pure $ TmUnfold t e
 
 document :: SParser Tm -> SParser Tm
 document p = do

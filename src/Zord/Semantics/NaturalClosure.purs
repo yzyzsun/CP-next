@@ -9,6 +9,7 @@ import Data.Maybe (Maybe(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Zord.Semantics.Closure (EvalT, binop', closure, expand, paraApp, selectLabel, typedReduce, unop')
 import Zord.Semantics.Common (Arg(..), toString)
+import Zord.Subtyping (isTopLike)
 import Zord.Syntax.Common (BinOp(..))
 import Zord.Syntax.Core (EvalBind(..), Tm(..), done, new, read, unfold, write)
 
@@ -30,15 +31,19 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       let e = binop' op e1' e2'
       case op of Index -> go e
                  _   -> pure e
-    go (TmIf e1 e2 e3) = go e1 >>= \e1' -> case e1' of
-      TmBool true  -> go e2
-      TmBool false -> go e3
-      _ -> unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
-        "impossible if " <> show e1' <> " ..."
-    go (TmVar x) = ask >>= \env -> case lookup x env of
-      Just (TmBind e) -> go e
-      m -> unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
-        "variable " <> show x <> " is " <> show m
+    go (TmIf e1 e2 e3) = do
+      e1' <- go e1
+      case e1' of
+        TmBool true  -> go e2
+        TmBool false -> go e3
+        _ -> unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
+                               "impossible if " <> show e1' <> " ..."
+    go (TmVar x) = do
+      env <- ask
+      case lookup x env of
+        Just (TmBind e) -> go e
+        m -> unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
+                               "variable " <> show x <> " is " <> show m
     go (TmApp e1 e2 coercive) = do
       e1' <- go e1
       e2' <- closure e2
@@ -59,21 +64,19 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go e@(TmRcd _ _ _) = closure e
-    go (TmPrj e l) = go e >>= \e' -> go $ selectLabel e' l
+    go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmTApp e t) = do
       e' <- go e
       t' <- expand t
       go $ paraApp e' (TyArg t')
     go e@(TmTAbs _ _ _ _) = closure e
-    go (TmFold t e) = do
-      e' <- go e
-      pure $ TmFold t e'
-    go (TmUnfold e) = do
-      e' <- go e
-      case e' of
-        TmFold t v -> go $ TmAnno v (unfold t)
-        _ -> unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
-                               "impossible unfold " <> show e'
+    go (TmFold t e) = TmFold t <$> go e
+    go (TmUnfold t e) =  if isTopLike t then pure TmUnit else go e >>= go'
+      where go' :: Tm -> Eval Tm
+            go' e'@(TmMerge _ _) = go' <=< go $ TmAnno e' t
+            go' (TmFold _ v) = go $ TmAnno v (unfold t)
+            go' e' = unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
+                                       "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
     go e@(TmArray _ _) = closure e
     go (TmRef ref) = if done ref then pure e else do

@@ -58,8 +58,10 @@ step (TmTApp e t) | isValue e = paraApp e <<< TyArg <$> expand t
                   | otherwise = TmTApp <$> step e <@> t
 step tabs@(TmTAbs _ _ _ _) = closure tabs
 step (TmFold t e) = TmFold t <$> step e
-step (TmUnfold (TmFold t e)) = pure $ TmAnno e (unfold t)
-step (TmUnfold e) = TmUnfold <$> step e
+step (TmUnfold t e) | isTopLike t = pure TmUnit
+                    | TmFold _ e' <- e = pure $ TmAnno e' (unfold t)
+                    | TmMerge _ _ <- e = pure $ TmUnfold t (TmAnno e t)
+                    | otherwise = TmUnfold t <$> step e
 step (TmToString e) | isValue e = pure $ toString e
                     | otherwise = TmToString <$> step e
 step arr@(TmArray _ _) = closure arr
@@ -82,7 +84,7 @@ typedReduce tm ty = runMaybeT $ go tm ty
     go (TmDouble n) TyDouble = pure $ TmDouble n
     go (TmString s) TyString = pure $ TmString s
     go (TmBool b)   TyBool   = pure $ TmBool b
-    go (TmFold t e) t'@(TyRec _ _) | t <: t' = pure $ TmFold t' e
+    go (TmFold t v) t'@(TyRec _ _) | t <: t' = pure $ TmFold t' v
     go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2) = do
       t1' <- lift $ local (const env) $ expand t1
       if l1 == l2 && t1' <: t2 then pure $ TmClosure env (TmRcd l2 t2 e)

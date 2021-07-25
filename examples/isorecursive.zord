@@ -6,9 +6,9 @@ type Exp = mu Exp. {
   eq: Exp -> Bool;
 };
 
-eval' (e: Exp) = (unfold e).eval;
-dbl' (e: Exp) = (unfold e).dbl;
-eq' (e1: Exp) (e2: Exp) = (unfold e1).eq e2;
+eval' (e: Exp) = (unfold @Exp e).eval;
+dbl' (e: Exp) = (unfold @Exp e).dbl;
+eq' (e1: Exp) (e2: Exp) = (unfold @Exp e1).eq e2;
 
 lit (n: Int) : Exp = fold @Exp {
   eval = n;

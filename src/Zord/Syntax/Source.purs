@@ -85,7 +85,7 @@ data Tm = TmInt Int
         | TmForward Tm Tm
         | TmExclude Tm Ty
         | TmFold Ty Tm
-        | TmUnfold Tm
+        | TmUnfold Ty Tm
         | TmToString Tm
         | TmArray (Array Tm)
         | TmPos Position Tm
@@ -131,7 +131,7 @@ instance Show Tm where
   show (TmForward e1 e2) = parens $ show e1 <+> "^" <+> show e2
   show (TmExclude e t) = parens $ show e <+> "\\" <+> show t
   show (TmFold t e) = parens $ "fold @" <> show t <+> show e
-  show (TmUnfold e) = parens $ "unfold" <+> show e
+  show (TmUnfold t e) = parens $ "unfold @" <> show t <+> show e
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
   show (TmPos _pos e) = show e
