@@ -13,12 +13,7 @@ import Zord.Util (foldl1)
 -- typing-related desugaring is delayed until type inference
 desugar :: Tm -> Tm
 
-desugar (TmAbs xs e) = foldr desugarParams (desugar e) xs
-  where desugarParams x s = case x of
-          TmParam _ _ -> abs x s
-          WildCard -> abs (TmParam wildcard Nothing) (TmOpen (TmVar wildcard) s)
-        abs param body = TmAbs (singleton param) body
-        wildcard = "#wildcard"
+desugar (TmAbs xs e) = foldr (\x s -> TmAbs (singleton x) s) (desugar e) xs
 desugar (TmTAbs xs e) =
   foldr (\x s -> TmTAbs (singleton (rmap disjointness x)) s) (desugar e) xs
   where disjointness t = Just (fromMaybe TyTop t)

@@ -4,7 +4,8 @@ import Prelude
 
 import Data.Array (all, elem, head, notElem, null, unzip)
 import Data.Either (Either(..))
-import Data.List (List(..), filter, foldr, last, singleton)
+import Data.Foldable (foldr)
+import Data.List (List(..), filter, last, singleton, (:))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set)
 import Data.Set as Set
@@ -114,12 +115,17 @@ infer (S.TmApp e1 e2) = do
   Tuple e2' t2 <- infer e2
   case app t1 t2 of Just t -> pure $ Tuple (C.TmApp e1' e2' false) t
                     _ -> Tuple (C.TmApp e1' e2' true) <$> distApp t1 (Left t2)
+  where app :: C.Ty -> C.Ty -> Maybe C.Ty
+        app (C.TyArrow targ tret _) t | t === targ = Just tret
+        app _ _ = Nothing
 infer (S.TmAbs (Cons (S.TmParam x (Just targ)) Nil) e) = do
   targ' <- transform targ
   Tuple e' tret <- addTmBind x targ' $ infer e
   pure $ Tuple (C.TmAbs x e' targ' tret false) (C.TyArrow targ' tret false)
 infer (S.TmAbs (Cons (S.TmParam x Nothing) Nil) _) = throwTypeError $
   "lambda parameter" <+> show x <+> "should be annotated with a type"
+infer (S.TmAbs (Cons S.WildCard Nil) _) = throwTypeError $
+  "record wildcards should only occur in traits with interfaces implemented"
 infer (S.TmAnno e ta) = do
   Tuple e' t <- infer e
   ta' <- transform ta
@@ -169,16 +175,12 @@ infer (S.TmLetrec x Nil Nil t e1 e2) = do
 -- TODO: find a more efficient algorithm
 infer (S.TmOpen e1 e2) = do
   Tuple e1' t1 <- infer e1
-  let ls = foldr Cons Nil (labels t1)
-  let bs = ls <#> \l -> Tuple l (unsafeFromJust (selectLabel t1 l))
-  Tuple e2' t2 <- foldr (uncurry addTmBind) (infer e2) bs
-  let open (Tuple l t) e = letIn l (C.TmPrj e1' l) t e t2
-  pure $ Tuple (foldr open e2' bs) t2
-  where
-    labels :: C.Ty -> Set Label
-    labels (C.TyAnd t1 t2) = Set.union (labels t1) (labels t2)
-    labels (C.TyRcd l _) = Set.singleton l
-    labels _ = Set.empty
+  let bindings = foldr (\l s -> Tuple l (unsafeFromJust (selectLabel t1 l)) : s)
+                       Nil (collectLabels t1)
+  Tuple e2' t2 <- foldr (uncurry addTmBind) (infer e2) bindings
+  let open (Tuple l t) e = letIn l (C.TmPrj (C.TmVar opened) l) t e t2
+  pure $ Tuple (letIn opened e1' t1 (foldr open e2' bindings) t2) t2
+  where opened = "#opened"
 infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
   t' <- transform t
   Tuple sig' e2 <- inferFromSig `duringTransformation` Tuple sig ne2
@@ -195,7 +197,7 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
             let to' = override to e2
             disjoint to' t2
             let tret = C.TyAnd to' t2
-            let ret = letIn "super" (C.TmApp e1' (C.TmVar self) true) to
+                ret = letIn "super" (C.TmApp e1' (C.TmVar self) true) to
                       (C.TmMerge (C.TmAnno (C.TmVar "super") to') e2') tret
             pure $ Tuple ret tret
           else throwTypeError $ "self-type" <+> show t <+>
@@ -220,17 +222,43 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
         Just (Tuple _ ty) ->
           S.TmRcd (singleton (S.RcdField o l Nil (Left (inferFromSig ty e))))
         _ -> r
-    inferFromSig (S.TyRcd xs) (S.TmRcd (Cons (S.DefaultPattern pat) Nil)) =
-      let S.MethodPattern _ l _ _ = pat in
-      desugar $ S.TmRcd $ filter (\x -> fst x `notElem` patterns l) xs <#> \x ->
-        let Tuple params ty = paramsAndInnerTy (snd x) in
-        let e = inferFromSig ty (desugarMethodPattern pat) in
+    inferFromSig (S.TyRcd xs)
+        (S.TmRcd (Cons (S.DefaultPattern pat@(S.MethodPattern _ label _ _)) Nil)) =
+      desugar $ S.TmRcd $ filter (\x -> fst x `notElem` patterns label) xs <#> \x ->
+        let Tuple params ty = paramsAndInnerTy (snd x)
+            e = inferFromSig ty (desugarMethodPattern pat) in
         S.RcdField false (fst x) params (Left e)
+      where patterns :: Label -> Array Label
+            patterns l = patternsFromRcd (S.TmMerge (fromMaybe S.TmUnit me1) ne2) l
+            patternsFromRcd :: S.Tm -> Label -> Array Label
+            patternsFromRcd (S.TmPos _ e) l = patternsFromRcd e l
+            patternsFromRcd (S.TmOpen _ e) l = patternsFromRcd e l
+            patternsFromRcd (S.TmMerge e1 e2) l =
+              patternsFromRcd e1 l <> patternsFromRcd e2 l
+            patternsFromRcd (S.TmRcd (Cons (S.RcdField _ l' _ (Left e)) Nil)) l =
+              if innerLabel e == l then [l'] else []
+            patternsFromRcd _ _ = []
+            innerLabel :: S.Tm -> Label
+            innerLabel (S.TmPos _ e) = innerLabel e
+            innerLabel (S.TmOpen _ e) = innerLabel e
+            innerLabel (S.TmAbs _ e) = innerLabel e
+            innerLabel (S.TmTrait _ _ _ e) = innerLabel e
+            innerLabel (S.TmRcd (Cons (S.RcdField _ l _ _) Nil)) = l
+            innerLabel _ = "#nothing"
+            paramsAndInnerTy :: S.Ty -> Tuple S.TmParamList S.Ty
+            paramsAndInnerTy (S.TyArrow targ tret) =
+              let Tuple params ty = paramsAndInnerTy tret in
+              Tuple (S.TmParam "_" (Just targ) : params) ty
+            paramsAndInnerTy ty = Tuple Nil ty
     inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons (S.TmParam x Nothing) Nil) e) =
       S.TmAbs (singleton (S.TmParam x (Just targ))) (inferFromSig tret e)
     inferFromSig (S.TyArrow _ tret)
                  (S.TmAbs param@(Cons (S.TmParam _ (Just _)) Nil) e) =
       S.TmAbs param (inferFromSig tret e)
+    inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons S.WildCard Nil) e) =
+      S.TmAbs (singleton (S.TmParam wildcard (Just targ)))
+              (S.TmOpen (S.TmVar wildcard) (inferFromSig tret e))
+      where wildcard = "#wildcard"
     inferFromSig (S.TyTrait ti to) (S.TmTrait (Just (Tuple self' t')) sig' e1 e2) =
       let t'' = if t' == S.TyTop then fromMaybe S.TyTop ti else t' in
       S.TmTrait (Just (Tuple self' t'')) sig' e1 (inferFromSig to e2)
@@ -241,49 +269,28 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     combineRcd (S.TyAnd (S.TyRcd xs) r) = xs <> combineRcd r
     combineRcd (S.TyAnd l r) = combineRcd l <> combineRcd r
     combineRcd _ = Nil
-    patterns :: Label -> Array Label
-    patterns l = patternsFromRcd (S.TmMerge (fromMaybe S.TmUnit me1) ne2) l
-    patternsFromRcd :: S.Tm -> Label -> Array Label
-    patternsFromRcd (S.TmPos _ e) l = patternsFromRcd e l
-    patternsFromRcd (S.TmOpen _ e) l = patternsFromRcd e l
-    patternsFromRcd (S.TmMerge e1 e2) l = patternsFromRcd e1 l <> patternsFromRcd e2 l
-    patternsFromRcd (S.TmRcd (Cons (S.RcdField _ l' _ (Left e)) Nil)) l =
-      if innerLabel e == l then [l'] else []
-    patternsFromRcd _ _ = []
-    innerLabel :: S.Tm -> Label
-    innerLabel (S.TmPos _ e) = innerLabel e
-    innerLabel (S.TmOpen _ e) = innerLabel e
-    innerLabel (S.TmAbs _ e) = innerLabel e
-    innerLabel (S.TmTrait _ _ _ e) = innerLabel e
-    innerLabel (S.TmRcd (Cons (S.RcdField _ l _ _) Nil)) = l
-    innerLabel _ = "#nothing"
-    paramsAndInnerTy :: S.Ty -> Tuple S.TmParamList S.Ty
-    paramsAndInnerTy (S.TyArrow targ tret) =
-      let Tuple params ty = paramsAndInnerTy tret in
-      Tuple (Cons (S.TmParam "_" (Just targ)) params) ty
-    paramsAndInnerTy ty = Tuple Nil ty
-    selectOverride :: S.Tm -> Array Label
-    selectOverride (S.TmPos _ e) = selectOverride e
-    selectOverride (S.TmOpen _ e) = selectOverride e
-    selectOverride (S.TmMerge e1 e2) = selectOverride e1 <> selectOverride e2
-    -- TODO: only override the inner field if it's a method pattern
-    selectOverride (S.TmRcd (Cons (S.RcdField true l _ _) Nil)) = [l]
-    selectOverride _ = []
-    -- TODO: make sure every field overrides some field in super-trait
-    removeOverride :: C.Ty -> Array Label -> C.Ty
-    removeOverride (C.TyAnd t1 t2) ls =
-      let t1' = removeOverride t1 ls in
-      let t2' = removeOverride t2 ls in
-      case t1', t2' of
-        C.TyTop, C.TyTop -> C.TyTop
-        C.TyTop, _       -> t2'
-        _,       C.TyTop -> t1'
-        _,       _       -> C.TyAnd t1' t2'
-    removeOverride (C.TyRcd l _) ls | l `elem` ls = C.TyTop
-    removeOverride ty _ = ty
     override :: C.Ty -> S.Tm -> C.Ty
     override ty e = let ls = selectOverride e in
       if null ls then ty else removeOverride ty ls
+      where selectOverride :: S.Tm -> Array Label
+            selectOverride (S.TmPos _ e0) = selectOverride e0
+            selectOverride (S.TmOpen _ e0) = selectOverride e0
+            selectOverride (S.TmMerge e1 e2) = selectOverride e1 <> selectOverride e2
+            -- TODO: only override the inner field if it's a method pattern
+            selectOverride (S.TmRcd (Cons (S.RcdField true l _ _) Nil)) = [l]
+            selectOverride _ = []
+            -- TODO: make sure every field overrides some field in super-trait
+            removeOverride :: C.Ty -> Array Label -> C.Ty
+            removeOverride (C.TyAnd t1 t2) ls =
+              let t1' = removeOverride t1 ls
+                  t2' = removeOverride t2 ls in
+              case t1', t2' of
+                C.TyTop, C.TyTop -> C.TyTop
+                C.TyTop, _       -> t2'
+                _,       C.TyTop -> t1'
+                _,       _       -> C.TyAnd t1' t2'
+            removeOverride (C.TyRcd l _) ls | l `elem` ls = C.TyTop
+            removeOverride typ _ = typ
 infer (S.TmTrait self sig e1 e2) =
   infer $ S.TmTrait (Just (fromMaybe (Tuple "self" S.TyTop) self))
                     (Just (fromMaybe S.TyTop sig)) e1 e2
@@ -312,8 +319,8 @@ infer (S.TmExclude e te) = do
     C.TyArrow ti to true -> case te' of
       -- TODO: support intersection of multiple record types
       C.TyRcd l tl ->
-        let Tuple overridden to' = exclude to l tl in
-        let t' = C.TyArrow ti to' true in
+        let Tuple overridden to' = exclude to l tl
+            t' = C.TyArrow ti to' true in
         if overridden then pure $ Tuple (C.TmAnno e' t') t'
         else throwTypeError $ show e <+> "does not contain a field of" <+> show te
       _ -> throwTypeError $ "expected to exclude a single-field record type," <+>
@@ -322,8 +329,8 @@ infer (S.TmExclude e te) = do
   where
     exclude :: C.Ty -> Label -> C.Ty -> Tuple Boolean C.Ty
     exclude (C.TyAnd t1 t2) l t =
-      let Tuple o1 t1' = exclude t1 l t in
-      let Tuple o2 t2' = exclude t2 l t in
+      let Tuple o1 t1' = exclude t1 l t
+          Tuple o2 t2' = exclude t2 l t in
       Tuple (o1 || o2) (C.TyAnd t1' t2')
     exclude (C.TyRcd l' t') l t | l == l' && t' === t = Tuple true C.TyTop
     exclude t _ _ = Tuple false t
@@ -348,7 +355,7 @@ infer (S.TmArray arr) = do
   else do
     ets <- traverse infer arr
     let Tuple es ts = unzip ets
-    let t = unsafeFromJust $ head ts
+        t = unsafeFromJust $ head ts
     if all (_ === t) ts then pure $ Tuple (C.TmArray t es) (C.TyArray t)
     else throwTypeError $ "elements of" <+> show (S.TmArray arr) <+>
                           "should all have the same type"
@@ -379,10 +386,6 @@ distApp (C.TyAnd t1 t2) t = do
   t2' <- distApp t2 t
   pure $ C.TyAnd t1' t2'
 distApp t _ = throwTypeError $ show t <+> "is not applicable"
-
-app :: C.Ty -> C.Ty -> Maybe C.Ty
-app (C.TyArrow targ tret _) t | t === targ = Just tret
-app _ _ = Nothing
 
 disjoint :: C.Ty -> C.Ty -> Typing Unit
 disjoint t _ | isTopLike t = pure unit
@@ -425,6 +428,11 @@ transformTyRec t = do
   case t' of C.TyRec _ _ -> pure t'
              _ -> throwTypeError $
                "fold/unfold expected a recursive type, but got" <+> show t
+
+collectLabels :: C.Ty -> Set Label
+collectLabels (C.TyAnd t1 t2) = Set.union (collectLabels t1) (collectLabels t2)
+collectLabels (C.TyRcd l _) = Set.singleton l
+collectLabels _ = Set.empty
 
 selectLabel :: C.Ty -> Label -> Maybe C.Ty
 selectLabel (C.TyAnd t1 t2) l = case selectLabel t1 l, selectLabel t2 l of
