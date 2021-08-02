@@ -5,7 +5,7 @@ import Prelude
 import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, any, intercalate, null)
-import Data.List (List)
+import Data.List (List(..))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..), fst, snd)
 import Text.Parsing.Parser.Pos (Position)
@@ -151,7 +151,8 @@ instance Show Tm where
 tySubst :: Name -> Ty -> Ty -> Ty
 tySubst a s (TyArrow t1 t2) = TyArrow (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
-tySubst a s (TyRcd xs) = TyRcd (rmap (tySubst a s) <$> xs)
+tySubst a s (TyRcd xs) =
+  TyRcd (xs <#> \(RcdTy l t opt) -> RcdTy l (tySubst a s t) opt)
 tySubst a s (TyVar a') = if a == a' then s else TyVar a'
 tySubst a s (TyForall xs t) = TyForall (rmap (map (tySubst a s)) <$> xs)
   (if any ((_ == a) <<< fst) xs then t else tySubst a s t)
@@ -181,18 +182,27 @@ showTyParams params = intercalate' " " $ params <#> \param ->
   maybe (fst param) (\t -> parens $ fst param <+> "*" <+> show t) (snd param)
 
 type TmParamList = List TmParam
-data TmParam = TmParam Name (Maybe Ty) | WildCard
+data TmParam = TmParam Name (Maybe Ty)
+             | WildCard DefaultFields
+type DefaultFields = List (Tuple Label Tm)
 
 showTmParams :: TmParamList -> String
 showTmParams params = intercalate' " " $ params <#> case _ of
   TmParam x (Just t) -> parens $ x <+> ":" <+> show t
   TmParam x Nothing -> x
-  WildCard -> "{..}"
+  WildCard defaults -> "{" <+> showFields defaults <> ".. }"
+  where showFields :: DefaultFields -> String
+        showFields Nil = ""
+        showFields (Cons (Tuple x e) xs) =
+          x <+> "=" <+> show e <> ";" <+> showFields xs
 
-type RcdTyList = List (Tuple Label Ty)
+type RcdTyList = List RcdTy
+data RcdTy = RcdTy Label Ty Boolean
+derive instance Eq RcdTy
 
 showRcdTy :: RcdTyList -> String
-showRcdTy xs = intercalate "; " $ xs <#> \(Tuple l t) -> l <+> ":" <+> show t
+showRcdTy xs = intercalate "; " $ xs <#> \(RcdTy l t opt) ->
+  l <> (if opt then "?" else "") <+> ":" <+> show t
 
 showRcdTm :: List RcdField -> String
 showRcdTm xs = intercalate "; " $ xs <#> case _ of

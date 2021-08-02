@@ -22,6 +22,7 @@ eval = runTrampoline <<< go
     go e@(TmString _) = pure e
     go e@(TmBool _)   = pure e
     go TmUnit = pure TmUnit
+    go TmUndefined = pure TmUndefined
     go (TmUnary op e) = unop op <$> go e
     go (TmBinary op e1 e2) = do
       e1' <- go e1

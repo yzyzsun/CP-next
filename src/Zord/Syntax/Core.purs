@@ -25,7 +25,7 @@ data Ty = TyInt
         | TyBot
         | TyArrow Ty Ty Boolean
         | TyAnd Ty Ty
-        | TyRcd Label Ty
+        | TyRcd Label Ty Boolean
         | TyVar Name
         | TyForall Name Ty Ty
         | TyRec Name Ty
@@ -41,7 +41,10 @@ instance Show Ty where
   show (TyArrow ti to true) = "Trait" <> angles (show ti <+> "=>" <+> show to)
   show (TyArrow t1 t2 false) = parens $ show t1 <+> "→" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
-  show (TyRcd l t) = braces $ l <+> ":" <+> show t
+  -- Optional record types can be regarded just as Top, but
+  -- they can help typed reduction keep corresponding fields if present.
+  show (TyRcd l t opt) = braces $
+    l <> (if opt then "?" else "") <+> ":" <+> show t
   show (TyVar a) = a
   show (TyForall a td t) = parens $
     "∀" <> a <+> "*" <+> show td <> "." <+> show t
@@ -132,7 +135,7 @@ tyHoas' env a t = \ty -> tyConvert (insert a (Right ty) env) t
 tyConvert :: HoasEnv -> Ty -> Ty
 tyConvert env (TyArrow t1 t2 b) = TyArrow (tyConvert env t1) (tyConvert env t2) b
 tyConvert env (TyAnd t1 t2) = TyAnd (tyConvert env t1) (tyConvert env t2)
-tyConvert env (TyRcd l t) = TyRcd l (tyConvert env t)
+tyConvert env (TyRcd l t opt) = TyRcd l (tyConvert env t) opt
 tyConvert env (TyVar a) = case lookup a env of Just (Right t) -> t
                                                _ -> TyVar a
 tyConvert env (TyForall a td t) = TyForall a (tyConvert env td) (tyConvert env t)
@@ -176,7 +179,7 @@ type HoasEnv = Map Name (Either Tm Ty)
 tySubst :: Name -> Ty -> Ty -> Ty
 tySubst a s (TyArrow t1 t2 b) = TyArrow (tySubst a s t1) (tySubst a s t2) b
 tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
-tySubst a s (TyRcd l t) = TyRcd l (tySubst a s t)
+tySubst a s (TyRcd l t opt) = TyRcd l (tySubst a s t) opt
 tySubst a s (TyVar a') = if a == a' then s else TyVar a'
 tySubst a s (TyForall a' td t) =
   TyForall a' (tySubst a s td) (if a == a' then t else tySubst a s t)

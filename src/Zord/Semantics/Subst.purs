@@ -53,9 +53,13 @@ typedReduce e _ | not (isValue e) = unsafeCrashWith $
   "Zord.Semantics.Subst.typedReduce: " <> show e <> " is not a value"
 typedReduce _ t | isTopLike t = Just TmUnit
 typedReduce v t | Just (Tuple t1 t2) <- split t = do
-  v1 <- typedReduce v t1
-  v2 <- typedReduce v t2
-  Just $ TmMerge v1 v2
+  let m1 = isOptionalRcd t1
+      m2 = isOptionalRcd t2
+      v1 = typedReduce v t1
+      v2 = typedReduce v t2
+  (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
+  where isOptionalRcd (TyRcd _ _ true) = Just TmUnit
+        isOptionalRcd _ = Nothing
 typedReduce (TmInt i)    TyInt    = Just $ TmInt i
 typedReduce (TmDouble n) TyDouble = Just $ TmDouble n
 typedReduce (TmString s) TyString = Just $ TmString s
@@ -63,7 +67,7 @@ typedReduce (TmBool b)   TyBool   = Just $ TmBool b
 typedReduce (TmAbs x e targ1 tret1 _) (TyArrow _ tret2 _)
   | tret1 <: tret2 = Just $ TmAbs x e targ1 tret2 true
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
-typedReduce (TmRcd l t e) (TyRcd l' t')
+typedReduce (TmRcd l t e) (TyRcd l' t' _)
   | l == l' && t <: t' = Just $ TmRcd l t' e
 typedReduce (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
   | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2
@@ -88,7 +92,8 @@ isValue (TmInt _)    = true
 isValue (TmDouble _) = true
 isValue (TmString _) = true
 isValue (TmBool _)   = true
-isValue (TmUnit)     = true
+isValue TmUnit       = true
+isValue TmUndefined  = true
 isValue (TmAbs _ _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true

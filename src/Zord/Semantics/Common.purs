@@ -28,6 +28,8 @@ binop Index (TmArray t arr) (TmInt i) = case arr !! i of
   Just e -> TmAnno e t
   Nothing -> unsafeCrashWith $ "Zord.Semantics.Common.binop: the index " <>
     show i <> " is out of bounds for " <> show (TmArray t arr)
+binop Coalesce TmUndefined v2 = v2
+binop Coalesce v1 _ = v1
 binop op v1 v2 = unsafeCrashWithBinop op v1 v2
 
 arith :: ArithOp -> Tm -> Tm -> Tm
@@ -90,12 +92,12 @@ toString v = unsafeCrashWith $
 
 selectLabel :: Tm -> Label -> Tm
 selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUnit, TmUnit -> TmUnit
-  TmUnit, e2' -> e2'
-  e1', TmUnit -> e1'
+  TmUndefined, TmUndefined -> TmUndefined
+  TmUndefined, e2' -> e2'
+  e1', TmUndefined -> e1'
   e1', e2' -> TmMerge e1' e2'
 selectLabel (TmRcd l' t e) l | l == l' = TmAnno e t
-selectLabel _ _ = TmUnit
+selectLabel _ _ = TmUndefined
 
 data Arg = TmArg Tm | TmAnnoArg Tm | TyArg Ty
 

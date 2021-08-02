@@ -79,21 +79,21 @@ baseChart (data : [Data]) = trait [self : Base] implements Base => open factory 
   xAxis = letrec xAxis' (i:Int) : HTML = open config in let d = (data!!0).d in
     let x = margin + (width - margin) * (i*2 + 1) / (#d*2) in let y = height - margin in
     if i == #d then `
-      \Line{ x1 = margin; y1 = y; x2 = width; y2 = y; color = new Black; width = 1 }
+      \Line{ x1 = margin; y1 = y; x2 = width; y2 = y }
     ` else `
-      \Line{ x1 = x; y1 = y - 5; x2 = x; y2 = y; color = new Black; width = 1 }
-      \Text{ x = x - 10; y = y + 15; color = new Black }[\((d!!i).month)]
+      \Line{ x1 = x; y1 = y - 5; x2 = x; y2 = y }
+      \Text{ x = x - 10; y = y + 15 }[\((d!!i).month)]
       \xAxis'(i+1)
     ` in xAxis' 0;
   yAxis = letrec yAxis' (i:Int) : HTML = open config in
     if i == numY then `` else let y = height - margin - (height - margin*2) * (i+1) / numY in `
-      \Line{ x1 = margin; y1 = y; x2 = margin + 5; y2 = y; color = new Black; width = 1 }
-      \Text{ x = margin - 22; y = y + 3; color = new Black }[\(maxY * (i+1) / numY)]
+      \Line{ x1 = margin; y1 = y; x2 = margin + 5; y2 = y }
+      \Text{ x = margin - 22; y = y + 3 }[\(maxY * (i+1) / numY)]
       \yAxis'(i+1)
     ` in yAxis' 0;
   caption = letrec caption' (n:Int) : String =
     if n == #data - 1 then (data!!n).name else (data!!n).name ++ " vs " ++ caption' (n+1)
-    in `\Text{ x = 50; y = 10; color = new Black }[\(caption' 0)]`;
+    in `\Text{ x = 50; y = 10 }[\(caption' 0)]`;
 };
 
 lineStrategy = trait [self : Base] implements Render => open factory in {
@@ -106,7 +106,7 @@ lineStrategy = trait [self : Base] implements Render => open factory in {
         y1 = height - margin - (height - margin*2) * p1 / maxY;
         x2 = margin + (width - margin) * (i*2 + 3) / (#d*2);
         y2 = height - margin - (height - margin*2) * p2 / maxY;
-        color = c; width = 1;
+        color = c;
       }
       \lines'(n)(i+1)
     ` in let lines = lines' 0 0 in `\xAxis \yAxis \lines \caption`
@@ -132,7 +132,7 @@ legendDecorator (base : ChartT) =
   override caption = letrec legends' (n:Int) : HTML = open config in
     if n == #data_ then `` else let datum = data_ !! n in `
       \Rect{ x = margin + 20 + 50*n; y = margin - 20; width = 5; height = 5; color = datum.color }
-      \Text{ x = margin + 30 + 50*n; y = margin - 15; color = new Black }[\(datum.name)]
+      \Text{ x = margin + 30 + 50*n; y = margin - 15 }[\(datum.name)]
       \legends'(n+1)
     ` in `\legends'(0)`
 };
@@ -140,9 +140,9 @@ legendDecorator (base : ChartT) =
 borderDecorator (base : ChartT) =
     trait [self : Chart] implements Chart inherits base => open factory in {
   override render = let sr = super.render in open config in `\sr
-    \Line{ x1 = margin; y1 = margin; x2 = width; y2 = margin; color = new Black; width = 1 }
-    \Line{ x1 = margin; y1 = margin; x2 = margin; y2 = height - margin; color = new Black; width = 1 }
-    \Line{ x1 = width - 1; y1 = margin; x2 = width - 1; y2 = height - margin; color = new Black; width = 1 }
+    \Line{ x1 = margin; y1 = margin; x2 = width; y2 = margin }
+    \Line{ x1 = margin; y1 = margin; x2 = margin; y2 = height - margin }
+    \Line{ x1 = width - 1; y1 = margin; x2 = width - 1; y2 = height - margin }
   `;
 };
 

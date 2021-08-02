@@ -5,12 +5,12 @@ import Prelude
 import Data.Array (all, elem, head, notElem, null, unzip)
 import Data.Either (Either(..))
 import Data.Foldable (foldr)
-import Data.List (List(..), filter, last, singleton, (:))
+import Data.List (List(..), filter, last, singleton, sort, (:))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Traversable (traverse)
-import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Data.Tuple (Tuple(..), fst, uncurry)
 import Zord.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
 import Zord.Desugar (desugar, desugarMethodPattern)
 import Zord.Subtyping (isTopLike, (<:), (===))
@@ -96,6 +96,15 @@ infer (S.TmBinary Index e1 e2) = do
                pure $ Tuple (C.TmBinary Index e1' (C.TmAnno e2' C.TyInt)) t1'
              _ -> throwTypeError $ "Index is not defined between" <+>
                                    show t1 <+> "and" <+> show t2
+-- this undefined-coalescing operator is only used for record default values
+infer (S.TmBinary Coalesce (S.TmPrj e1 label) e2) = do
+  Tuple e1' t1 <- infer e1
+  Tuple e2' t2 <- infer e2
+  case selectLabel t1 label true of
+    Just t | t === t2 ->
+      pure $ Tuple (C.TmBinary Coalesce (C.TmPrj e1' label) e2') t
+    _ -> throwTypeError $
+      label <> "'s default value does not match its signature"
 infer (S.TmIf e1 e2 e3) = do
   Tuple e1' t1 <- infer e1
   if t1 <: C.TyBool then do
@@ -124,7 +133,7 @@ infer (S.TmAbs (Cons (S.TmParam x (Just targ)) Nil) e) = do
   pure $ Tuple (C.TmAbs x e' targ' tret false) (C.TyArrow targ' tret false)
 infer (S.TmAbs (Cons (S.TmParam x Nothing) Nil) _) = throwTypeError $
   "lambda parameter" <+> show x <+> "should be annotated with a type"
-infer (S.TmAbs (Cons S.WildCard Nil) _) = throwTypeError $
+infer (S.TmAbs (Cons (S.WildCard _) Nil) _) = throwTypeError $
   "record wildcards should only occur in traits with interfaces implemented"
 infer (S.TmAnno e ta) = do
   Tuple e' t <- infer e
@@ -145,10 +154,10 @@ infer (S.TmMerge e1 e2) = do
   where appToSelf e = C.TmApp e (C.TmVar "self") true
 infer (S.TmRcd (Cons (S.RcdField _ l Nil (Left e)) Nil)) = do
   Tuple e' t <- infer e
-  pure $ Tuple (C.TmRcd l t e') (C.TyRcd l t)
+  pure $ Tuple (C.TmRcd l t e') (C.TyRcd l t false)
 infer (S.TmPrj e l) = do
   Tuple e' t <- infer e
-  case selectLabel t l of
+  case selectLabel t l false of
     Just t' -> pure $ Tuple (C.TmPrj e' l) t'
     _ -> throwTypeError $ show t <+> "has no label named" <+> show l
 infer (S.TmTApp e ta) = do
@@ -175,11 +184,11 @@ infer (S.TmLetrec x Nil Nil t e1 e2) = do
 -- TODO: find a more efficient algorithm
 infer (S.TmOpen e1 e2) = do
   Tuple e1' t1 <- infer e1
-  let bindings = foldr (\l s -> Tuple l (unsafeFromJust (selectLabel t1 l)) : s)
-                       Nil (collectLabels t1)
-  Tuple e2' t2 <- foldr (uncurry addTmBind) (infer e2) bindings
+  let b = foldr (\l s -> Tuple l (unsafeFromJust (selectLabel t1 l false)) : s)
+                Nil (collectLabels t1)
+  Tuple e2' t2 <- foldr (uncurry addTmBind) (infer e2) b
   let open (Tuple l t) e = letIn l (C.TmPrj (C.TmVar opened) l) t e t2
-  pure $ Tuple (letIn opened e1' t1 (foldr open e2' bindings) t2) t2
+  pure $ Tuple (letIn opened e1' t1 (foldr open e2' b) t2) t2
   where opened = "#opened"
 infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
   t' <- transform t
@@ -218,16 +227,17 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     inferFromSig s (S.TmMerge e1 e2) =
       S.TmMerge (inferFromSig s e1) (inferFromSig s e2)
     inferFromSig (S.TyRcd xs) r@(S.TmRcd (Cons (S.RcdField o l Nil (Left e)) Nil)) =
-      case last $ filter (\x -> fst x == l) xs of
-        Just (Tuple _ ty) ->
+      case last $ filterRcd (_ == l) xs of
+        Just (S.RcdTy _ ty _) ->
           S.TmRcd (singleton (S.RcdField o l Nil (Left (inferFromSig ty e))))
         _ -> r
     inferFromSig (S.TyRcd xs)
         (S.TmRcd (Cons (S.DefaultPattern pat@(S.MethodPattern _ label _ _)) Nil)) =
-      desugar $ S.TmRcd $ filter (\x -> fst x `notElem` patterns label) xs <#> \x ->
-        let Tuple params ty = paramsAndInnerTy (snd x)
-            e = inferFromSig ty (desugarMethodPattern pat) in
-        S.RcdField false (fst x) params (Left e)
+      desugar $ S.TmRcd $ filterRcd (_ `notElem` patterns label) xs <#>
+        \(S.RcdTy l' t' _) ->
+          let Tuple params ty = paramsAndInnerTy t'
+              e = inferFromSig ty (desugarMethodPattern pat) in
+          S.RcdField false l' params (Left e)
       where patterns :: Label -> Array Label
             patterns l = patternsFromRcd (S.TmMerge (fromMaybe S.TmUnit me1) ne2) l
             patternsFromRcd :: S.Tm -> Label -> Array Label
@@ -255,10 +265,16 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     inferFromSig (S.TyArrow _ tret)
                  (S.TmAbs param@(Cons (S.TmParam _ (Just _)) Nil) e) =
       S.TmAbs param (inferFromSig tret e)
-    inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons S.WildCard Nil) e) =
-      S.TmAbs (singleton (S.TmParam wildcard (Just targ)))
-              (S.TmOpen (S.TmVar wildcard) (inferFromSig tret e))
-      where wildcard = "#wildcard"
+    inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons (S.WildCard defaults) Nil) e)
+      -- TODO: better error messages for mismatch
+      | defaults `matchOptional` targ =
+        S.TmAbs (singleton (S.TmParam wildcardName (Just targ)))
+                (open defaults (S.TmOpen wildcardVar (inferFromSig tret e)))
+      where wildcardName = "#wildcard"
+            wildcardVar = S.TmVar wildcardName
+            open fields body = foldr letFieldIn body fields
+            letFieldIn (Tuple l e1) e2 = S.TmLet l Nil Nil
+              (S.TmBinary Coalesce (S.TmPrj wildcardVar l) e1) e2
     inferFromSig (S.TyTrait ti to) (S.TmTrait (Just (Tuple self' t')) sig' e1 e2) =
       let t'' = if t' == S.TyTop then fromMaybe S.TyTop ti else t' in
       S.TmTrait (Just (Tuple self' t'')) sig' e1 (inferFromSig to e2)
@@ -268,7 +284,10 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
     combineRcd (S.TyAnd l (S.TyRcd ys)) = combineRcd l <> ys
     combineRcd (S.TyAnd (S.TyRcd xs) r) = xs <> combineRcd r
     combineRcd (S.TyAnd l r) = combineRcd l <> combineRcd r
+    combineRcd (S.TyRcd rcd) = rcd
     combineRcd _ = Nil
+    filterRcd :: (Label -> Boolean) -> S.RcdTyList -> S.RcdTyList
+    filterRcd f = filter \(S.RcdTy l _ _) -> f l
     override :: C.Ty -> S.Tm -> C.Ty
     override ty e = let ls = selectOverride e in
       if null ls then ty else removeOverride ty ls
@@ -289,8 +308,13 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
                 C.TyTop, _       -> t2'
                 _,       C.TyTop -> t1'
                 _,       _       -> C.TyAnd t1' t2'
-            removeOverride (C.TyRcd l _) ls | l `elem` ls = C.TyTop
+            removeOverride (C.TyRcd l _ _) ls | l `elem` ls = C.TyTop
             removeOverride typ _ = typ
+    matchOptional :: S.DefaultFields -> S.Ty -> Boolean
+    matchOptional def ty = sort labels == sort labels' -- identical up to permutation
+      where labels = fst <$> def
+            labels' = foldr (\(S.RcdTy l _ opt) s -> if opt then l : s else s)
+                            Nil (combineRcd ty)
 infer (S.TmTrait self sig e1 e2) =
   infer $ S.TmTrait (Just (fromMaybe (Tuple "self" S.TyTop) self))
                     (Just (fromMaybe S.TyTop sig)) e1 e2
@@ -318,7 +342,7 @@ infer (S.TmExclude e te) = do
   case t of
     C.TyArrow ti to true -> case te' of
       -- TODO: support intersection of multiple record types
-      C.TyRcd l tl ->
+      C.TyRcd l tl false ->
         let Tuple overridden to' = exclude to l tl
             t' = C.TyArrow ti to' true in
         if overridden then pure $ Tuple (C.TmAnno e' t') t'
@@ -332,7 +356,7 @@ infer (S.TmExclude e te) = do
       let Tuple o1 t1' = exclude t1 l t
           Tuple o2 t2' = exclude t2 l t in
       Tuple (o1 || o2) (C.TyAnd t1' t2')
-    exclude (C.TyRcd l' t') l t | l == l' && t' === t = Tuple true C.TyTop
+    exclude (C.TyRcd l' t' false) l t | l == l' && t' === t = Tuple true C.TyTop
     exclude t _ _ = Tuple false t
 infer (S.TmFold t e) = do
   t' <- transformTyRec t
@@ -393,8 +417,9 @@ disjoint _ t | isTopLike t = pure unit
 disjoint (C.TyArrow _ t1 _) (C.TyArrow _ t2 _) = disjoint t1 t2
 disjoint (C.TyAnd t1 t2) t3 = disjoint t1 t3 *> disjoint t2 t3
 disjoint t1 (C.TyAnd t2 t3) = disjoint (C.TyAnd t2 t3) t1
-disjoint (C.TyRcd l1 t1) (C.TyRcd l2 t2) | l1 == l2  = disjoint t1 t2
-                                         | otherwise = pure unit
+disjoint (C.TyRcd l1 t1 opt1) (C.TyRcd l2 t2 opt2)
+  | l1 == l2 && not opt1 && not opt2 = disjoint t1 t2
+  | otherwise = pure unit
 disjoint (C.TyVar a) t = do
   mt' <- lookupTyBind a
   case mt' of
@@ -431,14 +456,15 @@ transformTyRec t = do
 
 collectLabels :: C.Ty -> Set Label
 collectLabels (C.TyAnd t1 t2) = Set.union (collectLabels t1) (collectLabels t2)
-collectLabels (C.TyRcd l _) = Set.singleton l
+collectLabels (C.TyRcd l _ false) = Set.singleton l
 collectLabels _ = Set.empty
 
-selectLabel :: C.Ty -> Label -> Maybe C.Ty
-selectLabel (C.TyAnd t1 t2) l = case selectLabel t1 l, selectLabel t2 l of
-  Just t1', Just t2' -> Just (C.TyAnd t1' t2')
-  Just t1', Nothing  -> Just t1'
-  Nothing,  Just t2' -> Just t2'
-  Nothing,  Nothing  -> Nothing
-selectLabel (C.TyRcd l' t) l | l == l' = Just t
-selectLabel _ _ = Nothing
+selectLabel :: C.Ty -> Label -> Boolean -> Maybe C.Ty
+selectLabel (C.TyAnd t1 t2) l opt =
+  case selectLabel t1 l opt, selectLabel t2 l opt of
+    Just t1', Just t2' -> Just (C.TyAnd t1' t2')
+    Just t1', Nothing  -> Just t1'
+    Nothing,  Just t2' -> Just t2'
+    Nothing,  Nothing  -> Nothing
+selectLabel (C.TyRcd l' t opt') l opt | l == l' && opt == opt' = Just t
+selectLabel _ _ _ = Nothing

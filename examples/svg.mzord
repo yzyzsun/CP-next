@@ -4,25 +4,28 @@ type HTML = { html : String };
 
 type GraphicSig<Graphic><Color> = {
   Graph : { width: Int; height: Int } -> Graphic -> Graphic;
-  Line : { x1: Int; y1: Int; x2: Int; y2: Int; color: Color; width: Int } -> Graphic;
-  Rect : { x: Int; y: Int; width: Int; height: Int; color: Color } -> Graphic;
-  Circle : { cx: Int; cy: Int; r: Int; color: Color } -> Graphic;
-  Ellipse : { cx: Int; cy: Int; rx: Int; ry: Int; color: Color } -> Graphic;
-  Path : { d: String; fill: Color; stroke: Color; width: Int } -> Graphic;
-  Text : { x: Int; y: Int; color: Color } -> Graphic -> Graphic;
+  Line : { x1: Int; y1: Int; x2: Int; y2: Int; color?: Color; width?: Int } -> Graphic;
+  Rect : { x: Int; y: Int; width: Int; height: Int; color?: Color } -> Graphic;
+  Circle : { cx: Int; cy: Int; r: Int; color?: Color } -> Graphic;
+  Ellipse : { cx: Int; cy: Int; rx: Int; ry: Int; color?: Color } -> Graphic;
+  Path : { d: String; fill?: Color; stroke?: Color; width?: Int } -> Graphic;
+  Text : { x: Int; y: Int; color?: Color } -> Graphic -> Graphic;
   Use : String -> String -> Graphic;
   Group : String -> Graphic -> Graphic;
   Defs : Graphic -> Graphic;
 };
 
+black = { hex = "black" };
+transparent = { hex = "transparent" };
+
 svg = trait implements GraphicSig<HTML><Hex> => {
   (Graph {..} e).html = "<svg width=\"" ++ toString width ++ "\" height=\"" ++ toString height ++ "\" font-size=\"10\">" ++ e.html ++ "</svg>";
-  (Line {..}).html = "<line x1=\"" ++ toString x1 ++ "\" y1=\"" ++ toString y1 ++ "\" x2=\"" ++ toString x2 ++ "\" y2=\"" ++ toString y2 ++ "\" stroke=\"" ++ color.hex ++ "\" stroke-width=\"" ++ toString width ++ "\" />";
-  (Rect {..}).html = "<rect x=\"" ++ toString x ++ "\" y=\"" ++ toString y ++ "\" width=\"" ++ toString width ++ "\" height=\"" ++ toString height ++ "\" fill=\"" ++ color.hex ++ "\" />";
-  (Circle {..}).html = "<circle cx=\"" ++ toString cx ++ "\" cy=\"" ++ toString cy ++ "\" r=\"" ++ toString r ++ "\" fill=\"" ++ color.hex ++ "\" />";
-  (Ellipse {..}).html = "<ellipse cx=\"" ++ toString cx ++ "\" cy=\"" ++ toString cy ++ "\" rx=\"" ++ toString rx ++ "\" ry=\"" ++ toString ry ++ "\" fill=\"" ++ color.hex ++ "\" />";
-  (Path {..}).html = "<path d=\"" ++ d ++ "\" fill=\"" ++ fill.hex ++ "\" stroke=\"" ++ stroke.hex ++ "\" stroke-width=\"" ++ toString width ++ "\" />";
-  (Text {..} e).html = "<text x=\"" ++ toString x ++ "\" y=\"" ++ toString y ++ "\" fill=\"" ++ color.hex ++ "\">" ++ e.html ++ "</text>";
+  (Line { color = black; width = 1; ..}).html = "<line x1=\"" ++ toString x1 ++ "\" y1=\"" ++ toString y1 ++ "\" x2=\"" ++ toString x2 ++ "\" y2=\"" ++ toString y2 ++ "\" stroke=\"" ++ color.hex ++ "\" stroke-width=\"" ++ toString width ++ "\" />";
+  (Rect { color = black; ..}).html = "<rect x=\"" ++ toString x ++ "\" y=\"" ++ toString y ++ "\" width=\"" ++ toString width ++ "\" height=\"" ++ toString height ++ "\" fill=\"" ++ color.hex ++ "\" />";
+  (Circle { color = black; ..}).html = "<circle cx=\"" ++ toString cx ++ "\" cy=\"" ++ toString cy ++ "\" r=\"" ++ toString r ++ "\" fill=\"" ++ color.hex ++ "\" />";
+  (Ellipse { color = black; ..}).html = "<ellipse cx=\"" ++ toString cx ++ "\" cy=\"" ++ toString cy ++ "\" rx=\"" ++ toString rx ++ "\" ry=\"" ++ toString ry ++ "\" fill=\"" ++ color.hex ++ "\" />";
+  (Path { fill = transparent; stroke = black; width = 1; ..}).html = "<path d=\"" ++ d ++ "\" fill=\"" ++ fill.hex ++ "\" stroke=\"" ++ stroke.hex ++ "\" stroke-width=\"" ++ toString width ++ "\" />";
+  (Text { color = black; ..} e).html = "<text x=\"" ++ toString x ++ "\" y=\"" ++ toString y ++ "\" fill=\"" ++ color.hex ++ "\">" ++ e.html ++ "</text>";
   (Use id tr).html = "<use href=\"#" ++ id ++ "\" transform=\"" ++ tr ++ "\" />";
   (Group id e).html = "<g id=\"" ++ id ++ "\">" ++ e.html ++ "</g>";
   (Defs e).html = "<defs>" ++ e.html ++ "</defs>";

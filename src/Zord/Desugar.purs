@@ -45,7 +45,7 @@ desugar (TmLetrec x tyParams tmParams t e1 e2) =
   where t' = TyForall tyParams (foldr TyArrow t (tyOf <$> tmParams))
         tyOf = case _ of TmParam _ (Just ty) -> ty
                          TmParam _ Nothing -> TyBot
-                         WildCard -> TyBot
+                         WildCard _ -> TyBot
 
 desugar (TmUnary op e) = TmUnary op (desugar e)
 desugar (TmBinary op e1 e2) = TmBinary op (desugar e1) (desugar e2)

@@ -23,6 +23,7 @@ eval = runTrampoline <<< go <<< tmHoas
     go e@(TmString _) = pure e
     go e@(TmBool _)   = pure e
     go TmUnit = pure TmUnit
+    go TmUndefined = pure TmUndefined
     go (TmUnary op e) = unop op <$> go e
     go (TmBinary op e1 e2) = do
       e1' <- go e1
@@ -76,10 +77,14 @@ typedReduce :: Tm -> Ty -> Maybe Tm
 typedReduce e _ | not (isValue e) = unsafeCrashWith $
   "Zord.Semantics.HOAS.typedReduce: " <> show e <> " is not a value"
 typedReduce _ t | isTopLike t = Just TmUnit
-typedReduce v t | Just (Tuple t1 t2) <- split t =
-  case typedReduce v t1, typedReduce v t2 of
-    Just v1, Just v2 -> Just $ TmMerge v1 v2
-    _, _ -> Nothing
+typedReduce v t | Just (Tuple t1 t2) <- split t = do
+  let m1 = isOptionalRcd t1
+      m2 = isOptionalRcd t2
+      v1 = typedReduce v t1
+      v2 = typedReduce v t2
+  (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
+  where isOptionalRcd (TyRcd _ _ true) = Just TmUnit
+        isOptionalRcd _ = Nothing
 typedReduce (TmInt i)    TyInt    = Just $ TmInt i
 typedReduce (TmDouble n) TyDouble = Just $ TmDouble n
 typedReduce (TmString s) TyString = Just $ TmString s
@@ -87,7 +92,7 @@ typedReduce (TmBool b)   TyBool   = Just $ TmBool b
 typedReduce (TmHAbs abs targ1 tret1 _) (TyArrow _ tret2 _)
   | tret1 <: tret2 = Just $ TmHAbs abs targ1 tret2 true
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
-typedReduce (TmRcd l t e) (TyRcd l' t')
+typedReduce (TmRcd l t e) (TyRcd l' t' _)
   | l == l' && t <: t' = Just $ TmRcd l t' e
 typedReduce (TmHTAbs tabs td1 tf1) (TyForall a td2 t2)
   | td2 <: td1 && tf1 (TyVar a) <: t2
@@ -112,7 +117,8 @@ isValue (TmInt _)    = true
 isValue (TmDouble _) = true
 isValue (TmString _) = true
 isValue (TmBool _)   = true
-isValue (TmUnit)     = true
+isValue TmUnit       = true
+isValue TmUndefined  = true
 isValue (TmHAbs _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true

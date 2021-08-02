@@ -78,14 +78,21 @@ typedReduce tm ty = runMaybeT $ go tm ty
     go e _ | not (isValue e) = unsafeCrashWith $
       "Zord.Semantics.Closure.typedReduce: " <> show e <> " is not a value"
     go _ t | isTopLike t = pure TmUnit
-    go v t | Just (Tuple t1 t2) <- split t = TmMerge <$> go v t1 <*> go v t2
+    go v t | Just (Tuple t1 t2) <- split t = do
+      let m1 = isOptionalRcd t1
+          m2 = isOptionalRcd t2
+          v1 = go v t1
+          v2 = go v t2
+      (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
+      where isOptionalRcd (TyRcd _ _ true) = pure TmUnit
+            isOptionalRcd _ = empty
     go (TmMerge v1 v2) t = go v1 t <|> go v2 t
     go (TmInt i)    TyInt    = pure $ TmInt i
     go (TmDouble n) TyDouble = pure $ TmDouble n
     go (TmString s) TyString = pure $ TmString s
     go (TmBool b)   TyBool   = pure $ TmBool b
     go (TmFold t v) t'@(TyRec _ _) | t <: t' = pure $ TmFold t' v
-    go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2) = do
+    go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2 _) = do
       t1' <- lift $ local (const env) $ expand t1
       if l1 == l2 && t1' <: t2 then pure $ TmClosure env (TmRcd l2 t2 e)
                                else empty
@@ -124,12 +131,12 @@ paraApp v arg = unsafeCrashWith $ "Zord.Semantics.Closure.paraApp: " <>
 
 selectLabel :: Tm -> Label -> Tm
 selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUnit, TmUnit -> TmUnit
-  TmUnit, e2' -> e2'
-  e1', TmUnit -> e1'
+  TmUndefined, TmUndefined -> TmUndefined
+  TmUndefined, e2' -> e2'
+  e1', TmUndefined -> e1'
   e1', e2' -> TmMerge e1' e2'
 selectLabel (TmClosure env (TmRcd l' t e)) l | l == l' = TmClosure env (TmAnno e t)
-selectLabel _ _ = TmUnit
+selectLabel _ _ = TmUndefined
 
 unop' :: UnOp -> Tm -> Tm
 unop' Len (TmClosure _ (TmArray _ arr)) = TmInt (length arr)
@@ -148,7 +155,7 @@ binop' op v1 v2 = binop op v1 v2
 expand :: forall m. Monad m => Ty -> EvalT m Ty
 expand (TyArrow t1 t2 isTrait) = TyArrow <$> expand t1 <*> expand t2 <@> isTrait
 expand (TyAnd t1 t2) = TyAnd <$> expand t1 <*> expand t2
-expand (TyRcd l t) = TyRcd l <$> expand t
+expand (TyRcd l t opt) = TyRcd l <$> expand t <@> opt
 expand (TyVar a) = ask >>= \env -> case lookup a env of
   Just (TyBind Nothing) -> pure $ TyVar a
   Just (TyBind (Just t)) -> expand t
@@ -168,7 +175,8 @@ isValue (TmInt _)    = true
 isValue (TmDouble _) = true
 isValue (TmString _) = true
 isValue (TmBool _)   = true
-isValue (TmUnit)     = true
+isValue TmUnit       = true
+isValue TmUndefined  = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmFold _ e) = isValue e
 isValue (TmClosure _ (TmRcd _ _ _)) = true

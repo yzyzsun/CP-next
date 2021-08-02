@@ -9,9 +9,10 @@ import Data.List (List(..), foldr)
 import Data.Maybe (Maybe(..))
 import Data.String (codePointAt)
 import Data.Traversable (for, traverse)
-import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Data.Tuple (Tuple(..), fst, uncurry)
 import Zord.Context (Typing, addTyBind, lookupSort, lookupTyAlias, lookupTyBind, throwTypeError)
 import Zord.Syntax.Core as C
+import Zord.Syntax.Source (RcdTy(..))
 import Zord.Syntax.Source as S
 import Zord.Util (foldl1, unsafeFromJust, (<+>))
 
@@ -29,8 +30,8 @@ duringTransformation f (Tuple t x) = do
 
 translate :: S.Ty -> Typing C.Ty
 translate (S.TyRcd Nil) = pure C.TyTop
-translate (S.TyRcd xs) =
-  foldl1 C.TyAnd <$> for xs \x -> C.TyRcd (fst x) <$> translate (snd x)
+translate (S.TyRcd xs) = foldl1 C.TyAnd <$> for xs \(RcdTy l t opt) ->
+  C.TyRcd l <$> translate t <@> opt
 translate (S.TyForall xs t) =
   foldr (uncurry C.TyForall) <$> translate t <*>
     traverse (rtraverse disjointness) xs
@@ -65,7 +66,8 @@ someTy = C.TyTop
 expand :: S.Ty -> Typing S.Ty
 expand (S.TyArrow t1 t2) = S.TyArrow <$> expand t1 <*> expand t2
 expand (S.TyAnd t1 t2) = S.TyAnd <$> expand t1 <*> expand t2
-expand (S.TyRcd xs) = S.TyRcd <$> traverse (rtraverse expand) xs
+expand (S.TyRcd xs) = S.TyRcd <$> for xs \(RcdTy l t opt) ->
+  RcdTy l <$> expand t <@> opt
 expand (S.TyVar a) = do
   mtd <- lookupTyBind a
   ms <- lookupSort a
@@ -120,8 +122,8 @@ distinguish isCtor isOut (S.TyArrow t1 t2) =
   S.TyArrow <$> distinguish isCtor (not isOut) t1 <*> distinguish isCtor isOut t2
 distinguish isCtor isOut (S.TyAnd t1 t2) =
   S.TyAnd <$> distinguish isCtor isOut t1 <*> distinguish isCtor isOut t2
-distinguish _ isOut (S.TyRcd xs) = S.TyRcd <$> for xs \(Tuple l t) ->
-  Tuple l <$> distinguish (isUpper $ unsafeFromJust $ codePointAt 0 l) isOut t
+distinguish _ isOut (S.TyRcd xs) = S.TyRcd <$> for xs \(RcdTy l t opt) ->
+  RcdTy l <$> distinguish (isUpper $ unsafeFromJust $ codePointAt 0 l) isOut t <@> opt
 distinguish isCtor true t@(S.TyVar a) = do
   mb <- lookupSort a
   case mb of Just b -> do if isCtor then pure $ S.TyTrait (Just t) (S.TyVar b)

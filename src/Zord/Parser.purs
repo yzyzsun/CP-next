@@ -26,7 +26,7 @@ import Text.Parsing.Parser.Pos (updatePosString)
 import Text.Parsing.Parser.String (char, satisfy)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
 import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
-import Zord.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..), TyParam)
+import Zord.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam)
 import Zord.Util (foldl1, unsafeFromJust)
 
 type SParser a = Parser String a
@@ -352,9 +352,10 @@ muTy = do
 recordTy :: SParser Ty
 recordTy = braces $ TyRcd <$> sepEndBySemi do
   l <- identifier
+  opt <- isJust <$> optional (symbol "?")
   symbol ":"
   t <- ty
-  pure $ Tuple l t
+  pure $ RcdTy l t opt
 
 toperators :: OperatorTable Identity String Ty
 toperators = [ [ Infix (reservedOp "&"  $> TyAnd) AssocLeft  ]
@@ -375,14 +376,19 @@ tyParams us = Tuple <$> id <*> pure Nothing <|>
 tmParams :: SParser TmParam
 tmParams = choice [ parensNameColonType
                   , TmParam <$> id <@> Nothing
-                  , WildCard <$ braces (symbol "..")
+                  , WildCard <$> braces (sepEndBySemi defaultField <* symbol "..")
                   ]
-  where parensNameColonType = parens do
+  where id = lowerIdentifier <|> underscore
+        parensNameColonType = parens do
           x <- id
           symbol ":"
           t <- ty
           pure $ TmParam x (Just t)
-        id = lowerIdentifier <|> underscore
+        defaultField = do
+          x <- lowerIdentifier
+          symbol "="
+          e <- expr
+          pure $ Tuple x e
 
 selfAnno :: SParser (Tuple Name Ty)
 selfAnno = brackets $ Tuple <$> lowerIdentifier <* symbol ":" <*> ty
