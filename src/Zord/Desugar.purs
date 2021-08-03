@@ -56,6 +56,7 @@ desugar (TmMerge e1 e2) = TmMerge (desugar e1) (desugar e2)
 desugar (TmPrj e l) = TmPrj (desugar e) l
 desugar (TmTApp e t) = TmTApp (desugar e) t
 desugar (TmOpen e1 e2) = TmOpen (desugar e1) (desugar e2)
+desugar (TmUpdate e xs) = TmUpdate (desugar e) (rmap desugar <$> xs)
 desugar (TmNew e) = TmNew (desugar e)
 desugar (TmForward e1 e2) = TmForward (desugar e1) (desugar e2)
 desugar (TmExclude e t) = TmExclude (desugar e) t

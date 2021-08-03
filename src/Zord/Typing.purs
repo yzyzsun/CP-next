@@ -2,14 +2,14 @@ module Zord.Typing where
 
 import Prelude
 
-import Data.Array (all, elem, head, notElem, null, unzip)
+import Data.Array (all, difference, elem, head, notElem, null, unzip)
 import Data.Either (Either(..))
 import Data.Foldable (foldr)
 import Data.List (List(..), filter, last, singleton, sort, (:))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set)
 import Data.Set as Set
-import Data.Traversable (traverse)
+import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..), fst, uncurry)
 import Zord.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
 import Zord.Desugar (desugar, desugarMethodPattern)
@@ -190,6 +190,20 @@ infer (S.TmOpen e1 e2) = do
   let open (Tuple l t) e = letIn l (C.TmPrj (C.TmVar opened) l) t e t2
   pure $ Tuple (letIn opened e1' t1 (foldr open e2' b) t2) t2
   where opened = "#opened"
+infer (S.TmUpdate rcd fields) = do
+  Tuple rcd' t <- infer rcd
+  fields' <- for fields \(Tuple l e) -> do
+    Tuple e' t' <- infer e
+    pure $ C.TmRcd l t' e'
+  let t' = foldr rcdTy C.TyTop fields'
+  if t <: t' then do
+    let outdate = C.TmAnno rcd' (diffRcdTy t t')
+    let update = foldr C.TmMerge C.TmUnit fields'
+    pure $ Tuple (C.TmMerge outdate update) t
+  else throwTypeError $ show rcd <+> "cannot be safely updated"
+  where rcdTy :: C.Tm -> C.Ty -> C.Ty
+        rcdTy (C.TmRcd l t _) s = C.TyAnd (C.TyRcd l t false) s
+        rcdTy _ s = s
 infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
   t' <- transform t
   Tuple sig' e2 <- inferFromSig `duringTransformation` Tuple sig ne2
@@ -340,24 +354,12 @@ infer (S.TmExclude e te) = do
   Tuple e' t <- infer e
   te' <- transform te
   case t of
-    C.TyArrow ti to true -> case te' of
-      -- TODO: support intersection of multiple record types
-      C.TyRcd l tl false ->
-        let Tuple overridden to' = exclude to l tl
-            t' = C.TyArrow ti to' true in
-        if overridden then pure $ Tuple (C.TmAnno e' t') t'
-        else throwTypeError $ show e <+> "does not contain a field of" <+> show te
-      _ -> throwTypeError $ "expected to exclude a single-field record type," <+>
-                            "but got" <+> show te
+    C.TyArrow ti to true ->
+      if to <: te' then let t' = C.TyArrow ti (diffRcdTy to te') true in
+                        pure $ Tuple (C.TmAnno e' t') t'
+      else throwTypeError $ show e <+> "expected to exclude its supertype" <>
+                            ", but got" <+> show te
     _ -> throwTypeError $ "expected to exclude from a trait, but got" <+> show e
-  where
-    exclude :: C.Ty -> Label -> C.Ty -> Tuple Boolean C.Ty
-    exclude (C.TyAnd t1 t2) l t =
-      let Tuple o1 t1' = exclude t1 l t
-          Tuple o2 t2' = exclude t2 l t in
-      Tuple (o1 || o2) (C.TyAnd t1' t2')
-    exclude (C.TyRcd l' t' false) l t | l == l' && t' === t = Tuple true C.TyTop
-    exclude t _ _ = Tuple false t
 infer (S.TmFold t e) = do
   t' <- transformTyRec t
   Tuple e' t'' <- infer e
@@ -453,6 +455,15 @@ transformTyRec t = do
   case t' of C.TyRec _ _ -> pure t'
              _ -> throwTypeError $
                "fold/unfold expected a recursive type, but got" <+> show t
+
+diffRcdTy :: C.Ty -> C.Ty -> C.Ty
+diffRcdTy x y = fromArray (difference (toArray x) (toArray y))
+  where
+    fromArray :: Array C.Ty -> C.Ty
+    fromArray = foldr C.TyAnd C.TyTop
+    toArray :: C.Ty -> Array C.Ty
+    toArray (C.TyAnd t1 t2) = toArray t1 <> toArray t2
+    toArray t = [t]
 
 collectLabels :: C.Ty -> Set Label
 collectLabels (C.TyAnd t1 t2) = Set.union (collectLabels t1) (collectLabels t2)

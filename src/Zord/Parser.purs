@@ -99,7 +99,7 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
                  , reserved "undefined" $> TmUndefined
                  , identifier <#> TmVar
                  , brackets $ TmArray <<< toUnfoldable <$> sepEndBySemi e
-                 , recordLit e
+                 , braces $ recordUpdate e <|> recordLit e
                  , parens e
                  ]
 
@@ -233,8 +233,14 @@ bracesWithoutTrailingSpace = between (symbol "{") (char '}')
 bracketsWithoutConsumingSpace :: forall a. SParser a -> SParser a
 bracketsWithoutConsumingSpace = between (char '[') (char ']')
 
+recordUpdate :: SParser Tm -> SParser Tm
+recordUpdate p = do
+  rcd <- try $ p <* symbol "|"
+  fields <- sepEndBySemi (Tuple <$> identifier <* symbol "=" <*> p)
+  pure $ TmUpdate rcd fields
+
 recordLit :: SParser Tm -> SParser Tm
-recordLit p = braces $ TmRcd <$> sepEndBySemi do
+recordLit p = TmRcd <$> sepEndBySemi do
   o <- isJust <$> optional (reserved "override")
   recordField p o <|> methodPattern p o <|> defaultPattern p
 

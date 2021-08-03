@@ -29,7 +29,7 @@ type VarSig<Exp> = {
 };
 evalVar (Context * CtxN) = trait implements VarSig<Eval (CtxN&Context)> => {
   (Let s e1 e2).eval ctx =
-    e2.eval ({ envN = insert @Int s (e1.eval ctx) ctx.envN } , (ctx:Context));
+    e2.eval { ctx | envN = insert @Int s (e1.eval ctx) ctx.envN };
   (Var       s).eval ctx = lookup @Int s ctx.envN;
 };
 
@@ -39,7 +39,7 @@ type FuncSig<Exp> = {
 };
 evalFunc (Context * CtxF) = trait implements FuncSig<Eval (CtxF&Context)> => {
   (LetF s f e).eval ctx =
-    e.eval ({ envF = insert @Func s f ctx.envF } , (ctx:Context));
+    e.eval { ctx | envF = insert @Func s f ctx.envF };
   (AppF  s  e).eval ctx = (lookup @Func s ctx.envF) (e.eval ctx);
 };
 

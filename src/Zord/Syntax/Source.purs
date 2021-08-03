@@ -80,6 +80,7 @@ data Tm = TmInt Int
         | TmLet Name TyParamList TmParamList Tm Tm
         | TmLetrec Name TyParamList TmParamList Ty Tm Tm
         | TmOpen Tm Tm
+        | TmUpdate Tm (List (Tuple Label Tm))
         | TmTrait SelfAnno (Maybe Ty) (Maybe Tm) Tm
         | TmNew Tm
         | TmForward Tm Tm
@@ -124,6 +125,8 @@ instance Show Tm where
     "letrec" <+> x <+> showTyParams tyParams <> showTmParams tmParams <>
     ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
+  show (TmUpdate rcd fields) = braces $ show rcd <+> "|" <+>
+    intercalate "; " (fields <#> \(Tuple l e) -> l <+> "=" <+> show e)
   show (TmTrait self sig e1 e2) = parens $ "trait" <> showSelf "" self <+>
     showMaybe "implements " sig " " <> showMaybe "inherits " e1 " " <>
     "=>" <+> show e2
