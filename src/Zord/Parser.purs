@@ -132,7 +132,7 @@ trait = do
 new :: SParser Tm
 new = do
   reserved "new"
-  e <- expr
+  e <- opexpr expr
   pure $ TmNew e
 
 ifThenElse :: SParser Tm

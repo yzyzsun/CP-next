@@ -23,7 +23,7 @@ TypeDef {
 }
 
 TermDef {
-  TermNameDecl typeParam* termParam* (":" type)? "=" expression ";"
+  TermNameDecl ~conflict typeParam* termParam* (":" type)? "=" expression ";"
 }
 
 type {
@@ -65,27 +65,25 @@ lexpr {
   Open { kw<"open"> expression kw<"in"> expression } |
   IfElse { kw<"if"> expression kw<"then"> expression kw<"else"> expression } |
   Trait { kw<"trait"> SelfAnno? (kw<"implements"> type)? (kw<"inherits"> opexpr)? "=>" opexpr } |
-  New { kw<"new"> expression } | ToString { kw<"toString"> fexpr }
+  New { kw<"new"> opexpr } | ToString { kw<"toString"> dotexpr }
 }
 
-fexpr {
-  dotexpr | fexpr (dotexpr | "@" atype)
-}
+fexpr { dotexpr (dotexpr | "@" atype)* }
 
-dotexpr {
-  aexpr ("." Label)+
-}
+dotexpr { aexpr ("." Label)* }
 
 aexpr {
   TermName | Number | String | Document | Unit |
   kw<"true"> | kw<"false"> | kw<"undefined"> |
   Array { brackets<sepEndBySemi<expression>> } |
-  Record | parens<expression>
+  Record | RecordUpdate | parens<expression>
 }
 
 Record {
-  braces<kw<"override">? sepEndBySemi<
-    RecordField | MethodPattern | (underscore | SelfAnno) "." RecordField
+  braces<sepEndBySemi<
+    kw<"override">? RecordField |
+    kw<"override">? MethodPattern |
+    (underscore | SelfAnno) "." RecordField
   >>
 }
 
@@ -97,9 +95,14 @@ MethodPattern {
   parens<LabelDecl termParam* SelfAnno?> "." RecordField
 }
 
+RecordUpdate {
+  braces<TermName "|" sepEndBySemi<LabelDecl "=" expression>>
+}
+
 typeParam { TypeNameDecl | parens<TypeNameDecl "*" type> }
-termParam { termId | parens<termId ":" type> | braces<".."> }
+termParam { termId | parens<termId ":" type> | wildcard }
 termId { underscore | TermNameDecl }
+wildcard { braces<sepEndBySemi<LabelDecl "=" expression> ".."> }
 SelfAnno { brackets<TermNameDecl ":" type> }
 
 kw<word> { @specialize[@name={word}]<lowerid, word> }
