@@ -92,7 +92,7 @@ RecordField {
 }
 
 MethodPattern {
-  parens<LabelDecl termParam* SelfAnno?> "." RecordField
+  (SelfAnno "@")? parens<LabelDecl termParam*> "." RecordField
 }
 
 RecordUpdate {
@@ -103,7 +103,7 @@ typeParam { TypeNameDecl | parens<TypeNameDecl "*" type> }
 termParam { termId | parens<termId ":" type> | wildcard }
 termId { underscore | TermNameDecl }
 wildcard { braces<sepEndBySemi<LabelDecl "=" expression> ".."> }
-SelfAnno { brackets<TermNameDecl ":" type> }
+SelfAnno { brackets<TermNameDecl (":" type)?> }
 
 kw<word> { @specialize[@name={word}]<lowerid, word> }
 kW<word> { @specialize[@name={word}]<upperid, word> }
