@@ -146,12 +146,12 @@ infer (S.TmMerge e1 e2) = do
   case t1, t2 of
     C.TyArrow targ1 tret1 true, C.TyArrow targ2 tret2 true -> do
       disjoint tret1 tret2
-      pure $ trait "self" (C.TmMerge (appToSelf e1') (appToSelf e2'))
+      pure $ trait "#self" (C.TmMerge (appToSelf e1') (appToSelf e2'))
                    (C.TyAnd targ1 targ2) (C.TyAnd tret1 tret2)
     _, _ -> do
       disjoint t1 t2
       pure $ Tuple (C.TmMerge e1' e2') (C.TyAnd t1 t2)
-  where appToSelf e = C.TmApp e (C.TmVar "self") true
+  where appToSelf e = C.TmApp e (C.TmVar "#self") true
 infer (S.TmRcd (Cons (S.RcdField _ l Nil (Left e)) Nil)) = do
   Tuple e' t <- infer e
   pure $ Tuple (C.TmRcd l t e') (C.TyRcd l t false)
@@ -204,7 +204,7 @@ infer (S.TmUpdate rcd fields) = do
   where rcdTy :: C.Tm -> C.Ty -> C.Ty
         rcdTy (C.TmRcd l t _) s = C.TyAnd (C.TyRcd l t false) s
         rcdTy _ s = s
-infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
+infer (S.TmTrait (Just (Tuple self (Just t))) (Just sig) me1 ne2) = do
   t' <- transform t
   Tuple sig' e2 <- inferFromSig `duringTransformation` Tuple sig ne2
   Tuple ret tret <- case me1 of
@@ -289,9 +289,10 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
             open fields body = foldr letFieldIn body fields
             letFieldIn (Tuple l e1) e2 = S.TmLet l Nil Nil
               (S.TmBinary Coalesce (S.TmPrj wildcardVar l) e1) e2
-    inferFromSig (S.TyTrait ti to) (S.TmTrait (Just (Tuple self' t')) sig' e1 e2) =
-      let t'' = if t' == S.TyTop then fromMaybe S.TyTop ti else t' in
-      S.TmTrait (Just (Tuple self' t'')) sig' e1 (inferFromSig to e2)
+    inferFromSig (S.TyTrait ti to) (S.TmTrait (Just (Tuple self' mt)) sig' e1 e2) =
+      let t' = fromMaybe (fromMaybe S.TyTop ti) mt in
+      S.TmTrait (Just (Tuple self' (Just t'))) sig'
+                (inferFromSig to <$> e1) (inferFromSig to e2)
     inferFromSig _ e = e
     combineRcd :: S.Ty -> S.RcdTyList
     combineRcd (S.TyAnd (S.TyRcd xs) (S.TyRcd ys)) = xs <> ys
@@ -329,15 +330,14 @@ infer (S.TmTrait (Just (Tuple self t)) (Just sig) me1 ne2) = do
       where labels = fst <$> def
             labels' = foldr (\(S.RcdTy l _ opt) s -> if opt then l : s else s)
                             Nil (combineRcd ty)
-infer (S.TmTrait self sig e1 e2) =
-  infer $ S.TmTrait (Just (fromMaybe (Tuple "self" S.TyTop) self))
-                    (Just (fromMaybe S.TyTop sig)) e1 e2
+infer (S.TmTrait (Just (Tuple self Nothing)) sig e1 e2) =
+  infer $ S.TmTrait (Just (Tuple self (Just S.TyTop))) sig e1 e2
 infer (S.TmNew e) = do
   Tuple e' t <- infer e
   case t of
     C.TyArrow ti to true ->
       if to <: ti then
-        pure $ Tuple (C.TmFix "self" (C.TmApp e' (C.TmVar "self") true) to) to
+        pure $ Tuple (C.TmFix "#self" (C.TmApp e' (C.TmVar "#self") true) to) to
       else throwTypeError $ "Trait input" <+> show ti <+>
         "is not a supertype of Trait output" <+> show to
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t

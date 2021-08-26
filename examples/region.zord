@@ -67,9 +67,9 @@ chkEmpty = trait implements HoferSig<IsUniv => IsEmpty> => {
 type Opt Region = { optimized : Region };
 opt Region = trait [fself : HoferSig<Region>]
              implements HoferSig<IsUniv&IsEmpty&Region => Opt Region> => {
-  _.optimized = if self.isUniv then new Univ
-                else if self.isEmpty then new Empty
-                else self;
+  [self].optimized = if self.isUniv then new Univ
+                     else if self.isEmpty then new Empty
+                     else self;
 };
 
 repo Region = trait [self : HoferSig<Region>] => {

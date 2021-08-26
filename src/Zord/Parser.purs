@@ -11,7 +11,7 @@ import Data.CodePoint.Unicode (isLower, isUpper)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, null, some, toUnfoldable)
-import Data.Maybe (Maybe(..), isJust, optional)
+import Data.Maybe (Maybe(..), isJust, isNothing, optional)
 import Data.String (codePointAt, codePointFromChar)
 import Data.String.CodeUnits as SCU
 import Data.String.Regex (Regex, match, replace)
@@ -25,8 +25,8 @@ import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.Pos (updatePosString)
 import Text.Parsing.Parser.String (char, satisfy)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), Name, UnOp(..))
-import Zord.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam)
+import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
+import Zord.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam, SelfAnno)
 import Zord.Util (foldl1, unsafeFromJust)
 
 type SParser a = Parser String a
@@ -122,7 +122,7 @@ tyLambdaAbs = do
 trait :: SParser Tm
 trait = do
   reserved "trait"
-  self <- optional selfAnno
+  self <- selfAnno
   sig <- optional (reserved "implements" *> ty)
   e1 <- optional (reserved "inherits" *> expr)
   symbol "=>"
@@ -242,7 +242,8 @@ recordUpdate p = do
 recordLit :: SParser Tm -> SParser Tm
 recordLit p = TmRcd <$> sepEndBySemi do
   o <- isJust <$> optional (reserved "override")
-  recordField p o <|> methodPattern p o <|> defaultPattern p
+  self <- selfAnno
+  recordField p o <|> methodPattern p o self <|> defaultPattern p self
 
 recordField :: SParser Tm -> Boolean -> SParser RcdField
 recordField p o = do
@@ -252,12 +253,12 @@ recordField p o = do
   e <- p
   pure $ RcdField o l params (Left e)
 
-methodPattern :: SParser Tm -> Boolean -> SParser RcdField
-methodPattern p o = do
+methodPattern :: SParser Tm -> Boolean -> SelfAnno -> SParser RcdField
+methodPattern p o self = do
+  if isJust self then symbol "@" else pure unit
   symbol "("
   l <- identifier
   params <- many tmParams
-  self <- optional selfAnno
   symbol ")"
   symbol "."
   l' <- identifier
@@ -266,9 +267,9 @@ methodPattern p o = do
   e <- p
   pure $ RcdField o l params (Right (MethodPattern self l' params' e))
 
-defaultPattern :: SParser Tm -> SParser RcdField
-defaultPattern p = do
-  self <- Just <$> selfAnno <|> Nothing <$ underscore
+defaultPattern :: SParser Tm -> SelfAnno -> SParser RcdField
+defaultPattern p self = do
+  if isNothing self then symbol "_" else pure unit
   symbol "."
   l <- identifier
   params <- many tmParams
@@ -396,8 +397,9 @@ tmParams = choice [ parensNameColonType
           e <- expr
           pure $ Tuple x e
 
-selfAnno :: SParser (Tuple Name Ty)
-selfAnno = brackets $ Tuple <$> lowerIdentifier <* symbol ":" <*> ty
+selfAnno :: SParser SelfAnno
+selfAnno = optional $ brackets $
+  Tuple <$> lowerIdentifier <*> optional (symbol ":" *> ty)
 
 -- Lexer --
 

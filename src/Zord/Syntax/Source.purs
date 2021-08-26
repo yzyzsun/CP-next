@@ -6,7 +6,7 @@ import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, any, intercalate, null)
 import Data.List (List(..))
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple (Tuple(..), fst, snd)
 import Text.Parsing.Parser.Pos (Position)
 import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
@@ -127,7 +127,8 @@ instance Show Tm where
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
   show (TmUpdate rcd fields) = braces $ show rcd <+> "|" <+>
     intercalate "; " (fields <#> \(Tuple l e) -> l <+> "=" <+> show e)
-  show (TmTrait self sig e1 e2) = parens $ "trait" <> showSelf "" self <+>
+  show (TmTrait self sig e1 e2) = parens $ "trait" <>
+    maybe "" (" " <> _) (showSelfAnno self) <+>
     showMaybe "implements " sig " " <> showMaybe "inherits " e1 " " <>
     "=>" <+> show e2
   show (TmNew e) = parens $ "new" <+> show e
@@ -211,14 +212,18 @@ showRcdTm :: List RcdField -> String
 showRcdTm xs = intercalate "; " $ xs <#> case _ of
   RcdField o l p e -> (if o then "override " else "") <> showField l p e
   DefaultPattern (MethodPattern self l p e) ->
-    showSelf "_" self <> "." <> l <+> showTmParams p <> "=" <+> show e
+    fromMaybe "_" (showSelfAnno self) <> showMethod l p e
   where showField :: Label -> TmParamList -> Either Tm MethodPattern -> String
         showField l p (Left e) = l <+> showTmParams p <> "=" <+> show e
         showField l p (Right (MethodPattern self l' p' e)) =
-          parens (" " <> l <+> showTmParams p <> showSelf "" self) <>
-          "." <> l' <+> showTmParams p' <> "=" <+> show e
+          maybe "" (_ <> "@") (showSelfAnno self) <>
+          parens (" " <> l <+> showTmParams p) <> showMethod l' p' e
+        showMethod :: Label -> TmParamList -> Tm -> String
+        showMethod l p e = "." <> l <+> showTmParams p <> "=" <+> show e
 
-type SelfAnno = Maybe (Tuple Name Ty)
+type SelfAnno = Maybe (Tuple Name (Maybe Ty))
 
-showSelf :: String -> SelfAnno -> String
-showSelf = flip maybe \(Tuple x t) -> brackets $ x <+> ":" <+> show t
+showSelfAnno :: SelfAnno -> Maybe String
+showSelfAnno = map \(Tuple x mt) -> brackets $ case mt of
+  Just t  -> x <+> ":" <+> show t
+  Nothing -> x

@@ -9,7 +9,7 @@ type ContentsSig<Element> = DocSig'<Element> & {
 };
 
 contents = trait implements ContentsSig<TOC => HTML> inherits html' => {
-  (WithTOC e).html = self.toc ++ e.html;
+  [self]@(WithTOC e).html = self.toc ++ e.html;
 };
 
 listItem (l:Int) (s:String) : String =

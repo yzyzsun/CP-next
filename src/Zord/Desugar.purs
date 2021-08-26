@@ -27,11 +27,10 @@ desugar (TmRcd xs) =
       RcdField o l Nil $ Left $ desugar $ TmAbs p $ case f of
         Left e -> e
         Right pat -> desugarMethodPattern pat
-    desugarField (DefaultPattern (MethodPattern self l p e)) =
-      let self' = fromMaybe (Tuple "self" TyTop) self in
-      DefaultPattern (MethodPattern (Just self') l Nil (desugar $ TmAbs p e))
+    -- desugaring of default patterns is done in `inferFromSig`
+    desugarField def@(DefaultPattern _) = def
 desugar (TmTrait self sig e1 e2) =
-  let self'@(Tuple x _) = fromMaybe (Tuple "self" TyTop) self in
+  let self'@(Tuple x _) = fromMaybe (Tuple "#self" Nothing) self in
   TmTrait (Just self') (Just (fromMaybe TyTop sig))
           (desugar <$> e1) (TmOpen (TmVar x) (desugar e2))
 -- TODO: it may be better to always desugar def to letrec
@@ -69,5 +68,5 @@ desugar (TmType a sorts params t e) = TmType a sorts params t (desugar e)
 desugar e = e
 
 desugarMethodPattern :: MethodPattern -> Tm
-desugarMethodPattern (MethodPattern self l p e) =
+desugarMethodPattern (MethodPattern self l p e) = desugar $
   TmTrait self Nothing Nothing (TmRcd (singleton (RcdField false l p (Left e))))
