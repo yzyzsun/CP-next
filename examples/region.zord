@@ -49,16 +49,18 @@ type IsUniv  = { isUniv  : Bool };
 type IsEmpty = { isEmpty : Bool };
 
 chkUniv = trait implements HoferSig<IsEmpty => IsUniv> => {
-  (Univ     ).isUniv = true;
-  (Outside a).isUniv = a.isEmpty;
-  (Union a b).isUniv = a.isUniv || b.isUniv;
-  (Scale _ a).isUniv = a.isUniv;
-            _.isUniv = false;
+  (Univ         ).isUniv = true;
+  (Outside     a).isUniv = a.isEmpty;
+  (Union     a b).isUniv = a.isUniv || b.isUniv;
+  (Intersect a b).isUniv = a.isUniv && b.isUniv;
+  (Scale     _ a).isUniv = a.isUniv;
+                _.isUniv = false;
 };
 
 chkEmpty = trait implements HoferSig<IsUniv => IsEmpty> => {
   (Empty        ).isEmpty = true;
   (Outside     a).isEmpty = a.isUniv;
+  (Union     a b).isEmpty = a.isEmpty && b.isEmpty;
   (Intersect a b).isEmpty = a.isEmpty || b.isEmpty;
   (Scale     _ a).isEmpty = a.isEmpty;
                 _.isEmpty = false;
@@ -80,6 +82,6 @@ repo Region = trait [self : HoferSig<Region>] => {
 
 shapes = new repo @(Eval & Print & IsUniv & IsEmpty & Opt (Eval&Print)) ,
              eval' , print' , chkUniv , chkEmpty , opt @(Eval&Print);
-shapes.univ.optimized.description ++
- (if shapes.univ.contains {x = 0.0; y = 0.0} then " contains "
-  else " does not contain ") ++ "the origin"
+optimized = shapes.univ.optimized;
+optimized.description ++ (if optimized.contains {x = 0.0; y = 0.0}
+  then " contains " else " does not contain ") ++ "the origin"
