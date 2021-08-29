@@ -56,7 +56,7 @@ eval = runTrampoline <<< go
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
-    go e@(TmRcd _ _ _) = pure e
+    go (TmRcd l t e) = pure $ TmRcd l t (TmRef (new e))
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmTAbs _ _ _ _) = pure e
@@ -68,7 +68,7 @@ eval = runTrampoline <<< go
             go' e' = unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
                                        "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
-    go e@(TmArray _ _) = pure e
+    go (TmArray t arr) = pure $ TmArray t (TmRef <<< new <$> arr)
     go (TmRef ref) = if done ref then pure e else do
       e' <- go e
       pure $ write e' ref

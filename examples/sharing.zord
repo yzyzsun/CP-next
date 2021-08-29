@@ -1,0 +1,22 @@
+--> 1048576
+
+type ExpSig<Exp> = {
+  One : Exp;
+  Add : Exp -> Exp -> Exp;
+};
+
+type Eval = { eval : Int };
+eval = trait implements ExpSig<Eval> => {
+  (One).eval = 1;
+  (Add e1 e2).eval = e1.eval + e2.eval;
+};
+
+exp Exp = trait [self : ExpSig<Exp>] => {
+  test = letrec tree (n:Int) : Exp =
+    if n == 0 then new One
+    else let shared = tree (n-1) in new Add shared shared
+  in tree 20;
+};
+
+e = new exp @Eval , eval;
+e.test.eval
