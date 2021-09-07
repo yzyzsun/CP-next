@@ -11,7 +11,7 @@ import Data.Set (Set)
 import Data.Set as Set
 import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..), fst, uncurry)
-import Language.CP.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
+import Language.CP.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, localPos, lookupTmBind, lookupTyBind, throwTypeError)
 import Language.CP.Desugar (desugar, desugarMethodPattern)
 import Language.CP.Subtyping (isTopLike, (<:), (===))
 import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
@@ -104,7 +104,7 @@ infer (S.TmBinary Coalesce (S.TmPrj e1 label) e2) = do
     Just t | t2 <: t ->
       pure $ Tuple (C.TmBinary Coalesce (C.TmPrj e1' label) (C.TmAnno e2' t)) t
     _ -> throwTypeError $
-      label <> "'s default value does not match its signature"
+      label <> "'s default value does not match its interface"
 infer (S.TmIf e1 e2 e3) = do
   Tuple e1' t1 <- infer e1
   if t1 <: C.TyBool then do
@@ -159,7 +159,7 @@ infer (S.TmPrj e l) = do
   Tuple e' t <- infer e
   case selectLabel t l false of
     Just t' -> pure $ Tuple (C.TmPrj e' l) t'
-    _ -> throwTypeError $ show t <+> "has no label named" <+> show l
+    _ -> throwTypeError $ "label" <+> show l <+> "is absent in" <+> show t
 infer (S.TmTApp e ta) = do
   Tuple e' tf <- infer e
   ta' <- transform ta
@@ -200,7 +200,7 @@ infer (S.TmUpdate rcd fields) = do
     let outdate = C.TmAnno rcd' (diffRcdTy t t')
     let update = foldr C.TmMerge C.TmUnit fields'
     pure $ Tuple (C.TmMerge outdate update) t
-  else throwTypeError $ show rcd <+> "cannot be safely updated"
+  else throwTypeError $ "cannot safely update the record" <+> show rcd
   where rcdTy :: C.Tm -> C.Ty -> C.Ty
         rcdTy (C.TmRcd l t _) s = C.TyAnd (C.TyRcd l t false) s
         rcdTy _ s = s
@@ -231,8 +231,7 @@ infer (S.TmTrait (Just (Tuple self (Just t))) (Just sig) me1 ne2) = do
       Tuple e2' t2 <- addTmBind self t' $ infer e2
       pure $ Tuple e2' t2
   if tret <: sig'' then pure $ trait self ret t' tret
-  else throwTypeError $ show sig <+> "is not implemented by the trait," <+>
-                        "whose type is" <+> show tret
+  else throwTypeError $ "the trait does not implement" <+> show sig
   where
     -- TODO: inference is not complete
     inferFromSig :: S.Ty -> S.Tm -> S.Tm
@@ -249,10 +248,10 @@ infer (S.TmTrait (Just (Tuple self (Just t))) (Just sig) me1 ne2) = do
     inferFromSig (S.TyRcd xs)
         (S.TmRcd (Cons (S.DefaultPattern pat@(S.MethodPattern _ label _ _)) Nil)) =
       desugar $ S.TmRcd $ filterRcd (_ `notElem` patterns label) xs <#>
-        \(S.RcdTy l' t' _) ->
-          let Tuple params ty = paramsAndInnerTy t'
-              e = inferFromSig ty (desugarMethodPattern pat) in
-          S.RcdField false l' params (Left e)
+        \(S.RcdTy l ty _) ->
+          let Tuple params ty' = paramsAndInnerTy ty
+              e = inferFromSig ty' (desugarMethodPattern pat) in
+          S.RcdField false l params (Left e)
       where patterns :: Label -> Array Label
             patterns l = patternsFromRcd (S.TmMerge (fromMaybe S.TmUnit me1) ne2) l
             patternsFromRcd :: S.Tm -> Label -> Array Label
@@ -339,8 +338,8 @@ infer (S.TmNew e) = do
     C.TyArrow ti to true ->
       if to <: ti then
         pure $ Tuple (C.TmFix "#self" (C.TmApp e' (C.TmVar "#self") true) to) to
-      else throwTypeError $ "Trait input" <+> show ti <+>
-        "is not a supertype of Trait output" <+> show to
+      else throwTypeError $ "input type is not a supertype of output type in" <+>
+                            "Trait<" <+> show ti <+> "=>" <+> show to <+> ">"
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
 infer (S.TmForward e1 e2) = do
   Tuple e1' t1 <- infer e1
@@ -358,7 +357,7 @@ infer (S.TmExclude e te) = do
     C.TyArrow ti to true ->
       if to <: te' then let t' = C.TyArrow ti (diffRcdTy to te') true in
                         pure $ Tuple (C.TmAnno e' t') t'
-      else throwTypeError $ show e <+> "expected to exclude its supertype" <>
+      else throwTypeError $ "expected to exclude supertype from" <+> show e <>
                             ", but got" <+> show te
     _ -> throwTypeError $ "expected to exclude from a trait, but got" <+> show e
 infer (S.TmFold t e) = do
@@ -384,10 +383,15 @@ infer (S.TmArray arr) = do
     let Tuple es ts = unzip ets
         t = unsafeFromJust $ head ts
     if all (_ === t) ts then pure $ Tuple (C.TmArray t es) (C.TyArray t)
-    else throwTypeError $ "elements of" <+> show (S.TmArray arr) <+>
-                          "should all have the same type"
+    else throwTypeError $ "elements of an array should all have the same type" <>
+                          ", but got" <+> show (S.TmArray arr)
+infer (S.TmDoc doc) = localPos f $ infer doc
+  where f (Pos p e _) = Pos p e true
+        f UnknownPos = UnknownPos
 -- TODO: save original terms instead of desugared ones
-infer (S.TmPos p e) = setPos (Pos p e) $ infer e
+infer (S.TmPos p e) = localPos f $ infer e
+  where f (Pos _ _ inDoc) = Pos p e inDoc
+        f UnknownPos = Pos p e false
 infer (S.TmType a sorts params t e) = do
   t' <- addSorts $ addTyBinds $ transformTyDef t
   addTyAlias a (sig t') $ infer e
@@ -400,7 +404,7 @@ infer (S.TmType a sorts params t e) = do
     addTyBinds typing = foldr (flip addTyBind C.TyTop) typing params
     sig :: S.Ty -> S.Ty
     sig t' = foldr (uncurry S.TySig) (foldr S.TyAbs t' params) dualSorts
-infer e = throwTypeError $ show e <+> "should have been desugared"
+infer e = throwTypeError $ "expected a desugared term, but got" <+> show e
 
 distApp :: C.Ty -> Either C.Ty C.Ty -> Typing C.Ty
 distApp C.TyTop _ = pure C.TyTop
@@ -412,7 +416,7 @@ distApp (C.TyAnd t1 t2) t = do
   t1' <- distApp t1 t
   t2' <- distApp t2 t
   pure $ C.TyAnd t1' t2'
-distApp t _ = throwTypeError $ show t <+> "is not applicable"
+distApp t _ = throwTypeError $ "expected an applicable type, but got" <+> show t
 
 disjoint :: C.Ty -> C.Ty -> Typing Unit
 disjoint t _ | isTopLike t = pure unit
@@ -435,7 +439,7 @@ disjoint (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) =
 disjoint (C.TyRec a1 t1) (C.TyRec a2 t2) = disjointTyBind a1 t1 a2 t2 C.TyBot
 disjoint t1 t2 | t1 /= t2  = pure unit
                | otherwise = throwTypeError $
-  show t1 <+> "and" <+> show t2 <+> "are not disjoint"
+  "expected two disjoint types, but got" <+> show t1 <+> "and" <+> show t2
 
 disjointTyBind :: Name -> C.Ty -> Name -> C.Ty -> C.Ty -> Typing Unit
 disjointTyBind a1 t1 a2 t2 td = addTyBind freshName td $

@@ -19,6 +19,7 @@ import Language.CP.Semantics.NaturalClosure as Closure
 import Language.CP.Semantics.NaturalSubst as BigStep
 import Language.CP.Semantics.StepTrace as StepTrace
 import Language.CP.Semantics.Subst as SmallStep
+import Language.CP.Syntax.Source (showDoc)
 import Language.CP.Typing (infer)
 import Text.Parsing.Parser (ParseError(..), runParser)
 import Text.Parsing.Parser.Pos (Position(..))
@@ -60,5 +61,6 @@ showParseError (ParseError _ pos@(Position { line: l, column: c })) source =
 
 showTypeError :: TypeError -> String
 showTypeError (TypeError msg UnknownPos) = msg
-showTypeError (TypeError msg (Pos pos expr)) =
-  showPosition pos <> ": " <> msg <> "\nin the expression: " <> show expr
+showTypeError (TypeError msg (Pos pos expr inDoc)) =
+  showPosition pos <> ": " <> msg <> "\nin the expression: " <>
+  (if inDoc then showDoc else show) expr

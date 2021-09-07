@@ -67,22 +67,25 @@ data Tm = TmInt Int
         | TmVar Name
         | TmApp Tm Tm Boolean
         | TmAbs Name Tm Ty Ty Boolean
-        | TmHAbs (Tm -> Tm) Ty Ty Boolean
         | TmFix Name Tm Ty
-        | TmHFix (Tm -> Tm) Ty
         | TmAnno Tm Ty
         | TmMerge Tm Tm
         | TmRcd Label Ty Tm
         | TmPrj Tm Label
         | TmTApp Tm Ty
         | TmTAbs Name Ty Tm Ty
-        | TmHTAbs (Ty -> Tm) Ty (Ty -> Ty)
         | TmFold Ty Tm
         | TmUnfold Ty Tm
         | TmToString Tm
         | TmArray Ty (Array Tm)
-        | TmClosure EvalEnv Tm
+        -- Only used in big-step semantics for call-by-need:
         | TmRef TmRef
+        -- Only used in closure-based semantics for variable capturing:
+        | TmClosure EvalEnv Tm
+        -- Only used in HOAS-based semantics for variable binding:
+        | TmHAbs (Tm -> Tm) Ty Ty Boolean
+        | TmHFix (Tm -> Tm) Ty
+        | TmHTAbs (Ty -> Tm) Ty (Ty -> Ty)
 
 instance Show Tm where
   show (TmInt i)    = show i
@@ -99,10 +102,7 @@ instance Show Tm where
   show (TmApp e1 e2 _coercive) = parens $ show e1 <+> show e2
   show (TmAbs x e targ tret _refined) = parens $
     "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "→" <+> show tret
-  show (TmHAbs _abs targ tret _refined) = angles $
-    "HOAS" <+> show targ <+> "→" <+> show tret
   show (TmFix x e t) = parens $ "fix" <+> x <> "." <+> show e <+> ":" <+> show t
-  show (TmHFix _fix t) = angles $ "HOAS fix" <+> show t
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
   show (TmRcd l t e) = braces $ l <+> ":" <+> show t <+> "=" <+> show e
@@ -110,14 +110,17 @@ instance Show Tm where
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs a td e t) = parens $ "Λ" <> a <> "." <+> show e <+>
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
-  show (TmHTAbs _tabs td _tf) = angles $ "HOAS ∀*" <+> show td
   show (TmFold t e) = parens $ "fold @" <> show t <+> show e
   show (TmUnfold t e) = parens $ "unfold @" <> show t <+> show e
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray t arr) = parens $
     brackets (intercalate "; " (show <$> arr)) <+> ":" <+> brackets (show t)
-  show (TmClosure _env e) = angles $ "Closure" <+> show e
   show (TmRef _ref) = angles $ "Ref"
+  show (TmClosure _env e) = angles $ "Closure" <+> show e
+  show (TmHAbs _abs targ tret _refined) = angles $
+    "HOAS" <+> show targ <+> "→" <+> show tret
+  show (TmHFix _fix t) = angles $ "HOAS fix" <+> show t
+  show (TmHTAbs _tabs td _tf) = angles $ "HOAS ∀*" <+> show td
 
 -- HOAS --
 

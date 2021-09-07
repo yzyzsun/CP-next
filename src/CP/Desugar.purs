@@ -63,6 +63,7 @@ desugar (TmFold t e) = TmFold t (desugar e)
 desugar (TmUnfold t e) = TmUnfold t (desugar e)
 desugar (TmToString e) = TmToString (desugar e)
 desugar (TmArray arr) = TmArray (desugar <$> arr)
+desugar (TmDoc e) = TmDoc (desugar e)
 desugar (TmPos p e) = TmPos p (desugar e)
 desugar (TmType a sorts params t e) = TmType a sorts params t (desugar e)
 desugar e = e

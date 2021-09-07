@@ -14,15 +14,15 @@ import Text.Parsing.Parser.Pos (Position)
 
 type Typing = ReaderT Ctx (Except TypeError)
 
-type Ctx = { tmBindEnv :: Map Name C.Ty  -- typing
-           , tyBindEnv :: Map Name C.Ty  -- disjointness
+type Ctx = { tmBindEnv  :: Map Name C.Ty -- typing
+           , tyBindEnv  :: Map Name C.Ty -- disjointness
            , tyAliasEnv :: Map Name S.Ty -- synonym
-           , sortEnv :: Map Name Name    -- distinguishing
+           , sortEnv    :: Map Name Name -- distinguishing
            , pos :: Pos
            }
 
 data Pos = UnknownPos
-         | Pos Position S.Tm
+         | Pos Position S.Tm Boolean
 
 runTyping :: forall a. Typing a -> Either TypeError a
 runTyping m = runExcept $ runReaderT m { tmBindEnv : empty
@@ -65,13 +65,13 @@ addTyAlias = addToEnv \f r -> r { tyAliasEnv = f r.tyAliasEnv }
 addSort :: forall a. Name -> Name -> Typing a -> Typing a
 addSort = addToEnv \f r -> r { sortEnv = f r.sortEnv }
 
-setPos :: forall a. Pos -> Typing a -> Typing a
-setPos p = local (_ { pos = p })
+localPos :: forall a. (Pos -> Pos) -> Typing a -> Typing a
+localPos f = local \r -> r { pos = f r.pos }
 
-getPos :: Typing Pos
-getPos = asks (_.pos)
+askPos :: Typing Pos
+askPos = asks (_.pos)
 
 data TypeError = TypeError String Pos
 
 throwTypeError :: forall a. String -> Typing a
-throwTypeError msg = TypeError msg <$> getPos >>= throwError
+throwTypeError msg = TypeError msg <$> askPos >>= throwError

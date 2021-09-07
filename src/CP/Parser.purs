@@ -202,19 +202,20 @@ unfold = do
   pure $ TmUnfold t e
 
 document :: SParser Tm -> SParser Tm
-document p = do
+document p = position >>= \pos -> TmPos pos <<< TmDoc <$> do
   docs <- many (backslash <|> plaintext)
   pure $ if null docs then newStr (TmString "") else foldl1 newComp docs
   where
     backslash = char '\\' *> (command <|> interpolation <|> newline)
     command = do
+      pos <- position
       cmd <- identifier
       args <- many $ choice [ parensWithoutTrailingSpace p
                             , bracesWithoutTrailingSpace recordArg
                             , bracketsWithoutConsumingSpace $ document p
                             ]
       let f = if isCapitalized cmd then TmNew else identity
-      pure $ f (foldl TmApp (TmVar cmd) args)
+      pure $ TmPos pos (f (foldl TmApp (TmVar cmd) args))
     recordArg = TmRcd <$> sepEndBySemi (recordField p false)
     interpolation = newStr <<< TmToString <$> parensWithoutTrailingSpace p
     newline = char '\\' $> newEndl

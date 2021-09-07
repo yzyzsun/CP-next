@@ -89,6 +89,7 @@ data Tm = TmInt Int
         | TmUnfold Ty Tm
         | TmToString Tm
         | TmArray (Array Tm)
+        | TmDoc Tm
         | TmPos Position Tm
         | TmType Name (List Name) (List Name) Ty Tm
         | TmDef Name TyParamList TmParamList (Maybe Ty) Tm Tm
@@ -138,6 +139,7 @@ instance Show Tm where
   show (TmUnfold t e) = parens $ "unfold @" <> show t <+> show e
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
+  show (TmDoc e) = show e
   show (TmPos _pos e) = show e
   -- `type A<T> extends B<T> = ...` can be rewritten as `type A<T> = B<T> & ...`
   -- because sort argument expansion from B<T> to B<T, #T> already prevents
@@ -148,6 +150,19 @@ instance Show Tm where
   show (TmDef x tyParams tmParams t e1 e2) = x <+>
     showTyParams tyParams <> showTmParams tmParams <>
     showMaybe ": " t " " <> "=" <+> show e1 <> ";" <+> show e2
+
+showDoc :: Tm -> String
+showDoc (TmDoc e) = "`" <> showDoc e <> "`"
+showDoc (TmPos _ (TmDoc e)) = "[" <> showDoc e <> "]"
+showDoc (TmPos _ e) = showDoc e
+showDoc (TmNew e) = showDoc e
+showDoc (TmVar "Endl") = "\\\\"
+showDoc (TmApp (TmApp (TmVar "Comp") e1) e2) = showDoc e1 <> showDoc e2
+showDoc (TmApp (TmVar "Str") (TmString s)) = s
+showDoc (TmApp (TmVar "Str") (TmToString s)) = "\\(" <> show s <> ")"
+showDoc (TmApp (TmVar x) e) = "\\" <> x <> showDoc e
+showDoc (TmApp e1 e2) = showDoc e1 <> showDoc e2
+showDoc e = "(" <> show e <> ")"
 
 -- Substitution --
 

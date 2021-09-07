@@ -47,9 +47,9 @@ translate (S.TyTrait Nothing to) = C.TyArrow C.TyTop <$> translate to <@> true
 translate (S.TyTrait (Just ti) to) =
   C.TyArrow <$> translate ti <*> translate to <@> true
 translate (S.TyArray t) = C.TyArray <$> translate t
-translate t@(S.TyAbs _ _) = throwTypeError $ show t <+> "is not a proper type"
-translate t@(S.TySig _ _ _) = throwTypeError $ show t <+> "is not a proper type"
-translate t = throwTypeError $ show t <+> "should have been expanded"
+translate t@(S.TyAbs _ _) = throwTypeError $ "expected a proper type, but got" <+> show t
+translate t@(S.TySig _ _ _) = throwTypeError $ "expected a proper type, but got" <+> show t
+translate t = throwTypeError $ "expected an expanded type, but got" <+> show t
 
 -- We don't need to check disjointness in the process of type expansion,
 -- so a placeholder of core types will be added to TyBindEnv.
@@ -87,9 +87,8 @@ expand (S.TyApp t1 t2) = do
           -- Here first substitute a and then b (i.e. #a) because
           -- some TyVar may be wrongly captured by a but impossible by #a.
           pure $ S.tySubst b to (S.tySubst a ti t)
-        _ -> throwTypeError $
-          "sig" <+> show t1 <+> "expected a sort, but got" <+> show t2
-    _ -> throwTypeError $ "type" <+> show t1 <+> "is not applicable"
+        _ -> throwTypeError $ "sig instantiation expected a sort, but got" <+> show t2
+    _ -> throwTypeError $  "expected an applicable type, but got" <+> show t1
 expand (S.TyAbs a t) = addTyBind a someTy $ S.TyAbs a <$> expand t
 expand (S.TyTrait ti to) = S.TyTrait <$> traverse expand ti <*> expand to
 expand (S.TySort ti to) = do
