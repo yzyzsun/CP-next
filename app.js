@@ -1,12 +1,12 @@
 import { basicSetup } from '@codemirror/basic-setup';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
-import { defaultTabBinding } from '@codemirror/commands';
-import { LanguageSupport, LezerLanguage, continuedIndent, foldNodeProp, indentNodeProp } from '@codemirror/language';
+import { indentWithTab } from '@codemirror/commands';
+import { LRLanguage, LanguageSupport, continuedIndent, foldNodeProp, indentNodeProp } from '@codemirror/language';
 import { styleTags, tags as t } from '@codemirror/highlight';
 import { parser as parseCP } from './grammar/cp';
 
-export const cp = new LanguageSupport(LezerLanguage.define({
+export const cp = new LanguageSupport(LRLanguage.define({
   parser: parseCP.configure({
     props: [
       indentNodeProp.add({
@@ -63,7 +63,7 @@ export function editorState(doc, binding) {
       basicSetup,
       EditorView.lineWrapping,
       EditorState.tabSize.of(2),
-      keymap.of([defaultTabBinding, { key: 'Mod-Enter', run: binding }]),
+      keymap.of([indentWithTab, { key: 'Mod-Enter', run: binding }]),
       language.of([]),
     ],
   });

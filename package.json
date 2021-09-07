@@ -16,9 +16,9 @@
   "license": "Apache-2.0",
   "homepage": "https://plground.org",
   "devDependencies": {
-    "@codemirror/basic-setup": "^0.18.2",
-    "lezer-generator": "^0.13.4",
-    "purescript": "^0.14.3",
+    "@codemirror/basic-setup": "^0.19.0",
+    "@lezer/generator": "^0.15.1",
+    "purescript": "^0.14.4",
     "purs-loader": "^3.7.2",
     "spago": "^0.20.3",
     "vsce": "^1.88.0",
