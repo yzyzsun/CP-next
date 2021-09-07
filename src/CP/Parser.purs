@@ -7,12 +7,12 @@ import Control.Lazy (fix)
 import Control.Monad.State (gets, modify_)
 import Data.Array as Array
 import Data.Array.NonEmpty (head)
-import Data.CodePoint.Unicode (isLower, isUpper)
+import Data.CodePoint.Unicode (isLower)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, null, some, toUnfoldable)
 import Data.Maybe (Maybe(..), isJust, isNothing, optional)
-import Data.String (codePointAt, codePointFromChar)
+import Data.String (codePointFromChar)
 import Data.String.CodeUnits as SCU
 import Data.String.Regex (Regex, match, replace)
 import Data.String.Regex.Flags (noFlags)
@@ -20,7 +20,7 @@ import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Tuple (Tuple(..))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
 import Language.CP.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam, SelfAnno)
-import Language.CP.Util (foldl1, unsafeFromJust)
+import Language.CP.Util (foldl1, isCapitalized)
 import Text.Parsing.Parser (ParseState(..), Parser, fail, position)
 import Text.Parsing.Parser.Combinators (between, choice, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
@@ -213,7 +213,7 @@ document p = do
                             , bracesWithoutTrailingSpace recordArg
                             , bracketsWithoutConsumingSpace $ document p
                             ]
-      let f = if isUpper $ unsafeFromJust $ codePointAt 0 cmd then TmNew else identity
+      let f = if isCapitalized cmd then TmNew else identity
       pure $ f (foldl TmApp (TmVar cmd) args)
     recordArg = TmRcd <$> sepEndBySemi (recordField p false)
     interpolation = newStr <<< TmToString <$> parensWithoutTrailingSpace p

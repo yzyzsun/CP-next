@@ -4,33 +4,27 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Bitraversable (rtraverse)
-import Data.CodePoint.Unicode (isUpper)
 import Data.List (List(..), foldr)
 import Data.Maybe (Maybe(..))
-import Data.String (codePointAt)
 import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..), fst, uncurry)
 import Language.CP.Context (Typing, addTyBind, lookupSort, lookupTyAlias, lookupTyBind, throwTypeError)
 import Language.CP.Syntax.Core as C
-import Language.CP.Syntax.Source (RcdTy(..))
 import Language.CP.Syntax.Source as S
-import Language.CP.Util (foldl1, unsafeFromJust, (<+>))
+import Language.CP.Util (foldl1, isCapitalized, (<+>))
 
 transform :: S.Ty -> Typing C.Ty
 transform = expand >=> translate
 
--- do other stuff between type expansion and translation
-duringTransformation ::
-  forall a b. (S.Ty -> a -> b) -> Tuple S.Ty a -> Typing (Tuple C.Ty b)
-duringTransformation f (Tuple t x) = do
+transform' :: S.Ty -> Typing (Tuple C.Ty S.Ty)
+transform' t = do
   t' <- expand t
-  let x' = f t' x
   t'' <- translate t'
-  pure $ Tuple t'' x'
+  pure $ Tuple t'' t'
 
 translate :: S.Ty -> Typing C.Ty
 translate (S.TyRcd Nil) = pure C.TyTop
-translate (S.TyRcd xs) = foldl1 C.TyAnd <$> for xs \(RcdTy l t opt) ->
+translate (S.TyRcd xs) = foldl1 C.TyAnd <$> for xs \(S.RcdTy l t opt) ->
   C.TyRcd l <$> translate t <@> opt
 translate (S.TyForall xs t) =
   foldr (uncurry C.TyForall) <$> translate t <*>
@@ -66,8 +60,8 @@ someTy = C.TyTop
 expand :: S.Ty -> Typing S.Ty
 expand (S.TyArrow t1 t2) = S.TyArrow <$> expand t1 <*> expand t2
 expand (S.TyAnd t1 t2) = S.TyAnd <$> expand t1 <*> expand t2
-expand (S.TyRcd xs) = S.TyRcd <$> for xs \(RcdTy l t opt) ->
-  RcdTy l <$> expand t <@> opt
+expand (S.TyRcd xs) = S.TyRcd <$> for xs \(S.RcdTy l t opt) ->
+  S.RcdTy l <$> expand t <@> opt
 expand (S.TyVar a) = do
   mtd <- lookupTyBind a
   ms <- lookupSort a
@@ -122,8 +116,8 @@ distinguish isCtor isOut (S.TyArrow t1 t2) =
   S.TyArrow <$> distinguish isCtor (not isOut) t1 <*> distinguish isCtor isOut t2
 distinguish isCtor isOut (S.TyAnd t1 t2) =
   S.TyAnd <$> distinguish isCtor isOut t1 <*> distinguish isCtor isOut t2
-distinguish _ isOut (S.TyRcd xs) = S.TyRcd <$> for xs \(RcdTy l t opt) ->
-  RcdTy l <$> distinguish (isUpper $ unsafeFromJust $ codePointAt 0 l) isOut t <@> opt
+distinguish _ isOut (S.TyRcd xs) = S.TyRcd <$> for xs \(S.RcdTy l t opt) ->
+  S.RcdTy l <$> distinguish (isCapitalized l) isOut t <@> opt
 distinguish isCtor true t@(S.TyVar a) = do
   mb <- lookupSort a
   case mb of Just b -> do if isCtor then pure $ S.TyTrait (Just t) (S.TyVar b)

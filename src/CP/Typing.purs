@@ -17,7 +17,7 @@ import Language.CP.Subtyping (isTopLike, (<:), (===))
 import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
 import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
-import Language.CP.Transform (duringTransformation, transform, transformTyDef)
+import Language.CP.Transform (transform, transform', transformTyDef)
 import Language.CP.Util (unsafeFromJust, (<+>))
 
 infer :: S.Tm -> Typing (Tuple C.Tm C.Ty)
@@ -101,8 +101,8 @@ infer (S.TmBinary Coalesce (S.TmPrj e1 label) e2) = do
   Tuple e1' t1 <- infer e1
   Tuple e2' t2 <- infer e2
   case selectLabel t1 label true of
-    Just t | t === t2 ->
-      pure $ Tuple (C.TmBinary Coalesce (C.TmPrj e1' label) e2') t
+    Just t | t2 <: t ->
+      pure $ Tuple (C.TmBinary Coalesce (C.TmPrj e1' label) (C.TmAnno e2' t)) t
     _ -> throwTypeError $
       label <> "'s default value does not match its signature"
 infer (S.TmIf e1 e2 e3) = do
@@ -206,7 +206,8 @@ infer (S.TmUpdate rcd fields) = do
         rcdTy _ s = s
 infer (S.TmTrait (Just (Tuple self (Just t))) (Just sig) me1 ne2) = do
   t' <- transform t
-  Tuple sig' e2 <- inferFromSig `duringTransformation` Tuple sig ne2
+  Tuple sig'' sig' <- transform' sig
+  let e2 = inferFromSig sig' ne2
   Tuple ret tret <- case me1 of
     Just e1 -> do
       -- self may be used in e1 (e.g. trait [self:T] inherits f self => ...)
@@ -229,7 +230,7 @@ infer (S.TmTrait (Just (Tuple self (Just t))) (Just sig) me1 ne2) = do
     Nothing -> do
       Tuple e2' t2 <- addTmBind self t' $ infer e2
       pure $ Tuple e2' t2
-  if tret <: sig' then pure $ trait self ret t' tret
+  if tret <: sig'' then pure $ trait self ret t' tret
   else throwTypeError $ show sig <+> "is not implemented by the trait," <+>
                         "whose type is" <+> show tret
   where
