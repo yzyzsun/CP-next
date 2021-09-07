@@ -1,15 +1,15 @@
-module Zord.Semantics.Subst where
+module Language.CP.Semantics.Subst where
 
 import Prelude
 
 import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
+import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
+import Language.CP.Subtyping (isTopLike, split, (<:))
+import Language.CP.Syntax.Core (Tm(..), Ty(..), tmSubst, tmTSubst, tySubst, unfold)
+import Language.CP.Util (unsafeFromJust)
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
-import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Core (Tm(..), Ty(..), tmSubst, tmTSubst, tySubst, unfold)
-import Zord.Util (unsafeFromJust)
 
 eval :: Tm -> Tm
 eval e | isValue e = e
@@ -45,12 +45,12 @@ step (TmUnfold t e) | isTopLike t = TmUnit
                     | otherwise = TmUnfold t (step e)
 step (TmToString e) | isValue e = toString e
                     | otherwise = TmToString (step e)
-step e = unsafeCrashWith $ "Zord.Semantics.Subst.step: " <>
+step e = unsafeCrashWith $ "CP.Semantics.Subst.step: " <>
   "well-typed programs don't get stuck, but got " <> show e
 
 typedReduce :: Tm -> Ty -> Maybe Tm
 typedReduce e _ | not (isValue e) = unsafeCrashWith $
-  "Zord.Semantics.Subst.typedReduce: " <> show e <> " is not a value"
+  "CP.Semantics.Subst.typedReduce: " <> show e <> " is not a value"
 typedReduce _ t | isTopLike t = Just TmUnit
 typedReduce v t | Just (Tuple t1 t2) <- split t = do
   let m1 = isOptionalRcd t1
@@ -84,7 +84,7 @@ paraApp (TmAbs x e1 targ tret _) (TmAnnoArg e2) =
   TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
 paraApp (TmTAbs a _ e _) (TyArg ta) = tmTSubst a ta e
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
-paraApp v arg = unsafeCrashWith $ "Zord.Semantics.Subst.paraApp: " <>
+paraApp v arg = unsafeCrashWith $ "CP.Semantics.Subst.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
 
 isValue :: Tm -> Boolean

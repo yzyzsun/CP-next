@@ -1,4 +1,4 @@
-module Zord.Semantics.NaturalClosure where
+module Language.CP.Semantics.NaturalClosure where
 
 import Prelude
 
@@ -6,12 +6,12 @@ import Control.Monad.Reader (ask, local, runReaderT)
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
+import Language.CP.Semantics.Closure (EvalT, binop', closure, expand, paraApp, selectLabel, typedReduce, unop')
+import Language.CP.Semantics.Common (Arg(..), toString)
+import Language.CP.Subtyping (isTopLike)
+import Language.CP.Syntax.Common (BinOp(..))
+import Language.CP.Syntax.Core (EvalBind(..), Tm(..), done, new, read, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Closure (EvalT, binop', closure, expand, paraApp, selectLabel, typedReduce, unop')
-import Zord.Semantics.Common (Arg(..), toString)
-import Zord.Subtyping (isTopLike)
-import Zord.Syntax.Common (BinOp(..))
-import Zord.Syntax.Core (EvalBind(..), Tm(..), done, new, read, unfold, write)
 
 type Eval = EvalT Trampoline
 
@@ -37,13 +37,13 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       case e1' of
         TmBool true  -> go e2
         TmBool false -> go e3
-        _ -> unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
+        _ -> unsafeCrashWith $ "CP.Semantics.NaturalClosure.eval: " <>
                                "impossible if " <> show e1' <> " ..."
     go (TmVar x) = do
       env <- ask
       case lookup x env of
         Just (TmBind e) -> go e
-        m -> unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
+        m -> unsafeCrashWith $ "CP.Semantics.NaturalClosure.eval: " <>
                                "variable " <> show x <> " is " <> show m
     go (TmApp e1 e2 coercive) = do
       e1' <- go e1
@@ -58,7 +58,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       s <- typedReduce e' t'
       case s of
         Just e'' -> go e''
-        Nothing -> unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
+        Nothing -> unsafeCrashWith $ "CP.Semantics.NaturalClosure.eval: " <>
                                      "impossible typed reduction " <> show anno
       where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
@@ -76,7 +76,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       where go' :: Tm -> Eval Tm
             go' e'@(TmMerge _ _) = go' <=< go $ TmAnno e' t
             go' (TmFold _ v) = go $ TmAnno v (unfold t)
-            go' e' = unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
+            go' e' = unsafeCrashWith $ "CP.Semantics.NaturalClosure.eval: " <>
                                        "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
     go e@(TmArray _ _) = closure e
@@ -89,5 +89,5 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
     go e@(TmClosure _ (TmTAbs _ _ _ _)) = pure e
     go e@(TmClosure _ (TmArray _ _)) = pure e
     go (TmClosure env e) = local (const env) (go e)
-    go e = unsafeCrashWith $ "Zord.Semantics.NaturalClosure.eval: " <>
+    go e = unsafeCrashWith $ "CP.Semantics.NaturalClosure.eval: " <>
       "well-typed programs don't get stuck, but got " <> show e

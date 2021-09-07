@@ -1,5 +1,3 @@
-const Zord = bundle.Zord;
-
 const namespace = window.location.pathname.split('/')[1];
 const docname = window.location.pathname.split('/')[2];
 
@@ -15,7 +13,7 @@ const view = editorView(editorState($('#code').val()));
 
 function interpret(callback) {
   const run = prog => preprocess(prog).then(code => {
-    output = Zord.interpret(code)(Zord.BigStep.value)();
+    output = bundle.CP.interpret(code)(bundle.CP.BigStep.value)();
     if (output.startsWith('"')) output = JSON.parse(output);
     $('#output').html(output);
     callback();
@@ -108,7 +106,7 @@ $('#mode').on('change', () => {
     view.dispatch({ effects: bundle.language.reconfigure([]) });
   } else {
     $('#requiring').removeClass('d-flex').addClass('d-none');
-    view.dispatch({ effects: bundle.language.reconfigure(bundle.languageSupport) });
+    view.dispatch({ effects: bundle.language.reconfigure(bundle.cp) });
   }
 });
 $('#mode').change();

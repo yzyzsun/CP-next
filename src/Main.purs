@@ -17,12 +17,12 @@ import Effect (Effect)
 import Effect.Console (error, log)
 import Effect.Exception (Error, message, try)
 import Effect.Now (nowTime)
+import Language.CP (Mode(..), interpret)
+import Language.CP.Util (unsafeFromJust)
 import Node.Encoding (Encoding(..))
 import Node.FS.Sync as Sync
 import Node.Path (concat, dirname)
 import Node.ReadLine (Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
-import Zord (Mode(..), interpret)
-import Zord.Util (unsafeFromJust)
 
 showSeconds :: Milliseconds -> String
 showSeconds (Milliseconds n) = show (n / 1000.0) <> "s"
@@ -51,7 +51,7 @@ preprocess path program = case match openRegex program of
   Nothing -> pure program
   where openRegex = unsafeRegex """open\s+(\w+)\s*;""" noFlags
         lineRegex = unsafeRegex """(--.*)?[\r\n]+""" global
-        ext name = name <> ".mzord"
+        ext name = name <> ".lib"
 
 execute :: String -> Mode -> Effect Unit
 execute program mode = do
@@ -65,7 +65,7 @@ execute program mode = do
 
 main :: Effect Unit
 main = do
-  log "Zord REPL, version 0.1.2 (press Ctrl-C to quit)"
+  log "Next-Gen CP REPL, version 0.1.2"
   interface <- createConsoleInterface noCompletion
   setPrompt "> " interface
   prompt interface

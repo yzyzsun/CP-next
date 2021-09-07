@@ -1,13 +1,13 @@
 {
-    "name": "zord",
-    "displayName": "Zord Language Support",
-    "description": "Syntax highlighting for the Zord programming language",
+    "name": "cp-next",
+    "displayName": "CP - The Next Generation",
+    "description": "Syntax highlighting for the next-gen CP",
     "version": "0.1.2",
     "license": "Apache-2.0",
     "publisher": "yzyzsun",
     "repository": {
         "type": "git",
-        "url": "https://github.com/yzyzsun/zord.git"
+        "url": "https://github.com/yzyzsun/CP-next.git"
     },
     "engines": {
         "vscode": "^1.50.0"
@@ -17,15 +17,15 @@
     ],
     "contributes": {
         "languages": [{
-            "id": "zord",
-            "aliases": ["Zord", "zord"],
-            "extensions": [".zord", ".mzord"],
+            "id": "cp",
+            "aliases": ["CP"],
+            "extensions": [".cp"],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{
-            "language": "zord",
-            "scopeName": "source.zord",
-            "path": "./Zord.tmLanguage.json"
+            "language": "cp",
+            "scopeName": "source.cp",
+            "path": "./CP.tmLanguage.json"
         }]
     }
 }

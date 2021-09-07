@@ -1,4 +1,4 @@
-module Zord.Transform where
+module Language.CP.Transform where
 
 import Prelude
 
@@ -10,11 +10,11 @@ import Data.Maybe (Maybe(..))
 import Data.String (codePointAt)
 import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..), fst, uncurry)
-import Zord.Context (Typing, addTyBind, lookupSort, lookupTyAlias, lookupTyBind, throwTypeError)
-import Zord.Syntax.Core as C
-import Zord.Syntax.Source (RcdTy(..))
-import Zord.Syntax.Source as S
-import Zord.Util (foldl1, unsafeFromJust, (<+>))
+import Language.CP.Context (Typing, addTyBind, lookupSort, lookupTyAlias, lookupTyBind, throwTypeError)
+import Language.CP.Syntax.Core as C
+import Language.CP.Syntax.Source (RcdTy(..))
+import Language.CP.Syntax.Source as S
+import Language.CP.Util (foldl1, unsafeFromJust, (<+>))
 
 transform :: S.Ty -> Typing C.Ty
 transform = expand >=> translate

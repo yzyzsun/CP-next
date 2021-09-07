@@ -1,4 +1,4 @@
-module Zord.Syntax.Source where
+module Language.CP.Syntax.Source where
 
 import Prelude
 
@@ -8,9 +8,9 @@ import Data.Foldable (class Foldable, any, intercalate, null)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple (Tuple(..), fst, snd)
+import Language.CP.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
+import Language.CP.Util ((<+>))
 import Text.Parsing.Parser.Pos (Position)
-import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
-import Zord.Util ((<+>))
 
 -- Types --
 

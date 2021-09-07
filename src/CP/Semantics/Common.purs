@@ -1,13 +1,13 @@
-module Zord.Semantics.Common where
+module Language.CP.Semantics.Common where
 
 import Prelude
 
 import Data.Array (length, (!!))
 import Data.Maybe (Maybe(..))
+import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), UnOp(..))
+import Language.CP.Syntax.Core (Tm(..), Ty)
 import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), UnOp(..))
-import Zord.Syntax.Core (Tm(..), Ty)
 
 unop :: UnOp -> Tm -> Tm
 unop Neg (TmInt i)       = TmInt    (negate i)
@@ -15,7 +15,7 @@ unop Neg (TmDouble n)    = TmDouble (negate n)
 unop Not (TmBool b)      = TmBool   (not b)
 unop Len (TmArray _ arr) = TmInt    (length arr)
 unop op v = unsafeCrashWith $
-  "Zord.Semantics.Common.unop: impossible unary operation " <> show op <>
+  "CP.Semantics.Common.unop: impossible unary operation " <> show op <>
   " on " <> show v
 
 binop :: BinOp -> Tm -> Tm -> Tm
@@ -26,7 +26,7 @@ binop Append (TmString s1)  (TmString s2)  = TmString (s1 <> s2)
 binop Append (TmArray t l1) (TmArray _ l2) = TmArray t (l1 <> l2)
 binop Index (TmArray t arr) (TmInt i) = case arr !! i of
   Just e -> TmAnno e t
-  Nothing -> unsafeCrashWith $ "Zord.Semantics.Common.binop: the index " <>
+  Nothing -> unsafeCrashWith $ "CP.Semantics.Common.binop: the index " <>
     show i <> " is out of bounds for " <> show (TmArray t arr)
 binop Coalesce TmUndefined v2 = v2
 binop Coalesce v1 _ = v1
@@ -79,7 +79,7 @@ logic op v1 v2 = unsafeCrashWithBinop (Logic op) v1 v2
 
 unsafeCrashWithBinop :: forall a. BinOp -> Tm -> Tm -> a
 unsafeCrashWithBinop op v1 v2 = unsafeCrashWith $
-  "Zord.Semantics.Common.binop: impossible binary operation " <> show op <>
+  "CP.Semantics.Common.binop: impossible binary operation " <> show op <>
   " between " <> show v1 <> " and " <> show v2
 
 toString :: Tm -> Tm
@@ -88,7 +88,7 @@ toString (TmInt i)    = TmString (show i)
 toString (TmDouble n) = TmString (show n)
 toString (TmBool b)   = TmString (show b)
 toString v = unsafeCrashWith $
-  "Zord.Semantics.Common.toString: impossible from " <> show v <> " to string"
+  "CP.Semantics.Common.toString: impossible from " <> show v <> " to string"
 
 selectLabel :: Tm -> Label -> Tm
 selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of

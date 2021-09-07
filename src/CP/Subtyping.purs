@@ -1,10 +1,10 @@
-module Zord.Subtyping where
+module Language.CP.Subtyping where
 
 import Prelude
 
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Zord.Syntax.Core (Ty(..), tySubst)
+import Language.CP.Syntax.Core (Ty(..), tySubst)
 
 subtype :: Ty -> Ty -> Boolean
 subtype TyBot _ = true

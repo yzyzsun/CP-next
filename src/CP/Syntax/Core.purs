@@ -1,4 +1,4 @@
-module Zord.Syntax.Core where
+module Language.CP.Syntax.Core where
 
 import Prelude
 
@@ -6,8 +6,8 @@ import Data.Either (Either(..))
 import Data.Foldable (intercalate)
 import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
-import Zord.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
-import Zord.Util ((<+>))
+import Language.CP.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
+import Language.CP.Util ((<+>))
 
 foreign import data TmRef :: Type
 foreign import new :: Tm -> TmRef

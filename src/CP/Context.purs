@@ -1,4 +1,4 @@
-module Zord.Context where
+module Language.CP.Context where
 
 import Prelude
 
@@ -7,10 +7,10 @@ import Control.Monad.Reader (ReaderT, asks, local, runReaderT)
 import Data.Either (Either)
 import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
+import Language.CP.Syntax.Common (Name)
+import Language.CP.Syntax.Core as C
+import Language.CP.Syntax.Source as S
 import Text.Parsing.Parser.Pos (Position)
-import Zord.Syntax.Common (Name)
-import Zord.Syntax.Core as C
-import Zord.Syntax.Source as S
 
 type Typing = ReaderT Ctx (Except TypeError)
 

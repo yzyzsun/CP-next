@@ -9,7 +9,7 @@
 
 - [New] default patterns, e.g. `_.method = ……`.
 - [New] record wildcards for method patterns, e.g. `(Ctor {..}).method = ……`.
-- The delimiter for Zordoc is changed from triple quotes (`"""doc"""`) to backticks (`` `doc` ``), for the sake of parsing performance.
+- The delimiter for documents is changed from triple quotes (`"""doc"""`) to backticks (`` `doc` ``), for the sake of parsing performance.
 - The type checking of if-then-else is relaxed slightly: if one branch returns a supertype of the other, then that type is inferred.
 - `[self : In & Out]` is implicitly added to method patterns if a trait family implements `Sig<In => Out>` (suggested by an anonymous reviewer from TOPLAS).
 - The delimiter for input/output parts in trait types and sorts is changed from `%` to `=>` (suggested by @JimmyZJX).
@@ -23,9 +23,9 @@
 
 ## 0.1.0
 
-Initial Version of Zord. Most functionalities of CP are reimplemented.
+Initial version of Next-Gen CP; most functionalities of CP are reimplemented.
 
-## Appendix: (Incomplete) Syntactic Differences from CP
+## Appendix: Syntactic Differences from the Original CP
 
 - The merge operator is simplified from double commas (`,,`) to a single comma (`,`). Meanwhile, the delimiter for record fields and array elements is always semicolon (`;`) instead of comma (`,`).
 - `Trait[T]` is now `Trait<T>` and `Trait[I, O]` is now `Trait<I => O>`.

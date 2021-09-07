@@ -1,4 +1,4 @@
-module Zord.Semantics.StepTrace where
+module Language.CP.Semantics.StepTrace where
 
 import Prelude
 
@@ -7,12 +7,12 @@ import Data.Bifunctor (rmap)
 import Data.Monoid.Endo (Endo(..))
 import Data.Newtype (unwrap)
 import Data.Tuple (Tuple)
+import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
+import Language.CP.Semantics.Subst (isValue, paraApp, typedReduce)
+import Language.CP.Subtyping (isTopLike)
+import Language.CP.Syntax.Core (Tm(..), tmSubst, unfold)
+import Language.CP.Util (unsafeFromJust)
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
-import Zord.Semantics.Subst (isValue, paraApp, typedReduce)
-import Zord.Subtyping (isTopLike)
-import Zord.Syntax.Core (Tm(..), tmSubst, unfold)
-import Zord.Util (unsafeFromJust)
 
 type ShowS = String -> String
 type EndoS = Endo Function String
@@ -72,5 +72,5 @@ step (TmUnfold t e)
 step (TmToString e)
   | isValue e = computation "ToStringV" $> toString e
   | otherwise = congruence  "ToString"  $> TmToString <*> step e
-step e = unsafeCrashWith $ "Zord.Semantics.StepTrace.step: " <>
+step e = unsafeCrashWith $ "CP.Semantics.StepTrace.step: " <>
   "well-typed programs don't get stuck, but got " <> show e

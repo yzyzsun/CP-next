@@ -17,5 +17,5 @@ exports.write = function (v) {
     ref.term = v;
     ref.done = true;
     return v;
-  }
+  };
 };

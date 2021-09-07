@@ -1,4 +1,4 @@
-module Zord.Util where
+module Language.CP.Util where
 
 import Prelude
 

@@ -1,46 +1,46 @@
 {
-  "name": "Zord",
-  "scopeName": "source.zord",
+  "name": "CP",
+  "scopeName": "source.cp",
   "fileTypes": [
-    "zord"
+    "cp"
   ],
   "patterns": [
     {
-      "name": "comment.line.double-dash.zord",
+      "name": "comment.line.double-dash.cp",
       "begin": "--",
       "end": "$"
     },
     {
-      "name": "comment.block.zord",
+      "name": "comment.block.cp",
       "begin": "{-",
       "end": "-}"
     },
     {
-      "name": "constant.numeric.zord",
+      "name": "constant.numeric.cp",
       "match": "\\b(\\d+(.\\d+)?([eE][+-]?\\d+)?|0[xX][\\da-fA-F]+|0[oO][0-7]+)\\b"
     },
     {
-      "name": "constant.language.zord",
+      "name": "constant.language.cp",
       "match": "\\b(true|false|undefined)\\b"
     },
     {
-      "name": "keyword.zord",
+      "name": "keyword.cp",
       "match": "\\b(type|forall|trait|implements|inherits|new|if|then|else|let|letrec|open|in|toString)\\b"
     },
     {
-      "name": "storage.type.zord",
+      "name": "storage.type.cp",
       "match": "\\b(Int|Double|Bool|String|Top|Bot|Trait)\\b"
     },
     {
-      "name": "storage.modifier.zord",
+      "name": "storage.modifier.cp",
       "match": "\\b(override)\\b"
     },
     {
-      "name": "string.quoted.double.zord",
+      "name": "string.quoted.double.cp",
       "match": "\"([^\\\\\"]|\\\\.)*\"?"
     },
     {
-      "name": "string.interpolated.zord",
+      "name": "string.interpolated.cp",
       "begin": "`",
       "end": "`"
     }

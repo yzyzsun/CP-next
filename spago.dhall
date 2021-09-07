@@ -1,4 +1,4 @@
-{ name = "zord"
+{ name = "cp-next"
 , dependencies =
   [ "aff"
   , "ansi"

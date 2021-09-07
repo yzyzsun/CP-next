@@ -11,9 +11,9 @@ class Doc < ApplicationRecord
 
   def file
     ext = {
-      "program"  => ".zord",
-      "library"  => ".mzord",
-      "doc_only" => ".zordoc",
+      "program"  => ".cp",
+      "library"  => ".lib",
+      "doc_only" => ".zord",
     }
     File.join Rails.root, "docs", user.username, name + ext[mode]
   end

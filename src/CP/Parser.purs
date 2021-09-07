@@ -1,4 +1,4 @@
-module Zord.Parser where
+module Language.CP.Parser where
 
 import Prelude hiding (between)
 
@@ -18,6 +18,9 @@ import Data.String.Regex (Regex, match, replace)
 import Data.String.Regex.Flags (noFlags)
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Tuple (Tuple(..))
+import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
+import Language.CP.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam, SelfAnno)
+import Language.CP.Util (foldl1, unsafeFromJust)
 import Text.Parsing.Parser (ParseState(..), Parser, fail, position)
 import Text.Parsing.Parser.Combinators (between, choice, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
@@ -25,9 +28,6 @@ import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.Pos (updatePosString)
 import Text.Parsing.Parser.String (char, satisfy)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
-import Zord.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
-import Zord.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam, SelfAnno)
-import Zord.Util (foldl1, unsafeFromJust)
 
 type SParser a = Parser String a
 
@@ -403,8 +403,8 @@ selfAnno = optional $ brackets $
 
 -- Lexer --
 
-zordDef :: LanguageDef
-zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
+langDef :: LanguageDef
+langDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "undefined", "if", "then", "else", "toString"
   , "trait", "implements", "inherits", "override", "new", "fold", "unfold"
   , "let", "letrec", "open", "in", "type", "forall", "mu"
@@ -412,50 +412,50 @@ zordDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   ]
 }
 
-zord :: TokenParser
-zord = makeTokenParser zordDef
+lang :: TokenParser
+lang = makeTokenParser langDef
 
 identifier :: SParser String
-identifier = zord.identifier
+identifier = lang.identifier
 
 reserved :: String -> SParser Unit
-reserved = zord.reserved
+reserved = lang.reserved
 
 operator :: SParser String
-operator = zord.operator
+operator = lang.operator
 
 reservedOp :: String -> SParser Unit
-reservedOp = zord.reservedOp
+reservedOp = lang.reservedOp
 
 stringLiteral :: SParser String
-stringLiteral = zord.stringLiteral
+stringLiteral = lang.stringLiteral
 
 naturalOrFloat :: SParser (Either Int Number)
-naturalOrFloat = zord.naturalOrFloat
+naturalOrFloat = lang.naturalOrFloat
 
 symbol :: String -> SParser Unit
-symbol s = zord.symbol s $> unit
+symbol s = lang.symbol s $> unit
 
 underscore :: SParser String
-underscore = zord.symbol "_"
+underscore = lang.symbol "_"
 
 lexeme :: forall a. SParser a -> SParser a
-lexeme = zord.lexeme
+lexeme = lang.lexeme
 
 whiteSpace :: SParser Unit
-whiteSpace = zord.whiteSpace
+whiteSpace = lang.whiteSpace
 
 parens :: forall a. SParser a -> SParser a
-parens = zord.parens
+parens = lang.parens
 
 braces :: forall a. SParser a -> SParser a
-braces = zord.braces
+braces = lang.braces
 
 angles :: forall a. SParser a -> SParser a
-angles = zord.angles
+angles = lang.angles
 
 brackets :: forall a. SParser a -> SParser a
-brackets = zord.brackets
+brackets = lang.brackets
 
 sepEndBySemi :: forall a. SParser a -> SParser (List a)
 sepEndBySemi p = sepEndBy p (symbol ";")
@@ -465,7 +465,7 @@ lower = satisfy $ isLower <<< codePointFromChar
 
 ident :: SParser Char -> SParser String
 ident identStart = lexeme $ try do
-  let languageDef = unGenLanguageDef zordDef
+  let languageDef = unGenLanguageDef langDef
   c <- identStart
   cs <- Array.many languageDef.identLetter
   let word = SCU.singleton c <> SCU.fromCharArray cs

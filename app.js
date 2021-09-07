@@ -4,10 +4,10 @@ import { EditorView, keymap } from '@codemirror/view';
 import { defaultTabBinding } from '@codemirror/commands';
 import { LanguageSupport, LezerLanguage, continuedIndent, foldNodeProp, indentNodeProp } from '@codemirror/language';
 import { styleTags, tags as t } from '@codemirror/highlight';
-import { parser } from './zord';
+import { parser as parseCP } from './grammar/cp';
 
-const zordLanguage = LezerLanguage.define({
-  parser: parser.configure({
+export const cp = new LanguageSupport(LezerLanguage.define({
+  parser: parseCP.configure({
     props: [
       indentNodeProp.add({
         RecordType: continuedIndent(),
@@ -52,10 +52,9 @@ const zordLanguage = LezerLanguage.define({
     closeBrackets: { brackets: ['{', '(', '[', '"', '`'] },
     commentTokens: { line: '--', block: { open: '{-', close: '-}' } },
   },
-});
+}));
 
 export const language = new Compartment;
-export const languageSupport = new LanguageSupport(zordLanguage);
 
 export function editorState(doc, binding) {
   return EditorState.create({
@@ -74,4 +73,4 @@ export function editorView(state, parent) {
   return new EditorView({ state, parent });
 }
 
-export { default as Zord } from './src/Zord.purs';
+export { default as CP } from './src/CP.purs';

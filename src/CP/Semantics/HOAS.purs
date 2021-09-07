@@ -1,4 +1,4 @@
-module Zord.Semantics.HOAS where
+module Language.CP.Semantics.HOAS where
 
 import Prelude
 
@@ -6,11 +6,11 @@ import Control.Alt ((<|>))
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
+import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
+import Language.CP.Subtyping (isTopLike, split, (<:))
+import Language.CP.Syntax.Common (BinOp(..))
+import Language.CP.Syntax.Core (Tm(..), Ty(..), done, new, read, tmHoas, tyHoas, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
-import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (BinOp(..))
-import Zord.Syntax.Core (Tm(..), Ty(..), done, new, read, tmHoas, tyHoas, unfold, write)
 
 type Eval = Trampoline
 
@@ -37,7 +37,7 @@ eval = runTrampoline <<< go <<< tmHoas
         TmBool true  -> go e2
         TmBool false -> go e3
         _ -> unsafeCrashWith $
-          "Zord.Semantics.HOAS.eval: impossible if " <> show e1' <> " ..."
+          "CP.Semantics.HOAS.eval: impossible if " <> show e1' <> " ..."
     go (TmApp e1 e2 coercive) = do
       e1' <- go e1
       go $ paraApp e1' ((if coercive then TmAnnoArg else TmArg) e2)
@@ -48,7 +48,7 @@ eval = runTrampoline <<< go <<< tmHoas
       case typedReduce e' t of
         Just e'' -> go e''
         Nothing -> unsafeCrashWith $
-          "Zord.Semantics.HOAS.eval: impossible typed reduction " <> show anno
+          "CP.Semantics.HOAS.eval: impossible typed reduction " <> show anno
       where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
@@ -62,7 +62,7 @@ eval = runTrampoline <<< go <<< tmHoas
       where go' :: Tm -> Eval Tm
             go' e'@(TmMerge _ _) = go' <=< go $ TmAnno e' t
             go' (TmFold _ v) = go $ TmAnno v (unfold t)
-            go' e' = unsafeCrashWith $ "Zord.Semantics.HOAS.eval: " <>
+            go' e' = unsafeCrashWith $ "CP.Semantics.HOAS.eval: " <>
                                        "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
     go (TmArray t arr) = pure $ TmArray t (TmRef <<< new <$> arr)
@@ -70,12 +70,12 @@ eval = runTrampoline <<< go <<< tmHoas
       e' <- go e
       pure $ write e' ref
       where e = read ref
-    go e = unsafeCrashWith $ "Zord.Semantics.HOAS.eval: " <>
+    go e = unsafeCrashWith $ "CP.Semantics.HOAS.eval: " <>
       "well-typed programs don't get stuck, but got " <> show e
 
 typedReduce :: Tm -> Ty -> Maybe Tm
 typedReduce e _ | not (isValue e) = unsafeCrashWith $
-  "Zord.Semantics.HOAS.typedReduce: " <> show e <> " is not a value"
+  "CP.Semantics.HOAS.typedReduce: " <> show e <> " is not a value"
 typedReduce _ t | isTopLike t = Just TmUnit
 typedReduce v t | Just (Tuple t1 t2) <- split t = do
   let m1 = isOptionalRcd t1
@@ -109,7 +109,7 @@ paraApp (TmHAbs abs targ tret _) (TmAnnoArg e) =
   TmAnno (abs $ TmRef $ new $ TmAnno e targ) tret
 paraApp (TmHTAbs tabs _ _) (TyArg ta) = tabs ta
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
-paraApp v arg = unsafeCrashWith $ "Zord.Semantics.HOAS.paraApp: " <>
+paraApp v arg = unsafeCrashWith $ "CP.Semantics.HOAS.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
 
 isValue :: Tm -> Boolean

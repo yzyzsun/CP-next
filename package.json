@@ -1,17 +1,17 @@
 {
-  "name": "zord",
+  "name": "cp-next",
   "version": "0.1.2",
-  "description": "The Zord Programming Language",
+  "description": "CP - The Next Generation",
   "private": true,
   "scripts": {
     "start": "spago run",
     "test": "spago test",
     "vscode": "cd vscode && vsce package",
-    "grammar": "lezer-generator --noTerms --output zord zord.grammar",
+    "grammar": "cd grammar && lezer-generator --noTerms --output cp cp.grammar",
     "build": "npm run grammar && webpack",
     "server": "cd backend && rails server"
   },
-  "repository": "github:yzyzsun/zord",
+  "repository": "git://github.com/yzyzsun/CP-next.git",
   "author": "Yaozhu Sun",
   "license": "Apache-2.0",
   "homepage": "https://plground.org",

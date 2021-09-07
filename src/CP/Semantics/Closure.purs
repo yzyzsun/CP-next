@@ -1,4 +1,4 @@
-module Zord.Semantics.Closure where
+module Language.CP.Semantics.Closure where
 
 import Prelude
 
@@ -12,12 +12,12 @@ import Data.Map (insert, lookup, union)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
+import Language.CP.Semantics.Common (Arg(..), binop, toString, unop)
+import Language.CP.Subtyping (isTopLike, split, (<:))
+import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
+import Language.CP.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..), unfold)
+import Language.CP.Util (unsafeFromJust)
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (Arg(..), binop, toString, unop)
-import Zord.Subtyping (isTopLike, split, (<:))
-import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
-import Zord.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..), unfold)
-import Zord.Util (unsafeFromJust)
 
 type EvalT :: (Type -> Type) -> Type -> Type
 type EvalT = ReaderT EvalEnv
@@ -39,7 +39,7 @@ step (TmIf (TmBool false) _ e) = pure e
 step (TmIf e1 e2 e3) = TmIf <$> step e1 <@> e2 <@> e3
 step (TmVar x) = ask >>= \env -> case lookup x env of
   Just (TmBind e) -> pure e
-  m -> unsafeCrashWith $ "Zord.Semantics.Closure.step: " <> x <> " is " <> show m
+  m -> unsafeCrashWith $ "CP.Semantics.Closure.step: " <> x <> " is " <> show m
 step (TmApp e1 e2 coercive) | isValue e1 = paraApp e1 <<< arg <$> closure e2
                             where arg = if coercive then TmAnnoArg else TmArg
                             | otherwise = TmApp <$> step e1 <@> e2 <@> coercive
@@ -67,7 +67,7 @@ step (TmToString e) | isValue e = pure $ toString e
 step arr@(TmArray _ _) = closure arr
 step (TmClosure env e) | isValue e = pure e
                        | otherwise = TmClosure env <$> local (const env) (step e)
-step e = unsafeCrashWith $ "Zord.Semantics.Closure.step: " <>
+step e = unsafeCrashWith $ "CP.Semantics.Closure.step: " <>
   "well-typed programs don't get stuck, but got " <> show e
 
 -- the second argument has been expanded in Step-AnnoV
@@ -76,7 +76,7 @@ typedReduce tm ty = runMaybeT $ go tm ty
   where
     go :: Tm -> Ty -> MaybeT (EvalT m) Tm
     go e _ | not (isValue e) = unsafeCrashWith $
-      "Zord.Semantics.Closure.typedReduce: " <> show e <> " is not a value"
+      "CP.Semantics.Closure.typedReduce: " <> show e <> " is not a value"
     go _ t | isTopLike t = pure TmUnit
     go v t | Just (Tuple t1 t2) <- split t = do
       let m1 = isOptionalRcd t1
@@ -126,7 +126,7 @@ paraApp (TmClosure env (TmAbs x e1 targ tret _)) (TmAnnoArg e2) =
 paraApp (TmClosure env (TmTAbs a _ e _)) (TyArg ta) =
   TmClosure (insert a (TyBind (Just ta)) env) e
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
-paraApp v arg = unsafeCrashWith $ "Zord.Semantics.Closure.paraApp: " <>
+paraApp v arg = unsafeCrashWith $ "CP.Semantics.Closure.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
 
 selectLabel :: Tm -> Label -> Tm
@@ -148,7 +148,7 @@ binop' Append (TmClosure env1 (TmArray t l1)) (TmClosure env2 (TmArray _ l2)) =
   TmClosure (env1 `union` env2) (TmArray t (l1 <> l2))
 binop' Index (TmClosure env (TmArray t arr)) (TmInt i) = case arr !! i of
   Just e -> TmClosure env (TmAnno e t)
-  Nothing -> unsafeCrashWith $ "Zord.Semantics.Closure.binop': the index " <>
+  Nothing -> unsafeCrashWith $ "CP.Semantics.Closure.binop': the index " <>
     show i <> " is out of bounds for " <> show (TmArray t arr)
 binop' op v1 v2 = binop op v1 v2
 
@@ -159,7 +159,7 @@ expand (TyRcd l t opt) = TyRcd l <$> expand t <@> opt
 expand (TyVar a) = ask >>= \env -> case lookup a env of
   Just (TyBind Nothing) -> pure $ TyVar a
   Just (TyBind (Just t)) -> expand t
-  m -> unsafeCrashWith $ "Zord.Semantics.Closure.expand: " <> a <> " is " <> show m
+  m -> unsafeCrashWith $ "CP.Semantics.Closure.expand: " <> a <> " is " <> show m
 expand (TyForall a td t) = do
   td' <- expand td
   t' <- local (\env -> insert a (TyBind Nothing) env) (expand t)

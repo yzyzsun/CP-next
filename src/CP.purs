@@ -1,4 +1,4 @@
-module Zord where
+module Language.CP where
 
 import Prelude
 
@@ -11,18 +11,18 @@ import Data.String (Pattern(..), split)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Exception (throw)
+import Language.CP.Context (Pos(..), TypeError(..), runTyping)
+import Language.CP.Desugar (desugar)
+import Language.CP.Parser (program, whiteSpace)
+import Language.CP.Semantics.HOAS as HOAS
+import Language.CP.Semantics.NaturalClosure as Closure
+import Language.CP.Semantics.NaturalSubst as BigStep
+import Language.CP.Semantics.StepTrace as StepTrace
+import Language.CP.Semantics.Subst as SmallStep
+import Language.CP.Typing (infer)
 import Text.Parsing.Parser (ParseError(..), runParser)
 import Text.Parsing.Parser.Pos (Position(..))
 import Text.Parsing.Parser.String (eof)
-import Zord.Context (Pos(..), TypeError(..), runTyping)
-import Zord.Desugar (desugar)
-import Zord.Parser (program, whiteSpace)
-import Zord.Semantics.HOAS as HOAS
-import Zord.Semantics.NaturalClosure as Closure
-import Zord.Semantics.NaturalSubst as BigStep
-import Zord.Semantics.StepTrace as StepTrace
-import Zord.Semantics.Subst as SmallStep
-import Zord.Typing (infer)
 
 data Mode = SmallStep | StepTrace | BigStep | HOAS | Closure
 

@@ -10,6 +10,7 @@ import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Console (log, time, timeEnd)
+import Language.CP (Mode(..), interpret)
 import Main (preprocess)
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff (readTextFile)
@@ -19,7 +20,6 @@ import Test.Spec (it)
 import Test.Spec.Assertions (expectError, fail, shouldReturn)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
-import Zord (Mode(..), interpret)
 
 testDir :: FilePath
 testDir = "examples"
@@ -27,7 +27,7 @@ testDir = "examples"
 testFiles :: Effect (Array FilePath)
 testFiles = do
   files <- readdir testDir
-  pure $ filter (\f -> extname f == ".zord") files
+  pure $ filter (\f -> extname f == ".cp") files
 
 check :: String -> Effect Unit
 check code = case mexpected of

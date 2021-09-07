@@ -1,4 +1,4 @@
---> 832
+--> 7773
 
 f (a:Int) (b:Int) (c:Int) (d:Int) (e:Int) : Int =
   if a == 0 then 1 else
@@ -8,4 +8,4 @@ f (a:Int) (b:Int) (c:Int) (d:Int) (e:Int) : Int =
           if e == 0 then f a b c (d-1) d + 1 else
             f a b c d (e-1) + 1;
 g (n:Int) = f n n n n n;
-g 5
+g 10

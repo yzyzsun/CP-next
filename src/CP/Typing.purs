@@ -1,4 +1,4 @@
-module Zord.Typing where
+module Language.CP.Typing where
 
 import Prelude
 
@@ -11,14 +11,14 @@ import Data.Set (Set)
 import Data.Set as Set
 import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..), fst, uncurry)
-import Zord.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
-import Zord.Desugar (desugar, desugarMethodPattern)
-import Zord.Subtyping (isTopLike, (<:), (===))
-import Zord.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
-import Zord.Syntax.Core as C
-import Zord.Syntax.Source as S
-import Zord.Transform (duringTransformation, transform, transformTyDef)
-import Zord.Util (unsafeFromJust, (<+>))
+import Language.CP.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, lookupTmBind, lookupTyBind, setPos, throwTypeError)
+import Language.CP.Desugar (desugar, desugarMethodPattern)
+import Language.CP.Subtyping (isTopLike, (<:), (===))
+import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
+import Language.CP.Syntax.Core as C
+import Language.CP.Syntax.Source as S
+import Language.CP.Transform (duringTransformation, transform, transformTyDef)
+import Language.CP.Util (unsafeFromJust, (<+>))
 
 infer :: S.Tm -> Typing (Tuple C.Tm C.Ty)
 infer (S.TmInt i)    = pure $ Tuple (C.TmInt i) C.TyInt

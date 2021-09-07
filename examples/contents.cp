@@ -28,12 +28,12 @@ toc = trait implements ContentsSig<HTML => TOC> => {
 doc T = trait [self : ContentsSig<T>] => {
   body = `\WithTOC[
     \Section[Welcome to \Emph[PLGround]!]
-      \Href("https://plground.org")[PLGround] provides a wiki-like open document repository. \\
+      \Href("https://plground.org")[PLGround] provides an open document repository. \\
       Documents are written in Zord and rendered with an in-browser interpreter.
     \Section[What is \Emph[Zord]?]
-      \SubSection[overview]
-        Zord is a functional programming language that advocates compositional programming.
-      \SubSection[key concepts]
+      \SubSection[Overview]
+        Zord is a DSL embedded in CP, a compositional programming language.
+      \SubSection[Key Concepts of Compositional Programming]
         \Enumerate[
           \Item[\Bold[Compositional interfaces] extend usual OOP interfaces to allow the specification of the signatures of constructors, and can be parametrized by sorts (which abstract over concrete datatypes).]
           \Item[\Bold[Compositional traits] extend first-class traits to allow not only the definition of virtual methods but also the definition of virtual constructors.]

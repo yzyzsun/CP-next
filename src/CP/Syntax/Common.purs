@@ -1,4 +1,4 @@
-module Zord.Syntax.Common where
+module Language.CP.Syntax.Common where
 
 import Prelude
 

@@ -1,15 +1,15 @@
-module Zord.Semantics.NaturalSubst where
+module Language.CP.Semantics.NaturalSubst where
 
 import Prelude
 
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Maybe (Maybe(..))
+import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
+import Language.CP.Semantics.Subst (paraApp, typedReduce)
+import Language.CP.Subtyping (isTopLike)
+import Language.CP.Syntax.Common (BinOp(..))
+import Language.CP.Syntax.Core (Tm(..), done, new, read, tmSubst, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
-import Zord.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
-import Zord.Semantics.Subst (paraApp, typedReduce)
-import Zord.Subtyping (isTopLike)
-import Zord.Syntax.Common (BinOp(..))
-import Zord.Syntax.Core (Tm(..), done, new, read, tmSubst, unfold, write)
 
 type Eval = Trampoline
 
@@ -35,7 +35,7 @@ eval = runTrampoline <<< go
       case e1' of
         TmBool true  -> go e2
         TmBool false -> go e3
-        _ -> unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
+        _ -> unsafeCrashWith $ "CP.Semantics.NaturalSubst.eval: " <>
                                "impossible if " <> show e1' <> " ..."
     go (TmApp e1 e2 coercive) = do
       e1' <- go e1
@@ -50,7 +50,7 @@ eval = runTrampoline <<< go
       e' <- go' e
       case typedReduce e' t of
         Just e'' -> go e''
-        Nothing -> unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
+        Nothing -> unsafeCrashWith $ "CP.Semantics.NaturalSubst.eval: " <>
                                      "impossible typed reduction " <> show anno
       where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
@@ -65,7 +65,7 @@ eval = runTrampoline <<< go
       where go' :: Tm -> Eval Tm
             go' e'@(TmMerge _ _) = go' <=< go $ TmAnno e' t
             go' (TmFold _ v) = go $ TmAnno v (unfold t)
-            go' e' = unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
+            go' e' = unsafeCrashWith $ "CP.Semantics.NaturalSubst.eval: " <>
                                        "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
     go (TmArray t arr) = pure $ TmArray t (TmRef <<< new <$> arr)
@@ -73,5 +73,5 @@ eval = runTrampoline <<< go
       e' <- go e
       pure $ write e' ref
       where e = read ref
-    go e = unsafeCrashWith $ "Zord.Semantics.NaturalSubst.eval: " <>
+    go e = unsafeCrashWith $ "CP.Semantics.NaturalSubst.eval: " <>
       "well-typed programs don't get stuck, but got " <> show e
