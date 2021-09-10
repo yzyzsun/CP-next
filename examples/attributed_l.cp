@@ -26,7 +26,7 @@ printPos (Ctx * Pos) = trait [self : InhPos] implements ExpSig<Cnt => PrintPos C
 };
 
 expPoly Exp = trait [self : ExpSig<Exp>] => {
-  exp = new Add (new Add (new Lit 1) (new Lit 2)) (new Add (new Lit 3) (new Lit 4));
+  exp = Add (Add (Lit 1) (Lit 2)) (Add (Lit 3) (Lit 4));
 };
 
 e = new expCnt , printPos @Top , expPoly @(Cnt & PrintPos Top);

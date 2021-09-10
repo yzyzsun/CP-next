@@ -13,14 +13,14 @@ eval = trait implements ExpSig<Eval> => {
 
 type Dble Exp = { dble : Exp };
 dble Exp = trait [self : ExpSig<Exp>] implements ExpSig<Dble Exp> => {
-  (Lit     n).dble = new Lit (n*2);
-  (Add e1 e2).dble = new Add e1.dble e2.dble;
+  (Lit     n).dble = Lit (n*2);
+  (Add e1 e2).dble = Add e1.dble e2.dble;
 };
 
 exp Exp = trait [self : ExpSig<Exp>] => {
   test = letrec tree (n:Int) : Exp =
-    if n == 0 then new Lit 1
-    else let shared = tree (n-1) in new Add shared shared
+    if n == 0 then Lit 1
+    else let shared = tree (n-1) in Add shared shared
   in tree 20;
 };
 

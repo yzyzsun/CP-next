@@ -163,10 +163,10 @@ dataLabelDecorator (base : ChartT) =
 axisLabelDecorator (labels : [String]) (base : ChartT) =
     trait [self : Chart] implements Chart inherits base => open factory in {
   override xAxis = let sx = super.xAxis in open config in `\sx
-    \Text{ x = (width + margin) / 2; y = height - margin + 30; color = new Gray }[\(labels!!0)]
+    \Text{ x = (width + margin) / 2; y = height - margin + 30; color = Gray }[\(labels!!0)]
   `;
   override yAxis = let sy = super.yAxis in open config in `\sy
-    \Text{ x = margin - 30; y = height - margin - 10; color = new Gray }[\(labels!!1)]
+    \Text{ x = margin - 30; y = height - margin - 10; color = Gray }[\(labels!!1)]
   `;
 };
 

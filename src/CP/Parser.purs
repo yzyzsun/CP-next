@@ -82,8 +82,12 @@ lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|> trait <|> new <|>
           fold <|> unfold
 
 fexpr :: SParser Tm -> SParser Tm
-fexpr e = dotexpr e >>= \e' -> foldl (#) e' <$>
-  many (flip TmTApp <$ char '@' <*> aty ty <|> flip TmApp <$> dotexpr e)
+fexpr e = do
+  Tuple isCtor f <- Tuple true <<< TmVar <$> upperIdentifier <|>
+                    Tuple false <$> dotexpr e
+  args <- many $ flip TmTApp <$ char '@' <*> aty ty <|>
+                 flip TmApp <$> dotexpr e
+  pure $ (if isCtor then TmNew else identity) (foldl (#) f args)
 
 dotexpr :: SParser Tm -> SParser Tm
 dotexpr e = aexpr e >>= \e' -> foldl (#) e' <$>
@@ -97,7 +101,9 @@ aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
                  , reserved "false" $> TmBool false
                  , symbol "()" $> TmUnit
                  , reserved "undefined" $> TmUndefined
-                 , identifier <#> TmVar
+                 , lowerIdentifier <#> TmVar
+                 , upperIdentifier <#> TmVar >>> TmNew
+                 , char '$' *> upperIdentifier <#> TmVar
                  , brackets $ TmArray <<< toUnfoldable <$> sepEndBySemi e
                  , braces $ recordUpdate e <|> recordLit e
                  , parens e

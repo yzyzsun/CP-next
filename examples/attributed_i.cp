@@ -44,8 +44,8 @@ evalFunc (Context * CtxF) = trait implements FuncSig<Eval (CtxF&Context)> => {
 };
 
 expPoly Exp = trait [self : ExpSig<Exp> & VarSig<Exp> & FuncSig<Exp>] => {
-  exp = new LetF "f" (\(x:Int) -> x * x)
-                 (new Let "x" (new Lit 9) (new AppF "f" (new Var "x")));
+  exp = LetF "f" (\(x:Int) -> x * x)
+             (Let "x" (Lit 9) (AppF "f" (Var "x")));
 };
 
 e = new evalNum @(CtxN&CtxF) , evalVar @CtxF , evalFunc @CtxN ,

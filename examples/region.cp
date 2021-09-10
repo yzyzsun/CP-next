@@ -69,15 +69,15 @@ chkEmpty = trait implements RegionSig<IsUniv => IsEmpty> => {
 type Opt Region = { optimized : Region };
 opt Region = trait [fself : RegionSig<Region>]
              implements RegionSig<IsUniv&IsEmpty&Region => Opt Region> => {
-  [self].optimized = if self.isUniv then new Univ
-                     else if self.isEmpty then new Empty
+  [self].optimized = if self.isUniv then Univ
+                     else if self.isEmpty then Empty
                      else self
 };
 
 repo Region = trait [self : RegionSig<Region>] => {
-  annulus = new Intersect (new Outside (new Circle 4.0)) (new Circle 8.0);
-  ellipse = new Scale {x = 4.0; y = 8.0} (new Circle 1.0);
-  universal = new Union (new Outside (new Empty)) (new Circle 1.0);
+  annulus = Intersect (Outside (Circle 4.0)) (Circle 8.0);
+  ellipse = Scale {x = 4.0; y = 8.0} (Circle 1.0);
+  universal = Union (Outside Empty) (Circle 1.0);
 };
 
 shapes = new repo @(Eval & Print & IsUniv & IsEmpty & Opt (Eval&Print)) ,

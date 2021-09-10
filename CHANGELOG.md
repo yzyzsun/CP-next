@@ -4,6 +4,7 @@
 - [New] polymorphic record updates, e.g. `{ rcd | x = 1; y = 2 }`.
 - [New] default values for record wildcards, e.g. `(Ctor { z = 0; .. }.method = ……`.
 - Implicit self-type annotations (introduced in 0.1.2) are removed. Instead, self-references can be declared without type annotations, e.g. `[self]`, whose type will be inferred.
+- An uppercase variable should be prefixed with `$`, or it is regarded as a constructor invocation with `new` inserted.
 
 ## 0.1.2
 
@@ -28,6 +29,7 @@ Initial version of Next-Gen CP; most functionalities of CP are reimplemented.
 ## Appendix: Syntactic Differences from the Original CP
 
 - The merge operator is simplified from double commas (`,,`) to a single comma (`,`). Meanwhile, the delimiter for record fields and array elements is always semicolon (`;`) instead of comma (`,`).
+- `new` is automatically inserted when constructors are invoked. In other words, `Ctor x y` is equivalent to `new $Ctor x y` now.
 - `Trait[T]` is now `Trait<T>` and `Trait[I, O]` is now `Trait<I => O>`.
 - `Sig<I1 % O1, I2 % O2>` is now `Sig<I1 => O1><I2 => O2>`.
 - The syntax of object self-type annotations is changed from `(Ctor x [self : T])` to `[self : T]@(Ctor x)`.
