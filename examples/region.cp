@@ -1,27 +1,37 @@
 --> "the universal region contains the origin"
 
+type Vector = { x : Double; y : Double };
+
+pow (b:Double) (n:Int) : Double =
+  if n == 0 then 1.0
+  else if n > 0 then pow b (n-1) * b
+  else pow b (n+1) / b;
+
 type HudakSig<Region> = {
   Circle    : Double -> Region;
   Outside   : Region -> Region;
   Union     : Region -> Region -> Region;
   Intersect : Region -> Region -> Region;
+  Translate : Vector -> Region -> Region;
 };
 
 type Print = { text : String };
 print = trait implements HudakSig<Print> => {
-  (Circle      r).text = "a circle of radius " ++ toString r;
-  (Outside     a).text = "outside " ++ a.text;
-  (Union     a b).text = "the union of " ++ a.text ++ " and " ++ b.text;
-  (Intersect a b).text = "the intersection of " ++ a.text ++ " and " ++ b.text;
+  (Circle         r).text = "a circle of radius " ++ toString r;
+  (Outside        a).text = "outside " ++ a.text;
+  (Union        a b).text = "the union of " ++ a.text ++ " and " ++ b.text;
+  (Intersect    a b).text = "the intersection of " ++ a.text ++ " and " ++ b.text;
+  (Translate {..} a).text = "a region translating " ++ a.text ++
+                            " by (" ++ toString x ++ "," ++ toString y ++ ")";
 };
 
-type Vector = { x : Double; y : Double };
 type Eval = { contains : Vector -> Bool };
 eval = trait implements HudakSig<Eval> => {
-  (Circle      r).contains p = p.x * p.x + p.y * p.y <= r * r;
-  (Outside     a).contains p = !(a.contains p);
-  (Union     a b).contains p = a.contains p || b.contains p;
-  (Intersect a b).contains p = a.contains p && b.contains p;
+  (Circle         r).contains p = pow p.x 2 + pow p.y 2 <= pow r 2;
+  (Outside        a).contains p = !(a.contains p);
+  (Union        a b).contains p = a.contains p || b.contains p;
+  (Intersect    a b).contains p = a.contains p && b.contains p;
+  (Translate {..} a).contains p = a.contains {x = p.x - x; y = p.y - y};
 };
 
 type HoferSig<Region> = {
@@ -53,6 +63,7 @@ chkUniv = trait implements RegionSig<IsEmpty => IsUniv> => {
   (Outside     a).isUniv = a.isEmpty;
   (Union     a b).isUniv = a.isUniv || b.isUniv;
   (Intersect a b).isUniv = a.isUniv && b.isUniv;
+  (Translate _ a).isUniv = a.isUniv;
   (Scale     _ a).isUniv = a.isUniv;
                 _.isUniv = false;
 };
@@ -62,6 +73,7 @@ chkEmpty = trait implements RegionSig<IsUniv => IsEmpty> => {
   (Outside     a).isEmpty = a.isUniv;
   (Union     a b).isEmpty = a.isEmpty && b.isEmpty;
   (Intersect a b).isEmpty = a.isEmpty || b.isEmpty;
+  (Translate _ a).isEmpty = a.isEmpty;
   (Scale     _ a).isEmpty = a.isEmpty;
                 _.isEmpty = false;
 };
@@ -78,6 +90,12 @@ repo Region = trait [self : RegionSig<Region>] => {
   annulus = Intersect (Outside (Circle 4.0)) (Circle 8.0);
   ellipse = Scale {x = 4.0; y = 8.0} (Circle 1.0);
   universal = Union (Outside Empty) (Circle 1.0);
+  circles = letrec recur (n:Int) (offset:Double) : Region =
+              if n == 0 then Circle 1.0
+              else let shared = recur (n-1) (offset/2.0)
+                   in Union (Translate {x = -offset; y = 0.0} shared)
+                            (Translate {x =  offset; y = 0.0} shared)
+            in let n = 20 in recur n (pow 2.0 (n-2));
 };
 
 shapes = new repo @(Eval & Print & IsUniv & IsEmpty & Opt (Eval&Print)) ,
