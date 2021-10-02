@@ -9,7 +9,7 @@ import Data.List (List(..))
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple (Tuple(..), fst, snd)
 import Language.CP.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
-import Language.CP.Util ((<+>))
+import Language.CP.Util (isCapitalized, (<+>))
 import Text.Parsing.Parser.Pos (Position)
 
 -- Types --
@@ -110,7 +110,7 @@ instance Show Tm where
   show (TmBinary op e1 e2) = parens $ show e1 <+> show op <+> show e2
   show (TmIf e1 e2 e3) = parens $
     "if" <+> show e1 <+> "then" <+> show e2 <+> "else" <+> show e3
-  show (TmVar x) = x
+  show (TmVar x) = if isCapitalized x then "$" <> x else x
   show (TmApp e1 e2) = parens $ show e1 <+> show e2
   show (TmAbs xs e) = parens $ "\\" <> showTmParams xs <> "->" <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t

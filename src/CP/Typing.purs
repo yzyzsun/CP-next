@@ -408,9 +408,10 @@ infer e = throwTypeError $ "expected a desugared term, but got" <+> show e
 
 distApp :: C.Ty -> Either C.Ty C.Ty -> Typing C.Ty
 distApp C.TyTop _ = pure C.TyTop
-distApp f@(C.TyArrow targ tret _) (Left t) | t <: targ = pure tret
-                                           | otherwise = throwTypeError $
-  show f <+> "expected a subtype of its parameter type, but got" <+> show t
+distApp (C.TyArrow targ tret _) (Left t) | t <: targ = pure tret
+                                         | otherwise = throwTypeError $
+  "expected the argument type to be a subtype of the parameter type, but got" <+>
+  show t <+> "and" <+> show targ
 distApp (C.TyForall a td t) (Right ta) = disjoint ta td $> C.tySubst a ta t
 distApp (C.TyAnd t1 t2) t = do
   t1' <- distApp t1 t
