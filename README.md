@@ -1,6 +1,6 @@
 # CP - The Next Generation
 
-CP is a *compositional programming* language, founded on a core calculus named *Fi+*. The next-gen CP is implemented in [PureScript](https://www.purescript.org) (a Haskell-like language that compiles to JavaScript).
+CP is a *compositional* programming language, founded on a core calculus named *Fi+*. The next-gen CP is implemented in [PureScript](https://www.purescript.org) (a Haskell-like language that compiles to JavaScript).
 
 ## Language Features
 
@@ -22,13 +22,11 @@ CP is a *compositional programming* language, founded on a core calculus named *
 
 ## Document DSL
 
-A DSL for document authoring is embedded in CP, called **Zord**. Details are to be published soon.
-
-The name [Zord](https://powerrangers.fandom.com/wiki/Category:Zords) comes from the television series *Power Rangers*. Zords are giant robots piloted by superheroes, which can join together into a more powerful humanoid Megazord. It is used as a metaphor for compositional embedding.
+A DSL for document authoring is embedded in CP, called ExT (**Ex**tensible **T**ypesetting). Details are to be published soon.
 
 ## Online Demo
 
-[PLGround](https://plground.org) provides an online CP interpreter and an open document repository. Documents are written in Zord and rendered in your web browser. It is integrated with a [CodeMirror 6](https://codemirror.net/6/) editor with syntax highlighting. The related grammar files written in [Lezer](https://lezer.codemirror.net) can be found in `grammar/`.
+[PLGround](https://plground.org) provides an online CP interpreter and a wiki-like document repository. Documents are written in ExT and rendered in your web browser. It is integrated with a [CodeMirror 6](https://codemirror.net/6/) editor with syntax highlighting. The related grammar files written in [Lezer](https://lezer.codemirror.net) can be found in `grammar/`.
 
 Since the frontend code uses the Fetch API, PLGround is expected to work on Chrome 42+, Firefox 39+, Edge 14+, Safari 10.1+, or other modern browsers.
 

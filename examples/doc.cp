@@ -7,8 +7,8 @@ doc T = trait [self : DocSig'<T>] => {
     \Section[
       Welcome to \Href("https://plground.org")[PLGround]!
     ]
-    \Bold[CP] is a \Emph[compositional programming] language. \\
-    There are \( 1+1+1+1 ) key concepts in compositional programming:
+    \Bold[CP] is a \Emph[compositional] programming language. \\
+    There are \( 1+1+1+1 ) key concepts in CP:
     \Enumerate[
       \Item[Compositional interfaces;]
       \Item[Compositional traits;]
