@@ -1,11 +1,14 @@
---> "the universal region contains the origin"
-
-type Vector = { x : Double; y : Double };
+--> "U contains the origin"
 
 pow (b:Double) (n:Int) : Double =
   if n == 0 then 1.0
   else if n > 0 then pow b (n-1) * b
   else pow b (n+1) / b;
+
+pair (s1:String) (s2:String) = "(" ++ s1 ++ ", " ++ s2 ++ ")";
+
+type Vector = { x : Double; y : Double };
+pv (v:Vector) = pair (toString v.x) (toString v.y);
 
 type HudakSig<Region> = {
   Circle    : Double -> Region;
@@ -15,23 +18,13 @@ type HudakSig<Region> = {
   Translate : Vector -> Region -> Region;
 };
 
-type Print = { text : String };
-print = trait implements HudakSig<Print> => {
-  (Circle         r).text = "a circle of radius " ++ toString r;
-  (Outside        a).text = "outside " ++ a.text;
-  (Union        a b).text = "the union of " ++ a.text ++ " and " ++ b.text;
-  (Intersect    a b).text = "the intersection of " ++ a.text ++ " and " ++ b.text;
-  (Translate {..} a).text = "a region translating " ++ a.text ++
-                            " by (" ++ toString x ++ "," ++ toString y ++ ")";
-};
-
-type Eval = { contains : Vector -> Bool };
-eval = trait implements HudakSig<Eval> => {
-  (Circle         r).contains p = pow p.x 2 + pow p.y 2 <= pow r 2;
-  (Outside        a).contains p = !(a.contains p);
-  (Union        a b).contains p = a.contains p || b.contains p;
-  (Intersect    a b).contains p = a.contains p && b.contains p;
-  (Translate {..} a).contains p = a.contains {x = p.x - x; y = p.y - y};
+type Text = { text : String };
+txt = trait implements HudakSig<Text> => {
+  (Circle      r).text = "○(" ++ toString r ++ ")";
+  (Outside     a).text = "∁(" ++ a.text ++ ")";
+  (Union     a b).text = "∪" ++ pair a.text b.text;
+  (Intersect a b).text = "∩" ++ pair a.text b.text;
+  (Translate v a).text = "T" ++ pair (pv v) a.text;
 };
 
 type HoferSig<Region> = {
@@ -40,20 +33,25 @@ type HoferSig<Region> = {
   Scale : Vector -> Region -> Region;
 };
 
-print' = trait implements HoferSig<Print> => {
-  (Univ        ).text = "the universal region";
-  (Empty       ).text = "the empty region";
-  (Scale {..} a).text = "a region scaling " ++ a.text ++
-                        " by (" ++ toString x ++ "," ++ toString y ++ ")";
-};
-
-eval' = trait implements HoferSig<Eval> => {
-  (Univ        ).contains _ = true;
-  (Empty       ).contains _ = false;
-  (Scale {..} a).contains p = a.contains {x = p.x / x; y = p.y / y};
+txt' = trait implements HoferSig<Text> => {
+  (Univ     ).text = "U";
+  (Empty    ).text = "∅";
+  (Scale v a).text = "S" ++ pair (pv v) a.text;
 };
 
 type RegionSig<Region> = HudakSig<Region> & HoferSig<Region>;
+
+type Eval = { contains : Vector -> Bool };
+eval = trait implements RegionSig<Eval> => {
+  (Circle         r).contains p = pow p.x 2 + pow p.y 2 <= pow r 2;
+  (Outside        a).contains p = !(a.contains p);
+  (Union        a b).contains p = a.contains p || b.contains p;
+  (Intersect    a b).contains p = a.contains p && b.contains p;
+  (Translate {..} a).contains p = a.contains { x = p.x - x; y = p.y - y };
+  (Univ            ).contains _ = true;
+  (Empty           ).contains _ = false;
+  (Scale     {..} a).contains p = a.contains { x = p.x / x; y = p.y / y };
+};
 
 type IsUniv  = { isUniv  : Bool };
 type IsEmpty = { isEmpty : Bool };
@@ -78,28 +76,42 @@ chkEmpty = trait implements RegionSig<IsUniv => IsEmpty> => {
                 _.isEmpty = false;
 };
 
-type Opt Region = { optimized : Region };
+type Simplify Region = { simplify : Region };
 opt Region = trait [fself : RegionSig<Region>]
-             implements RegionSig<IsUniv&IsEmpty&Region => Opt Region> => {
-  [self].optimized = if self.isUniv then Univ
-                     else if self.isEmpty then Empty
-                     else self
+             implements RegionSig<IsUniv&IsEmpty&Region => Simplify Region> => {
+  [self].simplify = if self.isUniv then Univ
+                    else if self.isEmpty then Empty
+                    else self
+};
+
+type Eliminate Region = { eliminate : Region; delOutside : Region };
+opt' Region = trait [fself : RegionSig<Region>]
+              implements RegionSig<Region => Eliminate Region> => {
+  (Outside     a).eliminate = a.delOutside;
+  (Union     a b).eliminate = Union a.eliminate b.eliminate;
+  (Intersect a b).eliminate = Intersect a.eliminate b.eliminate;
+  (Translate v a).eliminate = Translate v a.eliminate;
+  (Scale     v a).eliminate = Scale v a.eliminate;
+           [self].eliminate = self;
+
+  (Outside a).delOutside = a.eliminate;
+       [self].delOutside = Outside self.eliminate;
 };
 
 repo Region = trait [self : RegionSig<Region>] => {
   annulus = Intersect (Outside (Circle 4.0)) (Circle 8.0);
-  ellipse = Scale {x = 4.0; y = 8.0} (Circle 1.0);
+  ellipse = Scale { x = 4.0; y = 8.0 } (Circle 1.0);
   universal = Union (Outside Empty) (Circle 1.0);
-  circles = letrec recur (n:Int) (offset:Double) : Region =
+  circles = letrec go (n:Int) (offset:Double) : Region =
               if n == 0 then Circle 1.0
-              else let shared = recur (n-1) (offset/2.0)
-                   in Union (Translate {x = -offset; y = 0.0} shared)
-                            (Translate {x =  offset; y = 0.0} shared)
-            in let n = 20 in recur n (pow 2.0 (n-2));
+              else let shared = go (n-1) (offset/2.0)
+                   in Union (Translate { x = -offset; y = 0.0 } shared)
+                            (Translate { x =  offset; y = 0.0 } shared)
+            in let n = 20 in go n (pow 2.0 (n-2));
 };
 
-shapes = new repo @(Eval & Print & IsUniv & IsEmpty & Opt (Eval&Print)) ,
-             eval , eval' , print , print' , chkUniv , chkEmpty , opt @(Eval&Print);
-optimized = shapes.universal.optimized;
-optimized.text ++ (if optimized.contains {x = 0.0; y = 0.0}
+shapes = new repo @(Eval & Text & IsUniv & IsEmpty & Simplify (Eval&Text)) ,
+             eval , txt , txt' , chkUniv , chkEmpty , opt @(Eval&Text);
+optimized = shapes.universal.simplify;
+optimized.text ++ (if optimized.contains { x = 0.0; y = 0.0 }
   then " contains " else " does not contain ") ++ "the origin"
