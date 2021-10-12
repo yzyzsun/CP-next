@@ -72,7 +72,6 @@ type Base = {
 };
 type Render = { render : HTML };
 type Chart = Base & Render;
-type ChartT = Trait<Chart => Chart>;
 
 baseChart (data : [Data]) = trait implements Base => open factory in {
   data_ = data;
@@ -127,7 +126,7 @@ barStrategy = trait [self : Base] implements Render => open factory in {
     ` in let bars = bars' 0 0 in `\xAxis \yAxis \bars \caption`
 };
 
-legendDecorator (chart : ChartT) =
+legendDecorator (chart : Trait<Chart>) =
     trait [self : Chart] implements Chart inherits chart => open factory in {
   override caption = letrec legends' (n:Int) : HTML = open config in
     if n == #data_ then `` else let datum = data_ !! n in `
@@ -137,7 +136,7 @@ legendDecorator (chart : ChartT) =
     ` in `\legends'(0)`
 };
 
-borderDecorator (chart : ChartT) =
+borderDecorator (chart : Trait<Chart>) =
     trait [self : Chart] implements Chart inherits chart => open factory in {
   override render = let sr = super.render in open config in `\sr
     \Line{ x1 = margin; y1 = margin; x2 = width; y2 = margin }
@@ -146,7 +145,7 @@ borderDecorator (chart : ChartT) =
   `;
 };
 
-dataLabelDecorator (chart : ChartT) =
+dataLabelDecorator (chart : Trait<Chart>) =
     trait [self : Chart] implements Chart inherits chart => open factory in {
   override render = letrec labels' (n:Int) (i:Int) : HTML = open config in
     if n == #data_ then `` else let c = (data_!!n).color in let d = (data_!!n).d in
@@ -160,7 +159,7 @@ dataLabelDecorator (chart : ChartT) =
     ` in let sr = super.render in `\sr \labels'(0)(0)`;
 };
 
-axisLabelDecorator (labels : [String]) (chart : ChartT) =
+axisLabelDecorator (labels : [String]) (chart : Trait<Chart>) =
     trait [self : Chart] implements Chart inherits chart => open factory in {
   override xAxis = let sx = super.xAxis in open config in `\sx
     \Text{ x = (width + margin) / 2; y = height - margin + 30; color = Gray }[\(labels!!0)]

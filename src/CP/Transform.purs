@@ -43,7 +43,7 @@ translate (S.TyAnd t1 t2) = C.TyAnd <$> translate t1 <*> translate t2
 translate (S.TyArrow t1 t2) = C.TyArrow <$> translate t1 <*> translate t2 <@> false
 translate (S.TyVar a) = pure $ C.TyVar a
 translate (S.TyRec a t) = C.TyRec a <$> translate t
-translate (S.TyTrait Nothing to) = C.TyArrow C.TyTop <$> translate to <@> true
+translate (S.TyTrait Nothing to) = translate to >>= \to' -> pure $ C.TyArrow to' to' true
 translate (S.TyTrait (Just ti) to) =
   C.TyArrow <$> translate ti <*> translate to <@> true
 translate (S.TyArray t) = C.TyArray <$> translate t
