@@ -2,7 +2,7 @@
     "name": "cp-next",
     "displayName": "CP - The Next Generation",
     "description": "Syntax highlighting for the next-gen CP",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "license": "Apache-2.0",
     "publisher": "yzyzsun",
     "repository": {
