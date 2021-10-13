@@ -27,7 +27,7 @@ TermDef {
 }
 
 type {
-  btype | kw<"forall"> typeParam+ "." type |
+  btype | kw<"forall"> typeParam+ "." type | kw<"mu"> TypeNameDecl "." type |
   kW<"Trait"> angles<sort> |
   type !arrow TypeOp<"->"> type |
   type !intersect TypeOp<"&"> type
@@ -65,7 +65,8 @@ lexpr {
   Open { kw<"open"> expression kw<"in"> expression } |
   IfElse { kw<"if"> expression kw<"then"> expression kw<"else"> expression } |
   Trait { kw<"trait"> SelfAnno? (kw<"implements"> type)? (kw<"inherits"> opexpr)? "=>" opexpr } |
-  New { kw<"new"> opexpr } | ToString { kw<"toString"> dotexpr }
+  New { kw<"new"> opexpr } | ToString { kw<"toString"> dotexpr } |
+  kw<"fold"> "@" atype dotexpr | kw<"unfold"> "@" atype dotexpr
 }
 
 fexpr { dotexpr (dotexpr | "@" atype)* }
