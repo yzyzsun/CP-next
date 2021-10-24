@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  mode: 'production',
+  mode: 'development',
   entry: './app.js',
   module: {
     rules: [
@@ -26,4 +26,9 @@ module.exports = {
     path: path.resolve(__dirname, 'backend/app/assets/javascripts'),
     library: 'bundle',
   },
+  resolve: {
+    fallback: {
+      fs: false
+    }
+  }
 };

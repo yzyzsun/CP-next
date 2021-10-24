@@ -74,3 +74,4 @@ export function editorView(state, parent) {
 }
 
 export { default as CP } from './src/CP.purs';
+export { parse } from './ZordParser/index.js'

@@ -10,6 +10,7 @@ import Data.Show.Generic (genericShow)
 import Data.String (Pattern(..), split)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
+import Effect.Console (log)
 import Effect.Exception (throw)
 import Language.CP.Context (Pos(..), TypeError(..), runTyping)
 import Language.CP.Desugar (desugar)
@@ -19,7 +20,7 @@ import Language.CP.Semantics.NaturalClosure as Closure
 import Language.CP.Semantics.NaturalSubst as BigStep
 import Language.CP.Semantics.StepTrace as StepTrace
 import Language.CP.Semantics.Subst as SmallStep
-import Language.CP.Syntax.Source (showDoc)
+import Language.CP.Syntax.Source (Tm, showDoc)
 import Language.CP.Typing (infer)
 import Text.Parsing.Parser (ParseError(..), runParser)
 import Text.Parsing.Parser.Pos (Position(..))
@@ -29,6 +30,18 @@ data Mode = SmallStep | StepTrace | BigStep | HOAS | Closure
 
 derive instance Generic Mode _
 instance Show Mode where show = genericShow
+
+parse :: String -> Effect Tm
+parse code = case runParser code (whiteSpace *> program <* eof) of
+  Left err -> throw $ showParseError err code
+  Right e -> pure e
+
+execute :: Tm -> Effect String
+execute e = do  log $ show e
+                let e' = desugar e
+                case runTyping (infer e') of
+                  Left err -> throw $ showTypeError err
+                  Right (Tuple e'' _) -> pure $ show (BigStep.eval e'')
 
 interpret :: String -> Mode -> Effect String
 interpret code mode = case runParser code (whiteSpace *> program <* eof) of
