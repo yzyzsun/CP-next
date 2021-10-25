@@ -59,7 +59,7 @@ eval = runTrampoline <<< go
     go (TmRcd l t e) = pure $ TmRcd l t (TmRef (new e))
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
-    go e@(TmTAbs _ _ _ _) = pure e
+    go e@(TmTAbs _ _ _ _ _) = pure e
     go (TmFold t e) = TmFold t <$> go e
     go (TmUnfold t e) = if isTopLike t then pure TmUnit else go e >>= go'
       where go' :: Tm -> Eval Tm

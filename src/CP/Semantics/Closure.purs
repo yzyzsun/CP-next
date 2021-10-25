@@ -56,7 +56,7 @@ step (TmPrj e l) | isValue e = pure $ selectLabel e l
                  | otherwise = TmPrj <$> step e <@> l
 step (TmTApp e t) | isValue e = paraApp e <<< TyArg <$> expand t
                   | otherwise = TmTApp <$> step e <@> t
-step tabs@(TmTAbs _ _ _ _) = closure tabs
+step tabs@(TmTAbs _ _ _ _ _) = closure tabs
 step (TmFold t e) = TmFold t <$> step e
 step (TmUnfold t e) | isTopLike t = pure TmUnit
                     | TmFold _ e' <- e = pure $ TmAnno e' (unfold t)
@@ -101,13 +101,13 @@ typedReduce tm ty = runMaybeT $ go tm ty
       tret1' <- lift $ local (const env) $ expand tret1
       if tret1' <: tret2 then pure $ TmClosure env (TmAbs x e targ1' tret2 true)
                          else empty
-    go (TmClosure env (TmTAbs a1 td1 e t1)) (TyForall a2 td2 t2) = do
+    go (TmClosure env (TmTAbs a1 td1 e t1 _)) (TyForall a2 td2 t2) = do
       td1' <- lift $ local (const env) $ expand td1
       let env' = insert a1 (TyBind Nothing) env
       t1' <- lift $ local (const env') $ expand t1
       -- TODO: a1 can be different from a2
       if a1 == a2 && td2 <: td1' && t1' <: t2
-      then pure $ TmClosure env' (TmTAbs a2 td1' e t2)
+      then pure $ TmClosure env' (TmTAbs a2 td1' e t2 true)
       else empty
     go (TmClosure env (TmArray t1 arr)) (TyArray t2) = do
       t1' <- lift $ local (const env) $ expand t1
@@ -123,8 +123,10 @@ paraApp (TmClosure env (TmAbs x e1 _ tret true)) (TmArg e2) =
   TmClosure (insert x (TmBind e2) env) (TmAnno e1 tret)
 paraApp (TmClosure env (TmAbs x e1 targ tret _)) (TmAnnoArg e2) =
   TmClosure (insert x (TmBind (TmAnno e2 targ)) env) (TmAnno e1 tret)
-paraApp (TmClosure env (TmTAbs a _ e _)) (TyArg ta) =
+paraApp (TmClosure env (TmTAbs a _ e _ false)) (TyArg ta) =
   TmClosure (insert a (TyBind (Just ta)) env) e
+paraApp (TmClosure env (TmTAbs a _ e t true)) (TyArg ta) =
+  TmClosure (insert a (TyBind (Just ta)) env) (TmAnno e t)
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
 paraApp v arg = unsafeCrashWith $ "CP.Semantics.Closure.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
@@ -181,7 +183,7 @@ isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmFold _ e) = isValue e
 isValue (TmClosure _ (TmRcd _ _ _)) = true
 isValue (TmClosure _ (TmAbs _ _ _ _ _)) = true
-isValue (TmClosure _ (TmTAbs _ _ _ _)) = true
+isValue (TmClosure _ (TmTAbs _ _ _ _ _)) = true
 isValue (TmClosure _ (TmArray _ _)) = true
 isValue _ = false
 

@@ -167,7 +167,7 @@ infer (S.TmTApp e ta) = do
 infer (S.TmTAbs (Cons (Tuple a (Just td)) Nil) e) = do
   td' <- transform td
   Tuple e' t <- addTyBind a td' $ infer e
-  pure $ Tuple (C.TmTAbs a td' e' t) (C.TyForall a td' t)
+  pure $ Tuple (C.TmTAbs a td' e' t false) (C.TyForall a td' t)
 infer (S.TmLet x Nil Nil e1 e2) = do
   Tuple e1' t1 <- infer e1
   Tuple e2' t2 <- addTmBind x t1 $ infer e2

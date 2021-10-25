@@ -70,7 +70,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       e' <- go e
       t' <- expand t
       go $ paraApp e' (TyArg t')
-    go e@(TmTAbs _ _ _ _) = closure e
+    go e@(TmTAbs _ _ _ _ _) = closure e
     go (TmFold t e) = TmFold t <$> go e
     go (TmUnfold t e) =  if isTopLike t then pure TmUnit else go e >>= go'
       where go' :: Tm -> Eval Tm
@@ -86,7 +86,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       where e = read ref
     go e@(TmClosure _ (TmRcd _ _ _)) = pure e
     go e@(TmClosure _ (TmAbs _ _ _ _ _)) = pure e
-    go e@(TmClosure _ (TmTAbs _ _ _ _)) = pure e
+    go e@(TmClosure _ (TmTAbs _ _ _ _ _)) = pure e
     go e@(TmClosure _ (TmArray _ _)) = pure e
     go (TmClosure env e) = local (const env) (go e)
     go e = unsafeCrashWith $ "CP.Semantics.NaturalClosure.eval: " <>

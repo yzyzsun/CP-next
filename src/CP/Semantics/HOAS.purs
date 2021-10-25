@@ -56,7 +56,7 @@ eval = runTrampoline <<< go <<< tmHoas
     go (TmRcd l t e) = pure $ TmRcd l t (TmRef (new e))
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
-    go e@(TmHTAbs _ _ _) = pure e
+    go e@(TmHTAbs _ _ _ _) = pure e
     go (TmFold t e) = TmFold t <$> go e
     go (TmUnfold t e) = if isTopLike t then pure TmUnit else go e >>= go'
       where go' :: Tm -> Eval Tm
@@ -94,9 +94,9 @@ typedReduce (TmHAbs abs targ1 tret1 _) (TyArrow _ tret2 _)
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
 typedReduce (TmRcd l t e) (TyRcd l' t' _)
   | l == l' && t <: t' = Just $ TmRcd l t' e
-typedReduce (TmHTAbs tabs td1 tf1) (TyForall a td2 t2)
+typedReduce (TmHTAbs tabs td1 tf1 _) (TyForall a td2 t2)
   | td2 <: td1 && tf1 (TyVar a) <: t2
-  = Just $ TmHTAbs tabs td1 (tyHoas a t2)
+  = Just $ TmHTAbs tabs td1 (tyHoas a t2) true
 typedReduce (TmFold t v) t'@(TyRec _ _) | t <: t' = Just $ TmFold t' v
 typedReduce (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 typedReduce _ _ = Nothing
@@ -107,7 +107,8 @@ paraApp (TmHAbs abs _ _ false) (TmArg e) = abs $ TmRef $ new e
 paraApp (TmHAbs abs _ tret true) (TmArg e) = TmAnno (abs $ TmRef $ new e) tret
 paraApp (TmHAbs abs targ tret _) (TmAnnoArg e) =
   TmAnno (abs $ TmRef $ new $ TmAnno e targ) tret
-paraApp (TmHTAbs tabs _ _) (TyArg ta) = tabs ta
+paraApp (TmHTAbs tabs _ _ false) (TyArg ta) = tabs ta
+paraApp (TmHTAbs tabs _ tf true) (TyArg ta) = TmAnno (tabs ta) (tf ta)
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
 paraApp v arg = unsafeCrashWith $ "CP.Semantics.HOAS.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
@@ -122,7 +123,7 @@ isValue TmUndefined  = true
 isValue (TmHAbs _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true
-isValue (TmHTAbs _ _ _) = true
+isValue (TmHTAbs _ _ _ _) = true
 isValue (TmFold _ e) = isValue e
 isValue (TmArray _ _) = true
 isValue _ = false

@@ -69,9 +69,9 @@ typedReduce (TmAbs x e targ1 tret1 _) (TyArrow _ tret2 _)
 typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
 typedReduce (TmRcd l t e) (TyRcd l' t' _)
   | l == l' && t <: t' = Just $ TmRcd l t' e
-typedReduce (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
+typedReduce (TmTAbs a1 td1 e t1 _) (TyForall a2 td2 t2)
   | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2
-  = Just $ TmTAbs a2 td1 (tmTSubst a1 (TyVar a2) e) t2
+  = Just $ TmTAbs a2 td1 (tmTSubst a1 (TyVar a2) e) t2 true
 typedReduce (TmFold t v) t'@(TyRec _ _) | t <: t' = Just $ TmFold t' v
 typedReduce (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 typedReduce _ _ = Nothing
@@ -82,7 +82,9 @@ paraApp (TmAbs x e1 _ _ false) (TmArg e2) = tmSubst x e2 e1
 paraApp (TmAbs x e1 _ tret true) (TmArg e2) = TmAnno (tmSubst x e2 e1) tret
 paraApp (TmAbs x e1 targ tret _) (TmAnnoArg e2) =
   TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
-paraApp (TmTAbs a _ e _) (TyArg ta) = tmTSubst a ta e
+paraApp (TmTAbs a _ e _ false) (TyArg ta) = tmTSubst a ta e
+paraApp (TmTAbs a _ e t true) (TyArg ta) =
+  TmAnno (tmTSubst a ta e) (tySubst a ta t)
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
 paraApp v arg = unsafeCrashWith $ "CP.Semantics.Subst.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
@@ -97,7 +99,7 @@ isValue TmUndefined  = true
 isValue (TmAbs _ _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true
-isValue (TmTAbs _ _ _ _) = true
+isValue (TmTAbs _ _ _ _ _) = true
 isValue (TmFold _ e) = isValue e
 isValue (TmArray _ _) = true
 isValue _ = false
