@@ -131,9 +131,10 @@ trait = do
   self <- selfAnno
   sig <- optional (reserved "implements" *> ty)
   e1 <- optional (reserved "inherits" *> expr)
+  sig' <- optional (reserved "implements" *> ty)
   symbol "=>"
   e2 <- expr
-  pure $ TmTrait self sig e1 e2
+  pure $ TmTrait self (sig <|> sig') e1 e2
 
 new :: SParser Tm
 new = do

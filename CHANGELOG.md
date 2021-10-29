@@ -1,3 +1,7 @@
+## Unreleased
+
+- In a trait definition, `implements` and `inherits` clauses can be written in any order.
+
 ## 0.1.3
 
 - [Experimental] iso-recursive types with nominal unfoldings.
@@ -30,7 +34,7 @@ Initial version of Next-Gen CP; most functionalities of CP are reimplemented.
 
 - The merge operator is simplified from double commas (`,,`) to a single comma (`,`). Meanwhile, the delimiter for record fields and array elements is always semicolon (`;`) instead of comma (`,`).
 - `new` is automatically inserted when constructors are invoked. In other words, `Ctor x y` is equivalent to `new $Ctor x y` now.
-- `Trait[T]` is now `Trait<T>`, which is short for `Trait<T => T>` instead of `Trait<Top => T`.
+- `Trait[T]` is now `Trait<T>`, which is short for `Trait<T => T>` instead of `Trait<Top => T>`.
 - `Trait[I, O]` is now `Trait<I => O>`.
 - `Sig<I1 % O1, I2 % O2>` is now `Sig<I1 => O1><I2 => O2>`.
 - The syntax of object self-type annotations is changed from `(Ctor x [self : T])` to `[self : T]@(Ctor x)`.
