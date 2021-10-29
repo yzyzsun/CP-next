@@ -425,9 +425,8 @@ disjoint _ t | isTopLike t = pure unit
 disjoint (C.TyArrow _ t1 _) (C.TyArrow _ t2 _) = disjoint t1 t2
 disjoint (C.TyAnd t1 t2) t3 = disjoint t1 t3 *> disjoint t2 t3
 disjoint t1 (C.TyAnd t2 t3) = disjoint (C.TyAnd t2 t3) t1
-disjoint (C.TyRcd l1 t1 opt1) (C.TyRcd l2 t2 opt2)
-  | l1 == l2 && not opt1 && not opt2 = disjoint t1 t2
-  | otherwise = pure unit
+disjoint (C.TyRcd l1 t1 _) (C.TyRcd l2 t2 _) | l1 == l2  = disjoint t1 t2
+                                             | otherwise = pure unit
 disjoint (C.TyVar a) t = do
   mt' <- lookupTyBind a
   case mt' of
