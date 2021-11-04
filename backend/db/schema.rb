@@ -16,11 +16,11 @@ ActiveRecord::Schema.define(version: 2021_04_26_063413) do
     t.string "name"
     t.integer "mode", null: false
     t.string "provide_factory"
+    t.string "require_library"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.integer "access", null: false
     t.integer "user_id"
-    t.string "require_library"
     t.text "html_cache"
     t.index ["user_id", "name"], name: "index_docs_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_docs_on_user_id"
