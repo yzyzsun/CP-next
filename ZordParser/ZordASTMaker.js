@@ -712,7 +712,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
   
     // Visit a parse tree produced by ZordParser#typeName.
     visitTypeName(ctx) {
-        return ctx.getText();
+        return new AST.TyVar(ctx.getText());
     }
   
   
