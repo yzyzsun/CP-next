@@ -4,10 +4,10 @@ import ZordParser from './ZordParser.js'
 import ZordParserVisitor from './ZordParserVisitor.js'
 import { default as AST } from '../src/CP/Syntax/Source.purs'
 import { default as OP } from '../src/CP/Syntax/Common.purs'
-import { default as Either } from '../output/Data.Either/index.js'
-import { default as Maybe } from '../output/Data.Maybe/index.js'
-import { default as Tuple } from '../output/Data.Tuple/index.js'
-import { default as List } from '../output/Data.List/index.js'
+import { default as Either } from '../.spago/either/v5.0.0/src/Data/Either.purs'
+import { default as Maybe } from '../.spago/maybe/v5.0.0/src/Data/Maybe.purs'
+import { default as Tuple } from '../.spago/tuples/v6.0.1/src/Data/Tuple.purs'
+import { default as List } from '../.spago/lists/v6.0.1/src/Data/List/Types.purs'
 
 export default class ZordASTMaker extends ZordParserVisitor {
 

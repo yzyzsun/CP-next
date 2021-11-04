@@ -2,7 +2,6 @@ import antlr4 from 'antlr4';
 import ZordLexer from './ZordLexer.js';
 import ZordParser from './ZordParser.js';
 import ZordASTMaker from './ZordASTMaker.js';
-import * as AST from './ASTConstructors.cjs';
 
 export function parse(input) {
   const chars = new antlr4.InputStream(input);
