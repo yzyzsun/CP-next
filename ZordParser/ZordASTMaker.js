@@ -491,7 +491,22 @@ export default class ZordASTMaker extends ZordParserVisitor {
                         return new AST.TmInt(parseInt(num));
                     }
                 case ZordParser.String:
-                    return new AST.TmString(child.getText().slice(1,-1));
+                    let s = child.getText().slice(1,-1);
+                    let s_ = "";
+                    for (let i=0;i<s.length;i++){
+                        if(s[i]=='\\'){
+                            i++;
+                            let chars = "\'\"\\bfnrtv";
+                            let escs  = "\'\"\\\b\f\n\r\t\v";
+                            for(let j=0;j<chars.length;j++){
+                                if(s[i] === chars[j])
+                                    s_ += escs[j]
+                            }
+                        } else {
+                            s_ += s[i]
+                        }
+                    }
+                    return new AST.TmString(s_);
                 case ZordParser.Unit:
                     return AST.TmUnit.value;
                 case ZordParser.True_:
@@ -754,26 +769,28 @@ export default class ZordASTMaker extends ZordParserVisitor {
 
     // Visit a parse tree produced by ZordParser#document.
 	visitDocument(ctx) {
-        const position = {line: ctx.docElement(0).start.line, column: ctx.docElement(0).start.column};
+        const position = {line: ctx.start.line, column: ctx.start.column};
         const docs = ctx.docElement();
         let foldedDocs = undefined;
         if (docs.length === 0){
-            foldedDocs = new AST.TmString("");
+            foldedDocs = new AST.TmNew(new AST.TmApp(
+                new AST.TmVar("Str"),
+                new AST.TmString("")
+            ));
         } else {
             foldedDocs = this.visitDocElement(docs[0]);
-            for (let each of docs.slice(1))
+            for (let each of docs.slice(1)){
+                console.log("Heyy");
                 foldedDocs = new AST.TmNew(new AST.TmApp(
                     new AST.TmApp(new AST.TmVar("Comp"), foldedDocs),
                     this.visitDocElement(each)
                 ));
+            }
         }
         return new AST.TmPos(
             position,
             new AST.TmDoc(
-                new AST.TmNew(new AST.TmApp(
-                    new AST.TmVar("Str"),
-                    foldedDocs
-                ))
+                foldedDocs
             )
         );
 	}
