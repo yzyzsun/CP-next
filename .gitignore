@@ -139,3 +139,8 @@ flamegraph.html
 
 ### macOS ###
 .DS_Store
+
+### ANTLR ###
+/ZordParser/*.tokens
+/ZordParser/*.interp
+/ZordParser/.antlr/

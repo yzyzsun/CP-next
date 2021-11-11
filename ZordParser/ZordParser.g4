@@ -28,8 +28,8 @@ termDef
 
 type
     :   btype
-    |   type Intersect type
-    |   type Arrow type
+    |   <assoc=left> type Intersect type
+    |   <assoc=right> type Arrow type
     ;
 
 btype

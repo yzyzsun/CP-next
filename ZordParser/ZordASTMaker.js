@@ -79,9 +79,9 @@ export default class ZordASTMaker extends ZordParserVisitor {
         if (ctx.btype() !== null) {
             return this.visitBtype(ctx.btype());
         } else if (ctx.Intersect() !== null) {
-            return new AST.TyAnd(this.visitType(ctx.type(0)), this.visitType(ctx.type(0)));
+            return new AST.TyAnd(this.visitType(ctx.type(0)), this.visitType(ctx.type(1)));
         } else if (ctx.Arrow() !== null) {
-            return new AST.TyArrow(this.visitType(ctx.type(0)), this.visitType(ctx.type(0)));
+            return new AST.TyArrow(this.visitType(ctx.type(0)), this.visitType(ctx.type(1)));
         } else {
             console.error("Error at type");
         }
@@ -350,7 +350,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
   
     // Visit a parse tree produced by ZordParser#letRec.
     visitLetRec(ctx) {
-        return new AST.TmLetRec(
+        return new AST.TmLetrec(
             this.visitTermNameDecl(ctx.termNameDecl()),
             this.listify(ctx.typeParam().map(this.visitTypeParam, this)),
             this.listify(ctx.termParam().map(this.visitTermParam, this)),
@@ -382,12 +382,14 @@ export default class ZordASTMaker extends ZordParserVisitor {
   
     // Visit a parse tree produced by ZordParser#trait.
     visitTrait(ctx) {
-        return new AST.TmTrait(
+        let x = new AST.TmTrait(
             ctx.selfAnno() === null ? Maybe.Nothing.value : new Maybe.Just(this.visitSelfAnno(ctx.selfAnno())),
             ctx.type() === null ? Maybe.Nothing.value : new Maybe.Just(this.visitType(ctx.type())),
-            ctx.opexpr().length === 2 ? new Maybe.Just(ctx.opexpr(0)) : Maybe.Nothing.value,
-            ctx.opexpr().length === 2 ? ctx.opexpr(1) : ctx.opexpr(0)
+            ctx.opexpr().length === 2 ? new Maybe.Just(this.visitOpexpr(ctx.opexpr(0))) : Maybe.Nothing.value,
+            ctx.opexpr().length === 2 ? this.visitOpexpr(ctx.opexpr(1)) : this.visitOpexpr(ctx.opexpr(0))
         );
+        console.log(x);
+        return x;
     }
   
   
@@ -451,14 +453,14 @@ export default class ZordASTMaker extends ZordParserVisitor {
             } else if (child.ruleIndex === ZordParser.RULE_atype) {
                 fexpr = new AST.TmTApp(fexpr, this.visitAtype(child));
             } else {
-                //console.log(child);
                 console.error("Error at fexpr");
             }
         }
-        if (isCtor)
-            new AST.TmNew(fexpr);
-        else
+        if (isCtor){
+            return new AST.TmNew(fexpr);
+        } else {
             return fexpr;
+        }
     }
   
   
@@ -480,7 +482,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
                 case ZordParser.Number:
                     let num = child.getText();
                     if (num.includes('.') || num.includes('e') || num.includes('E')){
-                        return new AST.TmNumber(parseFloat(num));
+                        return new AST.TmDouble(parseFloat(num));
                     } else if ('Xx'.includes(num[1])){
                         return new AST.TmInt(parseInt(num.slice(2), 16));
                     } else if ('Oo'.includes(num[1])){
@@ -518,7 +520,6 @@ export default class ZordASTMaker extends ZordParserVisitor {
                 case ZordParser.RULE_recordUpdate:
                     return this.visitRecordUpdate(ctx.recordUpdate());
                 default:
-                    console.log(child);
                     console.error("Error at Aexpr");
             }
         }
@@ -543,17 +544,20 @@ export default class ZordASTMaker extends ZordParserVisitor {
             } else {
                 switch (child.ruleIndex) {
                     case ZordParser.RULE_recordField:
-                        record.push(this.visitRecordField(ctx.recordField()));
+                        record.push(this.visitRecordField(child));
+                        break;
                     case ZordParser.RULE_methodPattern:
-                        record.push(this.visitMethodPattern(ctx.methodPattern()));
+                        record.push(this.visitMethodPattern(child));
+                        break;
                     case ZordParser.RULE_defaultPattern:
-                        record.push(this.visitDefaultPattern(ctx.defaultPattern()));
+                        record.push(this.visitDefaultPattern(child));
+                        break;
                     default:
                         console.error("Error in record");
                 }
             }
         }
-        return new AST.TmRcd(record);
+        return new AST.TmRcd(this.listify(record));
     }
   
   
@@ -578,8 +582,8 @@ export default class ZordASTMaker extends ZordParserVisitor {
             ));
         }
         return new AST.TmUpdate(
-            new AST.TmUpdate(this.visitExpression(ctx.expression(0)), params)
-        )
+            this.visitExpression(ctx.expression(0)), this.listify(fields)
+        );
     }
   
   
@@ -603,11 +607,11 @@ export default class ZordASTMaker extends ZordParserVisitor {
         return new AST.RcdField(
             ctx.Override() !== null,
             this.visitLabelDecl(ctx.labelDecl(0)),
-            params,
+            this.listify(params),
             new Either.Right(new AST.MethodPattern(
                 ctx.selfAnno() === null? Maybe.Nothing.value : new Maybe.Just(this.visitSelfAnno(ctx.selfAnno())),
                 this.visitLabelDecl(ctx.labelDecl(1)),
-                params_,
+                this.listify(params_),
                 this.visitExpression(ctx.expression())
             ))
         );
@@ -640,21 +644,22 @@ export default class ZordASTMaker extends ZordParserVisitor {
     visitTermParam(ctx) {
         switch (ctx.getChildCount()){
             case 1:
-                switch (ctx.getChild(0)){
+                switch (ctx.getChild(0).ruleIndex){
                     case ZordParser.RULE_termId:
-                        return new Tuple.Tuple(
+                        return new AST.TmParam(
                             this.visitTermId(ctx.termId()),
-                            null
+                            Maybe.Nothing.value
                         );
                     case ZordParser.RULE_wildcard:
                         return this.visitWildcard(ctx.wildcard());
                     default:
                         console.error("Error at TermParam");
+                        break;
                 }
             case 5:
                 return new AST.TmParam(
                     this.visitTermId(ctx.termId()),
-                    this.visitType(ctx.type())
+                    new Maybe.Just(this.visitType(ctx.type()))
                 );
             default:
                 console.error("Error at TermParam");
@@ -677,7 +682,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
         for (let i = 0; i<labelDecls.length; i++){
             defaultFields[i] = new Tuple.Tuple(labelDecls[i], expressions[i]);
         }
-        return new AST.WildCard(defaultFields);
+        return new AST.WildCard(this.listify(defaultFields));
     }
   
   
@@ -796,7 +801,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
 	visitCommand(ctx) {
         const position = {line: ctx.start.line, column: ctx.start.column};
 	    const cmd = ctx.getChild(0).getText().slice(1);
-        const args = this.listify(ctx.arg().map(this.visitArg, this));
+        const args = ctx.arg().map(this.visitArg, this);
         //foldl
         let folded = new AST.TmVar(cmd);
         for (let arg of args){
@@ -853,7 +858,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
 
 	// Visit a parse tree produced by ZordParser#recordArgField.
 	visitRecordArgField(ctx) {
-	    const params = listify(ctx.termParam().map(this.visitTermParam, this));
+	    const params = this.listify(ctx.termParam().map(this.visitTermParam, this));
         return new AST.RcdField(
             false,
             this.visitLabelDecl(ctx.labelDecl()),

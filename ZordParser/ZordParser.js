@@ -176,7 +176,7 @@ const serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786",
     "\u0001\u0002\u00b4\u00b5\u0005\u000e\b\u0002\u00b5\u00be\u0003\u0002",
     "\u0002\u0002\u00b6\u00b7\f\u0004\u0002\u0002\u00b7\u00b8\u0007.\u0002",
     "\u0002\u00b8\u00bd\u0005\f\u0007\u0005\u00b9\u00ba\f\u0003\u0002\u0002",
-    "\u00ba\u00bb\u0007,\u0002\u0002\u00bb\u00bd\u0005\f\u0007\u0004\u00bc",
+    "\u00ba\u00bb\u0007,\u0002\u0002\u00bb\u00bd\u0005\f\u0007\u0003\u00bc",
     "\u00b6\u0003\u0002\u0002\u0002\u00bc\u00b9\u0003\u0002\u0002\u0002\u00bd",
     "\u00c0\u0003\u0002\u0002\u0002\u00be\u00bc\u0003\u0002\u0002\u0002\u00be",
     "\u00bf\u0003\u0002\u0002\u0002\u00bf\r\u0003\u0002\u0002\u0002\u00c0",
@@ -958,7 +958,7 @@ export default class ZordParser extends antlr4.Parser {
 	                    this.state = 184;
 	                    this.match(ZordParser.Arrow);
 	                    this.state = 185;
-	                    this.type(2);
+	                    this.type(1);
 	                    break;
 
 	                } 
