@@ -4,9 +4,7 @@ import Prelude hiding (between)
 
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
-import Control.Monad.State (gets, modify_)
 import Data.Array as Array
-import Data.Array.NonEmpty (head)
 import Data.CodePoint.Unicode (isLower)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
@@ -14,19 +12,15 @@ import Data.List (List, foldl, many, null, some, toUnfoldable)
 import Data.Maybe (Maybe(..), isJust, isNothing, optional)
 import Data.String (codePointFromChar)
 import Data.String.CodeUnits as SCU
-import Data.String.Regex (Regex, match, replace)
-import Data.String.Regex.Flags (noFlags)
-import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Tuple (Tuple(..))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
 import Language.CP.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam, SelfAnno)
 import Language.CP.Util (foldl1, isCapitalized)
-import Text.Parsing.Parser (ParseState(..), Parser, fail, position)
-import Text.Parsing.Parser.Combinators (between, choice, sepEndBy, try)
+import Text.Parsing.Parser (Parser, fail, position)
+import Text.Parsing.Parser.Combinators (between, choice, lookAhead, manyTill, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
-import Text.Parsing.Parser.Pos (updatePosString)
-import Text.Parsing.Parser.String (char, satisfy)
+import Text.Parsing.Parser.String (anyChar, char, satisfy)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
 
 type SParser a = Parser String a
@@ -226,8 +220,8 @@ document p = position >>= \pos -> TmPos pos <<< TmDoc <$> do
     recordArg = TmRcd <$> sepEndBySemi (recordField p false)
     interpolation = newStr <<< TmToString <$> parensWithoutTrailingSpace p
     newline = char '\\' $> newEndl
-    plaintext = newStr <<< TmString <$> stringMatching re
-    re = unsafeRegex """^[^\\\]`]+""" noFlags
+    plaintext = newStr <<< TmString <$>
+                stringTill (char '\\' <|> char ']' <|> char '`')
     newEndl = TmNew (TmVar "Endl")
     newStr s = TmNew (TmApp (TmVar "Str") s)
     newComp x y = TmNew (TmApp (TmApp (TmVar "Comp") x) y)
@@ -486,14 +480,7 @@ lowerIdentifier = ident lower
 upperIdentifier :: SParser String
 upperIdentifier = ident upper
 
-stringMatching :: Regex -> SParser String
-stringMatching re = do
-  input <- gets \(ParseState input _ _) -> input
-  case match re input of
-    Just arr -> case head arr of
-      Just str -> do
-        modify_ \(ParseState _ position _) ->
-          ParseState (replace re "" input) (updatePosString position str) true
-        pure str
-      Nothing -> fail $ "Failed to match " <> show re
-    Nothing -> fail $ "Failed to match " <> show re
+stringTill :: forall a. SParser a -> SParser String
+stringTill p = do chars <- manyTill anyChar (lookAhead p)
+                  if null chars then fail "Unexpected empty string"
+                  else pure $ SCU.fromCharArray $ toUnfoldable chars
