@@ -1,8 +1,9 @@
 --> 14
 
-sum' (a : [Int]) (i : Int) : Int =
-  if i == 0 then a!!0 else sum' a (i-1) + a!!i;
-sum (a : [Int]) = sum' a (#a - 1);
+sum (a : [Int]) =
+  letrec sum' (i : Int) : Int =
+    if i == #a then 0 else a!!i + sum' (i+1)
+  in sum' 0;
 
 double (i : Int) = i * 2;
 array = [ 1; 1 + 1; double 2 ];
