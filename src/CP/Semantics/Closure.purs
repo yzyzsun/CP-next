@@ -46,7 +46,7 @@ step (TmApp e1 e2 coercive) | isValue e1 = paraApp e1 <<< arg <$> closure e2
 step abs@(TmAbs _ _ _ _ _) = closure abs
 step fix@(TmFix x e _) = closureWithTmBind x fix e
 step (TmAnno (TmAnno e _) t) = pure $ TmAnno e t
-step (TmAnno e t) | isValue e = unsafeFromJust <$> (typedReduce e =<< expand t)
+step (TmAnno e t) | isValue e = unsafeFromJust <$> (cast e =<< expand t)
                   | otherwise = TmAnno <$> step e <@> t
 step (TmMerge e1 e2) | isValue e1 = TmMerge e1 <$> step e2
                      | isValue e2 = TmMerge <$> step e1 <@> e2
@@ -71,12 +71,12 @@ step e = unsafeCrashWith $ "CP.Semantics.Closure.step: " <>
   "well-typed programs don't get stuck, but got " <> show e
 
 -- the second argument has been expanded in Step-AnnoV
-typedReduce :: forall m. Monad m => Tm -> Ty -> EvalT m (Maybe Tm)
-typedReduce tm ty = runMaybeT $ go tm ty
+cast :: forall m. Monad m => Tm -> Ty -> EvalT m (Maybe Tm)
+cast tm ty = runMaybeT $ go tm ty
   where
     go :: Tm -> Ty -> MaybeT (EvalT m) Tm
     go e _ | not (isValue e) = unsafeCrashWith $
-      "CP.Semantics.Closure.typedReduce: " <> show e <> " is not a value"
+      "CP.Semantics.Closure.cast: " <> show e <> " is not a value"
     go _ t | isTopLike t = pure TmUnit
     go v t | Just (Tuple t1 t2) <- split t = do
       let m1 = isOptionalRcd t1

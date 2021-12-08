@@ -5,7 +5,7 @@ import Prelude
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Maybe (Maybe(..))
 import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
-import Language.CP.Semantics.Subst (paraApp, typedReduce)
+import Language.CP.Semantics.Subst (cast, paraApp)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
 import Language.CP.Syntax.Core (Tm(..), done, new, read, tmSubst, unfold, write)
@@ -48,10 +48,10 @@ eval = runTrampoline <<< go
       pure $ write res ref
     go anno@(TmAnno e t) = do
       e' <- go' e
-      case typedReduce e' t of
+      case cast e' t of
         Just e'' -> go e''
         Nothing -> unsafeCrashWith $ "CP.Semantics.NaturalSubst.eval: " <>
-                                     "impossible typed reduction " <> show anno
+                                     "impossible casting " <> show anno
       where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'

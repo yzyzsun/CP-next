@@ -42,7 +42,7 @@ instance Show Ty where
   show (TyArrow t1 t2 false) = parens $ show t1 <+> "→" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
   -- Optional record types can be regarded just as Top, but
-  -- they can help typed reduction keep corresponding fields if present.
+  -- they can help casting keep corresponding fields if present.
   show (TyRcd l t opt) = braces $
     l <> (if opt then "?" else "") <+> ":" <+> show t
   show (TyVar a) = a

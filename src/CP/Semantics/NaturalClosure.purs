@@ -6,7 +6,7 @@ import Control.Monad.Reader (ask, local, runReaderT)
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
-import Language.CP.Semantics.Closure (EvalT, binop', closure, expand, paraApp, selectLabel, typedReduce, unop')
+import Language.CP.Semantics.Closure (EvalT, binop', cast, closure, expand, paraApp, selectLabel, unop')
 import Language.CP.Semantics.Common (Arg(..), toString)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
@@ -55,11 +55,11 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
     go anno@(TmAnno e t) = do
       e' <- go' e
       t' <- expand t
-      s <- typedReduce e' t'
+      s <- cast e' t'
       case s of
         Just e'' -> go e''
         Nothing -> unsafeCrashWith $ "CP.Semantics.NaturalClosure.eval: " <>
-                                     "impossible typed reduction " <> show anno
+                                     "impossible casting " <> show anno
       where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
