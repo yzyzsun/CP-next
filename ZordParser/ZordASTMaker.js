@@ -56,8 +56,8 @@ export default class ZordASTMaker extends ZordParserVisitor {
         const angleTNDCount = ctx.Less().length;
         const type = ctx.type();
         const a = this.visitTypeNameDecl(typeNameDecls[0]);
-        const sorts = this.listify(typeNameDecls.splice(1, angleTNDCount+1).map(this.visitTypeNameDecl, this));
-        const parms = this.listify(typeNameDecls.splice(angleTNDCount + 1).map(this.visitTypeNameDecl, this));
+        const sorts = this.listify(typeNameDecls.slice(1, angleTNDCount+1).map(this.visitTypeNameDecl, this));
+        const parms = this.listify(typeNameDecls.slice(angleTNDCount + 1).map(this.visitTypeNameDecl, this));
         const t = this.visitType(type);
         return new AST.TmType(a, sorts, parms, t, p);
     }
@@ -691,11 +691,11 @@ export default class ZordASTMaker extends ZordParserVisitor {
   
     // Visit a parse tree produced by ZordParser#wildcard.
     visitWildcard(ctx) {
-        const labelDecls = this.listify(ctx.labelDecl().map(this.visitLabelDecl, this));
-        const expressions = this.listify(ctx.expression().map(this.visitExpression, this));
+        const labelDecls = ctx.labelDecl().map(this.visitLabelDecl, this);
+        const expressions = ctx.expression().map(this.visitExpression, this);
         const defaultFields = [];
         for (let i = 0; i<labelDecls.length; i++){
-            defaultFields[i] = new Tuple.Tuple(labelDecls[i], expressions[i]);
+            defaultFields.push(new Tuple.Tuple(labelDecls[i], expressions[i]));
         }
         return new AST.WildCard(this.listify(defaultFields));
     }
