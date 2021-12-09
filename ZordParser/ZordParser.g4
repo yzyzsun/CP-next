@@ -130,6 +130,7 @@ ifElse
 
 trait
     :   TraitSmall selfAnno? (Implements type)? (Inherits opexpr)? TraitArrow opexpr
+    |   TraitSmall selfAnno? (Inherits opexpr)? (Implements type)? TraitArrow opexpr   
     ;
 
 new_
