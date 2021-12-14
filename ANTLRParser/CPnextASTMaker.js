@@ -1,7 +1,7 @@
 import antlr4 from 'antlr4'
-import ZordLexer from './ZordLexer.js'
-import ZordParser from './ZordParser.js'
-import ZordParserVisitor from './ZordParserVisitor.js'
+import CPnextLexer from './CPnextLexer.js'
+import CPnextParser from './CPnextParser.js'
+import CPnextParserVisitor from './CPnextParserVisitor.js'
 import { default as AST } from '../src/CP/Syntax/Source.purs'
 import { default as OP } from '../src/CP/Syntax/Common.purs'
 import { default as Either } from '../.spago/either/v5.0.0/src/Data/Either.purs'
@@ -9,7 +9,7 @@ import { default as Maybe } from '../.spago/maybe/v5.0.0/src/Data/Maybe.purs'
 import { default as Tuple } from '../.spago/tuples/v6.0.1/src/Data/Tuple.purs'
 import { default as List } from '../.spago/lists/v6.0.1/src/Data/List/Types.purs'
 
-export default class ZordASTMaker extends ZordParserVisitor {
+export default class CPnextASTMaker extends CPnextParserVisitor {
 
     // Convert array to list
     listify(array) {
@@ -21,7 +21,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
 
 
-    // Visit a parse tree produced by ZordParser#program.
+    // Visit a parse tree produced by CPnextParser#program.
 	visitProgram(ctx) {
         const expression = ctx.expression();
         const definitions = ctx.definition();
@@ -33,13 +33,13 @@ export default class ZordASTMaker extends ZordParserVisitor {
     } 
   
   
-    // Visit a parse tree produced by ZordParser#open.
+    // Visit a parse tree produced by CPnextParser#open.
     visitOpen(ctx) {
         return null;
     }
   
   
-    // Visit a parse tree produced by ZordParser#definition.
+    // Visit a parse tree produced by CPnextParser#definition.
     visitDefinition(ctx, program) {
         const typeDef = ctx.typeDef();
         const termDef = ctx.termDef();
@@ -50,7 +50,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#typeDef.
+    // Visit a parse tree produced by CPnextParser#typeDef.
     visitTypeDef(ctx, p) {
         const typeNameDecls = ctx.typeNameDecl();
         const angleTNDCount = ctx.Less().length;
@@ -63,7 +63,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#termDef.
+    // Visit a parse tree produced by CPnextParser#termDef.
     visitTermDef(ctx, p) {
         const x = this.visitTermNameDecl(ctx.termNameDecl());
         const tys = this.listify(ctx.typeParam().map(this.visitTypeParam, this));
@@ -74,7 +74,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
 
 
-    // Visit a parse tree produced by ZordParser#type.
+    // Visit a parse tree produced by CPnextParser#type.
     visitType(ctx) {
         if (ctx.btype() !== null) {
             return this.visitBtype(ctx.btype());
@@ -88,7 +88,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#btype.
+    // Visit a parse tree produced by CPnextParser#btype.
     visitBtype(ctx) {
         if (ctx.ForAll() !== null) {
             return new AST.TyForall(this.listify(ctx.typeParam().map(this.visitTypeParam, this)), this.visitType(ctx.type(0)));
@@ -114,9 +114,9 @@ export default class ZordASTMaker extends ZordParserVisitor {
                 const child = ctx.getChild(i);
                 if (child.ruleIndex === undefined){
                     continue;
-                } else if (child.ruleIndex === ZordParser.RULE_sort){
+                } else if (child.ruleIndex === CPnextParser.RULE_sort){
                     btype = new AST.TyApp(btype, this.visitSort(child));
-                } else if (child.ruleIndex === ZordParser.RULE_atype){
+                } else if (child.ruleIndex === CPnextParser.RULE_atype){
                     btype = new AST.TyApp(btype, this.visitAtype(child));
                 } else {
                     console.error("Error at btype");
@@ -127,36 +127,36 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
 
 
-    // Visit a parse tree produced by ZordParser#atype.
+    // Visit a parse tree produced by CPnextParser#atype.
 	visitAtype(ctx) {
         if (ctx.getChild(0).symbol === undefined){
             switch (ctx.getChild(0).ruleIndex) {
-                case ZordParser.RULE_typeName:
+                case CPnextParser.RULE_typeName:
                     return this.visitTypeName(ctx.typeName());
-                case ZordParser.RULE_recordType:
+                case CPnextParser.RULE_recordType:
                     return this.visitRecordType(ctx.recordType());
                 default:
                     console.error("Error at Atype");
             }
         } else {
             switch (ctx.getChild(0).symbol.type) {
-                case ZordParser.Int :
+                case CPnextParser.Int :
                     return AST.TyInt.value;
-                case ZordParser.Double :
+                case CPnextParser.Double :
                     return AST.TyDouble.value;
-                case ZordParser.Bool :
+                case CPnextParser.Bool :
                     return AST.TyBool.value;
-                case ZordParser.StringType :
+                case CPnextParser.StringType :
                     return AST.TyString.value;
-                case ZordParser.Top :
+                case CPnextParser.Top :
                     return AST.TyTop.value;
-                case ZordParser.Bot :
+                case CPnextParser.Bot :
                     return AST.TyBot.value;
-                case ZordParser.BracketOpen :
+                case CPnextParser.BracketOpen :
                     return new AST.TyArray(
                         this.visitType(ctx.type())
                     );
-                case ZordParser.ParenOpen :
+                case CPnextParser.ParenOpen :
                     return this.visitType(ctx.type());
                 default:
                     console.error("Error at Atype");
@@ -165,12 +165,12 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#recordType.
+    // Visit a parse tree produced by CPnextParser#recordType.
     visitRecordType(ctx) {
         return new AST.TyRcd(this.listify(ctx.recordTypeElement().map(this.visitRecordTypeElement, this)));
     }
 
-    // Visit a parse tree produced by ZordParser#recordTypeElement.
+    // Visit a parse tree produced by CPnextParser#recordTypeElement.
 	visitRecordTypeElement(ctx) {
         return new AST.RcdTy(
             this.visitLabelDecl(ctx.labelDecl()),
@@ -180,7 +180,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
 
 
-    // Visit a parse tree produced by ZordParser#expression.
+    // Visit a parse tree produced by CPnextParser#expression.
     visitExpression(ctx) {
         const position = {line: ctx.start.line, column: ctx.start.column};
         const opexpr = this.visitOpexpr(ctx.opexpr());
@@ -201,7 +201,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
         return new AST.TmPos(position, colonexpr);
     }
 
-    // Visit a parse tree produced by ZordParser#opexpr.
+    // Visit a parse tree produced by CPnextParser#opexpr.
 	visitOpexpr(ctx) {
         const count = ctx.getChildCount();
         let op = null
@@ -211,13 +211,13 @@ export default class ZordASTMaker extends ZordParserVisitor {
             case 2:
                 const opexpr = this.visitOpexpr(ctx.opexpr(0));
                 switch (ctx.getChild(0).symbol.type) {
-                    case ZordParser.Minus:
+                    case CPnextParser.Minus:
                         op = OP.Neg.value;
                         break;
-                    case ZordParser.Not:
+                    case CPnextParser.Not:
                         op = OP.Not.value;
                         break;
-                    case ZordParser.Length:
+                    case CPnextParser.Length:
                         op = OP.Len.value;
                         break;
                     default:
@@ -228,54 +228,54 @@ export default class ZordASTMaker extends ZordParserVisitor {
                 const opexpr1 = this.visitOpexpr(ctx.opexpr(0));
                 const opexpr2 = this.visitOpexpr(ctx.opexpr(1));
                 switch (ctx.getChild(1).symbol.type) {
-                    case ZordParser.Index:
+                    case CPnextParser.Index:
                         op = OP.Index.value;
                         break;
-                    case ZordParser.Modulo:
+                    case CPnextParser.Modulo:
                         op = new OP.Arith(OP.Mod.value);
                         break;
-                    case ZordParser.Divide:
+                    case CPnextParser.Divide:
                         op = new OP.Arith(OP.Div.value);
                         break;
-                    case ZordParser.Star:
+                    case CPnextParser.Star:
                         op = new OP.Arith(OP.Mul.value);
                         break;
-                    case ZordParser.Minus:
+                    case CPnextParser.Minus:
                         op = new OP.Arith(OP.Sub.value);
                         break;
-                    case ZordParser.Plus:
+                    case CPnextParser.Plus:
                         op = new OP.Arith(OP.Add.value);
                         break;
-                    case ZordParser.Append:
+                    case CPnextParser.Append:
                         op = OP.Append.value;
                         break;
-                    case ZordParser.Less:
+                    case CPnextParser.Less:
                         op = new OP.Comp(OP.Lt.value);
                         break;
-                    case ZordParser.Greater:
+                    case CPnextParser.Greater:
                         op = new OP.Comp(OP.Gt.value);
                         break;
-                    case ZordParser.LessEqual:
+                    case CPnextParser.LessEqual:
                         op = new OP.Comp(OP.Le.value);
                         break;
-                    case ZordParser.GreaterEqual:
+                    case CPnextParser.GreaterEqual:
                         op = new OP.Comp(OP.Ge.value);
                         break;
-                    case ZordParser.Equal:
+                    case CPnextParser.Equal:
                         op = new OP.Comp(OP.Eql.value);
                         break;
-                    case ZordParser.NotEqual:
+                    case CPnextParser.NotEqual:
                         op = new OP.Comp(OP.Neq.value);
                         break;
-                    case ZordParser.And:
+                    case CPnextParser.And:
                         op = new OP.Logic(OP.And.value);
                         break;
-                    case ZordParser.Or:
+                    case CPnextParser.Or:
                         op = new OP.Logic(OP.Or.value);
                         break;
-                    case ZordParser.Forward:
+                    case CPnextParser.Forward:
                         return new AST.TmForward(opexpr1, opexpr2);
-                    case ZordParser.Merge:
+                    case CPnextParser.Merge:
                         return new AST.TmMerge(opexpr1, opexpr2);
                     default:
                         console.error("Error in Binary Opexpr");
@@ -285,32 +285,32 @@ export default class ZordASTMaker extends ZordParserVisitor {
 
     }
 
-	// Visit a parse tree produced by ZordParser#lexpr.
+	// Visit a parse tree produced by CPnextParser#lexpr.
 	visitLexpr(ctx) {
         switch (ctx.getChild(0).ruleIndex) {
-            case ZordParser.RULE_fexpr:
+            case CPnextParser.RULE_fexpr:
                 return this.visitFexpr(ctx.fexpr());
-            case ZordParser.RULE_lambda:
+            case CPnextParser.RULE_lambda:
                 return this.visitLambda(ctx.lambda());
-            case ZordParser.RULE_bigLambda:
+            case CPnextParser.RULE_bigLambda:
                 return this.visitBigLambda(ctx.bigLambda());
-            case ZordParser.RULE_let_:
+            case CPnextParser.RULE_let_:
                 return this.visitLet_(ctx.let_());
-            case ZordParser.RULE_letRec:
+            case CPnextParser.RULE_letRec:
                 return this.visitLetRec(ctx.letRec());
-            case ZordParser.RULE_open_:
+            case CPnextParser.RULE_open_:
                 return this.visitOpen_(ctx.open_());
-            case ZordParser.RULE_ifElse:
+            case CPnextParser.RULE_ifElse:
                 return this.visitIfElse(ctx.ifElse());
-            case ZordParser.RULE_trait:
+            case CPnextParser.RULE_trait:
                 return this.visitTrait(ctx.trait());
-            case ZordParser.RULE_new_:
+            case CPnextParser.RULE_new_:
                 return this.visitNew_(ctx.new_());
-            case ZordParser.RULE_toString_:
+            case CPnextParser.RULE_toString_:
                 return this.visitToString_(ctx.toString_());
-            case ZordParser.RULE_fold:
+            case CPnextParser.RULE_fold:
                 return this.visitFold(ctx.fold());
-            case ZordParser.RULE_unfold:
+            case CPnextParser.RULE_unfold:
                 return this.visitUnfold(ctx.unfold());
             default:
                 console.error("Error in Lexpr");
@@ -318,7 +318,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#lambda.
+    // Visit a parse tree produced by CPnextParser#lambda.
     visitLambda(ctx) {
         return new AST.TmAbs(
             this.listify(ctx.termParam().map(this.visitTermParam, this)),
@@ -327,7 +327,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#bigLambda.
+    // Visit a parse tree produced by CPnextParser#bigLambda.
     visitBigLambda(ctx) {
         return new AST.TmTAbs(
             this.listify(ctx.typeParam().map(this.visitTypeParam, this)),
@@ -336,7 +336,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#let_.
+    // Visit a parse tree produced by CPnextParser#let_.
     visitLet_(ctx) {
         return new AST.TmLet(
             this.visitTermNameDecl(ctx.termNameDecl()),
@@ -348,7 +348,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#letRec.
+    // Visit a parse tree produced by CPnextParser#letRec.
     visitLetRec(ctx) {
         return new AST.TmLetrec(
             this.visitTermNameDecl(ctx.termNameDecl()),
@@ -361,7 +361,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#open_.
+    // Visit a parse tree produced by CPnextParser#open_.
     visitOpen_(ctx) {
         return new AST.TmOpen(
             this.visitExpression(ctx.expression(0)),
@@ -370,7 +370,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#ifElse.
+    // Visit a parse tree produced by CPnextParser#ifElse.
     visitIfElse(ctx) {
         return new AST.TmIf(
             this.visitExpression(ctx.expression(0)),
@@ -380,7 +380,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#trait.
+    // Visit a parse tree produced by CPnextParser#trait.
     visitTrait(ctx) {
         let x = new AST.TmTrait(
             ctx.selfAnno() === null ? Maybe.Nothing.value : new Maybe.Just(this.visitSelfAnno(ctx.selfAnno())),
@@ -393,7 +393,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#new_.
+    // Visit a parse tree produced by CPnextParser#new_.
     visitNew_(ctx) {
         return new AST.TmNew(
             this.visitOpexpr(ctx.opexpr())
@@ -401,7 +401,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#toString_.
+    // Visit a parse tree produced by CPnextParser#toString_.
     visitToString_(ctx) {
         return new AST.TmToString(
             this.visitDotexpr(ctx.dotexpr())
@@ -409,7 +409,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
 
 
-    // Visit a parse tree produced by ZordParser#fold.
+    // Visit a parse tree produced by CPnextParser#fold.
 	visitFold(ctx) {
         return new AST.TmFold(
             this.visitAtype(ctx.atype()),
@@ -418,7 +418,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#unfold.
+    // Visit a parse tree produced by CPnextParser#unfold.
     visitUnfold(ctx) {
         return new AST.TmUnfold(
             this.visitAtype(ctx.atype()),
@@ -427,17 +427,17 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
 
 
-    // Visit a parse tree produced by ZordParser#fexpr.
+    // Visit a parse tree produced by CPnextParser#fexpr.
     visitFexpr(ctx) {
         const c = ctx.getChild(0);
         let fexpr = undefined;
         let isCtor = undefined;
         switch(c.ruleIndex){
-            case ZordParser.RULE_typeNameDecl:
+            case CPnextParser.RULE_typeNameDecl:
                 fexpr = new AST.TmVar(this.visitTypeNameDecl(c));
                 isCtor = true;
                 break;
-            case ZordParser.RULE_dotexpr:
+            case CPnextParser.RULE_dotexpr:
                 fexpr = this.visitDotexpr(c);
                 isCtor = false;
                 break;
@@ -448,9 +448,9 @@ export default class ZordASTMaker extends ZordParserVisitor {
             let child = ctx.getChild(i);
             if (child.ruleIndex === undefined){
                 continue;
-            } else if (child.ruleIndex === ZordParser.RULE_dotexpr) {
+            } else if (child.ruleIndex === CPnextParser.RULE_dotexpr) {
                 fexpr = new AST.TmApp(fexpr, this.visitDotexpr(child));
-            } else if (child.ruleIndex === ZordParser.RULE_atype) {
+            } else if (child.ruleIndex === CPnextParser.RULE_atype) {
                 fexpr = new AST.TmTApp(fexpr, this.visitAtype(child));
             } else {
                 console.error("Error at fexpr");
@@ -464,7 +464,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#dotexpr.
+    // Visit a parse tree produced by CPnextParser#dotexpr.
     visitDotexpr(ctx) {
         let dotexpr = this.visitAexpr(ctx.aexpr());
         for (let i = 0;i<ctx.label().length; i++){
@@ -474,12 +474,12 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#aexpr.
+    // Visit a parse tree produced by CPnextParser#aexpr.
     visitAexpr(ctx) {
         let child = ctx.getChild(0);
         if (child.ruleIndex === undefined){
             switch (child.symbol.type){
-                case ZordParser.Number:
+                case CPnextParser.Number:
                     let num = child.getText();
                     if (num.includes('.') || num.includes('e') || num.includes('E')){
                         return new AST.TmDouble(parseFloat(num));
@@ -490,7 +490,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
                     } else {
                         return new AST.TmInt(parseInt(num));
                     }
-                case ZordParser.String:
+                case CPnextParser.String:
                     let s = child.getText().slice(1,-1);
                     let s_ = "";
                     for (let i=0;i<s.length;i++){
@@ -507,32 +507,32 @@ export default class ZordASTMaker extends ZordParserVisitor {
                         }
                     }
                     return new AST.TmString(s_);
-                case ZordParser.Unit:
+                case CPnextParser.Unit:
                     return AST.TmUnit.value;
-                case ZordParser.True_:
+                case CPnextParser.True_:
                     return new AST.TmBool(true);
-                case ZordParser.False_:
+                case CPnextParser.False_:
                     return new AST.TmBool(false);
-                case ZordParser.Undefined_:
+                case CPnextParser.Undefined_:
                     return AST.TmUndefined.value;
-                case ZordParser.Dollar:
+                case CPnextParser.Dollar:
                     return new AST.TmVar(this.visitTypeNameDecl(ctx.typeNameDecl()));
-                case ZordParser.ParenOpen:
+                case CPnextParser.ParenOpen:
                     return this.visitExpression(ctx.expression());
                 default:
                     console.error("error at aexpr");
             }
         } else {
             switch (child.ruleIndex){
-                case ZordParser.RULE_termName:
+                case CPnextParser.RULE_termName:
                     return this.visitTermName(ctx.termName());
-                case ZordParser.RULE_document:
+                case CPnextParser.RULE_document:
                     return this.visitDocument(ctx.document());
-                case ZordParser.RULE_array:
+                case CPnextParser.RULE_array:
                     return this.visitArray(ctx.array());
-                case ZordParser.RULE_record:
+                case CPnextParser.RULE_record:
                     return this.visitRecord(ctx.record());
-                case ZordParser.RULE_recordUpdate:
+                case CPnextParser.RULE_recordUpdate:
                     return this.visitRecordUpdate(ctx.recordUpdate());
                 default:
                     console.error("Error at Aexpr");
@@ -541,7 +541,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#array.
+    // Visit a parse tree produced by CPnextParser#array.
     visitArray(ctx) {
         return new AST.TmArray(
             ctx.expression().map(this.visitExpression, this)
@@ -549,7 +549,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#record.
+    // Visit a parse tree produced by CPnextParser#record.
     visitRecord(ctx) {
         const record = [];
         for(let i = 0; i<ctx.getChildCount(); i++) {
@@ -558,13 +558,13 @@ export default class ZordASTMaker extends ZordParserVisitor {
                 continue;
             } else {
                 switch (child.ruleIndex) {
-                    case ZordParser.RULE_recordField:
+                    case CPnextParser.RULE_recordField:
                         record.push(this.visitRecordField(child));
                         break;
-                    case ZordParser.RULE_methodPattern:
+                    case CPnextParser.RULE_methodPattern:
                         record.push(this.visitMethodPattern(child));
                         break;
-                    case ZordParser.RULE_defaultPattern:
+                    case CPnextParser.RULE_defaultPattern:
                         record.push(this.visitDefaultPattern(child));
                         break;
                     default:
@@ -576,7 +576,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#recordField.
+    // Visit a parse tree produced by CPnextParser#recordField.
     visitRecordField(ctx) {
         return new AST.RcdField(
             ctx.Override() !== null,
@@ -587,7 +587,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#recordUpdate.
+    // Visit a parse tree produced by CPnextParser#recordUpdate.
     visitRecordUpdate(ctx) {
         const fields = [];
         for (let i=0;i<ctx.labelDecl().length;i++){
@@ -602,19 +602,19 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#methodPattern.
+    // Visit a parse tree produced by CPnextParser#methodPattern.
     visitMethodPattern(ctx) {
         const params = [];
         const params_ = [];
         let j = 0;
         for (let i = 0;i<ctx.getChildCount();i++){
-            if(ctx.getChild(i).ruleIndex === ZordParser.RULE_termParam){
+            if(ctx.getChild(i).ruleIndex === CPnextParser.RULE_termParam){
                 if (j == 0)
                     params.push(this.visitTermParam(ctx.getChild(i)));
                 else
                     params_.push(this.visitTermParam(ctx.getChild(i)));
             } else {
-                if (i > 0 && ctx.getChild(i-1).ruleIndex === ZordParser.RULE_termParam){
+                if (i > 0 && ctx.getChild(i-1).ruleIndex === CPnextParser.RULE_termParam){
                     j++;
                 }
             }
@@ -633,7 +633,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
 
-	// Visit a parse tree produced by ZordParser#defaultPattern.
+	// Visit a parse tree produced by CPnextParser#defaultPattern.
 	visitDefaultPattern(ctx) {
         return new AST.DefaultPattern(
             new AST.MethodPattern(
@@ -646,7 +646,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
 
   
-    // Visit a parse tree produced by ZordParser#typeParam.
+    // Visit a parse tree produced by CPnextParser#typeParam.
     visitTypeParam(ctx) {
         return new Tuple.Tuple(
             this.visitTypeNameDecl(ctx.typeNameDecl()),
@@ -655,17 +655,17 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#termParam.
+    // Visit a parse tree produced by CPnextParser#termParam.
     visitTermParam(ctx) {
         switch (ctx.getChildCount()){
             case 1:
                 switch (ctx.getChild(0).ruleIndex){
-                    case ZordParser.RULE_termId:
+                    case CPnextParser.RULE_termId:
                         return new AST.TmParam(
                             this.visitTermId(ctx.termId()),
                             Maybe.Nothing.value
                         );
-                    case ZordParser.RULE_wildcard:
+                    case CPnextParser.RULE_wildcard:
                         return this.visitWildcard(ctx.wildcard());
                     default:
                         console.error("Error at TermParam");
@@ -683,13 +683,13 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#termId.
+    // Visit a parse tree produced by CPnextParser#termId.
     visitTermId(ctx) {
         return ctx.getText();
     }
   
   
-    // Visit a parse tree produced by ZordParser#wildcard.
+    // Visit a parse tree produced by CPnextParser#wildcard.
     visitWildcard(ctx) {
         const labelDecls = ctx.labelDecl().map(this.visitLabelDecl, this);
         const expressions = ctx.expression().map(this.visitExpression, this);
@@ -701,7 +701,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#selfAnno.
+    // Visit a parse tree produced by CPnextParser#selfAnno.
     visitSelfAnno(ctx) {
         return new Tuple.Tuple(
             this.visitTermNameDecl(ctx.termNameDecl()),
@@ -710,7 +710,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#sort.
+    // Visit a parse tree produced by CPnextParser#sort.
     visitSort(ctx) {
         if (ctx.TraitArrow() === null){
             const ti = this.visitType(ctx.type(0));
@@ -724,30 +724,30 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#typeNameDecl.
+    // Visit a parse tree produced by CPnextParser#typeNameDecl.
     visitTypeNameDecl(ctx) {
         return ctx.getText();
     }
   
   
-    // Visit a parse tree produced by ZordParser#typeName.
+    // Visit a parse tree produced by CPnextParser#typeName.
     visitTypeName(ctx) {
         return new AST.TyVar(ctx.getText());
     }
   
   
-    // Visit a parse tree produced by ZordParser#termNameDecl.
+    // Visit a parse tree produced by CPnextParser#termNameDecl.
     visitTermNameDecl(ctx) {
         return ctx.getText();
     }
   
   
-    // Visit a parse tree produced by ZordParser#termName.
+    // Visit a parse tree produced by CPnextParser#termName.
     visitTermName(ctx) {
         switch (ctx.getChild(0).symbol.type){
-            case ZordParser.Lowerid:
+            case CPnextParser.Lowerid:
                 return new AST.TmVar(ctx.getText());
-            case ZordParser.Upperid:
+            case CPnextParser.Upperid:
                 return new AST.TmNew(new AST.TmVar(ctx.getText()));
             default:
                 console.error("Error in termName");
@@ -755,19 +755,19 @@ export default class ZordASTMaker extends ZordParserVisitor {
     }
   
   
-    // Visit a parse tree produced by ZordParser#labelDecl.
+    // Visit a parse tree produced by CPnextParser#labelDecl.
     visitLabelDecl(ctx) {
         return ctx.getText();
     }
   
   
-    // Visit a parse tree produced by ZordParser#label.
+    // Visit a parse tree produced by CPnextParser#label.
     visitLabel(ctx) {
         return ctx.getText();
     }
   
 
-    // Visit a parse tree produced by ZordParser#document.
+    // Visit a parse tree produced by CPnextParser#document.
 	visitDocument(ctx) {
         const position = {line: ctx.start.line, column: ctx.start.column};
         const docs = ctx.docElement();
@@ -796,17 +796,17 @@ export default class ZordASTMaker extends ZordParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by ZordParser#docElement.
+	// Visit a parse tree produced by CPnextParser#docElement.
 	visitDocElement(ctx) {
         const child = ctx.getChild(0);
         switch (child.ruleIndex){
-            case ZordParser.RULE_command:
+            case CPnextParser.RULE_command:
                 return this.visitCommand(child);
-            case ZordParser.RULE_interpolation:
+            case CPnextParser.RULE_interpolation:
                 return this.visitInterpolation(child);
-            case ZordParser.RULE_newline:
+            case CPnextParser.RULE_newline:
                 return this.visitNewline(child);
-            case ZordParser.RULE_plaintext:
+            case CPnextParser.RULE_plaintext:
                 return this.visitPlaintext(child);
             default:
                 console.error("Error ar DocElement");
@@ -814,7 +814,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by ZordParser#command.
+	// Visit a parse tree produced by CPnextParser#command.
 	visitCommand(ctx) {
         const position = {line: ctx.start.line, column: ctx.start.column};
 	    const cmd = ctx.getChild(0).getText().slice(1);
@@ -832,7 +832,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by ZordParser#interpolation.
+	// Visit a parse tree produced by CPnextParser#interpolation.
 	visitInterpolation(ctx) {
 	    return new AST.TmNew(new AST.TmApp(
             new AST.TmVar("Str"),
@@ -841,13 +841,13 @@ export default class ZordASTMaker extends ZordParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by ZordParser#newline.
+	// Visit a parse tree produced by CPnextParser#newline.
 	visitNewline(ctx) {
         return new AST.TmNew(new AST.TmVar("Endl"));
 	}
 
 
-	// Visit a parse tree produced by ZordParser#plaintext.
+	// Visit a parse tree produced by CPnextParser#plaintext.
 	visitPlaintext(ctx) {
         return new AST.TmNew(new AST.TmApp(
             new AST.TmVar("Str"),
@@ -856,16 +856,16 @@ export default class ZordASTMaker extends ZordParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by ZordParser#arg.
+	// Visit a parse tree produced by CPnextParser#arg.
 	visitArg(ctx) {
 	    switch(ctx.getChild(0).symbol.type){
-            case ZordParser.ParenOpenInTag:
+            case CPnextParser.ParenOpenInTag:
                 return this.visitExpression(ctx.expression());
-            case ZordParser.BraceOpenInTag:
+            case CPnextParser.BraceOpenInTag:
                 return new AST.TmRcd(this.listify(
                     ctx.recordArgField().map(this.visitRecordArgField, this)
                 ));
-            case ZordParser.BracketOpenInTag:
+            case CPnextParser.BracketOpenInTag:
                 return this.visitDocument(ctx);
             default:
                 console.error("Error in Arg");
@@ -873,7 +873,7 @@ export default class ZordASTMaker extends ZordParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by ZordParser#recordArgField.
+	// Visit a parse tree produced by CPnextParser#recordArgField.
 	visitRecordArgField(ctx) {
 	    const params = this.listify(ctx.termParam().map(this.visitTermParam, this));
         return new AST.RcdField(

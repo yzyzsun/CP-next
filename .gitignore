@@ -141,6 +141,6 @@ flamegraph.html
 .DS_Store
 
 ### ANTLR ###
-/ZordParser/*.tokens
-/ZordParser/*.interp
-/ZordParser/.antlr/
+/ANTLRParser/*.tokens
+/ANTLRParser/*.interp
+/ANTLRParser/.antlr/

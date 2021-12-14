@@ -1,7 +1,7 @@
-// Generated from ZordParser.g4 by ANTLR 4.9.2
+// Generated from CPnextParser.g4 by ANTLR 4.9.2
 // jshint ignore: start
 import antlr4 from 'antlr4';
-import ZordParserVisitor from './ZordParserVisitor.js';
+import CPnextParserVisitor from './CPnextParserVisitor.js';
 
 
 const serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786",
@@ -508,9 +508,9 @@ const decisionsToDFA = atn.decisionToState.map( (ds, index) => new antlr4.dfa.DF
 
 const sharedContextCache = new antlr4.PredictionContextCache();
 
-export default class ZordParser extends antlr4.Parser {
+export default class CPnextParser extends antlr4.Parser {
 
-    static grammarFileName = "ZordParser.g4";
+    static grammarFileName = "CPnextParser.g4";
     static literalNames = [ null, null, null, null, "'open'", "'type'", 
                             "'forall'", "'Trait'", "'mu'", "'Int'", "'Double'", 
                             "'String'", "'Bool'", "'Top'", "'Bot'", "'let'", 
@@ -564,9 +564,9 @@ export default class ZordParser extends antlr4.Parser {
     constructor(input) {
         super(input);
         this._interp = new antlr4.atn.ParserATNSimulator(this, atn, decisionsToDFA, sharedContextCache);
-        this.ruleNames = ZordParser.ruleNames;
-        this.literalNames = ZordParser.literalNames;
-        this.symbolicNames = ZordParser.symbolicNames;
+        this.ruleNames = CPnextParser.ruleNames;
+        this.literalNames = CPnextParser.literalNames;
+        this.symbolicNames = CPnextParser.symbolicNames;
     }
 
     get atn() {
@@ -625,7 +625,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	program() {
 	    let localctx = new ProgramContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 0, ZordParser.RULE_program);
+	    this.enterRule(localctx, 0, CPnextParser.RULE_program);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 109;
@@ -674,12 +674,12 @@ export default class ZordParser extends antlr4.Parser {
 
 	open() {
 	    let localctx = new OpenContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 2, ZordParser.RULE_open);
+	    this.enterRule(localctx, 2, CPnextParser.RULE_open);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 120;
-	        this.match(ZordParser.Open);
+	        this.match(CPnextParser.Open);
 	        this.state = 125;
 	        this._errHandler.sync(this);
 	        var _alt = this._interp.adaptivePredict(this._input,2,this._ctx)
@@ -687,7 +687,7 @@ export default class ZordParser extends antlr4.Parser {
 	            if(_alt===1) {
 	                this.state = 121;
 	                _la = this._input.LA(1);
-	                if(!(_la===ZordParser.Lowerid || _la===ZordParser.Upperid)) {
+	                if(!(_la===CPnextParser.Lowerid || _la===CPnextParser.Upperid)) {
 	                this._errHandler.recoverInline(this);
 	                }
 	                else {
@@ -695,7 +695,7 @@ export default class ZordParser extends antlr4.Parser {
 	                    this.consume();
 	                }
 	                this.state = 122;
-	                this.match(ZordParser.Divide); 
+	                this.match(CPnextParser.Divide); 
 	            }
 	            this.state = 127;
 	            this._errHandler.sync(this);
@@ -704,7 +704,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	        this.state = 128;
 	        _la = this._input.LA(1);
-	        if(!(_la===ZordParser.Lowerid || _la===ZordParser.Upperid)) {
+	        if(!(_la===CPnextParser.Lowerid || _la===CPnextParser.Upperid)) {
 	        this._errHandler.recoverInline(this);
 	        }
 	        else {
@@ -712,7 +712,7 @@ export default class ZordParser extends antlr4.Parser {
 	            this.consume();
 	        }
 	        this.state = 129;
-	        this.match(ZordParser.Semicolon);
+	        this.match(CPnextParser.Semicolon);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -731,17 +731,17 @@ export default class ZordParser extends antlr4.Parser {
 
 	definition() {
 	    let localctx = new DefinitionContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 4, ZordParser.RULE_definition);
+	    this.enterRule(localctx, 4, CPnextParser.RULE_definition);
 	    try {
 	        this.state = 133;
 	        this._errHandler.sync(this);
 	        switch(this._input.LA(1)) {
-	        case ZordParser.Type:
+	        case CPnextParser.Type:
 	            this.enterOuterAlt(localctx, 1);
 	            this.state = 131;
 	            this.typeDef();
 	            break;
-	        case ZordParser.Lowerid:
+	        case CPnextParser.Lowerid:
 	            this.enterOuterAlt(localctx, 2);
 	            this.state = 132;
 	            this.termDef();
@@ -767,24 +767,24 @@ export default class ZordParser extends antlr4.Parser {
 
 	typeDef() {
 	    let localctx = new TypeDefContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 6, ZordParser.RULE_typeDef);
+	    this.enterRule(localctx, 6, CPnextParser.RULE_typeDef);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 135;
-	        this.match(ZordParser.Type);
+	        this.match(CPnextParser.Type);
 	        this.state = 136;
 	        this.typeNameDecl();
 	        this.state = 143;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(_la===ZordParser.Less) {
+	        while(_la===CPnextParser.Less) {
 	            this.state = 137;
-	            this.match(ZordParser.Less);
+	            this.match(CPnextParser.Less);
 	            this.state = 138;
 	            this.typeNameDecl();
 	            this.state = 139;
-	            this.match(ZordParser.Greater);
+	            this.match(CPnextParser.Greater);
 	            this.state = 145;
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
@@ -792,7 +792,7 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 149;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(_la===ZordParser.Upperid) {
+	        while(_la===CPnextParser.Upperid) {
 	            this.state = 146;
 	            this.typeNameDecl();
 	            this.state = 151;
@@ -800,11 +800,11 @@ export default class ZordParser extends antlr4.Parser {
 	            _la = this._input.LA(1);
 	        }
 	        this.state = 152;
-	        this.match(ZordParser.Assign);
+	        this.match(CPnextParser.Assign);
 	        this.state = 153;
 	        this.type(0);
 	        this.state = 154;
-	        this.match(ZordParser.Semicolon);
+	        this.match(CPnextParser.Semicolon);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -823,7 +823,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	termDef() {
 	    let localctx = new TermDefContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 8, ZordParser.RULE_termDef);
+	    this.enterRule(localctx, 8, CPnextParser.RULE_termDef);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
@@ -845,7 +845,7 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 166;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(_la===ZordParser.Underscore || _la===ZordParser.Lowerid || _la===ZordParser.BraceOpen || _la===ZordParser.ParenOpen) {
+	        while(_la===CPnextParser.Underscore || _la===CPnextParser.Lowerid || _la===CPnextParser.BraceOpen || _la===CPnextParser.ParenOpen) {
 	            this.state = 163;
 	            this.termParam();
 	            this.state = 168;
@@ -855,19 +855,19 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 171;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.Colon) {
+	        if(_la===CPnextParser.Colon) {
 	            this.state = 169;
-	            this.match(ZordParser.Colon);
+	            this.match(CPnextParser.Colon);
 	            this.state = 170;
 	            this.type(0);
 	        }
 
 	        this.state = 173;
-	        this.match(ZordParser.Assign);
+	        this.match(CPnextParser.Assign);
 	        this.state = 174;
 	        this.expression();
 	        this.state = 175;
-	        this.match(ZordParser.Semicolon);
+	        this.match(CPnextParser.Semicolon);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -892,7 +892,7 @@ export default class ZordParser extends antlr4.Parser {
 	    let localctx = new TypeContext(this, this._ctx, _parentState);
 	    let _prevctx = localctx;
 	    const _startState = 10;
-	    this.enterRecursionRule(localctx, 10, ZordParser.RULE_type, _p);
+	    this.enterRecursionRule(localctx, 10, CPnextParser.RULE_type, _p);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 178;
@@ -913,26 +913,26 @@ export default class ZordParser extends antlr4.Parser {
 	                switch(la_) {
 	                case 1:
 	                    localctx = new TypeContext(this, _parentctx, _parentState);
-	                    this.pushNewRecursionContext(localctx, _startState, ZordParser.RULE_type);
+	                    this.pushNewRecursionContext(localctx, _startState, CPnextParser.RULE_type);
 	                    this.state = 180;
 	                    if (!( this.precpred(this._ctx, 2))) {
 	                        throw new antlr4.error.FailedPredicateException(this, "this.precpred(this._ctx, 2)");
 	                    }
 	                    this.state = 181;
-	                    this.match(ZordParser.Intersect);
+	                    this.match(CPnextParser.Intersect);
 	                    this.state = 182;
 	                    this.type(3);
 	                    break;
 
 	                case 2:
 	                    localctx = new TypeContext(this, _parentctx, _parentState);
-	                    this.pushNewRecursionContext(localctx, _startState, ZordParser.RULE_type);
+	                    this.pushNewRecursionContext(localctx, _startState, CPnextParser.RULE_type);
 	                    this.state = 183;
 	                    if (!( this.precpred(this._ctx, 1))) {
 	                        throw new antlr4.error.FailedPredicateException(this, "this.precpred(this._ctx, 1)");
 	                    }
 	                    this.state = 184;
-	                    this.match(ZordParser.Arrow);
+	                    this.match(CPnextParser.Arrow);
 	                    this.state = 185;
 	                    this.type(1);
 	                    break;
@@ -962,22 +962,22 @@ export default class ZordParser extends antlr4.Parser {
 
 	btype() {
 	    let localctx = new BtypeContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 12, ZordParser.RULE_btype);
+	    this.enterRule(localctx, 12, CPnextParser.RULE_btype);
 	    var _la = 0; // Token type
 	    try {
 	        this.state = 225;
 	        this._errHandler.sync(this);
 	        switch(this._input.LA(1)) {
-	        case ZordParser.Int:
-	        case ZordParser.Double:
-	        case ZordParser.StringType:
-	        case ZordParser.Bool:
-	        case ZordParser.Top:
-	        case ZordParser.Bot:
-	        case ZordParser.Upperid:
-	        case ZordParser.BracketOpen:
-	        case ZordParser.BraceOpen:
-	        case ZordParser.ParenOpen:
+	        case CPnextParser.Int:
+	        case CPnextParser.Double:
+	        case CPnextParser.StringType:
+	        case CPnextParser.Bool:
+	        case CPnextParser.Top:
+	        case CPnextParser.Bot:
+	        case CPnextParser.Upperid:
+	        case CPnextParser.BracketOpen:
+	        case CPnextParser.BraceOpen:
+	        case CPnextParser.ParenOpen:
 	            this.enterOuterAlt(localctx, 1);
 	            this.state = 191;
 	            this.atype();
@@ -989,26 +989,26 @@ export default class ZordParser extends antlr4.Parser {
 	                    this.state = 197;
 	                    this._errHandler.sync(this);
 	                    switch(this._input.LA(1)) {
-	                    case ZordParser.Int:
-	                    case ZordParser.Double:
-	                    case ZordParser.StringType:
-	                    case ZordParser.Bool:
-	                    case ZordParser.Top:
-	                    case ZordParser.Bot:
-	                    case ZordParser.Upperid:
-	                    case ZordParser.BracketOpen:
-	                    case ZordParser.BraceOpen:
-	                    case ZordParser.ParenOpen:
+	                    case CPnextParser.Int:
+	                    case CPnextParser.Double:
+	                    case CPnextParser.StringType:
+	                    case CPnextParser.Bool:
+	                    case CPnextParser.Top:
+	                    case CPnextParser.Bot:
+	                    case CPnextParser.Upperid:
+	                    case CPnextParser.BracketOpen:
+	                    case CPnextParser.BraceOpen:
+	                    case CPnextParser.ParenOpen:
 	                        this.state = 192;
 	                        this.atype();
 	                        break;
-	                    case ZordParser.Less:
+	                    case CPnextParser.Less:
 	                        this.state = 193;
-	                        this.match(ZordParser.Less);
+	                        this.match(CPnextParser.Less);
 	                        this.state = 194;
 	                        this.sort();
 	                        this.state = 195;
-	                        this.match(ZordParser.Greater);
+	                        this.match(CPnextParser.Greater);
 	                        break;
 	                    default:
 	                        throw new antlr4.error.NoViableAltException(this);
@@ -1020,10 +1020,10 @@ export default class ZordParser extends antlr4.Parser {
 	            }
 
 	            break;
-	        case ZordParser.ForAll:
+	        case CPnextParser.ForAll:
 	            this.enterOuterAlt(localctx, 2);
 	            this.state = 202;
-	            this.match(ZordParser.ForAll);
+	            this.match(CPnextParser.ForAll);
 	            this.state = 204; 
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
@@ -1033,41 +1033,41 @@ export default class ZordParser extends antlr4.Parser {
 	                this.state = 206; 
 	                this._errHandler.sync(this);
 	                _la = this._input.LA(1);
-	            } while(_la===ZordParser.Upperid || _la===ZordParser.ParenOpen);
+	            } while(_la===CPnextParser.Upperid || _la===CPnextParser.ParenOpen);
 	            this.state = 208;
-	            this.match(ZordParser.Dot);
+	            this.match(CPnextParser.Dot);
 	            this.state = 209;
 	            this.type(0);
 	            break;
-	        case ZordParser.TraitCaps:
+	        case CPnextParser.TraitCaps:
 	            this.enterOuterAlt(localctx, 3);
 	            this.state = 211;
-	            this.match(ZordParser.TraitCaps);
+	            this.match(CPnextParser.TraitCaps);
 	            this.state = 212;
-	            this.match(ZordParser.Less);
+	            this.match(CPnextParser.Less);
 	            this.state = 213;
 	            this.type(0);
 	            this.state = 216;
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
-	            if(_la===ZordParser.TraitArrow) {
+	            if(_la===CPnextParser.TraitArrow) {
 	                this.state = 214;
-	                this.match(ZordParser.TraitArrow);
+	                this.match(CPnextParser.TraitArrow);
 	                this.state = 215;
 	                this.type(0);
 	            }
 
 	            this.state = 218;
-	            this.match(ZordParser.Greater);
+	            this.match(CPnextParser.Greater);
 	            break;
-	        case ZordParser.Mu:
+	        case CPnextParser.Mu:
 	            this.enterOuterAlt(localctx, 4);
 	            this.state = 220;
-	            this.match(ZordParser.Mu);
+	            this.match(CPnextParser.Mu);
 	            this.state = 221;
 	            this.typeNameDecl();
 	            this.state = 222;
-	            this.match(ZordParser.Dot);
+	            this.match(CPnextParser.Dot);
 	            this.state = 223;
 	            this.type(0);
 	            break;
@@ -1092,68 +1092,68 @@ export default class ZordParser extends antlr4.Parser {
 
 	atype() {
 	    let localctx = new AtypeContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 14, ZordParser.RULE_atype);
+	    this.enterRule(localctx, 14, CPnextParser.RULE_atype);
 	    try {
 	        this.state = 243;
 	        this._errHandler.sync(this);
 	        switch(this._input.LA(1)) {
-	        case ZordParser.Int:
+	        case CPnextParser.Int:
 	            this.enterOuterAlt(localctx, 1);
 	            this.state = 227;
-	            this.match(ZordParser.Int);
+	            this.match(CPnextParser.Int);
 	            break;
-	        case ZordParser.Double:
+	        case CPnextParser.Double:
 	            this.enterOuterAlt(localctx, 2);
 	            this.state = 228;
-	            this.match(ZordParser.Double);
+	            this.match(CPnextParser.Double);
 	            break;
-	        case ZordParser.StringType:
+	        case CPnextParser.StringType:
 	            this.enterOuterAlt(localctx, 3);
 	            this.state = 229;
-	            this.match(ZordParser.StringType);
+	            this.match(CPnextParser.StringType);
 	            break;
-	        case ZordParser.Bool:
+	        case CPnextParser.Bool:
 	            this.enterOuterAlt(localctx, 4);
 	            this.state = 230;
-	            this.match(ZordParser.Bool);
+	            this.match(CPnextParser.Bool);
 	            break;
-	        case ZordParser.Top:
+	        case CPnextParser.Top:
 	            this.enterOuterAlt(localctx, 5);
 	            this.state = 231;
-	            this.match(ZordParser.Top);
+	            this.match(CPnextParser.Top);
 	            break;
-	        case ZordParser.Bot:
+	        case CPnextParser.Bot:
 	            this.enterOuterAlt(localctx, 6);
 	            this.state = 232;
-	            this.match(ZordParser.Bot);
+	            this.match(CPnextParser.Bot);
 	            break;
-	        case ZordParser.Upperid:
+	        case CPnextParser.Upperid:
 	            this.enterOuterAlt(localctx, 7);
 	            this.state = 233;
 	            this.typeName();
 	            break;
-	        case ZordParser.BraceOpen:
+	        case CPnextParser.BraceOpen:
 	            this.enterOuterAlt(localctx, 8);
 	            this.state = 234;
 	            this.recordType();
 	            break;
-	        case ZordParser.BracketOpen:
+	        case CPnextParser.BracketOpen:
 	            this.enterOuterAlt(localctx, 9);
 	            this.state = 235;
-	            this.match(ZordParser.BracketOpen);
+	            this.match(CPnextParser.BracketOpen);
 	            this.state = 236;
 	            this.type(0);
 	            this.state = 237;
-	            this.match(ZordParser.BracketClose);
+	            this.match(CPnextParser.BracketClose);
 	            break;
-	        case ZordParser.ParenOpen:
+	        case CPnextParser.ParenOpen:
 	            this.enterOuterAlt(localctx, 10);
 	            this.state = 239;
-	            this.match(ZordParser.ParenOpen);
+	            this.match(CPnextParser.ParenOpen);
 	            this.state = 240;
 	            this.type(0);
 	            this.state = 241;
-	            this.match(ZordParser.ParenClose);
+	            this.match(CPnextParser.ParenClose);
 	            break;
 	        default:
 	            throw new antlr4.error.NoViableAltException(this);
@@ -1176,12 +1176,12 @@ export default class ZordParser extends antlr4.Parser {
 
 	recordType() {
 	    let localctx = new RecordTypeContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 16, ZordParser.RULE_recordType);
+	    this.enterRule(localctx, 16, CPnextParser.RULE_recordType);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 245;
-	        this.match(ZordParser.BraceOpen);
+	        this.match(CPnextParser.BraceOpen);
 	        this.state = 251;
 	        this._errHandler.sync(this);
 	        var _alt = this._interp.adaptivePredict(this._input,17,this._ctx)
@@ -1190,7 +1190,7 @@ export default class ZordParser extends antlr4.Parser {
 	                this.state = 246;
 	                this.recordTypeElement();
 	                this.state = 247;
-	                this.match(ZordParser.Semicolon); 
+	                this.match(CPnextParser.Semicolon); 
 	            }
 	            this.state = 253;
 	            this._errHandler.sync(this);
@@ -1200,13 +1200,13 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 255;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.Lowerid || _la===ZordParser.Upperid) {
+	        if(_la===CPnextParser.Lowerid || _la===CPnextParser.Upperid) {
 	            this.state = 254;
 	            this.recordTypeElement();
 	        }
 
 	        this.state = 257;
-	        this.match(ZordParser.BraceClose);
+	        this.match(CPnextParser.BraceClose);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -1225,7 +1225,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	recordTypeElement() {
 	    let localctx = new RecordTypeElementContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 18, ZordParser.RULE_recordTypeElement);
+	    this.enterRule(localctx, 18, CPnextParser.RULE_recordTypeElement);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
@@ -1234,13 +1234,13 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 261;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.Question) {
+	        if(_la===CPnextParser.Question) {
 	            this.state = 260;
-	            this.match(ZordParser.Question);
+	            this.match(CPnextParser.Question);
 	        }
 
 	        this.state = 263;
-	        this.match(ZordParser.Colon);
+	        this.match(CPnextParser.Colon);
 	        this.state = 264;
 	        this.type(0);
 	    } catch (re) {
@@ -1261,7 +1261,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	expression() {
 	    let localctx = new ExpressionContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 20, ZordParser.RULE_expression);
+	    this.enterRule(localctx, 20, CPnextParser.RULE_expression);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 266;
@@ -1271,13 +1271,13 @@ export default class ZordParser extends antlr4.Parser {
 	        var la_ = this._interp.adaptivePredict(this._input,20,this._ctx);
 	        if(la_===1) {
 	            this.state = 267;
-	            this.match(ZordParser.Colon);
+	            this.match(CPnextParser.Colon);
 	            this.state = 268;
 	            this.type(0);
 
 	        } else if(la_===2) {
 	            this.state = 269;
-	            this.match(ZordParser.Backslash);
+	            this.match(CPnextParser.Backslash);
 	            this.state = 270;
 	            this.type(0);
 
@@ -1306,46 +1306,46 @@ export default class ZordParser extends antlr4.Parser {
 	    let localctx = new OpexprContext(this, this._ctx, _parentState);
 	    let _prevctx = localctx;
 	    const _startState = 22;
-	    this.enterRecursionRule(localctx, 22, ZordParser.RULE_opexpr, _p);
+	    this.enterRecursionRule(localctx, 22, CPnextParser.RULE_opexpr, _p);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 277;
 	        this._errHandler.sync(this);
 	        switch(this._input.LA(1)) {
-	        case ZordParser.Open:
-	        case ZordParser.Let:
-	        case ZordParser.LetRec:
-	        case ZordParser.If:
-	        case ZordParser.TraitSmall:
-	        case ZordParser.New:
-	        case ZordParser.ToString:
-	        case ZordParser.Fold:
-	        case ZordParser.Unfold:
-	        case ZordParser.True_:
-	        case ZordParser.False_:
-	        case ZordParser.Undefined_:
-	        case ZordParser.Lowerid:
-	        case ZordParser.Upperid:
-	        case ZordParser.Number:
-	        case ZordParser.BacktickOpen:
-	        case ZordParser.String:
-	        case ZordParser.Unit:
-	        case ZordParser.BracketOpen:
-	        case ZordParser.BraceOpen:
-	        case ZordParser.ParenOpen:
-	        case ZordParser.Backslash:
-	        case ZordParser.SlashBackslash:
-	        case ZordParser.Dollar:
+	        case CPnextParser.Open:
+	        case CPnextParser.Let:
+	        case CPnextParser.LetRec:
+	        case CPnextParser.If:
+	        case CPnextParser.TraitSmall:
+	        case CPnextParser.New:
+	        case CPnextParser.ToString:
+	        case CPnextParser.Fold:
+	        case CPnextParser.Unfold:
+	        case CPnextParser.True_:
+	        case CPnextParser.False_:
+	        case CPnextParser.Undefined_:
+	        case CPnextParser.Lowerid:
+	        case CPnextParser.Upperid:
+	        case CPnextParser.Number:
+	        case CPnextParser.BacktickOpen:
+	        case CPnextParser.String:
+	        case CPnextParser.Unit:
+	        case CPnextParser.BracketOpen:
+	        case CPnextParser.BraceOpen:
+	        case CPnextParser.ParenOpen:
+	        case CPnextParser.Backslash:
+	        case CPnextParser.SlashBackslash:
+	        case CPnextParser.Dollar:
 	            this.state = 274;
 	            this.lexpr();
 	            break;
-	        case ZordParser.Minus:
-	        case ZordParser.Not:
-	        case ZordParser.Length:
+	        case CPnextParser.Minus:
+	        case CPnextParser.Not:
+	        case CPnextParser.Length:
 	            this.state = 275;
 	            _la = this._input.LA(1);
-	            if(!(((((_la - 46)) & ~0x1f) == 0 && ((1 << (_la - 46)) & ((1 << (ZordParser.Minus - 46)) | (1 << (ZordParser.Not - 46)) | (1 << (ZordParser.Length - 46)))) !== 0))) {
+	            if(!(((((_la - 46)) & ~0x1f) == 0 && ((1 << (_la - 46)) & ((1 << (CPnextParser.Minus - 46)) | (1 << (CPnextParser.Not - 46)) | (1 << (CPnextParser.Length - 46)))) !== 0))) {
 	            this._errHandler.recoverInline(this);
 	            }
 	            else {
@@ -1374,27 +1374,27 @@ export default class ZordParser extends antlr4.Parser {
 	                switch(la_) {
 	                case 1:
 	                    localctx = new OpexprContext(this, _parentctx, _parentState);
-	                    this.pushNewRecursionContext(localctx, _startState, ZordParser.RULE_opexpr);
+	                    this.pushNewRecursionContext(localctx, _startState, CPnextParser.RULE_opexpr);
 	                    this.state = 279;
 	                    if (!( this.precpred(this._ctx, 9))) {
 	                        throw new antlr4.error.FailedPredicateException(this, "this.precpred(this._ctx, 9)");
 	                    }
 	                    this.state = 280;
-	                    this.match(ZordParser.Index);
+	                    this.match(CPnextParser.Index);
 	                    this.state = 281;
 	                    this.opexpr(10);
 	                    break;
 
 	                case 2:
 	                    localctx = new OpexprContext(this, _parentctx, _parentState);
-	                    this.pushNewRecursionContext(localctx, _startState, ZordParser.RULE_opexpr);
+	                    this.pushNewRecursionContext(localctx, _startState, CPnextParser.RULE_opexpr);
 	                    this.state = 282;
 	                    if (!( this.precpred(this._ctx, 8))) {
 	                        throw new antlr4.error.FailedPredicateException(this, "this.precpred(this._ctx, 8)");
 	                    }
 	                    this.state = 283;
 	                    _la = this._input.LA(1);
-	                    if(!(((((_la - 47)) & ~0x1f) == 0 && ((1 << (_la - 47)) & ((1 << (ZordParser.Star - 47)) | (1 << (ZordParser.Divide - 47)) | (1 << (ZordParser.Modulo - 47)))) !== 0))) {
+	                    if(!(((((_la - 47)) & ~0x1f) == 0 && ((1 << (_la - 47)) & ((1 << (CPnextParser.Star - 47)) | (1 << (CPnextParser.Divide - 47)) | (1 << (CPnextParser.Modulo - 47)))) !== 0))) {
 	                    this._errHandler.recoverInline(this);
 	                    }
 	                    else {
@@ -1407,14 +1407,14 @@ export default class ZordParser extends antlr4.Parser {
 
 	                case 3:
 	                    localctx = new OpexprContext(this, _parentctx, _parentState);
-	                    this.pushNewRecursionContext(localctx, _startState, ZordParser.RULE_opexpr);
+	                    this.pushNewRecursionContext(localctx, _startState, CPnextParser.RULE_opexpr);
 	                    this.state = 285;
 	                    if (!( this.precpred(this._ctx, 7))) {
 	                        throw new antlr4.error.FailedPredicateException(this, "this.precpred(this._ctx, 7)");
 	                    }
 	                    this.state = 286;
 	                    _la = this._input.LA(1);
-	                    if(!(_la===ZordParser.Plus || _la===ZordParser.Minus)) {
+	                    if(!(_la===CPnextParser.Plus || _la===CPnextParser.Minus)) {
 	                    this._errHandler.recoverInline(this);
 	                    }
 	                    else {
@@ -1427,27 +1427,27 @@ export default class ZordParser extends antlr4.Parser {
 
 	                case 4:
 	                    localctx = new OpexprContext(this, _parentctx, _parentState);
-	                    this.pushNewRecursionContext(localctx, _startState, ZordParser.RULE_opexpr);
+	                    this.pushNewRecursionContext(localctx, _startState, CPnextParser.RULE_opexpr);
 	                    this.state = 288;
 	                    if (!( this.precpred(this._ctx, 6))) {
 	                        throw new antlr4.error.FailedPredicateException(this, "this.precpred(this._ctx, 6)");
 	                    }
 	                    this.state = 289;
-	                    this.match(ZordParser.Append);
+	                    this.match(CPnextParser.Append);
 	                    this.state = 290;
 	                    this.opexpr(7);
 	                    break;
 
 	                case 5:
 	                    localctx = new OpexprContext(this, _parentctx, _parentState);
-	                    this.pushNewRecursionContext(localctx, _startState, ZordParser.RULE_opexpr);
+	                    this.pushNewRecursionContext(localctx, _startState, CPnextParser.RULE_opexpr);
 	                    this.state = 291;
 	                    if (!( this.precpred(this._ctx, 5))) {
 	                        throw new antlr4.error.FailedPredicateException(this, "this.precpred(this._ctx, 5)");
 	                    }
 	                    this.state = 292;
 	                    _la = this._input.LA(1);
-	                    if(!(((((_la - 54)) & ~0x1f) == 0 && ((1 << (_la - 54)) & ((1 << (ZordParser.Less - 54)) | (1 << (ZordParser.Greater - 54)) | (1 << (ZordParser.LessEqual - 54)) | (1 << (ZordParser.GreaterEqual - 54)) | (1 << (ZordParser.Equal - 54)) | (1 << (ZordParser.NotEqual - 54)))) !== 0))) {
+	                    if(!(((((_la - 54)) & ~0x1f) == 0 && ((1 << (_la - 54)) & ((1 << (CPnextParser.Less - 54)) | (1 << (CPnextParser.Greater - 54)) | (1 << (CPnextParser.LessEqual - 54)) | (1 << (CPnextParser.GreaterEqual - 54)) | (1 << (CPnextParser.Equal - 54)) | (1 << (CPnextParser.NotEqual - 54)))) !== 0))) {
 	                    this._errHandler.recoverInline(this);
 	                    }
 	                    else {
@@ -1460,52 +1460,52 @@ export default class ZordParser extends antlr4.Parser {
 
 	                case 6:
 	                    localctx = new OpexprContext(this, _parentctx, _parentState);
-	                    this.pushNewRecursionContext(localctx, _startState, ZordParser.RULE_opexpr);
+	                    this.pushNewRecursionContext(localctx, _startState, CPnextParser.RULE_opexpr);
 	                    this.state = 294;
 	                    if (!( this.precpred(this._ctx, 4))) {
 	                        throw new antlr4.error.FailedPredicateException(this, "this.precpred(this._ctx, 4)");
 	                    }
 	                    this.state = 295;
-	                    this.match(ZordParser.And);
+	                    this.match(CPnextParser.And);
 	                    this.state = 296;
 	                    this.opexpr(4);
 	                    break;
 
 	                case 7:
 	                    localctx = new OpexprContext(this, _parentctx, _parentState);
-	                    this.pushNewRecursionContext(localctx, _startState, ZordParser.RULE_opexpr);
+	                    this.pushNewRecursionContext(localctx, _startState, CPnextParser.RULE_opexpr);
 	                    this.state = 297;
 	                    if (!( this.precpred(this._ctx, 3))) {
 	                        throw new antlr4.error.FailedPredicateException(this, "this.precpred(this._ctx, 3)");
 	                    }
 	                    this.state = 298;
-	                    this.match(ZordParser.Or);
+	                    this.match(CPnextParser.Or);
 	                    this.state = 299;
 	                    this.opexpr(3);
 	                    break;
 
 	                case 8:
 	                    localctx = new OpexprContext(this, _parentctx, _parentState);
-	                    this.pushNewRecursionContext(localctx, _startState, ZordParser.RULE_opexpr);
+	                    this.pushNewRecursionContext(localctx, _startState, CPnextParser.RULE_opexpr);
 	                    this.state = 300;
 	                    if (!( this.precpred(this._ctx, 2))) {
 	                        throw new antlr4.error.FailedPredicateException(this, "this.precpred(this._ctx, 2)");
 	                    }
 	                    this.state = 301;
-	                    this.match(ZordParser.Forward);
+	                    this.match(CPnextParser.Forward);
 	                    this.state = 302;
 	                    this.opexpr(3);
 	                    break;
 
 	                case 9:
 	                    localctx = new OpexprContext(this, _parentctx, _parentState);
-	                    this.pushNewRecursionContext(localctx, _startState, ZordParser.RULE_opexpr);
+	                    this.pushNewRecursionContext(localctx, _startState, CPnextParser.RULE_opexpr);
 	                    this.state = 303;
 	                    if (!( this.precpred(this._ctx, 1))) {
 	                        throw new antlr4.error.FailedPredicateException(this, "this.precpred(this._ctx, 1)");
 	                    }
 	                    this.state = 304;
-	                    this.match(ZordParser.Merge);
+	                    this.match(CPnextParser.Merge);
 	                    this.state = 305;
 	                    this.opexpr(2);
 	                    break;
@@ -1535,79 +1535,79 @@ export default class ZordParser extends antlr4.Parser {
 
 	lexpr() {
 	    let localctx = new LexprContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 24, ZordParser.RULE_lexpr);
+	    this.enterRule(localctx, 24, CPnextParser.RULE_lexpr);
 	    try {
 	        this.state = 323;
 	        this._errHandler.sync(this);
 	        switch(this._input.LA(1)) {
-	        case ZordParser.True_:
-	        case ZordParser.False_:
-	        case ZordParser.Undefined_:
-	        case ZordParser.Lowerid:
-	        case ZordParser.Upperid:
-	        case ZordParser.Number:
-	        case ZordParser.BacktickOpen:
-	        case ZordParser.String:
-	        case ZordParser.Unit:
-	        case ZordParser.BracketOpen:
-	        case ZordParser.BraceOpen:
-	        case ZordParser.ParenOpen:
-	        case ZordParser.Dollar:
+	        case CPnextParser.True_:
+	        case CPnextParser.False_:
+	        case CPnextParser.Undefined_:
+	        case CPnextParser.Lowerid:
+	        case CPnextParser.Upperid:
+	        case CPnextParser.Number:
+	        case CPnextParser.BacktickOpen:
+	        case CPnextParser.String:
+	        case CPnextParser.Unit:
+	        case CPnextParser.BracketOpen:
+	        case CPnextParser.BraceOpen:
+	        case CPnextParser.ParenOpen:
+	        case CPnextParser.Dollar:
 	            this.enterOuterAlt(localctx, 1);
 	            this.state = 311;
 	            this.fexpr();
 	            break;
-	        case ZordParser.Backslash:
+	        case CPnextParser.Backslash:
 	            this.enterOuterAlt(localctx, 2);
 	            this.state = 312;
 	            this.lambda();
 	            break;
-	        case ZordParser.SlashBackslash:
+	        case CPnextParser.SlashBackslash:
 	            this.enterOuterAlt(localctx, 3);
 	            this.state = 313;
 	            this.bigLambda();
 	            break;
-	        case ZordParser.Let:
+	        case CPnextParser.Let:
 	            this.enterOuterAlt(localctx, 4);
 	            this.state = 314;
 	            this.let_();
 	            break;
-	        case ZordParser.LetRec:
+	        case CPnextParser.LetRec:
 	            this.enterOuterAlt(localctx, 5);
 	            this.state = 315;
 	            this.letRec();
 	            break;
-	        case ZordParser.Open:
+	        case CPnextParser.Open:
 	            this.enterOuterAlt(localctx, 6);
 	            this.state = 316;
 	            this.open_();
 	            break;
-	        case ZordParser.If:
+	        case CPnextParser.If:
 	            this.enterOuterAlt(localctx, 7);
 	            this.state = 317;
 	            this.ifElse();
 	            break;
-	        case ZordParser.TraitSmall:
+	        case CPnextParser.TraitSmall:
 	            this.enterOuterAlt(localctx, 8);
 	            this.state = 318;
 	            this.trait();
 	            break;
-	        case ZordParser.New:
+	        case CPnextParser.New:
 	            this.enterOuterAlt(localctx, 9);
 	            this.state = 319;
 	            this.new_();
 	            break;
-	        case ZordParser.ToString:
+	        case CPnextParser.ToString:
 	            this.enterOuterAlt(localctx, 10);
 	            this.state = 320;
 	            this.toString_();
 	            break;
-	        case ZordParser.Fold:
+	        case CPnextParser.Fold:
 	            this.enterOuterAlt(localctx, 11);
 	            this.state = 321;
 	            this.fold();
 	            break;
-	        case ZordParser.Unfold:
+	        case CPnextParser.Unfold:
 	            this.enterOuterAlt(localctx, 12);
 	            this.state = 322;
 	            this.unfold();
@@ -1633,12 +1633,12 @@ export default class ZordParser extends antlr4.Parser {
 
 	lambda() {
 	    let localctx = new LambdaContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 26, ZordParser.RULE_lambda);
+	    this.enterRule(localctx, 26, CPnextParser.RULE_lambda);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 325;
-	        this.match(ZordParser.Backslash);
+	        this.match(CPnextParser.Backslash);
 	        this.state = 327; 
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
@@ -1648,9 +1648,9 @@ export default class ZordParser extends antlr4.Parser {
 	            this.state = 329; 
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
-	        } while(_la===ZordParser.Underscore || _la===ZordParser.Lowerid || _la===ZordParser.BraceOpen || _la===ZordParser.ParenOpen);
+	        } while(_la===CPnextParser.Underscore || _la===CPnextParser.Lowerid || _la===CPnextParser.BraceOpen || _la===CPnextParser.ParenOpen);
 	        this.state = 331;
-	        this.match(ZordParser.Arrow);
+	        this.match(CPnextParser.Arrow);
 	        this.state = 332;
 	        this.expression();
 	    } catch (re) {
@@ -1671,12 +1671,12 @@ export default class ZordParser extends antlr4.Parser {
 
 	bigLambda() {
 	    let localctx = new BigLambdaContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 28, ZordParser.RULE_bigLambda);
+	    this.enterRule(localctx, 28, CPnextParser.RULE_bigLambda);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 334;
-	        this.match(ZordParser.SlashBackslash);
+	        this.match(CPnextParser.SlashBackslash);
 	        this.state = 336; 
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
@@ -1686,9 +1686,9 @@ export default class ZordParser extends antlr4.Parser {
 	            this.state = 338; 
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
-	        } while(_la===ZordParser.Upperid || _la===ZordParser.ParenOpen);
+	        } while(_la===CPnextParser.Upperid || _la===CPnextParser.ParenOpen);
 	        this.state = 340;
-	        this.match(ZordParser.Dot);
+	        this.match(CPnextParser.Dot);
 	        this.state = 341;
 	        this.expression();
 	    } catch (re) {
@@ -1709,12 +1709,12 @@ export default class ZordParser extends antlr4.Parser {
 
 	let_() {
 	    let localctx = new Let_Context(this, this._ctx, this.state);
-	    this.enterRule(localctx, 30, ZordParser.RULE_let_);
+	    this.enterRule(localctx, 30, CPnextParser.RULE_let_);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 343;
-	        this.match(ZordParser.Let);
+	        this.match(CPnextParser.Let);
 	        this.state = 344;
 	        this.termNameDecl();
 	        this.state = 348;
@@ -1733,7 +1733,7 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 354;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(_la===ZordParser.Underscore || _la===ZordParser.Lowerid || _la===ZordParser.BraceOpen || _la===ZordParser.ParenOpen) {
+	        while(_la===CPnextParser.Underscore || _la===CPnextParser.Lowerid || _la===CPnextParser.BraceOpen || _la===CPnextParser.ParenOpen) {
 	            this.state = 351;
 	            this.termParam();
 	            this.state = 356;
@@ -1741,11 +1741,11 @@ export default class ZordParser extends antlr4.Parser {
 	            _la = this._input.LA(1);
 	        }
 	        this.state = 357;
-	        this.match(ZordParser.Assign);
+	        this.match(CPnextParser.Assign);
 	        this.state = 358;
 	        this.expression();
 	        this.state = 359;
-	        this.match(ZordParser.In);
+	        this.match(CPnextParser.In);
 	        this.state = 360;
 	        this.expression();
 	    } catch (re) {
@@ -1766,12 +1766,12 @@ export default class ZordParser extends antlr4.Parser {
 
 	letRec() {
 	    let localctx = new LetRecContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 32, ZordParser.RULE_letRec);
+	    this.enterRule(localctx, 32, CPnextParser.RULE_letRec);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 362;
-	        this.match(ZordParser.LetRec);
+	        this.match(CPnextParser.LetRec);
 	        this.state = 363;
 	        this.termNameDecl();
 	        this.state = 367;
@@ -1790,7 +1790,7 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 373;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(_la===ZordParser.Underscore || _la===ZordParser.Lowerid || _la===ZordParser.BraceOpen || _la===ZordParser.ParenOpen) {
+	        while(_la===CPnextParser.Underscore || _la===CPnextParser.Lowerid || _la===CPnextParser.BraceOpen || _la===CPnextParser.ParenOpen) {
 	            this.state = 370;
 	            this.termParam();
 	            this.state = 375;
@@ -1798,15 +1798,15 @@ export default class ZordParser extends antlr4.Parser {
 	            _la = this._input.LA(1);
 	        }
 	        this.state = 376;
-	        this.match(ZordParser.Colon);
+	        this.match(CPnextParser.Colon);
 	        this.state = 377;
 	        this.type(0);
 	        this.state = 378;
-	        this.match(ZordParser.Assign);
+	        this.match(CPnextParser.Assign);
 	        this.state = 379;
 	        this.expression();
 	        this.state = 380;
-	        this.match(ZordParser.In);
+	        this.match(CPnextParser.In);
 	        this.state = 381;
 	        this.expression();
 	    } catch (re) {
@@ -1827,15 +1827,15 @@ export default class ZordParser extends antlr4.Parser {
 
 	open_() {
 	    let localctx = new Open_Context(this, this._ctx, this.state);
-	    this.enterRule(localctx, 34, ZordParser.RULE_open_);
+	    this.enterRule(localctx, 34, CPnextParser.RULE_open_);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 383;
-	        this.match(ZordParser.Open);
+	        this.match(CPnextParser.Open);
 	        this.state = 384;
 	        this.expression();
 	        this.state = 385;
-	        this.match(ZordParser.In);
+	        this.match(CPnextParser.In);
 	        this.state = 386;
 	        this.expression();
 	    } catch (re) {
@@ -1856,19 +1856,19 @@ export default class ZordParser extends antlr4.Parser {
 
 	ifElse() {
 	    let localctx = new IfElseContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 36, ZordParser.RULE_ifElse);
+	    this.enterRule(localctx, 36, CPnextParser.RULE_ifElse);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 388;
-	        this.match(ZordParser.If);
+	        this.match(CPnextParser.If);
 	        this.state = 389;
 	        this.expression();
 	        this.state = 390;
-	        this.match(ZordParser.Then);
+	        this.match(CPnextParser.Then);
 	        this.state = 391;
 	        this.expression();
 	        this.state = 392;
-	        this.match(ZordParser.Else);
+	        this.match(CPnextParser.Else);
 	        this.state = 393;
 	        this.expression();
 	    } catch (re) {
@@ -1889,7 +1889,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	trait() {
 	    let localctx = new TraitContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 38, ZordParser.RULE_trait);
+	    this.enterRule(localctx, 38, CPnextParser.RULE_trait);
 	    var _la = 0; // Token type
 	    try {
 	        this.state = 423;
@@ -1899,11 +1899,11 @@ export default class ZordParser extends antlr4.Parser {
 	        case 1:
 	            this.enterOuterAlt(localctx, 1);
 	            this.state = 395;
-	            this.match(ZordParser.TraitSmall);
+	            this.match(CPnextParser.TraitSmall);
 	            this.state = 397;
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
-	            if(_la===ZordParser.BracketOpen) {
+	            if(_la===CPnextParser.BracketOpen) {
 	                this.state = 396;
 	                this.selfAnno();
 	            }
@@ -1911,9 +1911,9 @@ export default class ZordParser extends antlr4.Parser {
 	            this.state = 401;
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
-	            if(_la===ZordParser.Implements) {
+	            if(_la===CPnextParser.Implements) {
 	                this.state = 399;
-	                this.match(ZordParser.Implements);
+	                this.match(CPnextParser.Implements);
 	                this.state = 400;
 	                this.type(0);
 	            }
@@ -1921,15 +1921,15 @@ export default class ZordParser extends antlr4.Parser {
 	            this.state = 405;
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
-	            if(_la===ZordParser.Inherits) {
+	            if(_la===CPnextParser.Inherits) {
 	                this.state = 403;
-	                this.match(ZordParser.Inherits);
+	                this.match(CPnextParser.Inherits);
 	                this.state = 404;
 	                this.opexpr(0);
 	            }
 
 	            this.state = 407;
-	            this.match(ZordParser.TraitArrow);
+	            this.match(CPnextParser.TraitArrow);
 	            this.state = 408;
 	            this.opexpr(0);
 	            break;
@@ -1937,11 +1937,11 @@ export default class ZordParser extends antlr4.Parser {
 	        case 2:
 	            this.enterOuterAlt(localctx, 2);
 	            this.state = 409;
-	            this.match(ZordParser.TraitSmall);
+	            this.match(CPnextParser.TraitSmall);
 	            this.state = 411;
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
-	            if(_la===ZordParser.BracketOpen) {
+	            if(_la===CPnextParser.BracketOpen) {
 	                this.state = 410;
 	                this.selfAnno();
 	            }
@@ -1949,9 +1949,9 @@ export default class ZordParser extends antlr4.Parser {
 	            this.state = 415;
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
-	            if(_la===ZordParser.Inherits) {
+	            if(_la===CPnextParser.Inherits) {
 	                this.state = 413;
-	                this.match(ZordParser.Inherits);
+	                this.match(CPnextParser.Inherits);
 	                this.state = 414;
 	                this.opexpr(0);
 	            }
@@ -1959,15 +1959,15 @@ export default class ZordParser extends antlr4.Parser {
 	            this.state = 419;
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
-	            if(_la===ZordParser.Implements) {
+	            if(_la===CPnextParser.Implements) {
 	                this.state = 417;
-	                this.match(ZordParser.Implements);
+	                this.match(CPnextParser.Implements);
 	                this.state = 418;
 	                this.type(0);
 	            }
 
 	            this.state = 421;
-	            this.match(ZordParser.TraitArrow);
+	            this.match(CPnextParser.TraitArrow);
 	            this.state = 422;
 	            this.opexpr(0);
 	            break;
@@ -1991,11 +1991,11 @@ export default class ZordParser extends antlr4.Parser {
 
 	new_() {
 	    let localctx = new New_Context(this, this._ctx, this.state);
-	    this.enterRule(localctx, 40, ZordParser.RULE_new_);
+	    this.enterRule(localctx, 40, CPnextParser.RULE_new_);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 425;
-	        this.match(ZordParser.New);
+	        this.match(CPnextParser.New);
 	        this.state = 426;
 	        this.opexpr(0);
 	    } catch (re) {
@@ -2016,11 +2016,11 @@ export default class ZordParser extends antlr4.Parser {
 
 	toString_() {
 	    let localctx = new ToString_Context(this, this._ctx, this.state);
-	    this.enterRule(localctx, 42, ZordParser.RULE_toString_);
+	    this.enterRule(localctx, 42, CPnextParser.RULE_toString_);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 428;
-	        this.match(ZordParser.ToString);
+	        this.match(CPnextParser.ToString);
 	        this.state = 429;
 	        this.dotexpr();
 	    } catch (re) {
@@ -2041,13 +2041,13 @@ export default class ZordParser extends antlr4.Parser {
 
 	fold() {
 	    let localctx = new FoldContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 44, ZordParser.RULE_fold);
+	    this.enterRule(localctx, 44, CPnextParser.RULE_fold);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 431;
-	        this.match(ZordParser.Fold);
+	        this.match(CPnextParser.Fold);
 	        this.state = 432;
-	        this.match(ZordParser.At);
+	        this.match(CPnextParser.At);
 	        this.state = 433;
 	        this.atype();
 	        this.state = 434;
@@ -2070,13 +2070,13 @@ export default class ZordParser extends antlr4.Parser {
 
 	unfold() {
 	    let localctx = new UnfoldContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 46, ZordParser.RULE_unfold);
+	    this.enterRule(localctx, 46, CPnextParser.RULE_unfold);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 436;
-	        this.match(ZordParser.Unfold);
+	        this.match(CPnextParser.Unfold);
 	        this.state = 437;
-	        this.match(ZordParser.At);
+	        this.match(CPnextParser.At);
 	        this.state = 438;
 	        this.atype();
 	        this.state = 439;
@@ -2099,7 +2099,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	fexpr() {
 	    let localctx = new FexprContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 48, ZordParser.RULE_fexpr);
+	    this.enterRule(localctx, 48, CPnextParser.RULE_fexpr);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 443;
@@ -2125,25 +2125,25 @@ export default class ZordParser extends antlr4.Parser {
 	                this.state = 448;
 	                this._errHandler.sync(this);
 	                switch(this._input.LA(1)) {
-	                case ZordParser.True_:
-	                case ZordParser.False_:
-	                case ZordParser.Undefined_:
-	                case ZordParser.Lowerid:
-	                case ZordParser.Upperid:
-	                case ZordParser.Number:
-	                case ZordParser.BacktickOpen:
-	                case ZordParser.String:
-	                case ZordParser.Unit:
-	                case ZordParser.BracketOpen:
-	                case ZordParser.BraceOpen:
-	                case ZordParser.ParenOpen:
-	                case ZordParser.Dollar:
+	                case CPnextParser.True_:
+	                case CPnextParser.False_:
+	                case CPnextParser.Undefined_:
+	                case CPnextParser.Lowerid:
+	                case CPnextParser.Upperid:
+	                case CPnextParser.Number:
+	                case CPnextParser.BacktickOpen:
+	                case CPnextParser.String:
+	                case CPnextParser.Unit:
+	                case CPnextParser.BracketOpen:
+	                case CPnextParser.BraceOpen:
+	                case CPnextParser.ParenOpen:
+	                case CPnextParser.Dollar:
 	                    this.state = 445;
 	                    this.dotexpr();
 	                    break;
-	                case ZordParser.At:
+	                case CPnextParser.At:
 	                    this.state = 446;
-	                    this.match(ZordParser.At);
+	                    this.match(CPnextParser.At);
 	                    this.state = 447;
 	                    this.atype();
 	                    break;
@@ -2174,7 +2174,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	dotexpr() {
 	    let localctx = new DotexprContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 50, ZordParser.RULE_dotexpr);
+	    this.enterRule(localctx, 50, CPnextParser.RULE_dotexpr);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 453;
@@ -2185,7 +2185,7 @@ export default class ZordParser extends antlr4.Parser {
 	        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
 	            if(_alt===1) {
 	                this.state = 454;
-	                this.match(ZordParser.Dot);
+	                this.match(CPnextParser.Dot);
 	                this.state = 455;
 	                this.label(); 
 	            }
@@ -2212,7 +2212,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	aexpr() {
 	    let localctx = new AexprContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 52, ZordParser.RULE_aexpr);
+	    this.enterRule(localctx, 52, CPnextParser.RULE_aexpr);
 	    try {
 	        this.state = 478;
 	        this._errHandler.sync(this);
@@ -2227,7 +2227,7 @@ export default class ZordParser extends antlr4.Parser {
 	        case 2:
 	            this.enterOuterAlt(localctx, 2);
 	            this.state = 462;
-	            this.match(ZordParser.Number);
+	            this.match(CPnextParser.Number);
 	            break;
 
 	        case 3:
@@ -2239,31 +2239,31 @@ export default class ZordParser extends antlr4.Parser {
 	        case 4:
 	            this.enterOuterAlt(localctx, 4);
 	            this.state = 464;
-	            this.match(ZordParser.String);
+	            this.match(CPnextParser.String);
 	            break;
 
 	        case 5:
 	            this.enterOuterAlt(localctx, 5);
 	            this.state = 465;
-	            this.match(ZordParser.Unit);
+	            this.match(CPnextParser.Unit);
 	            break;
 
 	        case 6:
 	            this.enterOuterAlt(localctx, 6);
 	            this.state = 466;
-	            this.match(ZordParser.True_);
+	            this.match(CPnextParser.True_);
 	            break;
 
 	        case 7:
 	            this.enterOuterAlt(localctx, 7);
 	            this.state = 467;
-	            this.match(ZordParser.False_);
+	            this.match(CPnextParser.False_);
 	            break;
 
 	        case 8:
 	            this.enterOuterAlt(localctx, 8);
 	            this.state = 468;
-	            this.match(ZordParser.Undefined_);
+	            this.match(CPnextParser.Undefined_);
 	            break;
 
 	        case 9:
@@ -2287,7 +2287,7 @@ export default class ZordParser extends antlr4.Parser {
 	        case 12:
 	            this.enterOuterAlt(localctx, 12);
 	            this.state = 472;
-	            this.match(ZordParser.Dollar);
+	            this.match(CPnextParser.Dollar);
 	            this.state = 473;
 	            this.typeNameDecl();
 	            break;
@@ -2295,11 +2295,11 @@ export default class ZordParser extends antlr4.Parser {
 	        case 13:
 	            this.enterOuterAlt(localctx, 13);
 	            this.state = 474;
-	            this.match(ZordParser.ParenOpen);
+	            this.match(CPnextParser.ParenOpen);
 	            this.state = 475;
 	            this.expression();
 	            this.state = 476;
-	            this.match(ZordParser.ParenClose);
+	            this.match(CPnextParser.ParenClose);
 	            break;
 
 	        }
@@ -2321,12 +2321,12 @@ export default class ZordParser extends antlr4.Parser {
 
 	array() {
 	    let localctx = new ArrayContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 54, ZordParser.RULE_array);
+	    this.enterRule(localctx, 54, CPnextParser.RULE_array);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 480;
-	        this.match(ZordParser.BracketOpen);
+	        this.match(CPnextParser.BracketOpen);
 	        this.state = 486;
 	        this._errHandler.sync(this);
 	        var _alt = this._interp.adaptivePredict(this._input,43,this._ctx)
@@ -2335,7 +2335,7 @@ export default class ZordParser extends antlr4.Parser {
 	                this.state = 481;
 	                this.expression();
 	                this.state = 482;
-	                this.match(ZordParser.Semicolon); 
+	                this.match(CPnextParser.Semicolon); 
 	            }
 	            this.state = 488;
 	            this._errHandler.sync(this);
@@ -2345,13 +2345,13 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 490;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << ZordParser.Open) | (1 << ZordParser.Let) | (1 << ZordParser.LetRec) | (1 << ZordParser.If) | (1 << ZordParser.TraitSmall) | (1 << ZordParser.New) | (1 << ZordParser.ToString) | (1 << ZordParser.Fold) | (1 << ZordParser.Unfold) | (1 << ZordParser.True_) | (1 << ZordParser.False_) | (1 << ZordParser.Undefined_))) !== 0) || ((((_la - 36)) & ~0x1f) == 0 && ((1 << (_la - 36)) & ((1 << (ZordParser.Lowerid - 36)) | (1 << (ZordParser.Upperid - 36)) | (1 << (ZordParser.Number - 36)) | (1 << (ZordParser.BacktickOpen - 36)) | (1 << (ZordParser.String - 36)) | (1 << (ZordParser.Unit - 36)) | (1 << (ZordParser.Minus - 36)) | (1 << (ZordParser.Not - 36)) | (1 << (ZordParser.Length - 36)) | (1 << (ZordParser.BracketOpen - 36)))) !== 0) || ((((_la - 68)) & ~0x1f) == 0 && ((1 << (_la - 68)) & ((1 << (ZordParser.BraceOpen - 68)) | (1 << (ZordParser.ParenOpen - 68)) | (1 << (ZordParser.Backslash - 68)) | (1 << (ZordParser.SlashBackslash - 68)) | (1 << (ZordParser.Dollar - 68)))) !== 0)) {
+	        if((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << CPnextParser.Open) | (1 << CPnextParser.Let) | (1 << CPnextParser.LetRec) | (1 << CPnextParser.If) | (1 << CPnextParser.TraitSmall) | (1 << CPnextParser.New) | (1 << CPnextParser.ToString) | (1 << CPnextParser.Fold) | (1 << CPnextParser.Unfold) | (1 << CPnextParser.True_) | (1 << CPnextParser.False_) | (1 << CPnextParser.Undefined_))) !== 0) || ((((_la - 36)) & ~0x1f) == 0 && ((1 << (_la - 36)) & ((1 << (CPnextParser.Lowerid - 36)) | (1 << (CPnextParser.Upperid - 36)) | (1 << (CPnextParser.Number - 36)) | (1 << (CPnextParser.BacktickOpen - 36)) | (1 << (CPnextParser.String - 36)) | (1 << (CPnextParser.Unit - 36)) | (1 << (CPnextParser.Minus - 36)) | (1 << (CPnextParser.Not - 36)) | (1 << (CPnextParser.Length - 36)) | (1 << (CPnextParser.BracketOpen - 36)))) !== 0) || ((((_la - 68)) & ~0x1f) == 0 && ((1 << (_la - 68)) & ((1 << (CPnextParser.BraceOpen - 68)) | (1 << (CPnextParser.ParenOpen - 68)) | (1 << (CPnextParser.Backslash - 68)) | (1 << (CPnextParser.SlashBackslash - 68)) | (1 << (CPnextParser.Dollar - 68)))) !== 0)) {
 	            this.state = 489;
 	            this.expression();
 	        }
 
 	        this.state = 492;
-	        this.match(ZordParser.BracketClose);
+	        this.match(CPnextParser.BracketClose);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -2370,12 +2370,12 @@ export default class ZordParser extends antlr4.Parser {
 
 	record() {
 	    let localctx = new RecordContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 56, ZordParser.RULE_record);
+	    this.enterRule(localctx, 56, CPnextParser.RULE_record);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 494;
-	        this.match(ZordParser.BraceOpen);
+	        this.match(CPnextParser.BraceOpen);
 	        this.state = 504;
 	        this._errHandler.sync(this);
 	        var _alt = this._interp.adaptivePredict(this._input,46,this._ctx)
@@ -2402,7 +2402,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	                }
 	                this.state = 500;
-	                this.match(ZordParser.Semicolon); 
+	                this.match(CPnextParser.Semicolon); 
 	            }
 	            this.state = 506;
 	            this._errHandler.sync(this);
@@ -2412,7 +2412,7 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 512;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (ZordParser.Override - 32)) | (1 << (ZordParser.Underscore - 32)) | (1 << (ZordParser.Lowerid - 32)) | (1 << (ZordParser.Upperid - 32)))) !== 0) || _la===ZordParser.BracketOpen || _la===ZordParser.ParenOpen) {
+	        if(((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (CPnextParser.Override - 32)) | (1 << (CPnextParser.Underscore - 32)) | (1 << (CPnextParser.Lowerid - 32)) | (1 << (CPnextParser.Upperid - 32)))) !== 0) || _la===CPnextParser.BracketOpen || _la===CPnextParser.ParenOpen) {
 	            this.state = 510;
 	            this._errHandler.sync(this);
 	            var la_ = this._interp.adaptivePredict(this._input,47,this._ctx);
@@ -2436,7 +2436,7 @@ export default class ZordParser extends antlr4.Parser {
 	        }
 
 	        this.state = 514;
-	        this.match(ZordParser.BraceClose);
+	        this.match(CPnextParser.BraceClose);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -2455,22 +2455,22 @@ export default class ZordParser extends antlr4.Parser {
 
 	recordField() {
 	    let localctx = new RecordFieldContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 58, ZordParser.RULE_recordField);
+	    this.enterRule(localctx, 58, CPnextParser.RULE_recordField);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 517;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.Override) {
+	        if(_la===CPnextParser.Override) {
 	            this.state = 516;
-	            this.match(ZordParser.Override);
+	            this.match(CPnextParser.Override);
 	        }
 
 	        this.state = 520;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.BracketOpen) {
+	        if(_la===CPnextParser.BracketOpen) {
 	            this.state = 519;
 	            this.selfAnno();
 	        }
@@ -2480,7 +2480,7 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 526;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(_la===ZordParser.Underscore || _la===ZordParser.Lowerid || _la===ZordParser.BraceOpen || _la===ZordParser.ParenOpen) {
+	        while(_la===CPnextParser.Underscore || _la===CPnextParser.Lowerid || _la===CPnextParser.BraceOpen || _la===CPnextParser.ParenOpen) {
 	            this.state = 523;
 	            this.termParam();
 	            this.state = 528;
@@ -2488,7 +2488,7 @@ export default class ZordParser extends antlr4.Parser {
 	            _la = this._input.LA(1);
 	        }
 	        this.state = 529;
-	        this.match(ZordParser.Assign);
+	        this.match(CPnextParser.Assign);
 	        this.state = 530;
 	        this.expression();
 	    } catch (re) {
@@ -2509,16 +2509,16 @@ export default class ZordParser extends antlr4.Parser {
 
 	recordUpdate() {
 	    let localctx = new RecordUpdateContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 60, ZordParser.RULE_recordUpdate);
+	    this.enterRule(localctx, 60, CPnextParser.RULE_recordUpdate);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 532;
-	        this.match(ZordParser.BraceOpen);
+	        this.match(CPnextParser.BraceOpen);
 	        this.state = 533;
 	        this.expression();
 	        this.state = 534;
-	        this.match(ZordParser.Stick);
+	        this.match(CPnextParser.Stick);
 	        this.state = 543;
 	        this._errHandler.sync(this);
 	        var _alt = this._interp.adaptivePredict(this._input,52,this._ctx)
@@ -2527,11 +2527,11 @@ export default class ZordParser extends antlr4.Parser {
 	                this.state = 535;
 	                this.labelDecl();
 	                this.state = 536;
-	                this.match(ZordParser.Assign);
+	                this.match(CPnextParser.Assign);
 	                this.state = 537;
 	                this.expression();
 	                this.state = 539;
-	                this.match(ZordParser.Semicolon); 
+	                this.match(CPnextParser.Semicolon); 
 	            }
 	            this.state = 545;
 	            this._errHandler.sync(this);
@@ -2541,17 +2541,17 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 550;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.Lowerid || _la===ZordParser.Upperid) {
+	        if(_la===CPnextParser.Lowerid || _la===CPnextParser.Upperid) {
 	            this.state = 546;
 	            this.labelDecl();
 	            this.state = 547;
-	            this.match(ZordParser.Assign);
+	            this.match(CPnextParser.Assign);
 	            this.state = 548;
 	            this.expression();
 	        }
 
 	        this.state = 552;
-	        this.match(ZordParser.BraceClose);
+	        this.match(CPnextParser.BraceClose);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -2570,36 +2570,36 @@ export default class ZordParser extends antlr4.Parser {
 
 	methodPattern() {
 	    let localctx = new MethodPatternContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 62, ZordParser.RULE_methodPattern);
+	    this.enterRule(localctx, 62, CPnextParser.RULE_methodPattern);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 555;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.Override) {
+	        if(_la===CPnextParser.Override) {
 	            this.state = 554;
-	            this.match(ZordParser.Override);
+	            this.match(CPnextParser.Override);
 	        }
 
 	        this.state = 560;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.BracketOpen) {
+	        if(_la===CPnextParser.BracketOpen) {
 	            this.state = 557;
 	            this.selfAnno();
 	            this.state = 558;
-	            this.match(ZordParser.At);
+	            this.match(CPnextParser.At);
 	        }
 
 	        this.state = 562;
-	        this.match(ZordParser.ParenOpen);
+	        this.match(CPnextParser.ParenOpen);
 	        this.state = 563;
 	        this.labelDecl();
 	        this.state = 567;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(_la===ZordParser.Underscore || _la===ZordParser.Lowerid || _la===ZordParser.BraceOpen || _la===ZordParser.ParenOpen) {
+	        while(_la===CPnextParser.Underscore || _la===CPnextParser.Lowerid || _la===CPnextParser.BraceOpen || _la===CPnextParser.ParenOpen) {
 	            this.state = 564;
 	            this.termParam();
 	            this.state = 569;
@@ -2607,15 +2607,15 @@ export default class ZordParser extends antlr4.Parser {
 	            _la = this._input.LA(1);
 	        }
 	        this.state = 570;
-	        this.match(ZordParser.ParenClose);
+	        this.match(CPnextParser.ParenClose);
 	        this.state = 571;
-	        this.match(ZordParser.Dot);
+	        this.match(CPnextParser.Dot);
 	        this.state = 572;
 	        this.labelDecl();
 	        this.state = 576;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(_la===ZordParser.Underscore || _la===ZordParser.Lowerid || _la===ZordParser.BraceOpen || _la===ZordParser.ParenOpen) {
+	        while(_la===CPnextParser.Underscore || _la===CPnextParser.Lowerid || _la===CPnextParser.BraceOpen || _la===CPnextParser.ParenOpen) {
 	            this.state = 573;
 	            this.termParam();
 	            this.state = 578;
@@ -2623,7 +2623,7 @@ export default class ZordParser extends antlr4.Parser {
 	            _la = this._input.LA(1);
 	        }
 	        this.state = 579;
-	        this.match(ZordParser.Assign);
+	        this.match(CPnextParser.Assign);
 	        this.state = 580;
 	        this.expression();
 	    } catch (re) {
@@ -2644,26 +2644,26 @@ export default class ZordParser extends antlr4.Parser {
 
 	defaultPattern() {
 	    let localctx = new DefaultPatternContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 64, ZordParser.RULE_defaultPattern);
+	    this.enterRule(localctx, 64, CPnextParser.RULE_defaultPattern);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 583;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.Override) {
+	        if(_la===CPnextParser.Override) {
 	            this.state = 582;
-	            this.match(ZordParser.Override);
+	            this.match(CPnextParser.Override);
 	        }
 
 	        this.state = 587;
 	        this._errHandler.sync(this);
 	        switch(this._input.LA(1)) {
-	        case ZordParser.Underscore:
+	        case CPnextParser.Underscore:
 	            this.state = 585;
-	            this.match(ZordParser.Underscore);
+	            this.match(CPnextParser.Underscore);
 	            break;
-	        case ZordParser.BracketOpen:
+	        case CPnextParser.BracketOpen:
 	            this.state = 586;
 	            this.selfAnno();
 	            break;
@@ -2671,13 +2671,13 @@ export default class ZordParser extends antlr4.Parser {
 	            throw new antlr4.error.NoViableAltException(this);
 	        }
 	        this.state = 589;
-	        this.match(ZordParser.Dot);
+	        this.match(CPnextParser.Dot);
 	        this.state = 590;
 	        this.labelDecl();
 	        this.state = 594;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(_la===ZordParser.Underscore || _la===ZordParser.Lowerid || _la===ZordParser.BraceOpen || _la===ZordParser.ParenOpen) {
+	        while(_la===CPnextParser.Underscore || _la===CPnextParser.Lowerid || _la===CPnextParser.BraceOpen || _la===CPnextParser.ParenOpen) {
 	            this.state = 591;
 	            this.termParam();
 	            this.state = 596;
@@ -2685,7 +2685,7 @@ export default class ZordParser extends antlr4.Parser {
 	            _la = this._input.LA(1);
 	        }
 	        this.state = 597;
-	        this.match(ZordParser.Assign);
+	        this.match(CPnextParser.Assign);
 	        this.state = 598;
 	        this.expression();
 	    } catch (re) {
@@ -2706,28 +2706,28 @@ export default class ZordParser extends antlr4.Parser {
 
 	typeParam() {
 	    let localctx = new TypeParamContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 66, ZordParser.RULE_typeParam);
+	    this.enterRule(localctx, 66, CPnextParser.RULE_typeParam);
 	    try {
 	        this.state = 607;
 	        this._errHandler.sync(this);
 	        switch(this._input.LA(1)) {
-	        case ZordParser.Upperid:
+	        case CPnextParser.Upperid:
 	            this.enterOuterAlt(localctx, 1);
 	            this.state = 600;
 	            this.typeNameDecl();
 	            break;
-	        case ZordParser.ParenOpen:
+	        case CPnextParser.ParenOpen:
 	            this.enterOuterAlt(localctx, 2);
 	            this.state = 601;
-	            this.match(ZordParser.ParenOpen);
+	            this.match(CPnextParser.ParenOpen);
 	            this.state = 602;
 	            this.typeNameDecl();
 	            this.state = 603;
-	            this.match(ZordParser.Star);
+	            this.match(CPnextParser.Star);
 	            this.state = 604;
 	            this.type(0);
 	            this.state = 605;
-	            this.match(ZordParser.ParenClose);
+	            this.match(CPnextParser.ParenClose);
 	            break;
 	        default:
 	            throw new antlr4.error.NoViableAltException(this);
@@ -2750,31 +2750,31 @@ export default class ZordParser extends antlr4.Parser {
 
 	termParam() {
 	    let localctx = new TermParamContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 68, ZordParser.RULE_termParam);
+	    this.enterRule(localctx, 68, CPnextParser.RULE_termParam);
 	    try {
 	        this.state = 617;
 	        this._errHandler.sync(this);
 	        switch(this._input.LA(1)) {
-	        case ZordParser.Underscore:
-	        case ZordParser.Lowerid:
+	        case CPnextParser.Underscore:
+	        case CPnextParser.Lowerid:
 	            this.enterOuterAlt(localctx, 1);
 	            this.state = 609;
 	            this.termId();
 	            break;
-	        case ZordParser.ParenOpen:
+	        case CPnextParser.ParenOpen:
 	            this.enterOuterAlt(localctx, 2);
 	            this.state = 610;
-	            this.match(ZordParser.ParenOpen);
+	            this.match(CPnextParser.ParenOpen);
 	            this.state = 611;
 	            this.termId();
 	            this.state = 612;
-	            this.match(ZordParser.Colon);
+	            this.match(CPnextParser.Colon);
 	            this.state = 613;
 	            this.type(0);
 	            this.state = 614;
-	            this.match(ZordParser.ParenClose);
+	            this.match(CPnextParser.ParenClose);
 	            break;
-	        case ZordParser.BraceOpen:
+	        case CPnextParser.BraceOpen:
 	            this.enterOuterAlt(localctx, 3);
 	            this.state = 616;
 	            this.wildcard();
@@ -2800,17 +2800,17 @@ export default class ZordParser extends antlr4.Parser {
 
 	termId() {
 	    let localctx = new TermIdContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 70, ZordParser.RULE_termId);
+	    this.enterRule(localctx, 70, CPnextParser.RULE_termId);
 	    try {
 	        this.state = 621;
 	        this._errHandler.sync(this);
 	        switch(this._input.LA(1)) {
-	        case ZordParser.Underscore:
+	        case CPnextParser.Underscore:
 	            this.enterOuterAlt(localctx, 1);
 	            this.state = 619;
-	            this.match(ZordParser.Underscore);
+	            this.match(CPnextParser.Underscore);
 	            break;
-	        case ZordParser.Lowerid:
+	        case CPnextParser.Lowerid:
 	            this.enterOuterAlt(localctx, 2);
 	            this.state = 620;
 	            this.termNameDecl();
@@ -2836,12 +2836,12 @@ export default class ZordParser extends antlr4.Parser {
 
 	wildcard() {
 	    let localctx = new WildcardContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 72, ZordParser.RULE_wildcard);
+	    this.enterRule(localctx, 72, CPnextParser.RULE_wildcard);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 623;
-	        this.match(ZordParser.BraceOpen);
+	        this.match(CPnextParser.BraceOpen);
 	        this.state = 632;
 	        this._errHandler.sync(this);
 	        var _alt = this._interp.adaptivePredict(this._input,64,this._ctx)
@@ -2850,11 +2850,11 @@ export default class ZordParser extends antlr4.Parser {
 	                this.state = 624;
 	                this.labelDecl();
 	                this.state = 625;
-	                this.match(ZordParser.Assign);
+	                this.match(CPnextParser.Assign);
 	                this.state = 626;
 	                this.expression();
 	                this.state = 628;
-	                this.match(ZordParser.Semicolon); 
+	                this.match(CPnextParser.Semicolon); 
 	            }
 	            this.state = 634;
 	            this._errHandler.sync(this);
@@ -2864,19 +2864,19 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 639;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.Lowerid || _la===ZordParser.Upperid) {
+	        if(_la===CPnextParser.Lowerid || _la===CPnextParser.Upperid) {
 	            this.state = 635;
 	            this.labelDecl();
 	            this.state = 636;
-	            this.match(ZordParser.Assign);
+	            this.match(CPnextParser.Assign);
 	            this.state = 637;
 	            this.expression();
 	        }
 
 	        this.state = 641;
-	        this.match(ZordParser.DotDot);
+	        this.match(CPnextParser.DotDot);
 	        this.state = 642;
-	        this.match(ZordParser.BraceClose);
+	        this.match(CPnextParser.BraceClose);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -2895,26 +2895,26 @@ export default class ZordParser extends antlr4.Parser {
 
 	selfAnno() {
 	    let localctx = new SelfAnnoContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 74, ZordParser.RULE_selfAnno);
+	    this.enterRule(localctx, 74, CPnextParser.RULE_selfAnno);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 644;
-	        this.match(ZordParser.BracketOpen);
+	        this.match(CPnextParser.BracketOpen);
 	        this.state = 645;
 	        this.termNameDecl();
 	        this.state = 648;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.Colon) {
+	        if(_la===CPnextParser.Colon) {
 	            this.state = 646;
-	            this.match(ZordParser.Colon);
+	            this.match(CPnextParser.Colon);
 	            this.state = 647;
 	            this.type(0);
 	        }
 
 	        this.state = 650;
-	        this.match(ZordParser.BracketClose);
+	        this.match(CPnextParser.BracketClose);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -2933,7 +2933,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	sort() {
 	    let localctx = new SortContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 76, ZordParser.RULE_sort);
+	    this.enterRule(localctx, 76, CPnextParser.RULE_sort);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
@@ -2942,9 +2942,9 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 655;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        if(_la===ZordParser.TraitArrow) {
+	        if(_la===CPnextParser.TraitArrow) {
 	            this.state = 653;
-	            this.match(ZordParser.TraitArrow);
+	            this.match(CPnextParser.TraitArrow);
 	            this.state = 654;
 	            this.type(0);
 	        }
@@ -2967,11 +2967,11 @@ export default class ZordParser extends antlr4.Parser {
 
 	typeNameDecl() {
 	    let localctx = new TypeNameDeclContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 78, ZordParser.RULE_typeNameDecl);
+	    this.enterRule(localctx, 78, CPnextParser.RULE_typeNameDecl);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 657;
-	        this.match(ZordParser.Upperid);
+	        this.match(CPnextParser.Upperid);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -2990,11 +2990,11 @@ export default class ZordParser extends antlr4.Parser {
 
 	typeName() {
 	    let localctx = new TypeNameContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 80, ZordParser.RULE_typeName);
+	    this.enterRule(localctx, 80, CPnextParser.RULE_typeName);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 659;
-	        this.match(ZordParser.Upperid);
+	        this.match(CPnextParser.Upperid);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -3013,11 +3013,11 @@ export default class ZordParser extends antlr4.Parser {
 
 	termNameDecl() {
 	    let localctx = new TermNameDeclContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 82, ZordParser.RULE_termNameDecl);
+	    this.enterRule(localctx, 82, CPnextParser.RULE_termNameDecl);
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 661;
-	        this.match(ZordParser.Lowerid);
+	        this.match(CPnextParser.Lowerid);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -3036,13 +3036,13 @@ export default class ZordParser extends antlr4.Parser {
 
 	termName() {
 	    let localctx = new TermNameContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 84, ZordParser.RULE_termName);
+	    this.enterRule(localctx, 84, CPnextParser.RULE_termName);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 663;
 	        _la = this._input.LA(1);
-	        if(!(_la===ZordParser.Lowerid || _la===ZordParser.Upperid)) {
+	        if(!(_la===CPnextParser.Lowerid || _la===CPnextParser.Upperid)) {
 	        this._errHandler.recoverInline(this);
 	        }
 	        else {
@@ -3067,13 +3067,13 @@ export default class ZordParser extends antlr4.Parser {
 
 	labelDecl() {
 	    let localctx = new LabelDeclContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 86, ZordParser.RULE_labelDecl);
+	    this.enterRule(localctx, 86, CPnextParser.RULE_labelDecl);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 665;
 	        _la = this._input.LA(1);
-	        if(!(_la===ZordParser.Lowerid || _la===ZordParser.Upperid)) {
+	        if(!(_la===CPnextParser.Lowerid || _la===CPnextParser.Upperid)) {
 	        this._errHandler.recoverInline(this);
 	        }
 	        else {
@@ -3098,13 +3098,13 @@ export default class ZordParser extends antlr4.Parser {
 
 	label() {
 	    let localctx = new LabelContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 88, ZordParser.RULE_label);
+	    this.enterRule(localctx, 88, CPnextParser.RULE_label);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 667;
 	        _la = this._input.LA(1);
-	        if(!(_la===ZordParser.Lowerid || _la===ZordParser.Upperid)) {
+	        if(!(_la===CPnextParser.Lowerid || _la===CPnextParser.Upperid)) {
 	        this._errHandler.recoverInline(this);
 	        }
 	        else {
@@ -3129,16 +3129,16 @@ export default class ZordParser extends antlr4.Parser {
 
 	document() {
 	    let localctx = new DocumentContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 90, ZordParser.RULE_document);
+	    this.enterRule(localctx, 90, CPnextParser.RULE_document);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 669;
-	        this.match(ZordParser.BacktickOpen);
+	        this.match(CPnextParser.BacktickOpen);
 	        this.state = 673;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(((((_la - 81)) & ~0x1f) == 0 && ((1 << (_la - 81)) & ((1 << (ZordParser.LineBreak - 81)) | (1 << (ZordParser.Tag - 81)) | (1 << (ZordParser.BackslashParen - 81)) | (1 << (ZordParser.Plaintext - 81)) | (1 << (ZordParser.PlaintextAfterTag - 81)) | (1 << (ZordParser.TagAfterTag - 81)) | (1 << (ZordParser.LinebreakAfterTag - 81)) | (1 << (ZordParser.BackslashParenAfterTag - 81)))) !== 0)) {
+	        while(((((_la - 81)) & ~0x1f) == 0 && ((1 << (_la - 81)) & ((1 << (CPnextParser.LineBreak - 81)) | (1 << (CPnextParser.Tag - 81)) | (1 << (CPnextParser.BackslashParen - 81)) | (1 << (CPnextParser.Plaintext - 81)) | (1 << (CPnextParser.PlaintextAfterTag - 81)) | (1 << (CPnextParser.TagAfterTag - 81)) | (1 << (CPnextParser.LinebreakAfterTag - 81)) | (1 << (CPnextParser.BackslashParenAfterTag - 81)))) !== 0)) {
 	            this.state = 670;
 	            this.docElement();
 	            this.state = 675;
@@ -3147,7 +3147,7 @@ export default class ZordParser extends antlr4.Parser {
 	        }
 	        this.state = 676;
 	        _la = this._input.LA(1);
-	        if(!(_la===ZordParser.BacktickClose || _la===ZordParser.BacktickCloseAfterTag)) {
+	        if(!(_la===CPnextParser.BacktickClose || _la===CPnextParser.BacktickCloseAfterTag)) {
 	        this._errHandler.recoverInline(this);
 	        }
 	        else {
@@ -3172,31 +3172,31 @@ export default class ZordParser extends antlr4.Parser {
 
 	docElement() {
 	    let localctx = new DocElementContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 92, ZordParser.RULE_docElement);
+	    this.enterRule(localctx, 92, CPnextParser.RULE_docElement);
 	    try {
 	        this.state = 682;
 	        this._errHandler.sync(this);
 	        switch(this._input.LA(1)) {
-	        case ZordParser.Tag:
-	        case ZordParser.TagAfterTag:
+	        case CPnextParser.Tag:
+	        case CPnextParser.TagAfterTag:
 	            this.enterOuterAlt(localctx, 1);
 	            this.state = 678;
 	            this.command();
 	            break;
-	        case ZordParser.BackslashParen:
-	        case ZordParser.BackslashParenAfterTag:
+	        case CPnextParser.BackslashParen:
+	        case CPnextParser.BackslashParenAfterTag:
 	            this.enterOuterAlt(localctx, 2);
 	            this.state = 679;
 	            this.interpolation();
 	            break;
-	        case ZordParser.LineBreak:
-	        case ZordParser.LinebreakAfterTag:
+	        case CPnextParser.LineBreak:
+	        case CPnextParser.LinebreakAfterTag:
 	            this.enterOuterAlt(localctx, 3);
 	            this.state = 680;
 	            this.newline();
 	            break;
-	        case ZordParser.Plaintext:
-	        case ZordParser.PlaintextAfterTag:
+	        case CPnextParser.Plaintext:
+	        case CPnextParser.PlaintextAfterTag:
 	            this.enterOuterAlt(localctx, 4);
 	            this.state = 681;
 	            this.plaintext();
@@ -3222,13 +3222,13 @@ export default class ZordParser extends antlr4.Parser {
 
 	command() {
 	    let localctx = new CommandContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 94, ZordParser.RULE_command);
+	    this.enterRule(localctx, 94, CPnextParser.RULE_command);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 684;
 	        _la = this._input.LA(1);
-	        if(!(_la===ZordParser.Tag || _la===ZordParser.TagAfterTag)) {
+	        if(!(_la===CPnextParser.Tag || _la===CPnextParser.TagAfterTag)) {
 	        this._errHandler.recoverInline(this);
 	        }
 	        else {
@@ -3238,7 +3238,7 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 688;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(((((_la - 85)) & ~0x1f) == 0 && ((1 << (_la - 85)) & ((1 << (ZordParser.ParenOpenInTag - 85)) | (1 << (ZordParser.BraceOpenInTag - 85)) | (1 << (ZordParser.BracketOpenInTag - 85)))) !== 0)) {
+	        while(((((_la - 85)) & ~0x1f) == 0 && ((1 << (_la - 85)) & ((1 << (CPnextParser.ParenOpenInTag - 85)) | (1 << (CPnextParser.BraceOpenInTag - 85)) | (1 << (CPnextParser.BracketOpenInTag - 85)))) !== 0)) {
 	            this.state = 685;
 	            this.arg();
 	            this.state = 690;
@@ -3263,13 +3263,13 @@ export default class ZordParser extends antlr4.Parser {
 
 	interpolation() {
 	    let localctx = new InterpolationContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 96, ZordParser.RULE_interpolation);
+	    this.enterRule(localctx, 96, CPnextParser.RULE_interpolation);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 691;
 	        _la = this._input.LA(1);
-	        if(!(_la===ZordParser.BackslashParen || _la===ZordParser.BackslashParenAfterTag)) {
+	        if(!(_la===CPnextParser.BackslashParen || _la===CPnextParser.BackslashParenAfterTag)) {
 	        this._errHandler.recoverInline(this);
 	        }
 	        else {
@@ -3279,7 +3279,7 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 692;
 	        this.expression();
 	        this.state = 693;
-	        this.match(ZordParser.ParenClose);
+	        this.match(CPnextParser.ParenClose);
 	    } catch (re) {
 	    	if(re instanceof antlr4.error.RecognitionException) {
 		        localctx.exception = re;
@@ -3298,13 +3298,13 @@ export default class ZordParser extends antlr4.Parser {
 
 	newline() {
 	    let localctx = new NewlineContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 98, ZordParser.RULE_newline);
+	    this.enterRule(localctx, 98, CPnextParser.RULE_newline);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 695;
 	        _la = this._input.LA(1);
-	        if(!(_la===ZordParser.LineBreak || _la===ZordParser.LinebreakAfterTag)) {
+	        if(!(_la===CPnextParser.LineBreak || _la===CPnextParser.LinebreakAfterTag)) {
 	        this._errHandler.recoverInline(this);
 	        }
 	        else {
@@ -3329,13 +3329,13 @@ export default class ZordParser extends antlr4.Parser {
 
 	plaintext() {
 	    let localctx = new PlaintextContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 100, ZordParser.RULE_plaintext);
+	    this.enterRule(localctx, 100, CPnextParser.RULE_plaintext);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
 	        this.state = 697;
 	        _la = this._input.LA(1);
-	        if(!(_la===ZordParser.Plaintext || _la===ZordParser.PlaintextAfterTag)) {
+	        if(!(_la===CPnextParser.Plaintext || _la===CPnextParser.PlaintextAfterTag)) {
 	        this._errHandler.recoverInline(this);
 	        }
 	        else {
@@ -3360,25 +3360,25 @@ export default class ZordParser extends antlr4.Parser {
 
 	arg() {
 	    let localctx = new ArgContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 102, ZordParser.RULE_arg);
+	    this.enterRule(localctx, 102, CPnextParser.RULE_arg);
 	    var _la = 0; // Token type
 	    try {
 	        this.state = 724;
 	        this._errHandler.sync(this);
 	        switch(this._input.LA(1)) {
-	        case ZordParser.ParenOpenInTag:
+	        case CPnextParser.ParenOpenInTag:
 	            this.enterOuterAlt(localctx, 1);
 	            this.state = 699;
-	            this.match(ZordParser.ParenOpenInTag);
+	            this.match(CPnextParser.ParenOpenInTag);
 	            this.state = 700;
 	            this.expression();
 	            this.state = 701;
-	            this.match(ZordParser.ParenClose);
+	            this.match(CPnextParser.ParenClose);
 	            break;
-	        case ZordParser.BraceOpenInTag:
+	        case CPnextParser.BraceOpenInTag:
 	            this.enterOuterAlt(localctx, 2);
 	            this.state = 703;
-	            this.match(ZordParser.BraceOpenInTag);
+	            this.match(CPnextParser.BraceOpenInTag);
 	            this.state = 709;
 	            this._errHandler.sync(this);
 	            var _alt = this._interp.adaptivePredict(this._input,71,this._ctx)
@@ -3387,7 +3387,7 @@ export default class ZordParser extends antlr4.Parser {
 	                    this.state = 704;
 	                    this.recordArgField();
 	                    this.state = 705;
-	                    this.match(ZordParser.Semicolon); 
+	                    this.match(CPnextParser.Semicolon); 
 	                }
 	                this.state = 711;
 	                this._errHandler.sync(this);
@@ -3397,22 +3397,22 @@ export default class ZordParser extends antlr4.Parser {
 	            this.state = 713;
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
-	            if(_la===ZordParser.Lowerid || _la===ZordParser.Upperid) {
+	            if(_la===CPnextParser.Lowerid || _la===CPnextParser.Upperid) {
 	                this.state = 712;
 	                this.recordArgField();
 	            }
 
 	            this.state = 715;
-	            this.match(ZordParser.BraceClose);
+	            this.match(CPnextParser.BraceClose);
 	            break;
-	        case ZordParser.BracketOpenInTag:
+	        case CPnextParser.BracketOpenInTag:
 	            this.enterOuterAlt(localctx, 3);
 	            this.state = 716;
-	            this.match(ZordParser.BracketOpenInTag);
+	            this.match(CPnextParser.BracketOpenInTag);
 	            this.state = 720;
 	            this._errHandler.sync(this);
 	            _la = this._input.LA(1);
-	            while(((((_la - 81)) & ~0x1f) == 0 && ((1 << (_la - 81)) & ((1 << (ZordParser.LineBreak - 81)) | (1 << (ZordParser.Tag - 81)) | (1 << (ZordParser.BackslashParen - 81)) | (1 << (ZordParser.Plaintext - 81)) | (1 << (ZordParser.PlaintextAfterTag - 81)) | (1 << (ZordParser.TagAfterTag - 81)) | (1 << (ZordParser.LinebreakAfterTag - 81)) | (1 << (ZordParser.BackslashParenAfterTag - 81)))) !== 0)) {
+	            while(((((_la - 81)) & ~0x1f) == 0 && ((1 << (_la - 81)) & ((1 << (CPnextParser.LineBreak - 81)) | (1 << (CPnextParser.Tag - 81)) | (1 << (CPnextParser.BackslashParen - 81)) | (1 << (CPnextParser.Plaintext - 81)) | (1 << (CPnextParser.PlaintextAfterTag - 81)) | (1 << (CPnextParser.TagAfterTag - 81)) | (1 << (CPnextParser.LinebreakAfterTag - 81)) | (1 << (CPnextParser.BackslashParenAfterTag - 81)))) !== 0)) {
 	                this.state = 717;
 	                this.docElement();
 	                this.state = 722;
@@ -3421,7 +3421,7 @@ export default class ZordParser extends antlr4.Parser {
 	            }
 	            this.state = 723;
 	            _la = this._input.LA(1);
-	            if(!(_la===ZordParser.BracketCloseInDoc || _la===ZordParser.BracketCloseAfterTag)) {
+	            if(!(_la===CPnextParser.BracketCloseInDoc || _la===CPnextParser.BracketCloseAfterTag)) {
 	            this._errHandler.recoverInline(this);
 	            }
 	            else {
@@ -3450,7 +3450,7 @@ export default class ZordParser extends antlr4.Parser {
 
 	recordArgField() {
 	    let localctx = new RecordArgFieldContext(this, this._ctx, this.state);
-	    this.enterRule(localctx, 104, ZordParser.RULE_recordArgField);
+	    this.enterRule(localctx, 104, CPnextParser.RULE_recordArgField);
 	    var _la = 0; // Token type
 	    try {
 	        this.enterOuterAlt(localctx, 1);
@@ -3459,7 +3459,7 @@ export default class ZordParser extends antlr4.Parser {
 	        this.state = 730;
 	        this._errHandler.sync(this);
 	        _la = this._input.LA(1);
-	        while(_la===ZordParser.Underscore || _la===ZordParser.Lowerid || _la===ZordParser.BraceOpen || _la===ZordParser.ParenOpen) {
+	        while(_la===CPnextParser.Underscore || _la===CPnextParser.Lowerid || _la===CPnextParser.BraceOpen || _la===CPnextParser.ParenOpen) {
 	            this.state = 727;
 	            this.termParam();
 	            this.state = 732;
@@ -3467,7 +3467,7 @@ export default class ZordParser extends antlr4.Parser {
 	            _la = this._input.LA(1);
 	        }
 	        this.state = 733;
-	        this.match(ZordParser.Assign);
+	        this.match(CPnextParser.Assign);
 	        this.state = 734;
 	        this.expression();
 	    } catch (re) {
@@ -3487,154 +3487,154 @@ export default class ZordParser extends antlr4.Parser {
 
 }
 
-ZordParser.EOF = antlr4.Token.EOF;
-ZordParser.Whitespaces = 1;
-ZordParser.LineComment = 2;
-ZordParser.BlockComment = 3;
-ZordParser.Open = 4;
-ZordParser.Type = 5;
-ZordParser.ForAll = 6;
-ZordParser.TraitCaps = 7;
-ZordParser.Mu = 8;
-ZordParser.Int = 9;
-ZordParser.Double = 10;
-ZordParser.StringType = 11;
-ZordParser.Bool = 12;
-ZordParser.Top = 13;
-ZordParser.Bot = 14;
-ZordParser.Let = 15;
-ZordParser.LetRec = 16;
-ZordParser.In = 17;
-ZordParser.If = 18;
-ZordParser.Then = 19;
-ZordParser.Else = 20;
-ZordParser.TraitSmall = 21;
-ZordParser.Implements = 22;
-ZordParser.Inherits = 23;
-ZordParser.New = 24;
-ZordParser.ToString = 25;
-ZordParser.Fold = 26;
-ZordParser.Unfold = 27;
-ZordParser.At = 28;
-ZordParser.True_ = 29;
-ZordParser.False_ = 30;
-ZordParser.Undefined_ = 31;
-ZordParser.Override = 32;
-ZordParser.Stick = 33;
-ZordParser.DotDot = 34;
-ZordParser.Underscore = 35;
-ZordParser.Lowerid = 36;
-ZordParser.Upperid = 37;
-ZordParser.Number = 38;
-ZordParser.BacktickOpen = 39;
-ZordParser.String = 40;
-ZordParser.Unit = 41;
-ZordParser.Arrow = 42;
-ZordParser.TraitArrow = 43;
-ZordParser.Intersect = 44;
-ZordParser.Plus = 45;
-ZordParser.Minus = 46;
-ZordParser.Star = 47;
-ZordParser.Divide = 48;
-ZordParser.Modulo = 49;
-ZordParser.Not = 50;
-ZordParser.And = 51;
-ZordParser.Or = 52;
-ZordParser.Append = 53;
-ZordParser.Less = 54;
-ZordParser.Greater = 55;
-ZordParser.LessEqual = 56;
-ZordParser.GreaterEqual = 57;
-ZordParser.Equal = 58;
-ZordParser.NotEqual = 59;
-ZordParser.Merge = 60;
-ZordParser.Forward = 61;
-ZordParser.Index = 62;
-ZordParser.Length = 63;
-ZordParser.Assign = 64;
-ZordParser.Newline = 65;
-ZordParser.BracketOpen = 66;
-ZordParser.BracketClose = 67;
-ZordParser.BraceOpen = 68;
-ZordParser.BraceClose = 69;
-ZordParser.ParenOpen = 70;
-ZordParser.ParenClose = 71;
-ZordParser.Semicolon = 72;
-ZordParser.Colon = 73;
-ZordParser.Backslash = 74;
-ZordParser.SlashBackslash = 75;
-ZordParser.Dot = 76;
-ZordParser.Question = 77;
-ZordParser.Dollar = 78;
-ZordParser.BacktickClose = 79;
-ZordParser.BracketCloseInDoc = 80;
-ZordParser.LineBreak = 81;
-ZordParser.Tag = 82;
-ZordParser.BackslashParen = 83;
-ZordParser.Plaintext = 84;
-ZordParser.ParenOpenInTag = 85;
-ZordParser.BraceOpenInTag = 86;
-ZordParser.BracketOpenInTag = 87;
-ZordParser.PlaintextAfterTag = 88;
-ZordParser.BracketCloseAfterTag = 89;
-ZordParser.BacktickCloseAfterTag = 90;
-ZordParser.TagAfterTag = 91;
-ZordParser.LinebreakAfterTag = 92;
-ZordParser.BackslashParenAfterTag = 93;
+CPnextParser.EOF = antlr4.Token.EOF;
+CPnextParser.Whitespaces = 1;
+CPnextParser.LineComment = 2;
+CPnextParser.BlockComment = 3;
+CPnextParser.Open = 4;
+CPnextParser.Type = 5;
+CPnextParser.ForAll = 6;
+CPnextParser.TraitCaps = 7;
+CPnextParser.Mu = 8;
+CPnextParser.Int = 9;
+CPnextParser.Double = 10;
+CPnextParser.StringType = 11;
+CPnextParser.Bool = 12;
+CPnextParser.Top = 13;
+CPnextParser.Bot = 14;
+CPnextParser.Let = 15;
+CPnextParser.LetRec = 16;
+CPnextParser.In = 17;
+CPnextParser.If = 18;
+CPnextParser.Then = 19;
+CPnextParser.Else = 20;
+CPnextParser.TraitSmall = 21;
+CPnextParser.Implements = 22;
+CPnextParser.Inherits = 23;
+CPnextParser.New = 24;
+CPnextParser.ToString = 25;
+CPnextParser.Fold = 26;
+CPnextParser.Unfold = 27;
+CPnextParser.At = 28;
+CPnextParser.True_ = 29;
+CPnextParser.False_ = 30;
+CPnextParser.Undefined_ = 31;
+CPnextParser.Override = 32;
+CPnextParser.Stick = 33;
+CPnextParser.DotDot = 34;
+CPnextParser.Underscore = 35;
+CPnextParser.Lowerid = 36;
+CPnextParser.Upperid = 37;
+CPnextParser.Number = 38;
+CPnextParser.BacktickOpen = 39;
+CPnextParser.String = 40;
+CPnextParser.Unit = 41;
+CPnextParser.Arrow = 42;
+CPnextParser.TraitArrow = 43;
+CPnextParser.Intersect = 44;
+CPnextParser.Plus = 45;
+CPnextParser.Minus = 46;
+CPnextParser.Star = 47;
+CPnextParser.Divide = 48;
+CPnextParser.Modulo = 49;
+CPnextParser.Not = 50;
+CPnextParser.And = 51;
+CPnextParser.Or = 52;
+CPnextParser.Append = 53;
+CPnextParser.Less = 54;
+CPnextParser.Greater = 55;
+CPnextParser.LessEqual = 56;
+CPnextParser.GreaterEqual = 57;
+CPnextParser.Equal = 58;
+CPnextParser.NotEqual = 59;
+CPnextParser.Merge = 60;
+CPnextParser.Forward = 61;
+CPnextParser.Index = 62;
+CPnextParser.Length = 63;
+CPnextParser.Assign = 64;
+CPnextParser.Newline = 65;
+CPnextParser.BracketOpen = 66;
+CPnextParser.BracketClose = 67;
+CPnextParser.BraceOpen = 68;
+CPnextParser.BraceClose = 69;
+CPnextParser.ParenOpen = 70;
+CPnextParser.ParenClose = 71;
+CPnextParser.Semicolon = 72;
+CPnextParser.Colon = 73;
+CPnextParser.Backslash = 74;
+CPnextParser.SlashBackslash = 75;
+CPnextParser.Dot = 76;
+CPnextParser.Question = 77;
+CPnextParser.Dollar = 78;
+CPnextParser.BacktickClose = 79;
+CPnextParser.BracketCloseInDoc = 80;
+CPnextParser.LineBreak = 81;
+CPnextParser.Tag = 82;
+CPnextParser.BackslashParen = 83;
+CPnextParser.Plaintext = 84;
+CPnextParser.ParenOpenInTag = 85;
+CPnextParser.BraceOpenInTag = 86;
+CPnextParser.BracketOpenInTag = 87;
+CPnextParser.PlaintextAfterTag = 88;
+CPnextParser.BracketCloseAfterTag = 89;
+CPnextParser.BacktickCloseAfterTag = 90;
+CPnextParser.TagAfterTag = 91;
+CPnextParser.LinebreakAfterTag = 92;
+CPnextParser.BackslashParenAfterTag = 93;
 
-ZordParser.RULE_program = 0;
-ZordParser.RULE_open = 1;
-ZordParser.RULE_definition = 2;
-ZordParser.RULE_typeDef = 3;
-ZordParser.RULE_termDef = 4;
-ZordParser.RULE_type = 5;
-ZordParser.RULE_btype = 6;
-ZordParser.RULE_atype = 7;
-ZordParser.RULE_recordType = 8;
-ZordParser.RULE_recordTypeElement = 9;
-ZordParser.RULE_expression = 10;
-ZordParser.RULE_opexpr = 11;
-ZordParser.RULE_lexpr = 12;
-ZordParser.RULE_lambda = 13;
-ZordParser.RULE_bigLambda = 14;
-ZordParser.RULE_let_ = 15;
-ZordParser.RULE_letRec = 16;
-ZordParser.RULE_open_ = 17;
-ZordParser.RULE_ifElse = 18;
-ZordParser.RULE_trait = 19;
-ZordParser.RULE_new_ = 20;
-ZordParser.RULE_toString_ = 21;
-ZordParser.RULE_fold = 22;
-ZordParser.RULE_unfold = 23;
-ZordParser.RULE_fexpr = 24;
-ZordParser.RULE_dotexpr = 25;
-ZordParser.RULE_aexpr = 26;
-ZordParser.RULE_array = 27;
-ZordParser.RULE_record = 28;
-ZordParser.RULE_recordField = 29;
-ZordParser.RULE_recordUpdate = 30;
-ZordParser.RULE_methodPattern = 31;
-ZordParser.RULE_defaultPattern = 32;
-ZordParser.RULE_typeParam = 33;
-ZordParser.RULE_termParam = 34;
-ZordParser.RULE_termId = 35;
-ZordParser.RULE_wildcard = 36;
-ZordParser.RULE_selfAnno = 37;
-ZordParser.RULE_sort = 38;
-ZordParser.RULE_typeNameDecl = 39;
-ZordParser.RULE_typeName = 40;
-ZordParser.RULE_termNameDecl = 41;
-ZordParser.RULE_termName = 42;
-ZordParser.RULE_labelDecl = 43;
-ZordParser.RULE_label = 44;
-ZordParser.RULE_document = 45;
-ZordParser.RULE_docElement = 46;
-ZordParser.RULE_command = 47;
-ZordParser.RULE_interpolation = 48;
-ZordParser.RULE_newline = 49;
-ZordParser.RULE_plaintext = 50;
-ZordParser.RULE_arg = 51;
-ZordParser.RULE_recordArgField = 52;
+CPnextParser.RULE_program = 0;
+CPnextParser.RULE_open = 1;
+CPnextParser.RULE_definition = 2;
+CPnextParser.RULE_typeDef = 3;
+CPnextParser.RULE_termDef = 4;
+CPnextParser.RULE_type = 5;
+CPnextParser.RULE_btype = 6;
+CPnextParser.RULE_atype = 7;
+CPnextParser.RULE_recordType = 8;
+CPnextParser.RULE_recordTypeElement = 9;
+CPnextParser.RULE_expression = 10;
+CPnextParser.RULE_opexpr = 11;
+CPnextParser.RULE_lexpr = 12;
+CPnextParser.RULE_lambda = 13;
+CPnextParser.RULE_bigLambda = 14;
+CPnextParser.RULE_let_ = 15;
+CPnextParser.RULE_letRec = 16;
+CPnextParser.RULE_open_ = 17;
+CPnextParser.RULE_ifElse = 18;
+CPnextParser.RULE_trait = 19;
+CPnextParser.RULE_new_ = 20;
+CPnextParser.RULE_toString_ = 21;
+CPnextParser.RULE_fold = 22;
+CPnextParser.RULE_unfold = 23;
+CPnextParser.RULE_fexpr = 24;
+CPnextParser.RULE_dotexpr = 25;
+CPnextParser.RULE_aexpr = 26;
+CPnextParser.RULE_array = 27;
+CPnextParser.RULE_record = 28;
+CPnextParser.RULE_recordField = 29;
+CPnextParser.RULE_recordUpdate = 30;
+CPnextParser.RULE_methodPattern = 31;
+CPnextParser.RULE_defaultPattern = 32;
+CPnextParser.RULE_typeParam = 33;
+CPnextParser.RULE_termParam = 34;
+CPnextParser.RULE_termId = 35;
+CPnextParser.RULE_wildcard = 36;
+CPnextParser.RULE_selfAnno = 37;
+CPnextParser.RULE_sort = 38;
+CPnextParser.RULE_typeNameDecl = 39;
+CPnextParser.RULE_typeName = 40;
+CPnextParser.RULE_termNameDecl = 41;
+CPnextParser.RULE_termName = 42;
+CPnextParser.RULE_labelDecl = 43;
+CPnextParser.RULE_label = 44;
+CPnextParser.RULE_document = 45;
+CPnextParser.RULE_docElement = 46;
+CPnextParser.RULE_command = 47;
+CPnextParser.RULE_interpolation = 48;
+CPnextParser.RULE_newline = 49;
+CPnextParser.RULE_plaintext = 50;
+CPnextParser.RULE_arg = 51;
+CPnextParser.RULE_recordArgField = 52;
 
 class ProgramContext extends antlr4.ParserRuleContext {
 
@@ -3647,7 +3647,7 @@ class ProgramContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_program;
+        this.ruleIndex = CPnextParser.RULE_program;
     }
 
 	expression() {
@@ -3677,7 +3677,7 @@ class ProgramContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitProgram(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -3700,15 +3700,15 @@ class OpenContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_open;
+        this.ruleIndex = CPnextParser.RULE_open;
     }
 
 	Open() {
-	    return this.getToken(ZordParser.Open, 0);
+	    return this.getToken(CPnextParser.Open, 0);
 	};
 
 	Semicolon() {
-	    return this.getToken(ZordParser.Semicolon, 0);
+	    return this.getToken(CPnextParser.Semicolon, 0);
 	};
 
 	Upperid = function(i) {
@@ -3716,9 +3716,9 @@ class OpenContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Upperid);
+	        return this.getTokens(CPnextParser.Upperid);
 	    } else {
-	        return this.getToken(ZordParser.Upperid, i);
+	        return this.getToken(CPnextParser.Upperid, i);
 	    }
 	};
 
@@ -3728,9 +3728,9 @@ class OpenContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Lowerid);
+	        return this.getTokens(CPnextParser.Lowerid);
 	    } else {
-	        return this.getToken(ZordParser.Lowerid, i);
+	        return this.getToken(CPnextParser.Lowerid, i);
 	    }
 	};
 
@@ -3740,15 +3740,15 @@ class OpenContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Divide);
+	        return this.getTokens(CPnextParser.Divide);
 	    } else {
-	        return this.getToken(ZordParser.Divide, i);
+	        return this.getToken(CPnextParser.Divide, i);
 	    }
 	};
 
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitOpen(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -3771,7 +3771,7 @@ class DefinitionContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_definition;
+        this.ruleIndex = CPnextParser.RULE_definition;
     }
 
 	typeDef() {
@@ -3783,7 +3783,7 @@ class DefinitionContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitDefinition(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -3806,11 +3806,11 @@ class TypeDefContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_typeDef;
+        this.ruleIndex = CPnextParser.RULE_typeDef;
     }
 
 	Type() {
-	    return this.getToken(ZordParser.Type, 0);
+	    return this.getToken(CPnextParser.Type, 0);
 	};
 
 	typeNameDecl = function(i) {
@@ -3825,7 +3825,7 @@ class TypeDefContext extends antlr4.ParserRuleContext {
 	};
 
 	Assign() {
-	    return this.getToken(ZordParser.Assign, 0);
+	    return this.getToken(CPnextParser.Assign, 0);
 	};
 
 	type() {
@@ -3833,7 +3833,7 @@ class TypeDefContext extends antlr4.ParserRuleContext {
 	};
 
 	Semicolon() {
-	    return this.getToken(ZordParser.Semicolon, 0);
+	    return this.getToken(CPnextParser.Semicolon, 0);
 	};
 
 	Less = function(i) {
@@ -3841,9 +3841,9 @@ class TypeDefContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Less);
+	        return this.getTokens(CPnextParser.Less);
 	    } else {
-	        return this.getToken(ZordParser.Less, i);
+	        return this.getToken(CPnextParser.Less, i);
 	    }
 	};
 
@@ -3853,15 +3853,15 @@ class TypeDefContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Greater);
+	        return this.getTokens(CPnextParser.Greater);
 	    } else {
-	        return this.getToken(ZordParser.Greater, i);
+	        return this.getToken(CPnextParser.Greater, i);
 	    }
 	};
 
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitTypeDef(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -3884,7 +3884,7 @@ class TermDefContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_termDef;
+        this.ruleIndex = CPnextParser.RULE_termDef;
     }
 
 	termNameDecl() {
@@ -3892,7 +3892,7 @@ class TermDefContext extends antlr4.ParserRuleContext {
 	};
 
 	Assign() {
-	    return this.getToken(ZordParser.Assign, 0);
+	    return this.getToken(CPnextParser.Assign, 0);
 	};
 
 	expression() {
@@ -3900,7 +3900,7 @@ class TermDefContext extends antlr4.ParserRuleContext {
 	};
 
 	Semicolon() {
-	    return this.getToken(ZordParser.Semicolon, 0);
+	    return this.getToken(CPnextParser.Semicolon, 0);
 	};
 
 	typeParam = function(i) {
@@ -3926,7 +3926,7 @@ class TermDefContext extends antlr4.ParserRuleContext {
 	};
 
 	Colon() {
-	    return this.getToken(ZordParser.Colon, 0);
+	    return this.getToken(CPnextParser.Colon, 0);
 	};
 
 	type() {
@@ -3934,7 +3934,7 @@ class TermDefContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitTermDef(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -3957,7 +3957,7 @@ class TypeContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_type;
+        this.ruleIndex = CPnextParser.RULE_type;
     }
 
 	btype() {
@@ -3976,15 +3976,15 @@ class TypeContext extends antlr4.ParserRuleContext {
 	};
 
 	Intersect() {
-	    return this.getToken(ZordParser.Intersect, 0);
+	    return this.getToken(CPnextParser.Intersect, 0);
 	};
 
 	Arrow() {
-	    return this.getToken(ZordParser.Arrow, 0);
+	    return this.getToken(CPnextParser.Arrow, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitType(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4007,7 +4007,7 @@ class BtypeContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_btype;
+        this.ruleIndex = CPnextParser.RULE_btype;
     }
 
 	atype = function(i) {
@@ -4026,9 +4026,9 @@ class BtypeContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Less);
+	        return this.getTokens(CPnextParser.Less);
 	    } else {
-	        return this.getToken(ZordParser.Less, i);
+	        return this.getToken(CPnextParser.Less, i);
 	    }
 	};
 
@@ -4049,19 +4049,19 @@ class BtypeContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Greater);
+	        return this.getTokens(CPnextParser.Greater);
 	    } else {
-	        return this.getToken(ZordParser.Greater, i);
+	        return this.getToken(CPnextParser.Greater, i);
 	    }
 	};
 
 
 	ForAll() {
-	    return this.getToken(ZordParser.ForAll, 0);
+	    return this.getToken(CPnextParser.ForAll, 0);
 	};
 
 	Dot() {
-	    return this.getToken(ZordParser.Dot, 0);
+	    return this.getToken(CPnextParser.Dot, 0);
 	};
 
 	type = function(i) {
@@ -4087,15 +4087,15 @@ class BtypeContext extends antlr4.ParserRuleContext {
 	};
 
 	TraitCaps() {
-	    return this.getToken(ZordParser.TraitCaps, 0);
+	    return this.getToken(CPnextParser.TraitCaps, 0);
 	};
 
 	TraitArrow() {
-	    return this.getToken(ZordParser.TraitArrow, 0);
+	    return this.getToken(CPnextParser.TraitArrow, 0);
 	};
 
 	Mu() {
-	    return this.getToken(ZordParser.Mu, 0);
+	    return this.getToken(CPnextParser.Mu, 0);
 	};
 
 	typeNameDecl() {
@@ -4103,7 +4103,7 @@ class BtypeContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitBtype(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4126,31 +4126,31 @@ class AtypeContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_atype;
+        this.ruleIndex = CPnextParser.RULE_atype;
     }
 
 	Int() {
-	    return this.getToken(ZordParser.Int, 0);
+	    return this.getToken(CPnextParser.Int, 0);
 	};
 
 	Double() {
-	    return this.getToken(ZordParser.Double, 0);
+	    return this.getToken(CPnextParser.Double, 0);
 	};
 
 	StringType() {
-	    return this.getToken(ZordParser.StringType, 0);
+	    return this.getToken(CPnextParser.StringType, 0);
 	};
 
 	Bool() {
-	    return this.getToken(ZordParser.Bool, 0);
+	    return this.getToken(CPnextParser.Bool, 0);
 	};
 
 	Top() {
-	    return this.getToken(ZordParser.Top, 0);
+	    return this.getToken(CPnextParser.Top, 0);
 	};
 
 	Bot() {
-	    return this.getToken(ZordParser.Bot, 0);
+	    return this.getToken(CPnextParser.Bot, 0);
 	};
 
 	typeName() {
@@ -4162,7 +4162,7 @@ class AtypeContext extends antlr4.ParserRuleContext {
 	};
 
 	BracketOpen() {
-	    return this.getToken(ZordParser.BracketOpen, 0);
+	    return this.getToken(CPnextParser.BracketOpen, 0);
 	};
 
 	type() {
@@ -4170,19 +4170,19 @@ class AtypeContext extends antlr4.ParserRuleContext {
 	};
 
 	BracketClose() {
-	    return this.getToken(ZordParser.BracketClose, 0);
+	    return this.getToken(CPnextParser.BracketClose, 0);
 	};
 
 	ParenOpen() {
-	    return this.getToken(ZordParser.ParenOpen, 0);
+	    return this.getToken(CPnextParser.ParenOpen, 0);
 	};
 
 	ParenClose() {
-	    return this.getToken(ZordParser.ParenClose, 0);
+	    return this.getToken(CPnextParser.ParenClose, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitAtype(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4205,15 +4205,15 @@ class RecordTypeContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_recordType;
+        this.ruleIndex = CPnextParser.RULE_recordType;
     }
 
 	BraceOpen() {
-	    return this.getToken(ZordParser.BraceOpen, 0);
+	    return this.getToken(CPnextParser.BraceOpen, 0);
 	};
 
 	BraceClose() {
-	    return this.getToken(ZordParser.BraceClose, 0);
+	    return this.getToken(CPnextParser.BraceClose, 0);
 	};
 
 	recordTypeElement = function(i) {
@@ -4232,15 +4232,15 @@ class RecordTypeContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Semicolon);
+	        return this.getTokens(CPnextParser.Semicolon);
 	    } else {
-	        return this.getToken(ZordParser.Semicolon, i);
+	        return this.getToken(CPnextParser.Semicolon, i);
 	    }
 	};
 
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitRecordType(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4263,7 +4263,7 @@ class RecordTypeElementContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_recordTypeElement;
+        this.ruleIndex = CPnextParser.RULE_recordTypeElement;
     }
 
 	labelDecl() {
@@ -4271,7 +4271,7 @@ class RecordTypeElementContext extends antlr4.ParserRuleContext {
 	};
 
 	Colon() {
-	    return this.getToken(ZordParser.Colon, 0);
+	    return this.getToken(CPnextParser.Colon, 0);
 	};
 
 	type() {
@@ -4279,11 +4279,11 @@ class RecordTypeElementContext extends antlr4.ParserRuleContext {
 	};
 
 	Question() {
-	    return this.getToken(ZordParser.Question, 0);
+	    return this.getToken(CPnextParser.Question, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitRecordTypeElement(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4306,7 +4306,7 @@ class ExpressionContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_expression;
+        this.ruleIndex = CPnextParser.RULE_expression;
     }
 
 	opexpr() {
@@ -4314,7 +4314,7 @@ class ExpressionContext extends antlr4.ParserRuleContext {
 	};
 
 	Colon() {
-	    return this.getToken(ZordParser.Colon, 0);
+	    return this.getToken(CPnextParser.Colon, 0);
 	};
 
 	type() {
@@ -4322,11 +4322,11 @@ class ExpressionContext extends antlr4.ParserRuleContext {
 	};
 
 	Backslash() {
-	    return this.getToken(ZordParser.Backslash, 0);
+	    return this.getToken(CPnextParser.Backslash, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitExpression(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4349,7 +4349,7 @@ class OpexprContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_opexpr;
+        this.ruleIndex = CPnextParser.RULE_opexpr;
     }
 
 	lexpr() {
@@ -4368,83 +4368,83 @@ class OpexprContext extends antlr4.ParserRuleContext {
 	};
 
 	Minus() {
-	    return this.getToken(ZordParser.Minus, 0);
+	    return this.getToken(CPnextParser.Minus, 0);
 	};
 
 	Not() {
-	    return this.getToken(ZordParser.Not, 0);
+	    return this.getToken(CPnextParser.Not, 0);
 	};
 
 	Length() {
-	    return this.getToken(ZordParser.Length, 0);
+	    return this.getToken(CPnextParser.Length, 0);
 	};
 
 	Index() {
-	    return this.getToken(ZordParser.Index, 0);
+	    return this.getToken(CPnextParser.Index, 0);
 	};
 
 	Modulo() {
-	    return this.getToken(ZordParser.Modulo, 0);
+	    return this.getToken(CPnextParser.Modulo, 0);
 	};
 
 	Divide() {
-	    return this.getToken(ZordParser.Divide, 0);
+	    return this.getToken(CPnextParser.Divide, 0);
 	};
 
 	Star() {
-	    return this.getToken(ZordParser.Star, 0);
+	    return this.getToken(CPnextParser.Star, 0);
 	};
 
 	Plus() {
-	    return this.getToken(ZordParser.Plus, 0);
+	    return this.getToken(CPnextParser.Plus, 0);
 	};
 
 	Append() {
-	    return this.getToken(ZordParser.Append, 0);
+	    return this.getToken(CPnextParser.Append, 0);
 	};
 
 	Less() {
-	    return this.getToken(ZordParser.Less, 0);
+	    return this.getToken(CPnextParser.Less, 0);
 	};
 
 	Greater() {
-	    return this.getToken(ZordParser.Greater, 0);
+	    return this.getToken(CPnextParser.Greater, 0);
 	};
 
 	LessEqual() {
-	    return this.getToken(ZordParser.LessEqual, 0);
+	    return this.getToken(CPnextParser.LessEqual, 0);
 	};
 
 	GreaterEqual() {
-	    return this.getToken(ZordParser.GreaterEqual, 0);
+	    return this.getToken(CPnextParser.GreaterEqual, 0);
 	};
 
 	Equal() {
-	    return this.getToken(ZordParser.Equal, 0);
+	    return this.getToken(CPnextParser.Equal, 0);
 	};
 
 	NotEqual() {
-	    return this.getToken(ZordParser.NotEqual, 0);
+	    return this.getToken(CPnextParser.NotEqual, 0);
 	};
 
 	And() {
-	    return this.getToken(ZordParser.And, 0);
+	    return this.getToken(CPnextParser.And, 0);
 	};
 
 	Or() {
-	    return this.getToken(ZordParser.Or, 0);
+	    return this.getToken(CPnextParser.Or, 0);
 	};
 
 	Forward() {
-	    return this.getToken(ZordParser.Forward, 0);
+	    return this.getToken(CPnextParser.Forward, 0);
 	};
 
 	Merge() {
-	    return this.getToken(ZordParser.Merge, 0);
+	    return this.getToken(CPnextParser.Merge, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitOpexpr(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4467,7 +4467,7 @@ class LexprContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_lexpr;
+        this.ruleIndex = CPnextParser.RULE_lexpr;
     }
 
 	fexpr() {
@@ -4519,7 +4519,7 @@ class LexprContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitLexpr(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4542,15 +4542,15 @@ class LambdaContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_lambda;
+        this.ruleIndex = CPnextParser.RULE_lambda;
     }
 
 	Backslash() {
-	    return this.getToken(ZordParser.Backslash, 0);
+	    return this.getToken(CPnextParser.Backslash, 0);
 	};
 
 	Arrow() {
-	    return this.getToken(ZordParser.Arrow, 0);
+	    return this.getToken(CPnextParser.Arrow, 0);
 	};
 
 	expression() {
@@ -4569,7 +4569,7 @@ class LambdaContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitLambda(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4592,15 +4592,15 @@ class BigLambdaContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_bigLambda;
+        this.ruleIndex = CPnextParser.RULE_bigLambda;
     }
 
 	SlashBackslash() {
-	    return this.getToken(ZordParser.SlashBackslash, 0);
+	    return this.getToken(CPnextParser.SlashBackslash, 0);
 	};
 
 	Dot() {
-	    return this.getToken(ZordParser.Dot, 0);
+	    return this.getToken(CPnextParser.Dot, 0);
 	};
 
 	expression() {
@@ -4619,7 +4619,7 @@ class BigLambdaContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitBigLambda(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4642,11 +4642,11 @@ class Let_Context extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_let_;
+        this.ruleIndex = CPnextParser.RULE_let_;
     }
 
 	Let() {
-	    return this.getToken(ZordParser.Let, 0);
+	    return this.getToken(CPnextParser.Let, 0);
 	};
 
 	termNameDecl() {
@@ -4654,7 +4654,7 @@ class Let_Context extends antlr4.ParserRuleContext {
 	};
 
 	Assign() {
-	    return this.getToken(ZordParser.Assign, 0);
+	    return this.getToken(CPnextParser.Assign, 0);
 	};
 
 	expression = function(i) {
@@ -4669,7 +4669,7 @@ class Let_Context extends antlr4.ParserRuleContext {
 	};
 
 	In() {
-	    return this.getToken(ZordParser.In, 0);
+	    return this.getToken(CPnextParser.In, 0);
 	};
 
 	typeParam = function(i) {
@@ -4695,7 +4695,7 @@ class Let_Context extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitLet_(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4718,11 +4718,11 @@ class LetRecContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_letRec;
+        this.ruleIndex = CPnextParser.RULE_letRec;
     }
 
 	LetRec() {
-	    return this.getToken(ZordParser.LetRec, 0);
+	    return this.getToken(CPnextParser.LetRec, 0);
 	};
 
 	termNameDecl() {
@@ -4730,7 +4730,7 @@ class LetRecContext extends antlr4.ParserRuleContext {
 	};
 
 	Colon() {
-	    return this.getToken(ZordParser.Colon, 0);
+	    return this.getToken(CPnextParser.Colon, 0);
 	};
 
 	type() {
@@ -4738,7 +4738,7 @@ class LetRecContext extends antlr4.ParserRuleContext {
 	};
 
 	Assign() {
-	    return this.getToken(ZordParser.Assign, 0);
+	    return this.getToken(CPnextParser.Assign, 0);
 	};
 
 	expression = function(i) {
@@ -4753,7 +4753,7 @@ class LetRecContext extends antlr4.ParserRuleContext {
 	};
 
 	In() {
-	    return this.getToken(ZordParser.In, 0);
+	    return this.getToken(CPnextParser.In, 0);
 	};
 
 	typeParam = function(i) {
@@ -4779,7 +4779,7 @@ class LetRecContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitLetRec(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4802,11 +4802,11 @@ class Open_Context extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_open_;
+        this.ruleIndex = CPnextParser.RULE_open_;
     }
 
 	Open() {
-	    return this.getToken(ZordParser.Open, 0);
+	    return this.getToken(CPnextParser.Open, 0);
 	};
 
 	expression = function(i) {
@@ -4821,11 +4821,11 @@ class Open_Context extends antlr4.ParserRuleContext {
 	};
 
 	In() {
-	    return this.getToken(ZordParser.In, 0);
+	    return this.getToken(CPnextParser.In, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitOpen_(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4848,11 +4848,11 @@ class IfElseContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_ifElse;
+        this.ruleIndex = CPnextParser.RULE_ifElse;
     }
 
 	If() {
-	    return this.getToken(ZordParser.If, 0);
+	    return this.getToken(CPnextParser.If, 0);
 	};
 
 	expression = function(i) {
@@ -4867,15 +4867,15 @@ class IfElseContext extends antlr4.ParserRuleContext {
 	};
 
 	Then() {
-	    return this.getToken(ZordParser.Then, 0);
+	    return this.getToken(CPnextParser.Then, 0);
 	};
 
 	Else() {
-	    return this.getToken(ZordParser.Else, 0);
+	    return this.getToken(CPnextParser.Else, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitIfElse(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4898,15 +4898,15 @@ class TraitContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_trait;
+        this.ruleIndex = CPnextParser.RULE_trait;
     }
 
 	TraitSmall() {
-	    return this.getToken(ZordParser.TraitSmall, 0);
+	    return this.getToken(CPnextParser.TraitSmall, 0);
 	};
 
 	TraitArrow() {
-	    return this.getToken(ZordParser.TraitArrow, 0);
+	    return this.getToken(CPnextParser.TraitArrow, 0);
 	};
 
 	opexpr = function(i) {
@@ -4925,7 +4925,7 @@ class TraitContext extends antlr4.ParserRuleContext {
 	};
 
 	Implements() {
-	    return this.getToken(ZordParser.Implements, 0);
+	    return this.getToken(CPnextParser.Implements, 0);
 	};
 
 	type() {
@@ -4933,11 +4933,11 @@ class TraitContext extends antlr4.ParserRuleContext {
 	};
 
 	Inherits() {
-	    return this.getToken(ZordParser.Inherits, 0);
+	    return this.getToken(CPnextParser.Inherits, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitTrait(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4960,11 +4960,11 @@ class New_Context extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_new_;
+        this.ruleIndex = CPnextParser.RULE_new_;
     }
 
 	New() {
-	    return this.getToken(ZordParser.New, 0);
+	    return this.getToken(CPnextParser.New, 0);
 	};
 
 	opexpr() {
@@ -4972,7 +4972,7 @@ class New_Context extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitNew_(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -4995,11 +4995,11 @@ class ToString_Context extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_toString_;
+        this.ruleIndex = CPnextParser.RULE_toString_;
     }
 
 	ToString() {
-	    return this.getToken(ZordParser.ToString, 0);
+	    return this.getToken(CPnextParser.ToString, 0);
 	};
 
 	dotexpr() {
@@ -5007,7 +5007,7 @@ class ToString_Context extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitToString_(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5030,15 +5030,15 @@ class FoldContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_fold;
+        this.ruleIndex = CPnextParser.RULE_fold;
     }
 
 	Fold() {
-	    return this.getToken(ZordParser.Fold, 0);
+	    return this.getToken(CPnextParser.Fold, 0);
 	};
 
 	At() {
-	    return this.getToken(ZordParser.At, 0);
+	    return this.getToken(CPnextParser.At, 0);
 	};
 
 	atype() {
@@ -5050,7 +5050,7 @@ class FoldContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitFold(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5073,15 +5073,15 @@ class UnfoldContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_unfold;
+        this.ruleIndex = CPnextParser.RULE_unfold;
     }
 
 	Unfold() {
-	    return this.getToken(ZordParser.Unfold, 0);
+	    return this.getToken(CPnextParser.Unfold, 0);
 	};
 
 	At() {
-	    return this.getToken(ZordParser.At, 0);
+	    return this.getToken(CPnextParser.At, 0);
 	};
 
 	atype() {
@@ -5093,7 +5093,7 @@ class UnfoldContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitUnfold(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5116,7 +5116,7 @@ class FexprContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_fexpr;
+        this.ruleIndex = CPnextParser.RULE_fexpr;
     }
 
 	typeNameDecl() {
@@ -5139,9 +5139,9 @@ class FexprContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.At);
+	        return this.getTokens(CPnextParser.At);
 	    } else {
-	        return this.getToken(ZordParser.At, i);
+	        return this.getToken(CPnextParser.At, i);
 	    }
 	};
 
@@ -5158,7 +5158,7 @@ class FexprContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitFexpr(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5181,7 +5181,7 @@ class DotexprContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_dotexpr;
+        this.ruleIndex = CPnextParser.RULE_dotexpr;
     }
 
 	aexpr() {
@@ -5193,9 +5193,9 @@ class DotexprContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Dot);
+	        return this.getTokens(CPnextParser.Dot);
 	    } else {
-	        return this.getToken(ZordParser.Dot, i);
+	        return this.getToken(CPnextParser.Dot, i);
 	    }
 	};
 
@@ -5212,7 +5212,7 @@ class DotexprContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitDotexpr(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5235,7 +5235,7 @@ class AexprContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_aexpr;
+        this.ruleIndex = CPnextParser.RULE_aexpr;
     }
 
 	termName() {
@@ -5243,7 +5243,7 @@ class AexprContext extends antlr4.ParserRuleContext {
 	};
 
 	Number() {
-	    return this.getToken(ZordParser.Number, 0);
+	    return this.getToken(CPnextParser.Number, 0);
 	};
 
 	document() {
@@ -5251,23 +5251,23 @@ class AexprContext extends antlr4.ParserRuleContext {
 	};
 
 	String() {
-	    return this.getToken(ZordParser.String, 0);
+	    return this.getToken(CPnextParser.String, 0);
 	};
 
 	Unit() {
-	    return this.getToken(ZordParser.Unit, 0);
+	    return this.getToken(CPnextParser.Unit, 0);
 	};
 
 	True_() {
-	    return this.getToken(ZordParser.True_, 0);
+	    return this.getToken(CPnextParser.True_, 0);
 	};
 
 	False_() {
-	    return this.getToken(ZordParser.False_, 0);
+	    return this.getToken(CPnextParser.False_, 0);
 	};
 
 	Undefined_() {
-	    return this.getToken(ZordParser.Undefined_, 0);
+	    return this.getToken(CPnextParser.Undefined_, 0);
 	};
 
 	array() {
@@ -5283,7 +5283,7 @@ class AexprContext extends antlr4.ParserRuleContext {
 	};
 
 	Dollar() {
-	    return this.getToken(ZordParser.Dollar, 0);
+	    return this.getToken(CPnextParser.Dollar, 0);
 	};
 
 	typeNameDecl() {
@@ -5291,7 +5291,7 @@ class AexprContext extends antlr4.ParserRuleContext {
 	};
 
 	ParenOpen() {
-	    return this.getToken(ZordParser.ParenOpen, 0);
+	    return this.getToken(CPnextParser.ParenOpen, 0);
 	};
 
 	expression() {
@@ -5299,11 +5299,11 @@ class AexprContext extends antlr4.ParserRuleContext {
 	};
 
 	ParenClose() {
-	    return this.getToken(ZordParser.ParenClose, 0);
+	    return this.getToken(CPnextParser.ParenClose, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitAexpr(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5326,15 +5326,15 @@ class ArrayContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_array;
+        this.ruleIndex = CPnextParser.RULE_array;
     }
 
 	BracketOpen() {
-	    return this.getToken(ZordParser.BracketOpen, 0);
+	    return this.getToken(CPnextParser.BracketOpen, 0);
 	};
 
 	BracketClose() {
-	    return this.getToken(ZordParser.BracketClose, 0);
+	    return this.getToken(CPnextParser.BracketClose, 0);
 	};
 
 	expression = function(i) {
@@ -5353,15 +5353,15 @@ class ArrayContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Semicolon);
+	        return this.getTokens(CPnextParser.Semicolon);
 	    } else {
-	        return this.getToken(ZordParser.Semicolon, i);
+	        return this.getToken(CPnextParser.Semicolon, i);
 	    }
 	};
 
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitArray(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5384,15 +5384,15 @@ class RecordContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_record;
+        this.ruleIndex = CPnextParser.RULE_record;
     }
 
 	BraceOpen() {
-	    return this.getToken(ZordParser.BraceOpen, 0);
+	    return this.getToken(CPnextParser.BraceOpen, 0);
 	};
 
 	BraceClose() {
-	    return this.getToken(ZordParser.BraceClose, 0);
+	    return this.getToken(CPnextParser.BraceClose, 0);
 	};
 
 	Semicolon = function(i) {
@@ -5400,9 +5400,9 @@ class RecordContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Semicolon);
+	        return this.getTokens(CPnextParser.Semicolon);
 	    } else {
-	        return this.getToken(ZordParser.Semicolon, i);
+	        return this.getToken(CPnextParser.Semicolon, i);
 	    }
 	};
 
@@ -5441,7 +5441,7 @@ class RecordContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitRecord(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5464,7 +5464,7 @@ class RecordFieldContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_recordField;
+        this.ruleIndex = CPnextParser.RULE_recordField;
     }
 
 	labelDecl() {
@@ -5472,7 +5472,7 @@ class RecordFieldContext extends antlr4.ParserRuleContext {
 	};
 
 	Assign() {
-	    return this.getToken(ZordParser.Assign, 0);
+	    return this.getToken(CPnextParser.Assign, 0);
 	};
 
 	expression() {
@@ -5480,7 +5480,7 @@ class RecordFieldContext extends antlr4.ParserRuleContext {
 	};
 
 	Override() {
-	    return this.getToken(ZordParser.Override, 0);
+	    return this.getToken(CPnextParser.Override, 0);
 	};
 
 	selfAnno() {
@@ -5499,7 +5499,7 @@ class RecordFieldContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitRecordField(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5522,11 +5522,11 @@ class RecordUpdateContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_recordUpdate;
+        this.ruleIndex = CPnextParser.RULE_recordUpdate;
     }
 
 	BraceOpen() {
-	    return this.getToken(ZordParser.BraceOpen, 0);
+	    return this.getToken(CPnextParser.BraceOpen, 0);
 	};
 
 	expression = function(i) {
@@ -5541,11 +5541,11 @@ class RecordUpdateContext extends antlr4.ParserRuleContext {
 	};
 
 	Stick() {
-	    return this.getToken(ZordParser.Stick, 0);
+	    return this.getToken(CPnextParser.Stick, 0);
 	};
 
 	BraceClose() {
-	    return this.getToken(ZordParser.BraceClose, 0);
+	    return this.getToken(CPnextParser.BraceClose, 0);
 	};
 
 	Semicolon = function(i) {
@@ -5553,9 +5553,9 @@ class RecordUpdateContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Semicolon);
+	        return this.getTokens(CPnextParser.Semicolon);
 	    } else {
-	        return this.getToken(ZordParser.Semicolon, i);
+	        return this.getToken(CPnextParser.Semicolon, i);
 	    }
 	};
 
@@ -5576,15 +5576,15 @@ class RecordUpdateContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Assign);
+	        return this.getTokens(CPnextParser.Assign);
 	    } else {
-	        return this.getToken(ZordParser.Assign, i);
+	        return this.getToken(CPnextParser.Assign, i);
 	    }
 	};
 
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitRecordUpdate(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5607,11 +5607,11 @@ class MethodPatternContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_methodPattern;
+        this.ruleIndex = CPnextParser.RULE_methodPattern;
     }
 
 	ParenOpen() {
-	    return this.getToken(ZordParser.ParenOpen, 0);
+	    return this.getToken(CPnextParser.ParenOpen, 0);
 	};
 
 	labelDecl = function(i) {
@@ -5626,15 +5626,15 @@ class MethodPatternContext extends antlr4.ParserRuleContext {
 	};
 
 	ParenClose() {
-	    return this.getToken(ZordParser.ParenClose, 0);
+	    return this.getToken(CPnextParser.ParenClose, 0);
 	};
 
 	Dot() {
-	    return this.getToken(ZordParser.Dot, 0);
+	    return this.getToken(CPnextParser.Dot, 0);
 	};
 
 	Assign() {
-	    return this.getToken(ZordParser.Assign, 0);
+	    return this.getToken(CPnextParser.Assign, 0);
 	};
 
 	expression() {
@@ -5642,7 +5642,7 @@ class MethodPatternContext extends antlr4.ParserRuleContext {
 	};
 
 	Override() {
-	    return this.getToken(ZordParser.Override, 0);
+	    return this.getToken(CPnextParser.Override, 0);
 	};
 
 	selfAnno() {
@@ -5650,7 +5650,7 @@ class MethodPatternContext extends antlr4.ParserRuleContext {
 	};
 
 	At() {
-	    return this.getToken(ZordParser.At, 0);
+	    return this.getToken(CPnextParser.At, 0);
 	};
 
 	termParam = function(i) {
@@ -5665,7 +5665,7 @@ class MethodPatternContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitMethodPattern(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5688,11 +5688,11 @@ class DefaultPatternContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_defaultPattern;
+        this.ruleIndex = CPnextParser.RULE_defaultPattern;
     }
 
 	Dot() {
-	    return this.getToken(ZordParser.Dot, 0);
+	    return this.getToken(CPnextParser.Dot, 0);
 	};
 
 	labelDecl() {
@@ -5700,7 +5700,7 @@ class DefaultPatternContext extends antlr4.ParserRuleContext {
 	};
 
 	Assign() {
-	    return this.getToken(ZordParser.Assign, 0);
+	    return this.getToken(CPnextParser.Assign, 0);
 	};
 
 	expression() {
@@ -5708,7 +5708,7 @@ class DefaultPatternContext extends antlr4.ParserRuleContext {
 	};
 
 	Underscore() {
-	    return this.getToken(ZordParser.Underscore, 0);
+	    return this.getToken(CPnextParser.Underscore, 0);
 	};
 
 	selfAnno() {
@@ -5716,7 +5716,7 @@ class DefaultPatternContext extends antlr4.ParserRuleContext {
 	};
 
 	Override() {
-	    return this.getToken(ZordParser.Override, 0);
+	    return this.getToken(CPnextParser.Override, 0);
 	};
 
 	termParam = function(i) {
@@ -5731,7 +5731,7 @@ class DefaultPatternContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitDefaultPattern(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5754,7 +5754,7 @@ class TypeParamContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_typeParam;
+        this.ruleIndex = CPnextParser.RULE_typeParam;
     }
 
 	typeNameDecl() {
@@ -5762,11 +5762,11 @@ class TypeParamContext extends antlr4.ParserRuleContext {
 	};
 
 	ParenOpen() {
-	    return this.getToken(ZordParser.ParenOpen, 0);
+	    return this.getToken(CPnextParser.ParenOpen, 0);
 	};
 
 	Star() {
-	    return this.getToken(ZordParser.Star, 0);
+	    return this.getToken(CPnextParser.Star, 0);
 	};
 
 	type() {
@@ -5774,11 +5774,11 @@ class TypeParamContext extends antlr4.ParserRuleContext {
 	};
 
 	ParenClose() {
-	    return this.getToken(ZordParser.ParenClose, 0);
+	    return this.getToken(CPnextParser.ParenClose, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitTypeParam(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5801,7 +5801,7 @@ class TermParamContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_termParam;
+        this.ruleIndex = CPnextParser.RULE_termParam;
     }
 
 	termId() {
@@ -5809,11 +5809,11 @@ class TermParamContext extends antlr4.ParserRuleContext {
 	};
 
 	ParenOpen() {
-	    return this.getToken(ZordParser.ParenOpen, 0);
+	    return this.getToken(CPnextParser.ParenOpen, 0);
 	};
 
 	Colon() {
-	    return this.getToken(ZordParser.Colon, 0);
+	    return this.getToken(CPnextParser.Colon, 0);
 	};
 
 	type() {
@@ -5821,7 +5821,7 @@ class TermParamContext extends antlr4.ParserRuleContext {
 	};
 
 	ParenClose() {
-	    return this.getToken(ZordParser.ParenClose, 0);
+	    return this.getToken(CPnextParser.ParenClose, 0);
 	};
 
 	wildcard() {
@@ -5829,7 +5829,7 @@ class TermParamContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitTermParam(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5852,11 +5852,11 @@ class TermIdContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_termId;
+        this.ruleIndex = CPnextParser.RULE_termId;
     }
 
 	Underscore() {
-	    return this.getToken(ZordParser.Underscore, 0);
+	    return this.getToken(CPnextParser.Underscore, 0);
 	};
 
 	termNameDecl() {
@@ -5864,7 +5864,7 @@ class TermIdContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitTermId(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5887,19 +5887,19 @@ class WildcardContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_wildcard;
+        this.ruleIndex = CPnextParser.RULE_wildcard;
     }
 
 	BraceOpen() {
-	    return this.getToken(ZordParser.BraceOpen, 0);
+	    return this.getToken(CPnextParser.BraceOpen, 0);
 	};
 
 	DotDot() {
-	    return this.getToken(ZordParser.DotDot, 0);
+	    return this.getToken(CPnextParser.DotDot, 0);
 	};
 
 	BraceClose() {
-	    return this.getToken(ZordParser.BraceClose, 0);
+	    return this.getToken(CPnextParser.BraceClose, 0);
 	};
 
 	Semicolon = function(i) {
@@ -5907,9 +5907,9 @@ class WildcardContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Semicolon);
+	        return this.getTokens(CPnextParser.Semicolon);
 	    } else {
-	        return this.getToken(ZordParser.Semicolon, i);
+	        return this.getToken(CPnextParser.Semicolon, i);
 	    }
 	};
 
@@ -5930,9 +5930,9 @@ class WildcardContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Assign);
+	        return this.getTokens(CPnextParser.Assign);
 	    } else {
-	        return this.getToken(ZordParser.Assign, i);
+	        return this.getToken(CPnextParser.Assign, i);
 	    }
 	};
 
@@ -5949,7 +5949,7 @@ class WildcardContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitWildcard(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -5972,11 +5972,11 @@ class SelfAnnoContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_selfAnno;
+        this.ruleIndex = CPnextParser.RULE_selfAnno;
     }
 
 	BracketOpen() {
-	    return this.getToken(ZordParser.BracketOpen, 0);
+	    return this.getToken(CPnextParser.BracketOpen, 0);
 	};
 
 	termNameDecl() {
@@ -5984,11 +5984,11 @@ class SelfAnnoContext extends antlr4.ParserRuleContext {
 	};
 
 	BracketClose() {
-	    return this.getToken(ZordParser.BracketClose, 0);
+	    return this.getToken(CPnextParser.BracketClose, 0);
 	};
 
 	Colon() {
-	    return this.getToken(ZordParser.Colon, 0);
+	    return this.getToken(CPnextParser.Colon, 0);
 	};
 
 	type() {
@@ -5996,7 +5996,7 @@ class SelfAnnoContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitSelfAnno(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6019,7 +6019,7 @@ class SortContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_sort;
+        this.ruleIndex = CPnextParser.RULE_sort;
     }
 
 	type = function(i) {
@@ -6034,11 +6034,11 @@ class SortContext extends antlr4.ParserRuleContext {
 	};
 
 	TraitArrow() {
-	    return this.getToken(ZordParser.TraitArrow, 0);
+	    return this.getToken(CPnextParser.TraitArrow, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitSort(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6061,15 +6061,15 @@ class TypeNameDeclContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_typeNameDecl;
+        this.ruleIndex = CPnextParser.RULE_typeNameDecl;
     }
 
 	Upperid() {
-	    return this.getToken(ZordParser.Upperid, 0);
+	    return this.getToken(CPnextParser.Upperid, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitTypeNameDecl(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6092,15 +6092,15 @@ class TypeNameContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_typeName;
+        this.ruleIndex = CPnextParser.RULE_typeName;
     }
 
 	Upperid() {
-	    return this.getToken(ZordParser.Upperid, 0);
+	    return this.getToken(CPnextParser.Upperid, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitTypeName(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6123,15 +6123,15 @@ class TermNameDeclContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_termNameDecl;
+        this.ruleIndex = CPnextParser.RULE_termNameDecl;
     }
 
 	Lowerid() {
-	    return this.getToken(ZordParser.Lowerid, 0);
+	    return this.getToken(CPnextParser.Lowerid, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitTermNameDecl(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6154,19 +6154,19 @@ class TermNameContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_termName;
+        this.ruleIndex = CPnextParser.RULE_termName;
     }
 
 	Lowerid() {
-	    return this.getToken(ZordParser.Lowerid, 0);
+	    return this.getToken(CPnextParser.Lowerid, 0);
 	};
 
 	Upperid() {
-	    return this.getToken(ZordParser.Upperid, 0);
+	    return this.getToken(CPnextParser.Upperid, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitTermName(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6189,19 +6189,19 @@ class LabelDeclContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_labelDecl;
+        this.ruleIndex = CPnextParser.RULE_labelDecl;
     }
 
 	Lowerid() {
-	    return this.getToken(ZordParser.Lowerid, 0);
+	    return this.getToken(CPnextParser.Lowerid, 0);
 	};
 
 	Upperid() {
-	    return this.getToken(ZordParser.Upperid, 0);
+	    return this.getToken(CPnextParser.Upperid, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitLabelDecl(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6224,19 +6224,19 @@ class LabelContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_label;
+        this.ruleIndex = CPnextParser.RULE_label;
     }
 
 	Lowerid() {
-	    return this.getToken(ZordParser.Lowerid, 0);
+	    return this.getToken(CPnextParser.Lowerid, 0);
 	};
 
 	Upperid() {
-	    return this.getToken(ZordParser.Upperid, 0);
+	    return this.getToken(CPnextParser.Upperid, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitLabel(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6259,19 +6259,19 @@ class DocumentContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_document;
+        this.ruleIndex = CPnextParser.RULE_document;
     }
 
 	BacktickOpen() {
-	    return this.getToken(ZordParser.BacktickOpen, 0);
+	    return this.getToken(CPnextParser.BacktickOpen, 0);
 	};
 
 	BacktickClose() {
-	    return this.getToken(ZordParser.BacktickClose, 0);
+	    return this.getToken(CPnextParser.BacktickClose, 0);
 	};
 
 	BacktickCloseAfterTag() {
-	    return this.getToken(ZordParser.BacktickCloseAfterTag, 0);
+	    return this.getToken(CPnextParser.BacktickCloseAfterTag, 0);
 	};
 
 	docElement = function(i) {
@@ -6286,7 +6286,7 @@ class DocumentContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitDocument(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6309,7 +6309,7 @@ class DocElementContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_docElement;
+        this.ruleIndex = CPnextParser.RULE_docElement;
     }
 
 	command() {
@@ -6329,7 +6329,7 @@ class DocElementContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitDocElement(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6352,15 +6352,15 @@ class CommandContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_command;
+        this.ruleIndex = CPnextParser.RULE_command;
     }
 
 	Tag() {
-	    return this.getToken(ZordParser.Tag, 0);
+	    return this.getToken(CPnextParser.Tag, 0);
 	};
 
 	TagAfterTag() {
-	    return this.getToken(ZordParser.TagAfterTag, 0);
+	    return this.getToken(CPnextParser.TagAfterTag, 0);
 	};
 
 	arg = function(i) {
@@ -6375,7 +6375,7 @@ class CommandContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitCommand(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6398,7 +6398,7 @@ class InterpolationContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_interpolation;
+        this.ruleIndex = CPnextParser.RULE_interpolation;
     }
 
 	expression() {
@@ -6406,19 +6406,19 @@ class InterpolationContext extends antlr4.ParserRuleContext {
 	};
 
 	ParenClose() {
-	    return this.getToken(ZordParser.ParenClose, 0);
+	    return this.getToken(CPnextParser.ParenClose, 0);
 	};
 
 	BackslashParen() {
-	    return this.getToken(ZordParser.BackslashParen, 0);
+	    return this.getToken(CPnextParser.BackslashParen, 0);
 	};
 
 	BackslashParenAfterTag() {
-	    return this.getToken(ZordParser.BackslashParenAfterTag, 0);
+	    return this.getToken(CPnextParser.BackslashParenAfterTag, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitInterpolation(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6441,19 +6441,19 @@ class NewlineContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_newline;
+        this.ruleIndex = CPnextParser.RULE_newline;
     }
 
 	LineBreak() {
-	    return this.getToken(ZordParser.LineBreak, 0);
+	    return this.getToken(CPnextParser.LineBreak, 0);
 	};
 
 	LinebreakAfterTag() {
-	    return this.getToken(ZordParser.LinebreakAfterTag, 0);
+	    return this.getToken(CPnextParser.LinebreakAfterTag, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitNewline(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6476,19 +6476,19 @@ class PlaintextContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_plaintext;
+        this.ruleIndex = CPnextParser.RULE_plaintext;
     }
 
 	Plaintext() {
-	    return this.getToken(ZordParser.Plaintext, 0);
+	    return this.getToken(CPnextParser.Plaintext, 0);
 	};
 
 	PlaintextAfterTag() {
-	    return this.getToken(ZordParser.PlaintextAfterTag, 0);
+	    return this.getToken(CPnextParser.PlaintextAfterTag, 0);
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitPlaintext(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6511,11 +6511,11 @@ class ArgContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_arg;
+        this.ruleIndex = CPnextParser.RULE_arg;
     }
 
 	ParenOpenInTag() {
-	    return this.getToken(ZordParser.ParenOpenInTag, 0);
+	    return this.getToken(CPnextParser.ParenOpenInTag, 0);
 	};
 
 	expression() {
@@ -6523,15 +6523,15 @@ class ArgContext extends antlr4.ParserRuleContext {
 	};
 
 	ParenClose() {
-	    return this.getToken(ZordParser.ParenClose, 0);
+	    return this.getToken(CPnextParser.ParenClose, 0);
 	};
 
 	BraceOpenInTag() {
-	    return this.getToken(ZordParser.BraceOpenInTag, 0);
+	    return this.getToken(CPnextParser.BraceOpenInTag, 0);
 	};
 
 	BraceClose() {
-	    return this.getToken(ZordParser.BraceClose, 0);
+	    return this.getToken(CPnextParser.BraceClose, 0);
 	};
 
 	recordArgField = function(i) {
@@ -6550,23 +6550,23 @@ class ArgContext extends antlr4.ParserRuleContext {
 			i = null;
 		}
 	    if(i===null) {
-	        return this.getTokens(ZordParser.Semicolon);
+	        return this.getTokens(CPnextParser.Semicolon);
 	    } else {
-	        return this.getToken(ZordParser.Semicolon, i);
+	        return this.getToken(CPnextParser.Semicolon, i);
 	    }
 	};
 
 
 	BracketOpenInTag() {
-	    return this.getToken(ZordParser.BracketOpenInTag, 0);
+	    return this.getToken(CPnextParser.BracketOpenInTag, 0);
 	};
 
 	BracketCloseInDoc() {
-	    return this.getToken(ZordParser.BracketCloseInDoc, 0);
+	    return this.getToken(CPnextParser.BracketCloseInDoc, 0);
 	};
 
 	BracketCloseAfterTag() {
-	    return this.getToken(ZordParser.BracketCloseAfterTag, 0);
+	    return this.getToken(CPnextParser.BracketCloseAfterTag, 0);
 	};
 
 	docElement = function(i) {
@@ -6581,7 +6581,7 @@ class ArgContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitArg(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6604,7 +6604,7 @@ class RecordArgFieldContext extends antlr4.ParserRuleContext {
         }
         super(parent, invokingState);
         this.parser = parser;
-        this.ruleIndex = ZordParser.RULE_recordArgField;
+        this.ruleIndex = CPnextParser.RULE_recordArgField;
     }
 
 	labelDecl() {
@@ -6612,7 +6612,7 @@ class RecordArgFieldContext extends antlr4.ParserRuleContext {
 	};
 
 	Assign() {
-	    return this.getToken(ZordParser.Assign, 0);
+	    return this.getToken(CPnextParser.Assign, 0);
 	};
 
 	expression() {
@@ -6631,7 +6631,7 @@ class RecordArgFieldContext extends antlr4.ParserRuleContext {
 	};
 
 	accept(visitor) {
-	    if ( visitor instanceof ZordParserVisitor ) {
+	    if ( visitor instanceof CPnextParserVisitor ) {
 	        return visitor.visitRecordArgField(this);
 	    } else {
 	        return visitor.visitChildren(this);
@@ -6644,56 +6644,56 @@ class RecordArgFieldContext extends antlr4.ParserRuleContext {
 
 
 
-ZordParser.ProgramContext = ProgramContext; 
-ZordParser.OpenContext = OpenContext; 
-ZordParser.DefinitionContext = DefinitionContext; 
-ZordParser.TypeDefContext = TypeDefContext; 
-ZordParser.TermDefContext = TermDefContext; 
-ZordParser.TypeContext = TypeContext; 
-ZordParser.BtypeContext = BtypeContext; 
-ZordParser.AtypeContext = AtypeContext; 
-ZordParser.RecordTypeContext = RecordTypeContext; 
-ZordParser.RecordTypeElementContext = RecordTypeElementContext; 
-ZordParser.ExpressionContext = ExpressionContext; 
-ZordParser.OpexprContext = OpexprContext; 
-ZordParser.LexprContext = LexprContext; 
-ZordParser.LambdaContext = LambdaContext; 
-ZordParser.BigLambdaContext = BigLambdaContext; 
-ZordParser.Let_Context = Let_Context; 
-ZordParser.LetRecContext = LetRecContext; 
-ZordParser.Open_Context = Open_Context; 
-ZordParser.IfElseContext = IfElseContext; 
-ZordParser.TraitContext = TraitContext; 
-ZordParser.New_Context = New_Context; 
-ZordParser.ToString_Context = ToString_Context; 
-ZordParser.FoldContext = FoldContext; 
-ZordParser.UnfoldContext = UnfoldContext; 
-ZordParser.FexprContext = FexprContext; 
-ZordParser.DotexprContext = DotexprContext; 
-ZordParser.AexprContext = AexprContext; 
-ZordParser.ArrayContext = ArrayContext; 
-ZordParser.RecordContext = RecordContext; 
-ZordParser.RecordFieldContext = RecordFieldContext; 
-ZordParser.RecordUpdateContext = RecordUpdateContext; 
-ZordParser.MethodPatternContext = MethodPatternContext; 
-ZordParser.DefaultPatternContext = DefaultPatternContext; 
-ZordParser.TypeParamContext = TypeParamContext; 
-ZordParser.TermParamContext = TermParamContext; 
-ZordParser.TermIdContext = TermIdContext; 
-ZordParser.WildcardContext = WildcardContext; 
-ZordParser.SelfAnnoContext = SelfAnnoContext; 
-ZordParser.SortContext = SortContext; 
-ZordParser.TypeNameDeclContext = TypeNameDeclContext; 
-ZordParser.TypeNameContext = TypeNameContext; 
-ZordParser.TermNameDeclContext = TermNameDeclContext; 
-ZordParser.TermNameContext = TermNameContext; 
-ZordParser.LabelDeclContext = LabelDeclContext; 
-ZordParser.LabelContext = LabelContext; 
-ZordParser.DocumentContext = DocumentContext; 
-ZordParser.DocElementContext = DocElementContext; 
-ZordParser.CommandContext = CommandContext; 
-ZordParser.InterpolationContext = InterpolationContext; 
-ZordParser.NewlineContext = NewlineContext; 
-ZordParser.PlaintextContext = PlaintextContext; 
-ZordParser.ArgContext = ArgContext; 
-ZordParser.RecordArgFieldContext = RecordArgFieldContext; 
+CPnextParser.ProgramContext = ProgramContext; 
+CPnextParser.OpenContext = OpenContext; 
+CPnextParser.DefinitionContext = DefinitionContext; 
+CPnextParser.TypeDefContext = TypeDefContext; 
+CPnextParser.TermDefContext = TermDefContext; 
+CPnextParser.TypeContext = TypeContext; 
+CPnextParser.BtypeContext = BtypeContext; 
+CPnextParser.AtypeContext = AtypeContext; 
+CPnextParser.RecordTypeContext = RecordTypeContext; 
+CPnextParser.RecordTypeElementContext = RecordTypeElementContext; 
+CPnextParser.ExpressionContext = ExpressionContext; 
+CPnextParser.OpexprContext = OpexprContext; 
+CPnextParser.LexprContext = LexprContext; 
+CPnextParser.LambdaContext = LambdaContext; 
+CPnextParser.BigLambdaContext = BigLambdaContext; 
+CPnextParser.Let_Context = Let_Context; 
+CPnextParser.LetRecContext = LetRecContext; 
+CPnextParser.Open_Context = Open_Context; 
+CPnextParser.IfElseContext = IfElseContext; 
+CPnextParser.TraitContext = TraitContext; 
+CPnextParser.New_Context = New_Context; 
+CPnextParser.ToString_Context = ToString_Context; 
+CPnextParser.FoldContext = FoldContext; 
+CPnextParser.UnfoldContext = UnfoldContext; 
+CPnextParser.FexprContext = FexprContext; 
+CPnextParser.DotexprContext = DotexprContext; 
+CPnextParser.AexprContext = AexprContext; 
+CPnextParser.ArrayContext = ArrayContext; 
+CPnextParser.RecordContext = RecordContext; 
+CPnextParser.RecordFieldContext = RecordFieldContext; 
+CPnextParser.RecordUpdateContext = RecordUpdateContext; 
+CPnextParser.MethodPatternContext = MethodPatternContext; 
+CPnextParser.DefaultPatternContext = DefaultPatternContext; 
+CPnextParser.TypeParamContext = TypeParamContext; 
+CPnextParser.TermParamContext = TermParamContext; 
+CPnextParser.TermIdContext = TermIdContext; 
+CPnextParser.WildcardContext = WildcardContext; 
+CPnextParser.SelfAnnoContext = SelfAnnoContext; 
+CPnextParser.SortContext = SortContext; 
+CPnextParser.TypeNameDeclContext = TypeNameDeclContext; 
+CPnextParser.TypeNameContext = TypeNameContext; 
+CPnextParser.TermNameDeclContext = TermNameDeclContext; 
+CPnextParser.TermNameContext = TermNameContext; 
+CPnextParser.LabelDeclContext = LabelDeclContext; 
+CPnextParser.LabelContext = LabelContext; 
+CPnextParser.DocumentContext = DocumentContext; 
+CPnextParser.DocElementContext = DocElementContext; 
+CPnextParser.CommandContext = CommandContext; 
+CPnextParser.InterpolationContext = InterpolationContext; 
+CPnextParser.NewlineContext = NewlineContext; 
+CPnextParser.PlaintextContext = PlaintextContext; 
+CPnextParser.ArgContext = ArgContext; 
+CPnextParser.RecordArgFieldContext = RecordArgFieldContext; 

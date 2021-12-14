@@ -1,4 +1,4 @@
-lexer grammar ZordLexer;
+lexer grammar CPnextLexer;
 
 options {
     language = JavaScript;

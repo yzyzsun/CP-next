@@ -1,6 +1,6 @@
-parser grammar ZordParser;
+parser grammar CPnextParser;
 options {
-    tokenVocab = ZordLexer;
+    tokenVocab = CPnextLexer;
     language = JavaScript;
 }
 
