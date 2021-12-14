@@ -1,0 +1,372 @@
+metavar x, y ::= {{ com variable name }}
+
+grammar
+
+typ, A, B, C :: 't_' ::= {{ com types }}
+  | Top             ::  :: top    {{ com top type }} {{ tex \top }}
+  | Base            ::  :: base   {{ com base type }} {{ tex \mathbb{B} }}
+  | A -> B          ::  :: arrow  {{ com function type }}
+  | A & B           ::  :: and    {{ com intersection type }}
+  | ( A )           :: S:: paren
+
+exp, e, v, u :: 'e_' ::= {{ com expressions }}
+  | ()              ::  :: top    {{ com top value }}
+  | b               ::  :: base   {{ com base literal }} {{ tex b }}
+  | x               ::  :: var    {{ com variable }}
+  | fix x : A . e   ::  :: fix    {{ com fixpoint }} {{ tex [[fix]]\,[[x]][[:]][[A]].\ [[e]] }}
+  | \ x : A . e : B ::  :: abs    {{ com abstraction }} {{ tex [[\]][[x]][[:]][[A]].\ [[e]][[:]][[B]] }}
+  | e1 e2           ::  :: app    {{ com application }}
+  | e1 ,, e2        ::  :: merge  {{ com merging }}
+  | e : A           ::  :: anno   {{ com casting }}
+  | e1 [ x ~> e2 ]  :: M:: subst
+  | ( e )           :: S:: paren
+
+ctx, G {{ tex \Gamma }} :: 'ctx_' ::= {{ com typing context }}
+  | []              ::  :: empty  {{ tex \cdot }}
+  | G , x : A       ::  :: cons
+
+mode {{ tex \Leftrightarrow }} :: '' ::= {{ com typing mode }}
+  | =>              ::  :: Inf
+  | <=              ::  :: Chk
+
+terminals :: 'terminals_' ::=
+  | \            ::  :: lambda     {{ tex \lambda }}
+  | ~>           ::  :: subst      {{ tex \mapsto }}
+  | ->           ::  :: arrow      {{ tex \rightarrow }}
+  | -->          ::  :: longarrow  {{ tex \hookrightarrow }}
+  | ==>          ::  :: darrow     {{ tex \Downarrow }}
+  | ~~>          ::  :: sarrow     {{ tex \rightsquigarrow }}
+  | |->          ::  :: mapsto     {{ tex \longmapsto }}
+  | <--          ::  :: leftarrow  {{ tex \leftarrow }}
+  | <=           ::  :: check      {{ tex \Leftarrow }}
+  | =>           ::  :: infer      {{ tex \Rightarrow }}
+  | |-           ::  :: turnstile  {{ tex \vdash }}
+  | |=           ::  :: dturnstile {{ tex \models }}
+  | in           ::  :: in         {{ tex \in }}
+  | *            ::  :: disjoint   {{ tex \, * \, }}
+  | ~            ::  :: consistent {{ tex \approx }}
+  | &            ::  :: intersect  {{ tex \, \& \, }}
+  | ,,           ::  :: merge      {{ tex \, , \, }}
+  | ++           ::  :: append     {{ tex \uplus }}
+  | $            ::  :: apply      {{ tex \, \$ \, }}
+
+formula :: 'formula_' ::=
+  | judgement             ::  :: judgement
+  | not formula           :: M:: not       {{ tex \neg [[formula]] }}
+  | formula1 or formula2  :: M:: or        {{ tex [[formula1]] \lor [[formula2]] }}
+  | formula1 and formula2 :: M:: and       {{ tex [[formula1]] \land [[formula2]] }}
+  | ( formula )           :: M:: brackets  {{ tex ([[formula]]) }}
+  | uniq G                ::  :: uniqG     {{ tex }}
+  | x : A in G            ::  :: inG
+  | x notin fv e          ::  :: fresh
+  | x notin dom G         ::  :: notInGx   {{ tex [[x]] \notin [[G]] }}
+  | l1 <> l2              ::  :: labelNeq  {{ tex [[l1]] \neq [[l2]] }}
+  | T1 == T2              ::  :: typEq
+  | e1 --> i e2           :: M:: multistep {{ tex [[e1]]~[[-->]][[i]]~[[e2]] }}
+  | A * B                 :: M:: disjointSpec
+  | v1 ~ v2               :: M:: consistentSpec
+
+parsing
+  t_arrow <= t_and
+  t_arrow right t_arrow
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+defns
+Values :: '' ::=
+
+defn
+value e :: :: value :: V_
+{{ com Values }} {{ tex }}
+by
+
+
+---------------------- :: top
+value ()
+
+
+---------------------- :: base
+value b
+
+
+----------------------- :: abs
+value \x : A . e : B
+
+
+value v1
+value v2
+----------------------- :: merge
+value v1 ,, v2
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+defns
+Algorithmics :: '' ::=
+
+defn
+toplike A :: :: toplike :: TL_
+{{ com Top-like types }}
+{{ tex \rceil [[A]] \lceil }}
+by
+
+
+---------------- :: top
+toplike Top
+
+
+toplike A
+toplike B
+---------------- :: and
+toplike A & B
+
+
+toplike B
+---------------- :: arrow
+toplike A -> B
+
+
+
+defn
+ordinary A :: :: ordinary :: O_
+{{ com Ordinary types }}
+{{ tex [[A]]^{\circ} }}
+by
+
+
+---------------- :: top
+ordinary Top
+
+
+---------------- :: base
+ordinary Base
+
+
+---------------- :: arrow
+ordinary (A->B)
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+defns
+Subtyping :: '' ::=
+
+defn
+A <: B :: :: sub :: S_
+{{ com Subtyping }}
+by
+
+
+toplike B
+--------------- :: top
+A <: B
+
+
+--------------- :: base
+Base <: Base
+
+
+B1 <: A1
+A2 <: B2
+------------------------ :: arrow
+A1 -> A2 <: B1 -> B2
+
+
+A <: C
+------------------------- :: andLL
+A & B <: C
+
+
+B <: C
+------------------------- :: andLR
+A & B <: C
+
+
+A <: B
+A <: C
+------------------------- :: andR
+A <: B & C
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+defns
+Typing :: '' ::=
+
+defn
+G |- e mode A :: :: typing :: 'Typ_'
+{{ com Bidirectional typing }}
+by
+
+
+uniq G
+----------------- :: top
+G |- () => Top
+
+
+uniq G
+----------------- :: base
+G |- b => Base
+
+
+uniq G
+x : A in G
+----------------- :: var
+G |- x => A
+
+
+G , x : A |- e <= A
+------------------------------------------- :: fix
+G |- fix x : A . e => A
+
+
+G , x : A |- e <= B
+------------------------------------------- :: abs
+G |- \x : A . e : B => A->B
+
+
+G |- e1 => A -> B
+G |- e2 <= A
+----------------------- :: app
+G |- e1 e2 => B
+
+
+G |- e1 => Top
+----------------------- :: appTop
+G |- e1 e2 => Top
+
+
+G |- e1 => A
+G |- e2 => B
+A * B
+------------------------------ :: merge
+G |- e1 ,, e2 => A & B
+
+
+uniq G
+value v1 ,, v2
+[] |- v1 => A
+[] |- v2 => B
+v1 ~ v2
+------------------------------ :: mergeV
+G |- v1 ,, v2 => A & B
+
+
+G |- e <= A
+--------------------- :: anno
+G |- e:A => A
+
+
+G |- e => A
+A <: B
+--------------------- :: sub
+G |- e <= B
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+defns
+Semantics :: '' ::=
+
+defn
+v --> A v' :: :: casting :: Cast_
+{{ com Type casting }}
+{{ tex [[v]]\ [[-->]]_{[[A]]}\ [[v']] }}
+by
+
+
+ordinary A
+toplike A
+--------------------- :: top
+v  -->A  ()
+
+
+--------------------- :: base
+b  -->Base  b
+
+
+not toplike A2
+B1 <: A1
+A2 <: B2
+------------------------------------ :: arrow
+\x:A1.e:A2  -->B1->B2  \x:A1.e:B2
+
+
+ordinary A
+v1  -->A  v1'
+--------------------------------- :: mergeL
+v1,,v2  -->A  v1'
+
+
+ordinary A
+v2  -->A  v2'
+--------------------------------- :: mergeR
+v1,,v2  -->A  v2'
+
+
+v  -->A  v1
+v  -->B  v2
+--------------------------------- :: and
+v  -->A&B  v1,,v2
+
+
+
+defn
+e --> e' :: :: step :: Step_
+{{ com Small-step operational semantics }}
+{{ tex [[e]]\;[[-->]]\;[[e']] }}
+by
+
+
+----------------------------------------------------- :: fix
+fix x : A . e  -->  e [ x ~> fix x : A . e ] : A
+
+
+value v
+v  -->A  v'
+----------------------------------------------------- :: beta
+(\ x : A . e : B) v  -->  e [ x ~> v' ] : B
+
+
+value v
+---------------- :: betaTop
+() v  -->  ()
+
+
+value v
+v  -->A  v'
+---------------- :: cast
+v : A  -->  v'
+
+
+e1  -->   e1'
+------------------------------------- :: appL
+e1 e2  -->  e1' e2 
+
+
+value v1
+e2  -->  e2'
+------------------------------------- :: appR
+v1 e2  -->  v1 e2' 
+
+
+e1  -->  e1'
+------------------------------------- :: mergeL
+e1 ,, e2  -->  e1' ,, e2
+
+
+value v1
+e2  -->  e2'
+------------------------------------- :: mergeR
+v1 ,, e2  -->  v1 ,, e2'
+
+
+e  -->  e'
+------------------------------------- :: anno
+e : A  -->  e' : A

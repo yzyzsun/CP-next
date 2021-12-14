@@ -1,0 +1,29 @@
+\documentclass{article}
+
+\usepackage{amsmath,amssymb}
+\usepackage[margin=1in]{geometry}
+\usepackage{ottalt}
+\usepackage{xcolor}
+
+\inputott{lambdai}
+
+\begin{document}
+
+\section{Syntax}
+\begin{align*}
+  &\text{Types}       &A,B,C& ::= [[Top]] ~|~ [[Base]] ~|~ [[A -> B]] ~|~ [[A & B]] \\
+  &\text{Expressions} &    e& ::= [[()]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[e1 ,, e2]] ~|~ [[e : A]] \\
+  &\text{Values}      &    v& ::= [[()]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[v1 ,, v2]] \\
+\end{align*}
+
+\section{Subtyping}
+\ottdefnsAlgorithmics
+\ottdefnsSubtyping
+
+\section{Typing}
+\ottdefnsTyping
+
+\section{Semantics}
+\ottdefnsSemantics
+
+\end{document}
