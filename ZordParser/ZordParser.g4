@@ -67,22 +67,12 @@ expression
 
 opexpr
     :   lexpr                       
-    |   Minus opexpr
-    |   Not opexpr
-    |   Length opexpr
+    |   (Minus | Not | Length) opexpr
     |   <assoc=left> opexpr Index opexpr
-    |   <assoc=left> opexpr Modulo opexpr
-    |   <assoc=left> opexpr Divide opexpr
-    |   <assoc=left> opexpr Star opexpr
-    |   <assoc=left> opexpr Minus opexpr
-    |   <assoc=left> opexpr Plus opexpr
+    |   <assoc=left> opexpr (Modulo | Divide | Star) opexpr
+    |   <assoc=left> opexpr (Minus | Plus) opexpr
     |   <assoc=left> opexpr Append opexpr
-    |   opexpr Less opexpr
-    |   opexpr Greater opexpr
-    |   opexpr LessEqual opexpr
-    |   opexpr GreaterEqual opexpr
-    |   opexpr Equal opexpr
-    |   opexpr NotEqual opexpr
+    |   opexpr (Less | Greater | LessEqual | GreaterEqual | Equal | NotEqual) opexpr
     |   <assoc=right> opexpr And opexpr
     |   <assoc=right> opexpr Or opexpr
     |   <assoc=left> opexpr Forward opexpr
