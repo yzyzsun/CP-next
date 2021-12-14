@@ -4,10 +4,10 @@ import { EditorView, keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { LRLanguage, LanguageSupport, continuedIndent, foldNodeProp, indentNodeProp } from '@codemirror/language';
 import { styleTags, tags as t } from '@codemirror/highlight';
-import { parser as parseCP } from './grammar/cp';
+import { parser } from './lezer';
 
 export const cp = new LanguageSupport(LRLanguage.define({
-  parser: parseCP.configure({
+  parser: parser.configure({
     props: [
       indentNodeProp.add({
         RecordType: continuedIndent(),

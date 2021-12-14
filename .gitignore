@@ -131,6 +131,9 @@ flamegraph.html
 /.psa*
 /.spago
 
+### Lezer ###
+lezer.js
+
 ### Editors ###
 .idea/
 .vscode/
