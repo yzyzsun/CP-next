@@ -5,25 +5,40 @@
 \usepackage{ottalt}
 \usepackage{xcolor}
 
-\inputott{lambdai}
+\inputott{ott}
 
 \begin{document}
 
-\section{Syntax}
+\section{Syntax of $\lambda_i$}
 \begin{align*}
   &\text{Types}       &A,B,C& ::= [[Top]] ~|~ [[Base]] ~|~ [[A -> B]] ~|~ [[A & B]] \\
   &\text{Expressions} &    e& ::= [[()]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[e1 ,, e2]] ~|~ [[e : A]] \\
   &\text{Values}      &    v& ::= [[()]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[v1 ,, v2]] \\
 \end{align*}
 
-\section{Subtyping}
-\ottdefnsAlgorithmics
-\ottdefnsSubtyping
+\section{Syntax of MiniJS}
+\begin{align*}
+  &\text{Type indices} & [[T]]& ::= [[Base]] ~|~ [[->T]] ~|~ [[T1 & T2]] \\
+  &\text{Expressions}  & [[E]]& ::= [[V]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x. E]] ~|~ [[\x. E]] ~|~ [[E1 $ E2]] ~|~ [[E1 ++ E2]] ~|~ [[co E]] \\
+  &\text{Values}       & [[V]]& ::= [[{</ Ti |-> Ei />}]] \\
+  &\text{Coercion}     &[[co]]& ::= [[identity]] ~|~ [[clear]] ~|~ [[becard T co1 co2]] ~|~ [[proj T]] ~|~ [[co1 <> co2]] ~|~ [[co1 . co2]] \\
+\end{align*}
 
-\section{Typing}
-\ottdefnsTyping
+\boxed{[[|A|]]} \hfill \textit{(Type translation)}
+\begin{mathpar}
+\inferrule{}{ [[|Base|]] = [[Base]] }
+\and
+\inferrule{}{ [[|A->B|]] = [[->|B|]] }
+\and
+\inferrule{ |A| \le |B| }{ [[|A&B|]] = [[|A|&|B|]] }
+\and
+\inferrule{ |A| > |B| }{ [[|A&B|]] = [[|B|&|A|]] }
+\end{mathpar}
+
+\section{Coercion}
+\ottdefnsCoercion
 
 \section{Semantics}
-\ottdefnsSemantics
+\ottdefnsCompilation
 
 \end{document}
