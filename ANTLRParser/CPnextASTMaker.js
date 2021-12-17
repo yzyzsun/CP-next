@@ -4,18 +4,20 @@ import CPnextParser from './CPnextParser.js'
 import CPnextParserVisitor from './CPnextParserVisitor.js'
 import { default as AST } from '../src/CP/Syntax/Source.purs'
 import { default as OP } from '../src/CP/Syntax/Common.purs'
-import { default as Either } from '../.spago/either/v5.0.0/src/Data/Either.purs'
-import { default as Maybe } from '../.spago/maybe/v5.0.0/src/Data/Maybe.purs'
-import { default as Tuple } from '../.spago/tuples/v6.0.1/src/Data/Tuple.purs'
-import { default as List } from '../.spago/lists/v6.0.1/src/Data/List/Types.purs'
+// import { default as Either } from '../.spago/either/v5.0.0/src/Data/Either.purs'
+// import { default as Maybe } from '../.spago/maybe/v5.0.0/src/Data/Maybe.purs'
+// import { default as Tuple } from '../.spago/tuples/v6.0.1/src/Data/Tuple.purs'
+// import { default as List } from '../.spago/lists/v6.0.1/src/Data/List/Types.purs'
+import {default as P} from '../src/JSDep.purs'
+
 
 export default class CPnextASTMaker extends CPnextParserVisitor {
 
     // Convert array to list
     listify(array) {
-        let list = List.Nil.value;
+        let list = P.Nil.value;
         for (let each of array.reverse()){
-            list = new List.Cons(each, list);
+            list = new P.Cons(each, list);
         }
         return list;
     }
@@ -68,7 +70,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
         const x = this.visitTermNameDecl(ctx.termNameDecl());
         const tys = this.listify(ctx.typeParam().map(this.visitTypeParam, this));
         const tms = this.listify(ctx.termParam().map(this.visitTermParam, this));
-        const t = ctx.type() === null ? Maybe.Nothing.value : new Maybe.Just(this.visitType(ctx.type()));
+        const t = ctx.type() === null ? P.Nothing.value : new P.Just(this.visitType(ctx.type()));
         const e = this.visitExpression(ctx.expression());
         return new AST.TmDef(x, tys, tms, t, e, p);
     }
@@ -95,11 +97,11 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
         }
         else if (ctx.TraitCaps() !== null){
             if (ctx.TraitArrow() === null){
-                const ti = Maybe.Nothing.value;
+                const ti = P.Nothing.value;
                 const to = this.visitType(ctx.type(0));
                 return new AST.TyTrait(ti, to);
             } else {
-                const ti = new Maybe.Just(this.visitType(ctx.type(0)));
+                const ti = new P.Just(this.visitType(ctx.type(0)));
                 const to = this.visitType(ctx.type(1));
                 return new AST.TyTrait(ti, to);
             };
@@ -383,9 +385,9 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
     // Visit a parse tree produced by CPnextParser#trait.
     visitTrait(ctx) {
         let x = new AST.TmTrait(
-            ctx.selfAnno() === null ? Maybe.Nothing.value : new Maybe.Just(this.visitSelfAnno(ctx.selfAnno())),
-            ctx.type() === null ? Maybe.Nothing.value : new Maybe.Just(this.visitType(ctx.type())),
-            ctx.opexpr().length === 2 ? new Maybe.Just(this.visitOpexpr(ctx.opexpr(0))) : Maybe.Nothing.value,
+            ctx.selfAnno() === null ? P.Nothing.value : new P.Just(this.visitSelfAnno(ctx.selfAnno())),
+            ctx.type() === null ? P.Nothing.value : new P.Just(this.visitType(ctx.type())),
+            ctx.opexpr().length === 2 ? new P.Just(this.visitOpexpr(ctx.opexpr(0))) : P.Nothing.value,
             ctx.opexpr().length === 2 ? this.visitOpexpr(ctx.opexpr(1)) : this.visitOpexpr(ctx.opexpr(0))
         );
         console.log(x);
@@ -582,7 +584,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             ctx.Override() !== null,
             this.visitLabelDecl(ctx.labelDecl()),
             this.listify(ctx.termParam().map(this.visitTermParam, this)),
-            new Either.Left(this.visitExpression(ctx.expression()))
+            new P.Left(this.visitExpression(ctx.expression()))
         );
     }
   
@@ -591,7 +593,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
     visitRecordUpdate(ctx) {
         const fields = [];
         for (let i=0;i<ctx.labelDecl().length;i++){
-            fields.push(new Tuple.Tuple(
+            fields.push(new P.Tuple(
                 this.visitLabelDecl(ctx.labelDecl(i)),
                 this.visitExpression(ctx.expression(i+1))
             ));
@@ -623,8 +625,8 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             ctx.Override() !== null,
             this.visitLabelDecl(ctx.labelDecl(0)),
             this.listify(params),
-            new Either.Right(new AST.MethodPattern(
-                ctx.selfAnno() === null? Maybe.Nothing.value : new Maybe.Just(this.visitSelfAnno(ctx.selfAnno())),
+            new P.Right(new AST.MethodPattern(
+                ctx.selfAnno() === null? P.Nothing.value : new P.Just(this.visitSelfAnno(ctx.selfAnno())),
                 this.visitLabelDecl(ctx.labelDecl(1)),
                 this.listify(params_),
                 this.visitExpression(ctx.expression())
@@ -637,7 +639,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
 	visitDefaultPattern(ctx) {
         return new AST.DefaultPattern(
             new AST.MethodPattern(
-                ctx.selfAnno() === null? Maybe.Nothing.value : new Maybe.Just(this.visitSelfAnno(ctx.selfAnno())),
+                ctx.selfAnno() === null? P.Nothing.value : new P.Just(this.visitSelfAnno(ctx.selfAnno())),
                 this.visitLabelDecl(ctx.labelDecl()),
                 this.listify(ctx.termParam().map(this.visitTermParam, this)),
                 this.visitExpression(ctx.expression())
@@ -648,9 +650,9 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
   
     // Visit a parse tree produced by CPnextParser#typeParam.
     visitTypeParam(ctx) {
-        return new Tuple.Tuple(
+        return new P.Tuple(
             this.visitTypeNameDecl(ctx.typeNameDecl()),
-            ctx.type() === null? Maybe.Nothing.value : new Maybe.Just(this.visitType(ctx.type()))
+            ctx.type() === null? P.Nothing.value : new P.Just(this.visitType(ctx.type()))
         );
     }
   
@@ -663,7 +665,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
                     case CPnextParser.RULE_termId:
                         return new AST.TmParam(
                             this.visitTermId(ctx.termId()),
-                            Maybe.Nothing.value
+                            P.Nothing.value
                         );
                     case CPnextParser.RULE_wildcard:
                         return this.visitWildcard(ctx.wildcard());
@@ -674,7 +676,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             case 5:
                 return new AST.TmParam(
                     this.visitTermId(ctx.termId()),
-                    new Maybe.Just(this.visitType(ctx.type()))
+                    new P.Just(this.visitType(ctx.type()))
                 );
             default:
                 console.error("Error at TermParam");
@@ -695,7 +697,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
         const expressions = ctx.expression().map(this.visitExpression, this);
         const defaultFields = [];
         for (let i = 0; i<labelDecls.length; i++){
-            defaultFields.push(new Tuple.Tuple(labelDecls[i], expressions[i]));
+            defaultFields.push(new P.Tuple(labelDecls[i], expressions[i]));
         }
         return new AST.WildCard(this.listify(defaultFields));
     }
@@ -703,9 +705,9 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
   
     // Visit a parse tree produced by CPnextParser#selfAnno.
     visitSelfAnno(ctx) {
-        return new Tuple.Tuple(
+        return new P.Tuple(
             this.visitTermNameDecl(ctx.termNameDecl()),
-            ctx.type() === null ? Maybe.Nothing.value : new Maybe.Just(this.visitType(ctx.type()))
+            ctx.type() === null ? P.Nothing.value : new P.Just(this.visitType(ctx.type()))
         );
     }
   
@@ -714,11 +716,11 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
     visitSort(ctx) {
         if (ctx.TraitArrow() === null){
             const ti = this.visitType(ctx.type(0));
-            const to = Maybe.Nothing.value;
+            const to = P.Nothing.value;
             return new AST.TySort(ti, to);
         } else {
             const ti = this.visitType(ctx.type(0));
-            const to = new Maybe.Just(this.visitType(ctx.type(1)));
+            const to = new P.Just(this.visitType(ctx.type(1)));
             return new AST.TySort(ti, to);
         };
     }
@@ -880,7 +882,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             false,
             this.visitLabelDecl(ctx.labelDecl()),
             params,
-            new Either.Left(this.visitExpression(ctx.expression()))
+            new P.Left(this.visitExpression(ctx.expression()))
         );
 	}
 
