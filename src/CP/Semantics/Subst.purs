@@ -29,7 +29,7 @@ step (TmApp e1 e2 coercive)
   | otherwise  = TmApp (step e1) e2 coercive
 step fix@(TmFix x e _) = tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = TmAnno e t
-step (TmAnno e t) | isValue e = unsafeFromJust (typedReduce e t)
+step (TmAnno e t) | isValue e = unsafeFromJust (cast e t)
                   | otherwise = TmAnno (step e) t
 step (TmMerge e1 e2) | isValue e1 = TmMerge e1 (step e2)
                      | isValue e2 = TmMerge (step e1) e2
@@ -48,33 +48,33 @@ step (TmToString e) | isValue e = toString e
 step e = unsafeCrashWith $ "CP.Semantics.Subst.step: " <>
   "well-typed programs don't get stuck, but got " <> show e
 
-typedReduce :: Tm -> Ty -> Maybe Tm
-typedReduce e _ | not (isValue e) = unsafeCrashWith $
-  "CP.Semantics.Subst.typedReduce: " <> show e <> " is not a value"
-typedReduce _ t | isTopLike t = Just TmUnit
-typedReduce v t | Just (Tuple t1 t2) <- split t = do
+cast :: Tm -> Ty -> Maybe Tm
+cast e _ | not (isValue e) = unsafeCrashWith $
+  "CP.Semantics.Subst.cast: " <> show e <> " is not a value"
+cast _ t | isTopLike t = Just TmUnit
+cast v t | Just (Tuple t1 t2) <- split t = do
   let m1 = isOptionalRcd t1
       m2 = isOptionalRcd t2
-      v1 = typedReduce v t1
-      v2 = typedReduce v t2
+      v1 = cast v t1
+      v2 = cast v t2
   (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
   where isOptionalRcd (TyRcd _ _ true) = Just TmUnit
         isOptionalRcd _ = Nothing
-typedReduce (TmInt i)    TyInt    = Just $ TmInt i
-typedReduce (TmDouble n) TyDouble = Just $ TmDouble n
-typedReduce (TmString s) TyString = Just $ TmString s
-typedReduce (TmBool b)   TyBool   = Just $ TmBool b
-typedReduce (TmAbs x e targ1 tret1 _) (TyArrow _ tret2 _)
+cast (TmInt i)    TyInt    = Just $ TmInt i
+cast (TmDouble n) TyDouble = Just $ TmDouble n
+cast (TmString s) TyString = Just $ TmString s
+cast (TmBool b)   TyBool   = Just $ TmBool b
+cast (TmAbs x e targ1 tret1 _) (TyArrow _ tret2 _)
   | tret1 <: tret2 = Just $ TmAbs x e targ1 tret2 true
-typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
-typedReduce (TmRcd l t e) (TyRcd l' t' _)
+cast (TmMerge v1 v2) t = cast v1 t <|> cast v2 t
+cast (TmRcd l t e) (TyRcd l' t' _)
   | l == l' && t <: t' = Just $ TmRcd l t' e
-typedReduce (TmTAbs a1 td1 e t1) (TyForall a2 td2 t2)
+cast (TmTAbs a1 td1 e t1 _) (TyForall a2 td2 t2)
   | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2
-  = Just $ TmTAbs a2 td1 (tmTSubst a1 (TyVar a2) e) t2
-typedReduce (TmFold t v) t'@(TyRec _ _) | t <: t' = Just $ TmFold t' v
-typedReduce (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
-typedReduce _ _ = Nothing
+  = Just $ TmTAbs a2 td1 (tmTSubst a1 (TyVar a2) e) t2 true
+cast (TmFold t v) t'@(TyRec _ _) | t <: t' = Just $ TmFold t' v
+cast (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
+cast _ _ = Nothing
 
 paraApp :: Tm -> Arg -> Tm
 paraApp TmUnit _ = TmUnit
@@ -82,7 +82,9 @@ paraApp (TmAbs x e1 _ _ false) (TmArg e2) = tmSubst x e2 e1
 paraApp (TmAbs x e1 _ tret true) (TmArg e2) = TmAnno (tmSubst x e2 e1) tret
 paraApp (TmAbs x e1 targ tret _) (TmAnnoArg e2) =
   TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
-paraApp (TmTAbs a _ e _) (TyArg ta) = tmTSubst a ta e
+paraApp (TmTAbs a _ e _ false) (TyArg ta) = tmTSubst a ta e
+paraApp (TmTAbs a _ e t true) (TyArg ta) =
+  TmAnno (tmTSubst a ta e) (tySubst a ta t)
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
 paraApp v arg = unsafeCrashWith $ "CP.Semantics.Subst.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
@@ -97,7 +99,7 @@ isValue TmUndefined  = true
 isValue (TmAbs _ _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true
-isValue (TmTAbs _ _ _ _) = true
+isValue (TmTAbs _ _ _ _ _) = true
 isValue (TmFold _ e) = isValue e
 isValue (TmArray _ _) = true
 isValue _ = false

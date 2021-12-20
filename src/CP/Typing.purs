@@ -167,7 +167,7 @@ infer (S.TmTApp e ta) = do
 infer (S.TmTAbs (Cons (Tuple a (Just td)) Nil) e) = do
   td' <- transform td
   Tuple e' t <- addTyBind a td' $ infer e
-  pure $ Tuple (C.TmTAbs a td' e' t) (C.TyForall a td' t)
+  pure $ Tuple (C.TmTAbs a td' e' t false) (C.TyForall a td' t)
 infer (S.TmLet x Nil Nil e1 e2) = do
   Tuple e1' t1 <- infer e1
   Tuple e2' t2 <- addTmBind x t1 $ infer e2
@@ -425,9 +425,8 @@ disjoint _ t | isTopLike t = pure unit
 disjoint (C.TyArrow _ t1 _) (C.TyArrow _ t2 _) = disjoint t1 t2
 disjoint (C.TyAnd t1 t2) t3 = disjoint t1 t3 *> disjoint t2 t3
 disjoint t1 (C.TyAnd t2 t3) = disjoint (C.TyAnd t2 t3) t1
-disjoint (C.TyRcd l1 t1 opt1) (C.TyRcd l2 t2 opt2)
-  | l1 == l2 && not opt1 && not opt2 = disjoint t1 t2
-  | otherwise = pure unit
+disjoint (C.TyRcd l1 t1 _) (C.TyRcd l2 t2 _) | l1 == l2  = disjoint t1 t2
+                                             | otherwise = pure unit
 disjoint (C.TyVar a) t = do
   mt' <- lookupTyBind a
   case mt' of

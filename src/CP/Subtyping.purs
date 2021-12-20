@@ -45,8 +45,8 @@ split :: Ty -> Maybe (Tuple Ty Ty)
 split (TyAnd t1 t2) = Just $ Tuple t1 t2
 split (TyArrow targ tret b) = split tret >>= \(Tuple tret1 tret2) ->
   Just $ Tuple (TyArrow targ tret1 b) (TyArrow targ tret2 b)
-split (TyRcd l t false) = split t >>= \(Tuple t1 t2) ->
-  Just $ Tuple (TyRcd l t1 false) (TyRcd l t2 false)
+split (TyRcd l t b) = split t >>= \(Tuple t1 t2) ->
+  Just $ Tuple (TyRcd l t1 b) (TyRcd l t2 b)
 split (TyForall a td t) = split t >>= \(Tuple t1 t2) ->
   Just $ Tuple (TyForall a td t1) (TyForall a td t2)
 split _ = Nothing

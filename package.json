@@ -7,8 +7,8 @@
     "start": "spago run",
     "test": "spago test",
     "vscode": "cd vscode && vsce package",
-    "grammar": "cd grammar && lezer-generator --noTerms --output cp cp.grammar",
-    "build": "npm run grammar && webpack",
+    "lezer": "lezer-generator --noTerms --output lezer lezer.grammar",
+    "build": "npm run lezer && webpack",
     "server": "cd backend && rails server"
   },
   "repository": "git://github.com/yzyzsun/CP-next.git",
@@ -18,7 +18,7 @@
   "devDependencies": {
     "@codemirror/basic-setup": "^0.19.0",
     "@lezer/generator": "^0.15.2",
-    "purescript": "^0.14.4",
+    "purescript": "^0.14.5",
     "purs-loader": "^3.7.2",
     "spago": "^0.20.3",
     "vsce": "^1.100.1",

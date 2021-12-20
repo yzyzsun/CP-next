@@ -42,7 +42,7 @@ instance Show Ty where
   show (TyArrow t1 t2 false) = parens $ show t1 <+> "→" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
   -- Optional record types can be regarded just as Top, but
-  -- they can help typed reduction keep corresponding fields if present.
+  -- they can help casting keep corresponding fields if present.
   show (TyRcd l t opt) = braces $
     l <> (if opt then "?" else "") <+> ":" <+> show t
   show (TyVar a) = a
@@ -73,7 +73,7 @@ data Tm = TmInt Int
         | TmRcd Label Ty Tm
         | TmPrj Tm Label
         | TmTApp Tm Ty
-        | TmTAbs Name Ty Tm Ty
+        | TmTAbs Name Ty Tm Ty Boolean
         | TmFold Ty Tm
         | TmUnfold Ty Tm
         | TmToString Tm
@@ -85,7 +85,7 @@ data Tm = TmInt Int
         -- Only used in HOAS-based semantics for variable binding:
         | TmHAbs (Tm -> Tm) Ty Ty Boolean
         | TmHFix (Tm -> Tm) Ty
-        | TmHTAbs (Ty -> Tm) Ty (Ty -> Ty)
+        | TmHTAbs (Ty -> Tm) Ty (Ty -> Ty) Boolean
 
 instance Show Tm where
   show (TmInt i)    = show i
@@ -108,7 +108,7 @@ instance Show Tm where
   show (TmRcd l t e) = braces $ l <+> ":" <+> show t <+> "=" <+> show e
   show (TmPrj e l) = show e <> "." <> l
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
-  show (TmTAbs a td e t) = parens $ "Λ" <> a <> "." <+> show e <+>
+  show (TmTAbs a td e t _refined) = parens $ "Λ" <> a <> "." <+> show e <+>
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
   show (TmFold t e) = parens $ "fold @" <> show t <+> show e
   show (TmUnfold t e) = parens $ "unfold @" <> show t <+> show e
@@ -120,7 +120,7 @@ instance Show Tm where
   show (TmHAbs _abs targ tret _refined) = angles $
     "HOAS" <+> show targ <+> "→" <+> show tret
   show (TmHFix _fix t) = angles $ "HOAS fix" <+> show t
-  show (TmHTAbs _tabs td _tf) = angles $ "HOAS ∀*" <+> show td
+  show (TmHTAbs _tabs td _tf _refined) = angles $ "HOAS ∀*" <+> show td
 
 -- HOAS --
 
@@ -165,9 +165,9 @@ tmConvert env (TmMerge e1 e2) = TmMerge (tmConvert env e1) (tmConvert env e2)
 tmConvert env (TmRcd l t e) = TmRcd l (tyConvert env t) (tmConvert env e)
 tmConvert env (TmPrj e l) = TmPrj (tmConvert env e) l
 tmConvert env (TmTApp e t) = TmTApp (tmConvert env e) (tyConvert env t)
-tmConvert env (TmTAbs a td e t) =
+tmConvert env (TmTAbs a td e t b) =
   TmHTAbs (\ty -> tmConvert (insert a (Right ty) env) e)
-          (tyConvert env td) (tyHoas' env a t)
+          (tyConvert env td) (tyHoas' env a t) b
 tmConvert env (TmFold t e) = TmFold (tyConvert env t) (tmConvert env e)
 tmConvert env (TmUnfold t e) = TmUnfold (tyConvert env t) (tmConvert env e)
 tmConvert env (TmToString e) = TmToString (tmConvert env e)
@@ -209,7 +209,7 @@ tmSubst x v (TmMerge e1 e2) = TmMerge (tmSubst x v e1) (tmSubst x v e2)
 tmSubst x v (TmRcd l t e) = TmRcd l t (tmSubst x v e)
 tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
-tmSubst x v (TmTAbs a td e t) = TmTAbs a td (tmSubst x v e) t
+tmSubst x v (TmTAbs a td e t b) = TmTAbs a td (tmSubst x v e) t b
 tmSubst x v (TmFold t e) = TmFold t (tmSubst x v e)
 tmSubst x v (TmUnfold t e) = TmUnfold t (tmSubst x v e)
 tmSubst x v (TmToString e) = TmToString (tmSubst x v e)
@@ -231,8 +231,8 @@ tmTSubst a s (TmMerge e1 e2) = TmMerge (tmTSubst a s e1) (tmTSubst a s e2)
 tmTSubst a s (TmRcd l t e) = TmRcd l (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmPrj e l) = TmPrj (tmTSubst a s e) l
 tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
-tmTSubst a s (TmTAbs a' td e t) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
-                                  (if a == a' then t else tySubst a s t)
+tmTSubst a s (TmTAbs a' td e t b) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
+                                    (if a == a' then t else tySubst a s t) b
 tmTSubst a s (TmFold t e) = TmFold (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmUnfold t e) = TmUnfold (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmToString e) = TmToString (tmTSubst a s e)

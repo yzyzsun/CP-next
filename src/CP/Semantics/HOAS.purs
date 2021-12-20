@@ -45,10 +45,10 @@ eval = runTrampoline <<< go <<< tmHoas
     go e@(TmHFix fix _) = go $ fix e
     go anno@(TmAnno e t) = do
       e' <- go' e
-      case typedReduce e' t of
+      case cast e' t of
         Just e'' -> go e''
         Nothing -> unsafeCrashWith $
-          "CP.Semantics.HOAS.eval: impossible typed reduction " <> show anno
+          "CP.Semantics.HOAS.eval: impossible casting " <> show anno
       where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
@@ -56,7 +56,7 @@ eval = runTrampoline <<< go <<< tmHoas
     go (TmRcd l t e) = pure $ TmRcd l t (TmRef (new e))
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
-    go e@(TmHTAbs _ _ _) = pure e
+    go e@(TmHTAbs _ _ _ _) = pure e
     go (TmFold t e) = TmFold t <$> go e
     go (TmUnfold t e) = if isTopLike t then pure TmUnit else go e >>= go'
       where go' :: Tm -> Eval Tm
@@ -73,33 +73,33 @@ eval = runTrampoline <<< go <<< tmHoas
     go e = unsafeCrashWith $ "CP.Semantics.HOAS.eval: " <>
       "well-typed programs don't get stuck, but got " <> show e
 
-typedReduce :: Tm -> Ty -> Maybe Tm
-typedReduce e _ | not (isValue e) = unsafeCrashWith $
-  "CP.Semantics.HOAS.typedReduce: " <> show e <> " is not a value"
-typedReduce _ t | isTopLike t = Just TmUnit
-typedReduce v t | Just (Tuple t1 t2) <- split t = do
+cast :: Tm -> Ty -> Maybe Tm
+cast e _ | not (isValue e) = unsafeCrashWith $
+  "CP.Semantics.HOAS.cast: " <> show e <> " is not a value"
+cast _ t | isTopLike t = Just TmUnit
+cast v t | Just (Tuple t1 t2) <- split t = do
   let m1 = isOptionalRcd t1
       m2 = isOptionalRcd t2
-      v1 = typedReduce v t1
-      v2 = typedReduce v t2
+      v1 = cast v t1
+      v2 = cast v t2
   (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
   where isOptionalRcd (TyRcd _ _ true) = Just TmUnit
         isOptionalRcd _ = Nothing
-typedReduce (TmInt i)    TyInt    = Just $ TmInt i
-typedReduce (TmDouble n) TyDouble = Just $ TmDouble n
-typedReduce (TmString s) TyString = Just $ TmString s
-typedReduce (TmBool b)   TyBool   = Just $ TmBool b
-typedReduce (TmHAbs abs targ1 tret1 _) (TyArrow _ tret2 _)
+cast (TmInt i)    TyInt    = Just $ TmInt i
+cast (TmDouble n) TyDouble = Just $ TmDouble n
+cast (TmString s) TyString = Just $ TmString s
+cast (TmBool b)   TyBool   = Just $ TmBool b
+cast (TmHAbs abs targ1 tret1 _) (TyArrow _ tret2 _)
   | tret1 <: tret2 = Just $ TmHAbs abs targ1 tret2 true
-typedReduce (TmMerge v1 v2) t = typedReduce v1 t <|> typedReduce v2 t
-typedReduce (TmRcd l t e) (TyRcd l' t' _)
+cast (TmMerge v1 v2) t = cast v1 t <|> cast v2 t
+cast (TmRcd l t e) (TyRcd l' t' _)
   | l == l' && t <: t' = Just $ TmRcd l t' e
-typedReduce (TmHTAbs tabs td1 tf1) (TyForall a td2 t2)
+cast (TmHTAbs tabs td1 tf1 _) (TyForall a td2 t2)
   | td2 <: td1 && tf1 (TyVar a) <: t2
-  = Just $ TmHTAbs tabs td1 (tyHoas a t2)
-typedReduce (TmFold t v) t'@(TyRec _ _) | t <: t' = Just $ TmFold t' v
-typedReduce (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
-typedReduce _ _ = Nothing
+  = Just $ TmHTAbs tabs td1 (tyHoas a t2) true
+cast (TmFold t v) t'@(TyRec _ _) | t <: t' = Just $ TmFold t' v
+cast (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
+cast _ _ = Nothing
 
 paraApp :: Tm -> Arg -> Tm
 paraApp TmUnit _ = TmUnit
@@ -107,7 +107,8 @@ paraApp (TmHAbs abs _ _ false) (TmArg e) = abs $ TmRef $ new e
 paraApp (TmHAbs abs _ tret true) (TmArg e) = TmAnno (abs $ TmRef $ new e) tret
 paraApp (TmHAbs abs targ tret _) (TmAnnoArg e) =
   TmAnno (abs $ TmRef $ new $ TmAnno e targ) tret
-paraApp (TmHTAbs tabs _ _) (TyArg ta) = tabs ta
+paraApp (TmHTAbs tabs _ _ false) (TyArg ta) = tabs ta
+paraApp (TmHTAbs tabs _ tf true) (TyArg ta) = TmAnno (tabs ta) (tf ta)
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
 paraApp v arg = unsafeCrashWith $ "CP.Semantics.HOAS.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
@@ -122,7 +123,7 @@ isValue TmUndefined  = true
 isValue (TmHAbs _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true
-isValue (TmHTAbs _ _ _) = true
+isValue (TmHTAbs _ _ _ _) = true
 isValue (TmFold _ e) = isValue e
 isValue (TmArray _ _) = true
 isValue _ = false

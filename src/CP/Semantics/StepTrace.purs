@@ -8,7 +8,7 @@ import Data.Monoid.Endo (Endo(..))
 import Data.Newtype (unwrap)
 import Data.Tuple (Tuple)
 import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
-import Language.CP.Semantics.Subst (isValue, paraApp, typedReduce)
+import Language.CP.Semantics.Subst (cast, isValue, paraApp)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Core (Tm(..), tmSubst, unfold)
 import Language.CP.Util (unsafeFromJust)
@@ -51,7 +51,7 @@ step (TmApp e1 e2 coercive)
 step fix@(TmFix x e _) = computation "Fix" $> tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = computation "AnnoAnno" $> TmAnno e t
 step (TmAnno e t)
-  | isValue e = computation "AnnoV" $> unsafeFromJust (typedReduce e t)
+  | isValue e = computation "AnnoV" $> unsafeFromJust (cast e t)
   | otherwise = congruence  "Anno"  $> TmAnno <*> step e <@> t
 step (TmMerge e1 e2)
   | isValue e1 = congruence "MergeR" $> TmMerge e1 <*> step e2
