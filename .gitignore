@@ -185,6 +185,14 @@ ott/*.tex
 ### Lezer ###
 lezer.js
 
+### ANTLR ###
+.antlr/
+*.interp
+*.tokens
+antlr/CPLexer.js
+antlr/CPParser.js
+antlr/CPParserVisitor.js
+
 ### Editors ###
 .idea/
 .vscode/
@@ -193,8 +201,3 @@ lezer.js
 
 ### macOS ###
 .DS_Store
-
-### ANTLR ###
-/ANTLRParser/*.tokens
-/ANTLRParser/*.interp
-/ANTLRParser/.antlr/

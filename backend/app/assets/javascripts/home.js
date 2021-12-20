@@ -13,17 +13,15 @@ const view = editorView(editorState($('#code').val()));
 
 function interpret(callback) {
   const run = prog => preprocess(prog).then(code => {
-    // output = bundle.CP.interpret(code)(bundle.CP.BigStep.value)();
-    output = bundle.CP.execute(bundle.parse(code))();
+    output = bundle.interpret(code);
     if (output.startsWith('"')) output = JSON.parse(output);
     $('#output').html(output);
     callback();
-  })
-  // .catch(err => {
-  //   $('#error').text(err);
-  //   $('#error').html($('#error').html().replace(/\n/g, '<br>'));
-  //   callback();
-  // });
+  }).catch(err => {
+    $('#error').text(err);
+    $('#error').html($('#error').html().replace(/\n/g, '<br>'));
+    callback();
+  });
   const libErr = msg => {
     $('#require-library').addClass('is-invalid');
     $('#error').text(msg);

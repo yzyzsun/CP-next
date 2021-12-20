@@ -1,29 +1,24 @@
-import antlr4 from 'antlr4'
-import CPnextLexer from './CPnextLexer.js'
-import CPnextParser from './CPnextParser.js'
-import CPnextParserVisitor from './CPnextParserVisitor.js'
-import { default as AST } from '../src/CP/Syntax/Source.purs'
-import { default as OP } from '../src/CP/Syntax/Common.purs'
-// import { default as Either } from '../.spago/either/v5.0.0/src/Data/Either.purs'
-// import { default as Maybe } from '../.spago/maybe/v5.0.0/src/Data/Maybe.purs'
-// import { default as Tuple } from '../.spago/tuples/v6.0.1/src/Data/Tuple.purs'
-// import { default as List } from '../.spago/lists/v6.0.1/src/Data/List/Types.purs'
-import {default as P} from '../src/JSDep.purs'
+import CPParser from './CPParser.js';
+import CPParserVisitor from './CPParserVisitor.js';
+
+import { default as AST } from '../src/CP/Syntax/Source.purs';
+import { default as OP } from '../src/CP/Syntax/Common.purs';
+import { default as PS } from '../src/PS.purs';
 
 
-export default class CPnextASTMaker extends CPnextParserVisitor {
+export default class CPVisitor extends CPParserVisitor {
 
     // Convert array to list
     listify(array) {
-        let list = P.Nil.value;
+        let list = PS.Nil.value;
         for (let each of array.reverse()){
-            list = new P.Cons(each, list);
+            list = new PS.Cons(each, list);
         }
         return list;
     }
 
 
-    // Visit a parse tree produced by CPnextParser#program.
+    // Visit a parse tree produced by CPParser#program.
 	visitProgram(ctx) {
         const expression = ctx.expression();
         const definitions = ctx.definition();
@@ -32,27 +27,27 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             program = this.visitDefinition(definitions[i], program);
         }
         return program;
-    } 
-  
-  
-    // Visit a parse tree produced by CPnextParser#open.
+    }
+
+
+    // Visit a parse tree produced by CPParser#open.
     visitOpen(ctx) {
         return null;
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#definition.
+
+
+    // Visit a parse tree produced by CPParser#definition.
     visitDefinition(ctx, program) {
         const typeDef = ctx.typeDef();
         const termDef = ctx.termDef();
-        if(typeDef !== null)
+        if (typeDef !== null)
             return this.visitTypeDef(typeDef, program);
         else
             return this.visitTermDef(termDef, program);
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#typeDef.
+
+
+    // Visit a parse tree produced by CPParser#typeDef.
     visitTypeDef(ctx, p) {
         const typeNameDecls = ctx.typeNameDecl();
         const angleTNDCount = ctx.Less().length;
@@ -63,20 +58,20 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
         const t = this.visitType(type);
         return new AST.TmType(a, sorts, parms, t, p);
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#termDef.
+
+
+    // Visit a parse tree produced by CPParser#termDef.
     visitTermDef(ctx, p) {
         const x = this.visitTermNameDecl(ctx.termNameDecl());
         const tys = this.listify(ctx.typeParam().map(this.visitTypeParam, this));
         const tms = this.listify(ctx.termParam().map(this.visitTermParam, this));
-        const t = ctx.type() === null ? P.Nothing.value : new P.Just(this.visitType(ctx.type()));
+        const t = ctx.type() === null ? PS.Nothing.value : new PS.Just(this.visitType(ctx.type()));
         const e = this.visitExpression(ctx.expression());
         return new AST.TmDef(x, tys, tms, t, e, p);
     }
 
 
-    // Visit a parse tree produced by CPnextParser#type.
+    // Visit a parse tree produced by CPParser#type.
     visitType(ctx) {
         if (ctx.btype() !== null) {
             return this.visitBtype(ctx.btype());
@@ -88,20 +83,19 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             console.error("Error at type");
         }
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#btype.
+
+
+    // Visit a parse tree produced by CPParser#btype.
     visitBtype(ctx) {
         if (ctx.ForAll() !== null) {
             return new AST.TyForall(this.listify(ctx.typeParam().map(this.visitTypeParam, this)), this.visitType(ctx.type(0)));
-        }
-        else if (ctx.TraitCaps() !== null){
+        } else if (ctx.TraitCaps() !== null){
             if (ctx.TraitArrow() === null){
-                const ti = P.Nothing.value;
+                const ti = PS.Nothing.value;
                 const to = this.visitType(ctx.type(0));
                 return new AST.TyTrait(ti, to);
             } else {
-                const ti = new P.Just(this.visitType(ctx.type(0)));
+                const ti = new PS.Just(this.visitType(ctx.type(0)));
                 const to = this.visitType(ctx.type(1));
                 return new AST.TyTrait(ti, to);
             };
@@ -116,9 +110,9 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
                 const child = ctx.getChild(i);
                 if (child.ruleIndex === undefined){
                     continue;
-                } else if (child.ruleIndex === CPnextParser.RULE_sort){
+                } else if (child.ruleIndex === CPParser.RULE_sort){
                     btype = new AST.TyApp(btype, this.visitSort(child));
-                } else if (child.ruleIndex === CPnextParser.RULE_atype){
+                } else if (child.ruleIndex === CPParser.RULE_atype){
                     btype = new AST.TyApp(btype, this.visitAtype(child));
                 } else {
                     console.error("Error at btype");
@@ -129,50 +123,50 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
     }
 
 
-    // Visit a parse tree produced by CPnextParser#atype.
+    // Visit a parse tree produced by CPParser#atype.
 	visitAtype(ctx) {
         if (ctx.getChild(0).symbol === undefined){
             switch (ctx.getChild(0).ruleIndex) {
-                case CPnextParser.RULE_typeName:
+                case CPParser.RULE_typeName:
                     return this.visitTypeName(ctx.typeName());
-                case CPnextParser.RULE_recordType:
+                case CPParser.RULE_recordType:
                     return this.visitRecordType(ctx.recordType());
                 default:
-                    console.error("Error at Atype");
+                    console.error("Error at atype");
             }
         } else {
             switch (ctx.getChild(0).symbol.type) {
-                case CPnextParser.Int :
+                case CPParser.Int :
                     return AST.TyInt.value;
-                case CPnextParser.Double :
+                case CPParser.Double :
                     return AST.TyDouble.value;
-                case CPnextParser.Bool :
+                case CPParser.Bool :
                     return AST.TyBool.value;
-                case CPnextParser.StringType :
+                case CPParser.StringType :
                     return AST.TyString.value;
-                case CPnextParser.Top :
+                case CPParser.Top :
                     return AST.TyTop.value;
-                case CPnextParser.Bot :
+                case CPParser.Bot :
                     return AST.TyBot.value;
-                case CPnextParser.BracketOpen :
+                case CPParser.BracketOpen :
                     return new AST.TyArray(
                         this.visitType(ctx.type())
                     );
-                case CPnextParser.ParenOpen :
+                case CPParser.ParenOpen :
                     return this.visitType(ctx.type());
                 default:
-                    console.error("Error at Atype");
+                    console.error("Error at atype");
             }
         }
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#recordType.
+
+
+    // Visit a parse tree produced by CPParser#recordType.
     visitRecordType(ctx) {
         return new AST.TyRcd(this.listify(ctx.recordTypeElement().map(this.visitRecordTypeElement, this)));
     }
 
-    // Visit a parse tree produced by CPnextParser#recordTypeElement.
+    // Visit a parse tree produced by CPParser#recordTypeElement.
 	visitRecordTypeElement(ctx) {
         return new AST.RcdTy(
             this.visitLabelDecl(ctx.labelDecl()),
@@ -182,7 +176,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
     }
 
 
-    // Visit a parse tree produced by CPnextParser#expression.
+    // Visit a parse tree produced by CPParser#expression.
     visitExpression(ctx) {
         const position = {line: ctx.start.line, column: ctx.start.column};
         const opexpr = this.visitOpexpr(ctx.opexpr());
@@ -203,7 +197,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
         return new AST.TmPos(position, colonexpr);
     }
 
-    // Visit a parse tree produced by CPnextParser#opexpr.
+    // Visit a parse tree produced by CPParser#opexpr.
 	visitOpexpr(ctx) {
         const count = ctx.getChildCount();
         let op = null
@@ -213,13 +207,13 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             case 2:
                 const opexpr = this.visitOpexpr(ctx.opexpr(0));
                 switch (ctx.getChild(0).symbol.type) {
-                    case CPnextParser.Minus:
+                    case CPParser.Minus:
                         op = OP.Neg.value;
                         break;
-                    case CPnextParser.Not:
+                    case CPParser.Not:
                         op = OP.Not.value;
                         break;
-                    case CPnextParser.Length:
+                    case CPParser.Length:
                         op = OP.Len.value;
                         break;
                     default:
@@ -230,54 +224,54 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
                 const opexpr1 = this.visitOpexpr(ctx.opexpr(0));
                 const opexpr2 = this.visitOpexpr(ctx.opexpr(1));
                 switch (ctx.getChild(1).symbol.type) {
-                    case CPnextParser.Index:
+                    case CPParser.Index:
                         op = OP.Index.value;
                         break;
-                    case CPnextParser.Modulo:
+                    case CPParser.Modulo:
                         op = new OP.Arith(OP.Mod.value);
                         break;
-                    case CPnextParser.Divide:
+                    case CPParser.Divide:
                         op = new OP.Arith(OP.Div.value);
                         break;
-                    case CPnextParser.Star:
+                    case CPParser.Star:
                         op = new OP.Arith(OP.Mul.value);
                         break;
-                    case CPnextParser.Minus:
+                    case CPParser.Minus:
                         op = new OP.Arith(OP.Sub.value);
                         break;
-                    case CPnextParser.Plus:
+                    case CPParser.Plus:
                         op = new OP.Arith(OP.Add.value);
                         break;
-                    case CPnextParser.Append:
+                    case CPParser.Append:
                         op = OP.Append.value;
                         break;
-                    case CPnextParser.Less:
+                    case CPParser.Less:
                         op = new OP.Comp(OP.Lt.value);
                         break;
-                    case CPnextParser.Greater:
+                    case CPParser.Greater:
                         op = new OP.Comp(OP.Gt.value);
                         break;
-                    case CPnextParser.LessEqual:
+                    case CPParser.LessEqual:
                         op = new OP.Comp(OP.Le.value);
                         break;
-                    case CPnextParser.GreaterEqual:
+                    case CPParser.GreaterEqual:
                         op = new OP.Comp(OP.Ge.value);
                         break;
-                    case CPnextParser.Equal:
+                    case CPParser.Equal:
                         op = new OP.Comp(OP.Eql.value);
                         break;
-                    case CPnextParser.NotEqual:
+                    case CPParser.NotEqual:
                         op = new OP.Comp(OP.Neq.value);
                         break;
-                    case CPnextParser.And:
+                    case CPParser.And:
                         op = new OP.Logic(OP.And.value);
                         break;
-                    case CPnextParser.Or:
+                    case CPParser.Or:
                         op = new OP.Logic(OP.Or.value);
                         break;
-                    case CPnextParser.Forward:
+                    case CPParser.Forward:
                         return new AST.TmForward(opexpr1, opexpr2);
-                    case CPnextParser.Merge:
+                    case CPParser.Merge:
                         return new AST.TmMerge(opexpr1, opexpr2);
                     default:
                         console.error("Error in Binary Opexpr");
@@ -287,58 +281,58 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
 
     }
 
-	// Visit a parse tree produced by CPnextParser#lexpr.
+	// Visit a parse tree produced by CPParser#lexpr.
 	visitLexpr(ctx) {
         switch (ctx.getChild(0).ruleIndex) {
-            case CPnextParser.RULE_fexpr:
+            case CPParser.RULE_fexpr:
                 return this.visitFexpr(ctx.fexpr());
-            case CPnextParser.RULE_lambda:
+            case CPParser.RULE_lambda:
                 return this.visitLambda(ctx.lambda());
-            case CPnextParser.RULE_bigLambda:
+            case CPParser.RULE_bigLambda:
                 return this.visitBigLambda(ctx.bigLambda());
-            case CPnextParser.RULE_let_:
+            case CPParser.RULE_let_:
                 return this.visitLet_(ctx.let_());
-            case CPnextParser.RULE_letRec:
+            case CPParser.RULE_letRec:
                 return this.visitLetRec(ctx.letRec());
-            case CPnextParser.RULE_open_:
+            case CPParser.RULE_open_:
                 return this.visitOpen_(ctx.open_());
-            case CPnextParser.RULE_ifElse:
+            case CPParser.RULE_ifElse:
                 return this.visitIfElse(ctx.ifElse());
-            case CPnextParser.RULE_trait:
+            case CPParser.RULE_trait:
                 return this.visitTrait(ctx.trait());
-            case CPnextParser.RULE_new_:
+            case CPParser.RULE_new_:
                 return this.visitNew_(ctx.new_());
-            case CPnextParser.RULE_toString_:
+            case CPParser.RULE_toString_:
                 return this.visitToString_(ctx.toString_());
-            case CPnextParser.RULE_fold:
+            case CPParser.RULE_fold:
                 return this.visitFold(ctx.fold());
-            case CPnextParser.RULE_unfold:
+            case CPParser.RULE_unfold:
                 return this.visitUnfold(ctx.unfold());
             default:
                 console.error("Error in Lexpr");
         }
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#lambda.
+
+
+    // Visit a parse tree produced by CPParser#lambda.
     visitLambda(ctx) {
         return new AST.TmAbs(
             this.listify(ctx.termParam().map(this.visitTermParam, this)),
             this.visitExpression(ctx.expression())
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#bigLambda.
+
+
+    // Visit a parse tree produced by CPParser#bigLambda.
     visitBigLambda(ctx) {
         return new AST.TmTAbs(
             this.listify(ctx.typeParam().map(this.visitTypeParam, this)),
             this.visitExpression(ctx.expression())
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#let_.
+
+
+    // Visit a parse tree produced by CPParser#let_.
     visitLet_(ctx) {
         return new AST.TmLet(
             this.visitTermNameDecl(ctx.termNameDecl()),
@@ -348,9 +342,9 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             this.visitExpression(ctx.expression(1))
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#letRec.
+
+
+    // Visit a parse tree produced by CPParser#letRec.
     visitLetRec(ctx) {
         return new AST.TmLetrec(
             this.visitTermNameDecl(ctx.termNameDecl()),
@@ -361,18 +355,18 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             this.visitExpression(ctx.expression(1))
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#open_.
+
+
+    // Visit a parse tree produced by CPParser#open_.
     visitOpen_(ctx) {
         return new AST.TmOpen(
             this.visitExpression(ctx.expression(0)),
             this.visitExpression(ctx.expression(1))
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#ifElse.
+
+
+    // Visit a parse tree produced by CPParser#ifElse.
     visitIfElse(ctx) {
         return new AST.TmIf(
             this.visitExpression(ctx.expression(0)),
@@ -380,30 +374,29 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             this.visitExpression(ctx.expression(2))
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#trait.
+
+
+    // Visit a parse tree produced by CPParser#trait.
     visitTrait(ctx) {
         let x = new AST.TmTrait(
-            ctx.selfAnno() === null ? P.Nothing.value : new P.Just(this.visitSelfAnno(ctx.selfAnno())),
-            ctx.type() === null ? P.Nothing.value : new P.Just(this.visitType(ctx.type())),
-            ctx.opexpr().length === 2 ? new P.Just(this.visitOpexpr(ctx.opexpr(0))) : P.Nothing.value,
+            ctx.selfAnno() === null ? PS.Nothing.value : new PS.Just(this.visitSelfAnno(ctx.selfAnno())),
+            ctx.type() === null ? PS.Nothing.value : new PS.Just(this.visitType(ctx.type())),
+            ctx.opexpr().length === 2 ? new PS.Just(this.visitOpexpr(ctx.opexpr(0))) : PS.Nothing.value,
             ctx.opexpr().length === 2 ? this.visitOpexpr(ctx.opexpr(1)) : this.visitOpexpr(ctx.opexpr(0))
         );
-        console.log(x);
         return x;
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#new_.
+
+
+    // Visit a parse tree produced by CPParser#new_.
     visitNew_(ctx) {
         return new AST.TmNew(
             this.visitOpexpr(ctx.opexpr())
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#toString_.
+
+
+    // Visit a parse tree produced by CPParser#toString_.
     visitToString_(ctx) {
         return new AST.TmToString(
             this.visitDotexpr(ctx.dotexpr())
@@ -411,16 +404,16 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
     }
 
 
-    // Visit a parse tree produced by CPnextParser#fold.
+    // Visit a parse tree produced by CPParser#fold.
 	visitFold(ctx) {
         return new AST.TmFold(
             this.visitAtype(ctx.atype()),
             this.visitDotexpr(ctx.dotexpr())
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#unfold.
+
+
+    // Visit a parse tree produced by CPParser#unfold.
     visitUnfold(ctx) {
         return new AST.TmUnfold(
             this.visitAtype(ctx.atype()),
@@ -429,17 +422,17 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
     }
 
 
-    // Visit a parse tree produced by CPnextParser#fexpr.
+    // Visit a parse tree produced by CPParser#fexpr.
     visitFexpr(ctx) {
         const c = ctx.getChild(0);
         let fexpr = undefined;
         let isCtor = undefined;
         switch(c.ruleIndex){
-            case CPnextParser.RULE_typeNameDecl:
+            case CPParser.RULE_typeNameDecl:
                 fexpr = new AST.TmVar(this.visitTypeNameDecl(c));
                 isCtor = true;
                 break;
-            case CPnextParser.RULE_dotexpr:
+            case CPParser.RULE_dotexpr:
                 fexpr = this.visitDotexpr(c);
                 isCtor = false;
                 break;
@@ -450,9 +443,9 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             let child = ctx.getChild(i);
             if (child.ruleIndex === undefined){
                 continue;
-            } else if (child.ruleIndex === CPnextParser.RULE_dotexpr) {
+            } else if (child.ruleIndex === CPParser.RULE_dotexpr) {
                 fexpr = new AST.TmApp(fexpr, this.visitDotexpr(child));
-            } else if (child.ruleIndex === CPnextParser.RULE_atype) {
+            } else if (child.ruleIndex === CPParser.RULE_atype) {
                 fexpr = new AST.TmTApp(fexpr, this.visitAtype(child));
             } else {
                 console.error("Error at fexpr");
@@ -464,9 +457,9 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             return fexpr;
         }
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#dotexpr.
+
+
+    // Visit a parse tree produced by CPParser#dotexpr.
     visitDotexpr(ctx) {
         let dotexpr = this.visitAexpr(ctx.aexpr());
         for (let i = 0;i<ctx.label().length; i++){
@@ -474,14 +467,14 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
         }
         return dotexpr;
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#aexpr.
+
+
+    // Visit a parse tree produced by CPParser#aexpr.
     visitAexpr(ctx) {
         let child = ctx.getChild(0);
         if (child.ruleIndex === undefined){
             switch (child.symbol.type){
-                case CPnextParser.Number:
+                case CPParser.Number:
                     let num = child.getText();
                     if (num.includes('.') || num.includes('e') || num.includes('E')){
                         return new AST.TmDouble(parseFloat(num));
@@ -492,7 +485,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
                     } else {
                         return new AST.TmInt(parseInt(num));
                     }
-                case CPnextParser.String:
+                case CPParser.String:
                     let s = child.getText().slice(1,-1);
                     let s_ = "";
                     for (let i=0;i<s.length;i++){
@@ -509,49 +502,49 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
                         }
                     }
                     return new AST.TmString(s_);
-                case CPnextParser.Unit:
+                case CPParser.Unit:
                     return AST.TmUnit.value;
-                case CPnextParser.True_:
+                case CPParser.True_:
                     return new AST.TmBool(true);
-                case CPnextParser.False_:
+                case CPParser.False_:
                     return new AST.TmBool(false);
-                case CPnextParser.Undefined_:
+                case CPParser.Undefined_:
                     return AST.TmUndefined.value;
-                case CPnextParser.Dollar:
+                case CPParser.Dollar:
                     return new AST.TmVar(this.visitTypeNameDecl(ctx.typeNameDecl()));
-                case CPnextParser.ParenOpen:
+                case CPParser.ParenOpen:
                     return this.visitExpression(ctx.expression());
                 default:
                     console.error("error at aexpr");
             }
         } else {
             switch (child.ruleIndex){
-                case CPnextParser.RULE_termName:
+                case CPParser.RULE_termName:
                     return this.visitTermName(ctx.termName());
-                case CPnextParser.RULE_document:
+                case CPParser.RULE_document:
                     return this.visitDocument(ctx.document());
-                case CPnextParser.RULE_array:
+                case CPParser.RULE_array:
                     return this.visitArray(ctx.array());
-                case CPnextParser.RULE_record:
+                case CPParser.RULE_record:
                     return this.visitRecord(ctx.record());
-                case CPnextParser.RULE_recordUpdate:
+                case CPParser.RULE_recordUpdate:
                     return this.visitRecordUpdate(ctx.recordUpdate());
                 default:
                     console.error("Error at Aexpr");
             }
         }
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#array.
+
+
+    // Visit a parse tree produced by CPParser#array.
     visitArray(ctx) {
         return new AST.TmArray(
             ctx.expression().map(this.visitExpression, this)
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#record.
+
+
+    // Visit a parse tree produced by CPParser#record.
     visitRecord(ctx) {
         const record = [];
         for(let i = 0; i<ctx.getChildCount(); i++) {
@@ -560,13 +553,13 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
                 continue;
             } else {
                 switch (child.ruleIndex) {
-                    case CPnextParser.RULE_recordField:
+                    case CPParser.RULE_recordField:
                         record.push(this.visitRecordField(child));
                         break;
-                    case CPnextParser.RULE_methodPattern:
+                    case CPParser.RULE_methodPattern:
                         record.push(this.visitMethodPattern(child));
                         break;
-                    case CPnextParser.RULE_defaultPattern:
+                    case CPParser.RULE_defaultPattern:
                         record.push(this.visitDefaultPattern(child));
                         break;
                     default:
@@ -576,24 +569,24 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
         }
         return new AST.TmRcd(this.listify(record));
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#recordField.
+
+
+    // Visit a parse tree produced by CPParser#recordField.
     visitRecordField(ctx) {
         return new AST.RcdField(
             ctx.Override() !== null,
             this.visitLabelDecl(ctx.labelDecl()),
             this.listify(ctx.termParam().map(this.visitTermParam, this)),
-            new P.Left(this.visitExpression(ctx.expression()))
+            new PS.Left(this.visitExpression(ctx.expression()))
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#recordUpdate.
+
+
+    // Visit a parse tree produced by CPParser#recordUpdate.
     visitRecordUpdate(ctx) {
         const fields = [];
         for (let i=0;i<ctx.labelDecl().length;i++){
-            fields.push(new P.Tuple(
+            fields.push(new PS.Tuple(
                 this.visitLabelDecl(ctx.labelDecl(i)),
                 this.visitExpression(ctx.expression(i+1))
             ));
@@ -602,21 +595,21 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             this.visitExpression(ctx.expression(0)), this.listify(fields)
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#methodPattern.
+
+
+    // Visit a parse tree produced by CPParser#methodPattern.
     visitMethodPattern(ctx) {
         const params = [];
         const params_ = [];
         let j = 0;
         for (let i = 0;i<ctx.getChildCount();i++){
-            if(ctx.getChild(i).ruleIndex === CPnextParser.RULE_termParam){
+            if(ctx.getChild(i).ruleIndex === CPParser.RULE_termParam){
                 if (j == 0)
                     params.push(this.visitTermParam(ctx.getChild(i)));
                 else
                     params_.push(this.visitTermParam(ctx.getChild(i)));
             } else {
-                if (i > 0 && ctx.getChild(i-1).ruleIndex === CPnextParser.RULE_termParam){
+                if (i > 0 && ctx.getChild(i-1).ruleIndex === CPParser.RULE_termParam){
                     j++;
                 }
             }
@@ -625,21 +618,21 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             ctx.Override() !== null,
             this.visitLabelDecl(ctx.labelDecl(0)),
             this.listify(params),
-            new P.Right(new AST.MethodPattern(
-                ctx.selfAnno() === null? P.Nothing.value : new P.Just(this.visitSelfAnno(ctx.selfAnno())),
+            new PS.Right(new AST.MethodPattern(
+                ctx.selfAnno() === null? PS.Nothing.value : new PS.Just(this.visitSelfAnno(ctx.selfAnno())),
                 this.visitLabelDecl(ctx.labelDecl(1)),
                 this.listify(params_),
                 this.visitExpression(ctx.expression())
             ))
         );
     }
-  
 
-	// Visit a parse tree produced by CPnextParser#defaultPattern.
+
+	// Visit a parse tree produced by CPParser#defaultPattern.
 	visitDefaultPattern(ctx) {
         return new AST.DefaultPattern(
             new AST.MethodPattern(
-                ctx.selfAnno() === null? P.Nothing.value : new P.Just(this.visitSelfAnno(ctx.selfAnno())),
+                ctx.selfAnno() === null? PS.Nothing.value : new PS.Just(this.visitSelfAnno(ctx.selfAnno())),
                 this.visitLabelDecl(ctx.labelDecl()),
                 this.listify(ctx.termParam().map(this.visitTermParam, this)),
                 this.visitExpression(ctx.expression())
@@ -647,27 +640,27 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
         );
     }
 
-  
-    // Visit a parse tree produced by CPnextParser#typeParam.
+
+    // Visit a parse tree produced by CPParser#typeParam.
     visitTypeParam(ctx) {
-        return new P.Tuple(
+        return new PS.Tuple(
             this.visitTypeNameDecl(ctx.typeNameDecl()),
-            ctx.type() === null? P.Nothing.value : new P.Just(this.visitType(ctx.type()))
+            ctx.type() === null? PS.Nothing.value : new PS.Just(this.visitType(ctx.type()))
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#termParam.
+
+
+    // Visit a parse tree produced by CPParser#termParam.
     visitTermParam(ctx) {
         switch (ctx.getChildCount()){
             case 1:
                 switch (ctx.getChild(0).ruleIndex){
-                    case CPnextParser.RULE_termId:
+                    case CPParser.RULE_termId:
                         return new AST.TmParam(
                             this.visitTermId(ctx.termId()),
-                            P.Nothing.value
+                            PS.Nothing.value
                         );
-                    case CPnextParser.RULE_wildcard:
+                    case CPParser.RULE_wildcard:
                         return this.visitWildcard(ctx.wildcard());
                     default:
                         console.error("Error at TermParam");
@@ -676,100 +669,100 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
             case 5:
                 return new AST.TmParam(
                     this.visitTermId(ctx.termId()),
-                    new P.Just(this.visitType(ctx.type()))
+                    new PS.Just(this.visitType(ctx.type()))
                 );
             default:
                 console.error("Error at TermParam");
 
         }
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#termId.
+
+
+    // Visit a parse tree produced by CPParser#termId.
     visitTermId(ctx) {
         return ctx.getText();
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#wildcard.
+
+
+    // Visit a parse tree produced by CPParser#wildcard.
     visitWildcard(ctx) {
         const labelDecls = ctx.labelDecl().map(this.visitLabelDecl, this);
         const expressions = ctx.expression().map(this.visitExpression, this);
         const defaultFields = [];
         for (let i = 0; i<labelDecls.length; i++){
-            defaultFields.push(new P.Tuple(labelDecls[i], expressions[i]));
+            defaultFields.push(new PS.Tuple(labelDecls[i], expressions[i]));
         }
         return new AST.WildCard(this.listify(defaultFields));
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#selfAnno.
+
+
+    // Visit a parse tree produced by CPParser#selfAnno.
     visitSelfAnno(ctx) {
-        return new P.Tuple(
+        return new PS.Tuple(
             this.visitTermNameDecl(ctx.termNameDecl()),
-            ctx.type() === null ? P.Nothing.value : new P.Just(this.visitType(ctx.type()))
+            ctx.type() === null ? PS.Nothing.value : new PS.Just(this.visitType(ctx.type()))
         );
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#sort.
+
+
+    // Visit a parse tree produced by CPParser#sort.
     visitSort(ctx) {
         if (ctx.TraitArrow() === null){
             const ti = this.visitType(ctx.type(0));
-            const to = P.Nothing.value;
+            const to = PS.Nothing.value;
             return new AST.TySort(ti, to);
         } else {
             const ti = this.visitType(ctx.type(0));
-            const to = new P.Just(this.visitType(ctx.type(1)));
+            const to = new PS.Just(this.visitType(ctx.type(1)));
             return new AST.TySort(ti, to);
         };
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#typeNameDecl.
+
+
+    // Visit a parse tree produced by CPParser#typeNameDecl.
     visitTypeNameDecl(ctx) {
         return ctx.getText();
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#typeName.
+
+
+    // Visit a parse tree produced by CPParser#typeName.
     visitTypeName(ctx) {
         return new AST.TyVar(ctx.getText());
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#termNameDecl.
+
+
+    // Visit a parse tree produced by CPParser#termNameDecl.
     visitTermNameDecl(ctx) {
         return ctx.getText();
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#termName.
+
+
+    // Visit a parse tree produced by CPParser#termName.
     visitTermName(ctx) {
         switch (ctx.getChild(0).symbol.type){
-            case CPnextParser.Lowerid:
+            case CPParser.Lowerid:
                 return new AST.TmVar(ctx.getText());
-            case CPnextParser.Upperid:
+            case CPParser.Upperid:
                 return new AST.TmNew(new AST.TmVar(ctx.getText()));
             default:
                 console.error("Error in termName");
         }
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#labelDecl.
+
+
+    // Visit a parse tree produced by CPParser#labelDecl.
     visitLabelDecl(ctx) {
         return ctx.getText();
     }
-  
-  
-    // Visit a parse tree produced by CPnextParser#label.
+
+
+    // Visit a parse tree produced by CPParser#label.
     visitLabel(ctx) {
         return ctx.getText();
     }
-  
 
-    // Visit a parse tree produced by CPnextParser#document.
+
+    // Visit a parse tree produced by CPParser#document.
 	visitDocument(ctx) {
         const position = {line: ctx.start.line, column: ctx.start.column};
         const docs = ctx.docElement();
@@ -782,7 +775,6 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
         } else {
             foldedDocs = this.visitDocElement(docs[0]);
             for (let each of docs.slice(1)){
-                console.log("Heyy");
                 foldedDocs = new AST.TmNew(new AST.TmApp(
                     new AST.TmApp(new AST.TmVar("Comp"), foldedDocs),
                     this.visitDocElement(each)
@@ -798,17 +790,17 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by CPnextParser#docElement.
+	// Visit a parse tree produced by CPParser#docElement.
 	visitDocElement(ctx) {
         const child = ctx.getChild(0);
         switch (child.ruleIndex){
-            case CPnextParser.RULE_command:
+            case CPParser.RULE_command:
                 return this.visitCommand(child);
-            case CPnextParser.RULE_interpolation:
+            case CPParser.RULE_interpolation:
                 return this.visitInterpolation(child);
-            case CPnextParser.RULE_newline:
+            case CPParser.RULE_newline:
                 return this.visitNewline(child);
-            case CPnextParser.RULE_plaintext:
+            case CPParser.RULE_plaintext:
                 return this.visitPlaintext(child);
             default:
                 console.error("Error ar DocElement");
@@ -816,7 +808,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by CPnextParser#command.
+	// Visit a parse tree produced by CPParser#command.
 	visitCommand(ctx) {
         const position = {line: ctx.start.line, column: ctx.start.column};
 	    const cmd = ctx.getChild(0).getText().slice(1);
@@ -834,7 +826,7 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by CPnextParser#interpolation.
+	// Visit a parse tree produced by CPParser#interpolation.
 	visitInterpolation(ctx) {
 	    return new AST.TmNew(new AST.TmApp(
             new AST.TmVar("Str"),
@@ -843,13 +835,13 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by CPnextParser#newline.
+	// Visit a parse tree produced by CPParser#newline.
 	visitNewline(ctx) {
         return new AST.TmNew(new AST.TmVar("Endl"));
 	}
 
 
-	// Visit a parse tree produced by CPnextParser#plaintext.
+	// Visit a parse tree produced by CPParser#plaintext.
 	visitPlaintext(ctx) {
         return new AST.TmNew(new AST.TmApp(
             new AST.TmVar("Str"),
@@ -858,16 +850,16 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by CPnextParser#arg.
+	// Visit a parse tree produced by CPParser#arg.
 	visitArg(ctx) {
 	    switch(ctx.getChild(0).symbol.type){
-            case CPnextParser.ParenOpenInTag:
+            case CPParser.ParenOpenInTag:
                 return this.visitExpression(ctx.expression());
-            case CPnextParser.BraceOpenInTag:
+            case CPParser.BraceOpenInTag:
                 return new AST.TmRcd(this.listify(
                     ctx.recordArgField().map(this.visitRecordArgField, this)
                 ));
-            case CPnextParser.BracketOpenInTag:
+            case CPParser.BracketOpenInTag:
                 return this.visitDocument(ctx);
             default:
                 console.error("Error in Arg");
@@ -875,14 +867,14 @@ export default class CPnextASTMaker extends CPnextParserVisitor {
 	}
 
 
-	// Visit a parse tree produced by CPnextParser#recordArgField.
+	// Visit a parse tree produced by CPParser#recordArgField.
 	visitRecordArgField(ctx) {
 	    const params = this.listify(ctx.termParam().map(this.visitTermParam, this));
         return new AST.RcdField(
             false,
             this.visitLabelDecl(ctx.labelDecl()),
             params,
-            new P.Left(this.visitExpression(ctx.expression()))
+            new PS.Left(this.visitExpression(ctx.expression()))
         );
 	}
 

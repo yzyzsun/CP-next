@@ -10,7 +10,6 @@ import Data.Show.Generic (genericShow)
 import Data.String (Pattern(..), split)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import Effect.Console (log)
 import Effect.Exception (throw)
 import Language.CP.Context (Pos(..), TypeError(..), runTyping)
 import Language.CP.Desugar (desugar)
@@ -30,18 +29,6 @@ data Mode = SmallStep | StepTrace | BigStep | HOAS | Closure
 
 derive instance Generic Mode _
 instance Show Mode where show = genericShow
-
-parse :: String -> Effect Tm
-parse code = case runParser code (whiteSpace *> program <* eof) of
-  Left err -> throw $ showParseError err code
-  Right e -> pure e
-
-execute :: Tm -> Effect String
-execute e = do  log $ show e
-                let e' = desugar e
-                case runTyping (infer e') of
-                  Left err -> throw $ showTypeError err
-                  Right (Tuple e'' _) -> pure $ show (BigStep.eval e'')
 
 interpret :: String -> Mode -> Effect String
 interpret code mode = case runParser code (whiteSpace *> program <* eof) of
@@ -77,3 +64,9 @@ showTypeError (TypeError msg UnknownPos) = msg
 showTypeError (TypeError msg (Pos pos expr inDoc)) =
   showPosition pos <> ": " <> msg <> "\nin the expression: " <>
   (if inDoc then showDoc else show) expr
+
+-- Big-step evaluation used after ANTLR parsing
+eval :: Tm -> Effect String
+eval e = case runTyping $ infer $ desugar e of
+  Left err -> throw $ showTypeError err
+  Right (Tuple e' _) -> pure $ show (BigStep.eval e')

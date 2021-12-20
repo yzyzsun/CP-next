@@ -1,7 +1,8 @@
-parser grammar CPnextParser;
+parser grammar CPParser;
+
 options {
-    tokenVocab = CPnextLexer;
     language = JavaScript;
+    tokenVocab = CPLexer;
 }
 
 program
@@ -21,7 +22,6 @@ typeDef
     :   Type typeNameDecl (Less typeNameDecl Greater)* typeNameDecl* Assign type Semicolon
     ;
 
-//conflict missing
 termDef
     :   termNameDecl typeParam* termParam* (Colon type)? Assign expression Semicolon
     ;
@@ -60,7 +60,6 @@ recordTypeElement
     :   labelDecl Question? Colon type
     ;
 
-//conflict missing
 expression
     :   opexpr (Colon type | Backslash type)?
     ;
@@ -287,4 +286,3 @@ arg
 recordArgField
     :   labelDecl termParam* Assign expression
     ;
-

@@ -1,4 +1,4 @@
-lexer grammar CPnextLexer;
+lexer grammar CPLexer;
 
 options {
     language = JavaScript;
@@ -17,22 +17,6 @@ BlockComment
     :   '{-' .*? '-}' -> skip
     ;
 
-/*
-BlockComment
-    :   '{-' BlockCommentRest -> skip
-    ;
-
-fragment
-BlockCommentRest
-    :   '-' BlockCommentAfterHyphen | ~[-] BlockCommentRest
-    ;
-
-fragment
-BlockCommentAfterHyphen
-    :   '}' | BlockCommentRest
-    ;
-*/
-
 
 /* KEYWORDS */
 
@@ -41,7 +25,7 @@ Open
     ;
 
 Type
-    : 'type'
+    :   'type'
     ;
 
 ForAll
@@ -125,7 +109,7 @@ ToString
     ;
 
 Fold
-    :  'fold'
+    :   'fold'
     ;
 
 Unfold
@@ -150,14 +134,6 @@ Undefined_
 
 Override
     :   'override'
-    ;
-
-Stick
-    :   '|'
-    ;
-
-DotDot
-    :   '..'
     ;
 
 
@@ -366,6 +342,15 @@ Dollar
     :   '$'
     ;
 
+Stick
+    :   '|'
+    ;
+
+DotDot
+    :   '..'
+    ;
+
+
 /* Document Mode */
 mode DOC_MODE;
 
@@ -392,6 +377,7 @@ BackslashParen
 Plaintext
     :   ~[\]\\`]+
     ;
+
 
 /* TAG Mode */
 mode TAG_MODE;
