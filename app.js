@@ -1,10 +1,12 @@
+/* CodeMirror & Lezer */
+
 import { basicSetup } from '@codemirror/basic-setup';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { LRLanguage, LanguageSupport, continuedIndent, foldNodeProp, indentNodeProp } from '@codemirror/language';
 import { styleTags, tags as t } from '@codemirror/highlight';
-import { parser } from './lezer';
+import { parser } from './lezer.js';
 
 export const cp = new LanguageSupport(LRLanguage.define({
   parser: parser.configure({
@@ -73,4 +75,28 @@ export function editorView(state, parent) {
   return new EditorView({ state, parent });
 }
 
-export { default as CP } from './src/CP.purs';
+
+/* ANTLR */
+
+import antlr4 from 'antlr4';
+import CPLexer from './antlr/CPLexer.js';
+import CPParser from './antlr/CPParser.js';
+import CPVisitor from './antlr/CPVisitor.js';
+
+function parse(input) {
+  const chars = new antlr4.InputStream(input);
+  const lexer = new CPLexer(chars);
+  const tokens = new antlr4.CommonTokenStream(lexer);
+  const parser = new CPParser(tokens);
+  const tree = parser.program();
+  return tree.accept(new CPVisitor);
+}
+
+
+/* PureScript */
+
+import { default as CP } from './src/CP.purs';
+
+export function interpret(input) {
+  return CP.eval(parse(input))();
+}

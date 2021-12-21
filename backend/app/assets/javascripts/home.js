@@ -13,7 +13,7 @@ const view = editorView(editorState($('#code').val()));
 
 function interpret(callback) {
   const run = prog => preprocess(prog).then(code => {
-    output = bundle.CP.interpret(code)(bundle.CP.BigStep.value)();
+    output = bundle.interpret(code);
     if (output.startsWith('"')) output = JSON.parse(output);
     $('#output').html(output);
     callback();

@@ -19,7 +19,7 @@ import Language.CP.Semantics.NaturalClosure as Closure
 import Language.CP.Semantics.NaturalSubst as BigStep
 import Language.CP.Semantics.StepTrace as StepTrace
 import Language.CP.Semantics.Subst as SmallStep
-import Language.CP.Syntax.Source (showDoc)
+import Language.CP.Syntax.Source (Tm, showDoc)
 import Language.CP.Typing (infer)
 import Text.Parsing.Parser (ParseError(..), runParser)
 import Text.Parsing.Parser.Pos (Position(..))
@@ -64,3 +64,9 @@ showTypeError (TypeError msg UnknownPos) = msg
 showTypeError (TypeError msg (Pos pos expr inDoc)) =
   showPosition pos <> ": " <> msg <> "\nin the expression: " <>
   (if inDoc then showDoc else show) expr
+
+-- Big-step evaluation used after ANTLR parsing
+eval :: Tm -> Effect String
+eval e = case runTyping $ infer $ desugar e of
+  Left err -> throw $ showTypeError err
+  Right (Tuple e' _) -> pure $ show (BigStep.eval e')
