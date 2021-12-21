@@ -5,8 +5,10 @@ options {
 }
 
 
+/* SKIPS */
+
 Whitespaces
-    :   [ \t]+ -> skip
+    :   [ \t\r\n]+ -> skip
     ;
 
 LineComment
@@ -18,11 +20,20 @@ BlockComment
     ;
 
 
-/* KEYWORDS */
+/* LITERALS */
 
-Open
-    :   'open'
+IntLit
+    :   [0-9]+ ('.' [0-9]+)? (('e' | 'E') ('+' | '-')? [0-9]+)?
+    |   ('0x' | '0X') [0-9a-fA-F]+
+    |   ('0o' | '0O') [0-7]+
     ;
+
+StringLit
+    :   '"' (~[\\\r\n"] | '\\' .)* '"'
+    ;
+
+
+/* KEYWORDS */
 
 Type
     :   'type'
@@ -30,10 +41,6 @@ Type
 
 ForAll
     :   'forall'
-    ;
-
-TraitCaps
-    :   'Trait'
     ;
 
 Mu
@@ -48,12 +55,12 @@ Double
     :   'Double'
     ;
 
-StringType
-    :   'String'
-    ;
-
 Bool
     :   'Bool'
+    ;
+
+String
+    :   'String'
     ;
 
 Top
@@ -64,31 +71,11 @@ Bot
     :   'Bot'
     ;
 
-Let
-    :   'let'
+TraitType
+    :   'Trait'
     ;
 
-LetRec
-    :   'letrec'
-    ;
-
-In
-    :   'in'
-    ;
-
-If
-    :   'if'
-    ;
-
-Then
-    :   'then'
-    ;
-
-Else
-    :   'else'
-    ;
-
-TraitSmall
+Trait
     :   'trait'
     ;
 
@@ -104,6 +91,34 @@ New
     :   'new'
     ;
 
+If
+    :   'if'
+    ;
+
+Then
+    :   'then'
+    ;
+
+Else
+    :   'else'
+    ;
+
+Let
+    :   'let'
+    ;
+
+LetRec
+    :   'letrec'
+    ;
+
+Open
+    :   'open'
+    ;
+
+In
+    :   'in'
+    ;
+
 ToString
     :   'toString'
     ;
@@ -116,8 +131,8 @@ Unfold
     :   'unfold'
     ;
 
-At
-    :   '@'
+Override
+    :   'override'
     ;
 
 True_
@@ -132,70 +147,46 @@ Undefined_
     :   'undefined'
     ;
 
-Override
-    :   'override'
-    ;
 
-
-/* NOT KEYWORDS */
-
-Underscore
-    : '_'
-    ;
-
-Lowerid
-    :   [a-z] IdChar*
-    ;
-
-Upperid
-    :   [A-Z] IdChar*
-    ;
+/* IDENTIFIERS */
 
 fragment
 IdChar
     :   [a-zA-Z] | [0-9] | Underscore | '\''
     ;
 
-Number
-    :   [0-9]+ ('.' [0-9]+)? (('e' | 'E') ('+' | '-')? [0-9]+)?
-    |   '0x' Hexit+
-    |   '0X' Hexit+
-    |   '0o' Octit+
-    |   '0O' Octit+
+Underscore
+    :   '_'
     ;
 
-fragment
-Octit
-    :   [0-7]
+LowerId
+    :   [a-z] IdChar*
     ;
 
-fragment
-Hexit
-    :   [0-9] | [a-fA-F]
+UpperId
+    :   [A-Z] IdChar*
     ;
 
-BacktickOpen
-    :   '`' -> pushMode(DOC_MODE)
-    ;
 
-// Document
-//     :   '`' ~[`]* '`'
-//     ;
-
-
-String
-    :   '"' (~[\\\r\n"] | '\\' .)*? '"'
-    ;
+/* SYMBOLS */
 
 Unit
     :   '()'
+    ;
+
+Backslash
+    :   '\\'
+    ;
+
+SlashBackslash
+    :   '/\\'
     ;
 
 Arrow
     :   '->'
     ;
 
-TraitArrow
+FatArrow
     :   '=>'
     ;
 
@@ -211,11 +202,11 @@ Minus
     :   '-'
     ;
 
-Star
+Asterisk
     :   '*'
     ;
 
-Divide
+Slash
     :   '/'
     ;
 
@@ -235,10 +226,6 @@ Or
     :   '||'
     ;
 
-Append
-    :   '++'
-    ;
-
 Less
     :   '<'
     ;
@@ -248,11 +235,11 @@ Greater
     ;
 
 LessEqual
-    :   '<' '='
+    :   '<='
     ;
 
 GreaterEqual
-    :   '>' '='
+    :   '>='
     ;
 
 Equal
@@ -263,32 +250,64 @@ NotEqual
     :   '!='
     ;
 
-Merge
-    :   ','
-    ;
-
-Forward
-    :   '^'
+Length
+    :   '#'
     ;
 
 Index
     :   '!!'
     ;
 
-Length
-    :   '#'
+Append
+    :   '++'
+    ;
+
+Forward
+    :   '^'
+    ;
+
+At
+    :   '@'
+    ;
+
+Merge
+    :   ','
     ;
 
 Assign
     :   '='
     ;
 
-Newline
-    :   (   '\r' '\n'?
-        |   '\n'
-        )
-        -> skip
+Semicolon
+    :   ';'
     ;
+
+Colon
+    :   ':'
+    ;
+
+Dot
+    :   '.'
+    ;
+
+DotDot
+    :   '..'
+    ;
+
+Vbar
+    :   '|'
+    ;
+
+Dollar
+    :   '$'
+    ;
+
+Question
+    :   '?'
+    ;
+
+
+/* BRACKETS */
 
 BracketOpen
     :   '['
@@ -314,106 +333,74 @@ ParenClose
     :   ')' -> popMode
     ;
 
-Semicolon
-    :   ';'
-    ;
-
-Colon
-    :   ':'
-    ;
-
-Backslash
-    :   '\\'
-    ;
-
-SlashBackslash
-    :   '/\\'
-    ;
-
-Dot
-    :   '.'
-    ;
-
-Question
-    :   '?'
-    ;
-
-Dollar
-    :   '$'
-    ;
-
-Stick
-    :   '|'
-    ;
-
-DotDot
-    :   '..'
+BacktickOpen
+    :   '`' -> pushMode(DOC_MODE)
     ;
 
 
-/* Document Mode */
+/* DOCUMENT */
 mode DOC_MODE;
+
+Command
+    :   '\\' (LowerId | UpperId) -> pushMode(CMD_MODE)
+    ;
+
+Interpolation
+    :   '\\(' -> pushMode(DEFAULT_MODE)
+    ;
+
+NewLine
+    :   '\\\\'
+    ; 
+
+PlainText
+    :   ~[\\\]`]+
+    ;
+
+BracketCloseInDoc
+    :   ']' -> popMode
+    ;
 
 BacktickClose
     :   '`' -> popMode
     ;
 
-BracketCloseInDoc
-    :   ']'  -> popMode
-    ;
 
-LineBreak
-    :   '\\\\'
-    ; 
+/* COMMAND */
+mode CMD_MODE;
 
-Tag
-    :   '\\' (Lowerid | Upperid) -> pushMode(TAG_MODE)
-    ;
-
-BackslashParen
-    :   '\\('    -> pushMode(DEFAULT_MODE)
-    ;
-
-Plaintext
-    :   ~[\]\\`]+
-    ;
-
-
-/* TAG Mode */
-mode TAG_MODE;
-
-ParenOpenInTag
-    :   '(' -> pushMode(DEFAULT_MODE)
-    ;
-
-BraceOpenInTag
-    :   '{' -> pushMode(DEFAULT_MODE)
-    ;
-
-BracketOpenInTag
+BracketOpenAsArg
     :   '[' -> pushMode(DOC_MODE)
     ;
 
-PlaintextAfterTag
+ParenOpenAsArg
+    :   '(' -> pushMode(DEFAULT_MODE)
+    ;
+
+BraceOpenAsArg
+    :   '{' -> pushMode(DEFAULT_MODE)
+    ;
+
+CommandAfterCmd
+    :   '\\' (LowerId | UpperId)
+    ;
+
+InterpolationAfterCmd
+    :   '\\(' -> popMode, pushMode(DEFAULT_MODE)
+    ;
+
+NewLineAfterCmd
+    :   '\\\\' -> popMode
+    ;
+
+PlainTextAfterCmd
     :   ~[({[\]\\`]+ -> popMode
     ;
 
-BracketCloseAfterTag
-    :   ']' ->  popMode, popMode
+BracketCloseAfterCmd
+    :   ']' -> popMode, popMode
     ;
 
-BacktickCloseAfterTag
-    :   '`' ->  popMode, popMode
-    ;
-
-TagAfterTag
-    :   '\\' (Lowerid | Upperid)
-    ;
-
-LinebreakAfterTag
-    :   '\\\\'
-    ;
-
-BackslashParenAfterTag
-    :   '\\('   -> pushMode(DEFAULT_MODE)
+BacktickCloseAfterCmd
+    :   '`' -> popMode, popMode
     ;

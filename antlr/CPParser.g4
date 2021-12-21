@@ -6,11 +6,7 @@ options {
 }
 
 program
-    :   open* definition* expression
-    ;
-
-open
-    :   Open ((Lowerid | Upperid) Divide)* (Upperid | Lowerid) Semicolon
+    :   definition* expression
     ;
 
 definition
@@ -27,23 +23,19 @@ termDef
     ;
 
 type
-    :   btype
-    |   <assoc=left> type Intersect type
+    :   <assoc=left> type Intersect type
     |   <assoc=right> type Arrow type
-    ;
-
-btype
-    :   atype (atype | Less sort Greater)*
     |   ForAll typeParam+ Dot type
-    |   TraitCaps Less type (TraitArrow type)? Greater
     |   Mu typeNameDecl Dot type
+    |   TraitType Less type (FatArrow type)? Greater
+    |   atype (atype | Less sort Greater)*
     ;
 
 atype
     :   Int
     |   Double
-    |   StringType
     |   Bool
+    |   String
     |   Top
     |   Bot
     |   typeName
@@ -53,10 +45,10 @@ atype
     ;
 
 recordType
-    :   BraceOpen (recordTypeElement Semicolon)* recordTypeElement? BraceClose
+    :   BraceOpen (recordTypeField Semicolon)* recordTypeField? BraceClose
     ;
 
-recordTypeElement
+recordTypeField
     :   labelDecl Question? Colon type
     ;
 
@@ -68,8 +60,8 @@ opexpr
     :   lexpr                       
     |   (Minus | Not | Length) opexpr
     |   <assoc=left> opexpr Index opexpr
-    |   <assoc=left> opexpr (Modulo | Divide | Star) opexpr
-    |   <assoc=left> opexpr (Minus | Plus) opexpr
+    |   <assoc=left> opexpr (Asterisk | Slash | Modulo) opexpr
+    |   <assoc=left> opexpr (Plus | Minus) opexpr
     |   <assoc=left> opexpr Append opexpr
     |   opexpr (Less | Greater | LessEqual | GreaterEqual | Equal | NotEqual) opexpr
     |   <assoc=right> opexpr And opexpr
@@ -82,13 +74,13 @@ lexpr
     :   fexpr
     |   lambda
     |   bigLambda
-    |   let_
+    |   letIn
     |   letRec
-    |   open_
+    |   openIn
     |   ifElse
     |   trait
-    |   new_
-    |   toString_
+    |   newTrait
+    |   toStr
     |   fold
     |   unfold
     ;
@@ -101,7 +93,7 @@ bigLambda
     :   SlashBackslash typeParam+ Dot expression
     ;
 
-let_
+letIn
     :   Let termNameDecl typeParam* termParam* Assign expression In expression
     ;
 
@@ -109,7 +101,7 @@ letRec
     :   LetRec termNameDecl typeParam* termParam* Colon type Assign expression In expression
     ;
 
-open_
+openIn
     :   Open expression In expression
     ;
 
@@ -118,15 +110,15 @@ ifElse
     ;
 
 trait
-    :   TraitSmall selfAnno? (Implements type)? (Inherits opexpr)? TraitArrow opexpr
-    |   TraitSmall selfAnno? (Inherits opexpr)? (Implements type)? TraitArrow opexpr   
+    :   Trait selfAnno? (Implements type)? (Inherits opexpr)? FatArrow opexpr
+    |   Trait selfAnno? (Inherits opexpr)? (Implements type)? FatArrow opexpr
     ;
 
-new_
+newTrait
     :   New opexpr
     ;
 
-toString_
+toStr
     :   ToString dotexpr
     ;
 
@@ -148,9 +140,9 @@ dotexpr
 
 aexpr
     :   termName
-    |   Number
+    |   IntLit
+    |   StringLit
     |   document
-    |   String
     |   Unit
     |   True_
     |   False_
@@ -173,19 +165,12 @@ record
         BraceClose
     ;
 
-// record
-//     :   BraceOpen 
-//             ((Override? recordField | Override? methodPattern | (Underscore | selfAnno) Dot recordField) Semicolon)*
-//             (Override? recordField | Override? methodPattern | (Underscore | selfAnno) Dot recordField)?
-//         BraceClose
-//     ;
-
 recordField
     :   Override? selfAnno? labelDecl termParam* Assign expression
     ;
 
 recordUpdate
-    :   BraceOpen expression Stick ((labelDecl Assign expression) Semicolon)* (labelDecl Assign expression)? BraceClose
+    :   BraceOpen expression Vbar ((labelDecl Assign expression) Semicolon)* (labelDecl Assign expression)? BraceClose
     ;
 
 methodPattern
@@ -198,18 +183,14 @@ defaultPattern
 
 typeParam
     :   typeNameDecl
-    |   ParenOpen typeNameDecl Star type ParenClose
+    |   ParenOpen typeNameDecl Asterisk type ParenClose
     ;
 
 termParam
-    :   termId
-    |   ParenOpen termId Colon type ParenClose
+    :   termNameDecl
+    |   Underscore
+    |   ParenOpen (termNameDecl | Underscore) Colon type ParenClose
     |   wildcard
-    ;
-
-termId
-    :   Underscore
-    |   termNameDecl
     ;
 
 wildcard
@@ -221,37 +202,37 @@ selfAnno
     ;
 
 sort
-    :   type (TraitArrow type)?
+    :   type (FatArrow type)?
     ;
 
 typeNameDecl
-    :   Upperid
+    :   UpperId
     ;
 
 typeName
-    :   Upperid
+    :   UpperId
     ;
 
 termNameDecl
-    :   Lowerid
+    :   LowerId
     ;
 
 termName
-    :   Lowerid | Upperid
+    :   LowerId | UpperId
     ;
 
 labelDecl
-    :   Lowerid | Upperid
+    :   LowerId | UpperId
     ;
 
 label
-    :   Lowerid | Upperid
+    :   LowerId | UpperId
     ;
 
 /* Documents */
 
 document
-    :   BacktickOpen docElement* (BacktickClose | BacktickCloseAfterTag)
+    :   BacktickOpen docElement* (BacktickClose | BacktickCloseAfterCmd)
     ;
 
 docElement
@@ -262,25 +243,25 @@ docElement
     ;
 
 command
-    :   (Tag | TagAfterTag) arg*
+    :   (Command | CommandAfterCmd) docArg*
     ;
 
 interpolation
-    :   (BackslashParen | BackslashParenAfterTag) expression ParenClose
+    :   (Interpolation | InterpolationAfterCmd) expression ParenClose
     ;
 
 newline
-    :   (LineBreak | LinebreakAfterTag)
+    :   (NewLine | NewLineAfterCmd)
     ;
 
 plaintext
-    :   (Plaintext | PlaintextAfterTag)
+    :   (PlainText | PlainTextAfterCmd)
     ;
 
-arg
-    :   ParenOpenInTag expression ParenClose
-    |   BraceOpenInTag (recordArgField Semicolon)* (recordArgField)? BraceClose
-    |   BracketOpenInTag docElement* (BracketCloseInDoc | BracketCloseAfterTag)
+docArg
+    :   BracketOpenAsArg docElement* (BracketCloseInDoc | BracketCloseAfterCmd)
+    |   ParenOpenAsArg expression ParenClose
+    |   BraceOpenAsArg (recordArgField Semicolon)* (recordArgField)? BraceClose
     ;
 
 recordArgField
