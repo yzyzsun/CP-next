@@ -131,7 +131,7 @@ unfold
     ;
 
 fexpr
-    :   (typeNameDecl | dotexpr) (dotexpr | At atype)*
+    :   (ctorName | dotexpr) (dotexpr | At atype)*
     ;
 
 dotexpr
@@ -150,7 +150,7 @@ aexpr
     |   array
     |   record
     |   recordUpdate
-    |   Dollar typeNameDecl
+    |   Dollar ctorName
     |   ParenOpen expression ParenClose
     ;
 
@@ -169,16 +169,16 @@ recordField
     :   Override? selfAnno? labelDecl termParam* Assign expression
     ;
 
-recordUpdate
-    :   BraceOpen expression Vbar ((labelDecl Assign expression) Semicolon)* (labelDecl Assign expression)? BraceClose
-    ;
-
 methodPattern
     :   Override? (selfAnno At)? ParenOpen labelDecl termParam* ParenClose Dot labelDecl termParam* Assign expression
     ;
 
 defaultPattern
-    :   Override? (Underscore | selfAnno) Dot labelDecl termParam* Assign expression
+    :   (Underscore | selfAnno) Dot labelDecl termParam* Assign expression
+    ;
+
+recordUpdate
+    :   BraceOpen expression Vbar ((labelDecl Assign expression) Semicolon)* (labelDecl Assign expression)? BraceClose
     ;
 
 typeParam
@@ -194,7 +194,7 @@ termParam
     ;
 
 wildcard
-    :   BraceOpen ((labelDecl Assign expression) Semicolon)* (labelDecl Assign expression)? DotDot BraceClose
+    :   BraceOpen ((labelDecl Assign expression) Semicolon)* DotDot BraceClose
     ;
 
 selfAnno
@@ -215,6 +215,10 @@ typeName
 
 termNameDecl
     :   LowerId
+    ;
+
+ctorName
+    :   UpperId
     ;
 
 termName

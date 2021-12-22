@@ -409,8 +409,8 @@ export default class CPVisitor extends CPParserVisitor {
     const child = ctx.getChild(0);
     let fexpr, isCtor;
     switch(child.ruleIndex){
-      case CPParser.RULE_typeNameDecl:
-        fexpr = new AST.TmVar(this.visitTypeNameDecl(child));
+      case CPParser.RULE_ctorName:
+        fexpr = new AST.TmVar(this.visitCtorName(child));
         isCtor = true;
         break;
       case CPParser.RULE_dotexpr:
@@ -500,7 +500,7 @@ export default class CPVisitor extends CPParserVisitor {
           case CPParser.Undefined_:
             return AST.TmUndefined.value;
           case CPParser.Dollar:
-            return new AST.TmVar(this.visitTypeNameDecl(ctx.typeNameDecl()));
+            return new AST.TmVar(this.visitCtorName(ctx.ctorName()));
           case CPParser.ParenOpen:
             return this.visitExpression(ctx.expression());
           default:
@@ -695,6 +695,12 @@ export default class CPVisitor extends CPParserVisitor {
 
   // Visit a parse tree produced by CPParser#termNameDecl.
   visitTermNameDecl(ctx) {
+    return ctx.getText();
+  }
+
+
+  // Visit a parse tree produced by CPParser#ctorName.
+  visitCtorName(ctx) {
     return ctx.getText();
   }
 

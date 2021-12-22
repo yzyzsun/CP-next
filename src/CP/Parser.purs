@@ -17,7 +17,7 @@ import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..
 import Language.CP.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam, SelfAnno)
 import Language.CP.Util (foldl1, isCapitalized)
 import Text.Parsing.Parser (Parser, fail, position)
-import Text.Parsing.Parser.Combinators (between, choice, lookAhead, manyTill, sepEndBy, try)
+import Text.Parsing.Parser.Combinators (between, choice, endBy, lookAhead, manyTill, sepEndBy, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (anyChar, char, satisfy)
@@ -385,7 +385,7 @@ tyParams us = Tuple <$> id <*> pure Nothing <|>
 tmParams :: SParser TmParam
 tmParams = choice [ parensNameColonType
                   , TmParam <$> id <@> Nothing
-                  , WildCard <$> braces (sepEndBySemi defaultField <* symbol "..")
+                  , WildCard <$> braces (endBySemi defaultField <* symbol "..")
                   ]
   where id = lowerIdentifier <|> underscore
         parensNameColonType = parens do
@@ -460,7 +460,10 @@ brackets :: forall a. SParser a -> SParser a
 brackets = lang.brackets
 
 sepEndBySemi :: forall a. SParser a -> SParser (List a)
-sepEndBySemi p = sepEndBy p (symbol ";")
+sepEndBySemi = flip sepEndBy $ symbol ";"
+
+endBySemi :: forall a. SParser a -> SParser (List a)
+endBySemi = flip endBy $ symbol ";"
 
 lower :: SParser Char
 lower = satisfy $ isLower <<< codePointFromChar

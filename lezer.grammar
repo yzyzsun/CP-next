@@ -27,20 +27,20 @@ TermDef {
 }
 
 type {
-  btype | kw<"forall"> typeParam+ "." type | kw<"mu"> TypeNameDecl "." type |
-  kW<"Trait"> angles<sort> |
   type !arrow TypeOp<"->"> type |
-  type !intersect TypeOp<"&"> type
+  type !intersect TypeOp<"&"> type |
+  kw<"forall"> typeParam+ "." type |
+  kw<"mu"> TypeNameDecl "." type |
+  kW<"Trait"> angles<sort> |
+  atype (atype | angles<sort>)*
 }
-
-btype { atype (atype | angles<sort>)* }
 
 atype {
   kW<"Int"> | kW<"Double"> | kW<"String"> | kW<"Bool"> | kW<"Top"> | kW<"Bot"> |
   TypeName | RecordType | brackets<type> | parens<type>
 }
 
-RecordType { braces<sepEndBySemi<LabelDecl ":" type>> }
+RecordType { braces<sepEndBySemi<LabelDecl "?"? ":" type>> }
 
 expression { opexpr ~conflict (":" type | "\\" type)? }
 
@@ -64,7 +64,7 @@ lexpr {
   LetRec { kw<"letrec"> TermNameDecl typeParam* termParam* ":" type "=" expression kw<"in"> expression } |
   Open { kw<"open"> expression kw<"in"> expression } |
   IfElse { kw<"if"> expression kw<"then"> expression kw<"else"> expression } |
-  Trait { kw<"trait"> SelfAnno? (kw<"implements"> type)? (kw<"inherits"> opexpr)? "=>" opexpr } |
+  Trait { kw<"trait"> SelfAnno? (kw<"implements"> type)? (kw<"inherits"> opexpr)? (kw<"implements"> type)? "=>" opexpr } |
   New { kw<"new"> opexpr } | ToString { kw<"toString"> dotexpr } |
   kw<"fold"> "@" atype dotexpr | kw<"unfold"> "@" atype dotexpr
 }
@@ -77,7 +77,7 @@ aexpr {
   TermName | Number | String | Document | Unit |
   kw<"true"> | kw<"false"> | kw<"undefined"> |
   Array { brackets<sepEndBySemi<expression>> } |
-  Record | RecordUpdate | parens<expression>
+  Record | RecordUpdate | "$" CtorName | parens<expression>
 }
 
 Record {
@@ -103,7 +103,7 @@ RecordUpdate {
 typeParam { TypeNameDecl | parens<TypeNameDecl "*" type> }
 termParam { termId | parens<termId ":" type> | wildcard }
 termId { underscore | TermNameDecl }
-wildcard { braces<sepEndBySemi<LabelDecl "=" expression> ".."> }
+wildcard { braces<(LabelDecl "=" expression ";")* ".."> }
 SelfAnno { brackets<TermNameDecl (":" type)?> }
 
 kw<word> { @specialize[@name={word}]<lowerid, word> }
@@ -120,6 +120,7 @@ sort { atype ("=>" atype)? }
 TypeNameDecl { upperid }
 TypeName { upperid }
 TermNameDecl { lowerid }
+CtorName { upperid }
 TermName { lowerid | upperid }
 LabelDecl { lowerid | upperid }
 Label { lowerid | upperid }
@@ -156,7 +157,7 @@ Label { lowerid | upperid }
   Unit { "()" }
 
   "(" ")" "{" "}" "[" "]" "<" ">"
-  "." "," ";" ":" "*" "\\" "/\\" "@" "^" "%"
+  ".." "." "," ";" ":" "*" "\\" "/\\" "@" "^" "%" "$" "?"
   "=" "->" "=>"[@name=TraitArrow]
 
   TypeOp<op> { op }
