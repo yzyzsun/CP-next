@@ -59,14 +59,18 @@ export const cp = new LanguageSupport(LRLanguage.define({
 export const language = new Compartment;
 
 export function editorState(doc, binding) {
+  const modEnter = {
+    key: 'Mod-Enter',
+    run: () => { binding(); return true; },
+  };
   return EditorState.create({
     doc,
     extensions: [
-      basicSetup,
       EditorView.lineWrapping,
       EditorState.tabSize.of(2),
-      keymap.of([indentWithTab, { key: 'Mod-Enter', run: binding }]),
+      keymap.of([indentWithTab, modEnter]),
       language.of([]),
+      basicSetup,
     ],
   });
 }
