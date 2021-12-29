@@ -60,7 +60,7 @@ GEM
       minitest (>= 5.1)
       tzinfo (~> 2.0)
       zeitwerk (~> 2.3)
-    autoprefixer-rails (10.3.3.0)
+    autoprefixer-rails (10.4.0.0)
       execjs (~> 2)
     bcrypt (3.1.16)
     bindex (0.8.1)
@@ -191,7 +191,7 @@ GEM
     websocket-driver (0.7.5)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
-    zeitwerk (2.5.1)
+    zeitwerk (2.5.2)
 
 PLATFORMS
   arm64-darwin-21
@@ -217,8 +217,5 @@ DEPENDENCIES
   tzinfo-data
   web-console (>= 4.1.0)
 
-RUBY VERSION
-   ruby 3.0.2p107
-
 BUNDLED WITH
-   2.2.32
+   2.3.3
