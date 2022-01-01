@@ -11,7 +11,7 @@ import Data.Identity (Identity)
 import Data.Map (insert, lookup, union)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested ((/\))
 import Language.CP.Semantics.Common (Arg(..), binop, toString, unop)
 import Language.CP.Subtyping (isTopLike, split, (<:))
 import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
@@ -78,7 +78,7 @@ cast tm ty = runMaybeT $ go tm ty
     go e _ | not (isValue e) = unsafeCrashWith $
       "CP.Semantics.Closure.cast: " <> show e <> " is not a value"
     go _ t | isTopLike t = pure TmUnit
-    go v t | Just (Tuple t1 t2) <- split t = do
+    go v t | Just (t1 /\ t2) <- split t = do
       let m1 = isOptionalRcd t1
           m2 = isOptionalRcd t2
           v1 = go v t1

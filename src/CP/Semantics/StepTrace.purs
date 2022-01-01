@@ -6,7 +6,7 @@ import Control.Monad.Writer (Writer, runWriter, tell)
 import Data.Bifunctor (rmap)
 import Data.Monoid.Endo (Endo(..))
 import Data.Newtype (unwrap)
-import Data.Tuple (Tuple)
+import Data.Tuple.Nested (type (/\))
 import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Language.CP.Semantics.Subst (cast, isValue, paraApp)
 import Language.CP.Subtyping (isTopLike)
@@ -27,7 +27,7 @@ computation w = tell $ endoS $ "↓ Step-" <> w <> "\n"
 congruence :: String -> Eval Unit
 congruence w = tell $ endoS $ "→ Step-" <> w <> "\n"
 
-eval :: Tm -> Tuple Tm ShowS
+eval :: Tm -> Tm /\ ShowS
 eval = go >>> runWriter >>> rmap unwrap
   where go :: Tm -> Eval Tm
         go e | isValue e = tell (endoS $ show e <> "\n") $> e

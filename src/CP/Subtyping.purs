@@ -3,13 +3,13 @@ module Language.CP.Subtyping where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Syntax.Core (Ty(..), tySubst)
 
 subtype :: Ty -> Ty -> Boolean
 subtype TyBot _ = true
 subtype _ t | isTopLike t = true
-subtype t1 t2 | Just (Tuple t3 t4) <- split t2 = t1 <: t3 && t1 <: t4
+subtype t1 t2 | Just (t3 /\ t4) <- split t2 = t1 <: t3 && t1 <: t4
 subtype (TyArrow targ1 tret1 _) (TyArrow targ2 tret2 _) = targ2 <: targ1 &&
                                                           tret1 <: tret2
 subtype (TyAnd t1 t2) t3 = t1 <: t3 || t2 <: t3
@@ -41,14 +41,14 @@ isTopLike (TyRec _ t) = isTopLike t
 isTopLike _ = false
 
 -- TODO: add distributive subtyping to recursive types
-split :: Ty -> Maybe (Tuple Ty Ty)
-split (TyAnd t1 t2) = Just $ Tuple t1 t2
-split (TyArrow targ tret b) = split tret >>= \(Tuple tret1 tret2) ->
-  Just $ Tuple (TyArrow targ tret1 b) (TyArrow targ tret2 b)
-split (TyRcd l t b) = split t >>= \(Tuple t1 t2) ->
-  Just $ Tuple (TyRcd l t1 b) (TyRcd l t2 b)
-split (TyForall a td t) = split t >>= \(Tuple t1 t2) ->
-  Just $ Tuple (TyForall a td t1) (TyForall a td t2)
+split :: Ty -> Maybe (Ty /\ Ty)
+split (TyAnd t1 t2) = Just $ t1 /\ t2
+split (TyArrow targ tret b) = split tret >>= \(tret1 /\ tret2) ->
+  Just $ TyArrow targ tret1 b /\ TyArrow targ tret2 b
+split (TyRcd l t b) = split t >>= \(t1 /\ t2) ->
+  Just $ TyRcd l t1 b /\ TyRcd l t2 b
+split (TyForall a td t) = split t >>= \(t1 /\ t2) ->
+  Just $ TyForall a td t1 /\ TyForall a td t2
 split _ = Nothing
 
 aeq :: Ty -> Ty -> Boolean

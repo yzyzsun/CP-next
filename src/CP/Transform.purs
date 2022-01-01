@@ -7,7 +7,8 @@ import Data.Bitraversable (rtraverse)
 import Data.List (List(..), foldr)
 import Data.Maybe (Maybe(..))
 import Data.Traversable (for, traverse)
-import Data.Tuple (Tuple(..), fst, uncurry)
+import Data.Tuple (fst, uncurry)
+import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Context (Typing, addTyBind, lookupSort, lookupTyAlias, lookupTyBind, throwTypeError)
 import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
@@ -16,11 +17,11 @@ import Language.CP.Util (foldl1, isCapitalized, (<+>))
 transform :: S.Ty -> Typing C.Ty
 transform = expand >=> translate
 
-transform' :: S.Ty -> Typing (Tuple C.Ty S.Ty)
+transform' :: S.Ty -> Typing (C.Ty /\ S.Ty)
 transform' t = do
   t' <- expand t
   t'' <- translate t'
-  pure $ Tuple t'' t'
+  pure $ t'' /\ t'
 
 translate :: S.Ty -> Typing C.Ty
 translate (S.TyRcd Nil) = pure C.TyTop

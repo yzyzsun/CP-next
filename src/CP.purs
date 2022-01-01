@@ -8,7 +8,7 @@ import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.String (Pattern(..), split)
-import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Exception (throw)
 import Language.CP.Context (Pos(..), TypeError(..), runTyping)
@@ -35,9 +35,9 @@ interpret code mode = case runParser code (whiteSpace *> program <* eof) of
   Left err -> throw $ showParseError err code
   Right e -> let e' = desugar e in case runTyping (infer e') of
     Left err -> throw $ showTypeError err
-    Right (Tuple e'' _) -> case mode of
+    Right (e'' /\ _) -> case mode of
       SmallStep -> pure $ show (SmallStep.eval e'')
-      StepTrace -> let Tuple _ s = StepTrace.eval e'' in pure $
+      StepTrace -> let _ /\ s = StepTrace.eval e'' in pure $
         show e <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s ""
       BigStep -> pure $ show (BigStep.eval e'')
       HOAS -> pure $ show (HOAS.eval e'')
@@ -69,4 +69,4 @@ showTypeError (TypeError msg (Pos pos expr inDoc)) =
 eval :: Tm -> Effect String
 eval e = case runTyping $ infer $ desugar e of
   Left err -> throw $ showTypeError err
-  Right (Tuple e' _) -> pure $ show (BigStep.eval e')
+  Right (e' /\ _) -> pure $ show (BigStep.eval e')

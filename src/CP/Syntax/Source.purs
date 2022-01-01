@@ -7,7 +7,8 @@ import Data.Either (Either(..))
 import Data.Foldable (class Foldable, any, intercalate, null)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Tuple (Tuple(..), fst, snd)
+import Data.Tuple (fst, snd)
+import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
 import Language.CP.Util (isCapitalized, (<+>))
 import Text.Parsing.Parser.Pos (Position)
@@ -80,7 +81,7 @@ data Tm = TmInt Int
         | TmLet Name TyParamList TmParamList Tm Tm
         | TmLetrec Name TyParamList TmParamList Ty Tm Tm
         | TmOpen Tm Tm
-        | TmUpdate Tm (List (Tuple Label Tm))
+        | TmUpdate Tm (List (Label /\ Tm))
         | TmTrait SelfAnno (Maybe Ty) (Maybe Tm) Tm
         | TmNew Tm
         | TmForward Tm Tm
@@ -127,7 +128,7 @@ instance Show Tm where
     ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
   show (TmUpdate rcd fields) = braces $ show rcd <+> "|" <+>
-    intercalate "; " (fields <#> \(Tuple l e) -> l <+> "=" <+> show e)
+    intercalate "; " (fields <#> \(l /\ e) -> l <+> "=" <+> show e)
   show (TmTrait self sig e1 e2) = parens $ "trait" <>
     maybe "" (" " <> _) (showSelfAnno self) <+>
     showMaybe "implements " sig " " <> showMaybe "inherits " e1 " " <>
@@ -194,7 +195,7 @@ showMaybe :: forall a. Show a => String -> Maybe a -> String -> String
 showMaybe l m r = maybe "" (\x -> l <> show x <> r) m
 
 type TyParamList = List TyParam
-type TyParam = Tuple Name (Maybe Ty)
+type TyParam = Name /\ Maybe Ty
 
 showTyParams :: TyParamList -> String
 showTyParams params = intercalate' " " $ params <#> \param ->
@@ -203,7 +204,7 @@ showTyParams params = intercalate' " " $ params <#> \param ->
 type TmParamList = List TmParam
 data TmParam = TmParam Name (Maybe Ty)
              | WildCard DefaultFields
-type DefaultFields = List (Tuple Label Tm)
+type DefaultFields = List (Label /\ Tm)
 
 showTmParams :: TmParamList -> String
 showTmParams params = intercalate' " " $ params <#> case _ of
@@ -212,7 +213,7 @@ showTmParams params = intercalate' " " $ params <#> case _ of
   WildCard defaults -> "{" <+> showFields defaults <> ".. }"
   where showFields :: DefaultFields -> String
         showFields Nil = ""
-        showFields (Cons (Tuple x e) xs) =
+        showFields (Cons (x /\ e) xs) =
           x <+> "=" <+> show e <> ";" <+> showFields xs
 
 type RcdTyList = List RcdTy
@@ -236,9 +237,9 @@ showRcdTm xs = intercalate "; " $ xs <#> case _ of
         showMethod :: Label -> TmParamList -> Tm -> String
         showMethod l p e = "." <> l <+> showTmParams p <> "=" <+> show e
 
-type SelfAnno = Maybe (Tuple Name (Maybe Ty))
+type SelfAnno = Maybe (Name /\ Maybe Ty)
 
 showSelfAnno :: SelfAnno -> Maybe String
-showSelfAnno = map \(Tuple x mt) -> brackets $ case mt of
+showSelfAnno = map \(x /\ mt) -> brackets $ case mt of
   Just t  -> x <+> ":" <+> show t
   Nothing -> x

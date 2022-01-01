@@ -6,7 +6,7 @@ import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
 import Data.List (List(..), foldr, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested ((/\))
 import Language.CP.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..))
 import Language.CP.Util (foldl1)
 
@@ -30,7 +30,7 @@ desugar (TmRcd xs) =
     -- desugaring of default patterns is done in `inferFromSig`
     desugarField def@(DefaultPattern _) = def
 desugar (TmTrait self sig e1 e2) =
-  let self'@(Tuple x _) = fromMaybe (Tuple "#self" Nothing) self in
+  let self'@(x /\ _) = fromMaybe ("#self" /\ Nothing) self in
   TmTrait (Just self') (Just (fromMaybe TyTop sig))
           (desugar <$> e1) (TmOpen (TmVar x) (desugar e2))
 -- TODO: it may be better to always desugar def to letrec

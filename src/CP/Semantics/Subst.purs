@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested ((/\))
 import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Language.CP.Subtyping (isTopLike, split, (<:))
 import Language.CP.Syntax.Core (Tm(..), Ty(..), tmSubst, tmTSubst, tySubst, unfold)
@@ -52,7 +52,7 @@ cast :: Tm -> Ty -> Maybe Tm
 cast e _ | not (isValue e) = unsafeCrashWith $
   "CP.Semantics.Subst.cast: " <> show e <> " is not a value"
 cast _ t | isTopLike t = Just TmUnit
-cast v t | Just (Tuple t1 t2) <- split t = do
+cast v t | Just (t1 /\ t2) <- split t = do
   let m1 = isOptionalRcd t1
       m2 = isOptionalRcd t2
       v1 = cast v t1
