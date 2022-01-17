@@ -570,14 +570,13 @@ export default class CPVisitor extends CPParserVisitor {
   // Visit a parse tree produced by CPParser#methodPattern.
   visitMethodPattern(ctx) {
     let params = [], nestedParams = [];
-    let i = 0, isNested = false;
-    while (i < ctx.getChildCount() && ctx.getChild(i).ruleIndex !== CPParser.RULE_termParam) i++;
-    for (; i < ctx.getChildCount(); i++) {
+    let isNested = false;
+    for (let i = 0; i < ctx.getChildCount(); i++) {
+      if(ctx.getChild(i).symbol && ctx.getChild(i).symbol.type === CPParser.Dot)
+        isNested = true;
       if (ctx.getChild(i).ruleIndex === CPParser.RULE_termParam) {
         if (isNested) nestedParams.push(this.visitTermParam(ctx.getChild(i)));
         else params.push(this.visitTermParam(ctx.getChild(i)));
-      } else {
-        isNested = false;
       }
     }
     return new AST.RcdField(

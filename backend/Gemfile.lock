@@ -194,6 +194,7 @@ GEM
     zeitwerk (2.5.2)
 
 PLATFORMS
+  arm64-darwin-20
   arm64-darwin-21
   x86_64-darwin-18
   x86_64-linux
