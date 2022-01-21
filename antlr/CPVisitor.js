@@ -76,7 +76,7 @@ export default class CPVisitor extends CPParserVisitor {
     } else if (ctx.Mu()) {
       return new AST.TyRec(
         this.visitTypeNameDecl(ctx.typeNameDecl()),
-        this.visitType(ctx.type())
+        this.visitType(ctx.type(0))
       );
     } else if (ctx.TraitType()) {
       let ti, to;
