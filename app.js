@@ -87,11 +87,24 @@ import CPLexer from './antlr/CPLexer.js';
 import CPParser from './antlr/CPParser.js';
 import CPVisitor from './antlr/CPVisitor.js';
 
+class CPErrorListener extends antlr4.error.ErrorListener {
+  constructor() {
+      super();
+  }
+
+  syntaxError(recognizer, offendingSymbol, line, column, msg, e) {
+      throw ("SyntaxError at line " + line + ":" + column + "\n" + msg.charAt(0).toUpperCase() + msg.slice(1));
+  }
+}
+
 function parse(input) {
   const chars = new antlr4.InputStream(input);
   const lexer = new CPLexer(chars);
   const tokens = new antlr4.CommonTokenStream(lexer);
   const parser = new CPParser(tokens);
+  parser.buildParseTrees = true;
+  parser.removeErrorListeners();
+  parser.addErrorListener(new CPErrorListener);
   const tree = parser.program();
   return tree.accept(new CPVisitor);
 }
