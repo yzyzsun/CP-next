@@ -87,6 +87,26 @@ import CPLexer from './antlr/CPLexer.js';
 import CPParser from './antlr/CPParser.js';
 import CPVisitor from './antlr/CPVisitor.js';
 
+class CPLexerUpdated extends CPLexer {
+  constructor(input){
+    super(input);
+  }
+
+  popMode() {
+    if (this._modeStack.length === 0) {
+      if (this._interp.debug) {
+        console.log("Mode Stack Empty. Mode remains unchanged");
+      }
+			return this._mode;
+		}
+		if (this._interp.debug) {
+			console.log("popMode back to " + this._modeStack.slice(0, -1));
+		}
+		this.mode(this._modeStack.pop());
+		return this._mode;
+  }
+} 
+
 class CPErrorListener extends antlr4.error.ErrorListener {
   constructor() {
       super();
@@ -99,7 +119,9 @@ class CPErrorListener extends antlr4.error.ErrorListener {
 
 function parse(input) {
   const chars = new antlr4.InputStream(input);
-  const lexer = new CPLexer(chars);
+  const lexer = new CPLexerUpdated(chars);
+  lexer.removeErrorListeners();
+  lexer.addErrorListener(new CPErrorListener);
   const tokens = new antlr4.CommonTokenStream(lexer);
   const parser = new CPParser(tokens);
   parser.buildParseTrees = true;
