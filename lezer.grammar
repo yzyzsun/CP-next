@@ -157,7 +157,7 @@ Label { lowerid | upperid }
   Unit { "()" }
 
   "(" ")" "{" "}" "[" "]" "<" ">"
-  ".." "." "," ";" ":" "*" "\\" "/\\" "@" "^" "%" "$" "?"
+  ".." "." ";" ":" "*" "\\" "/\\" "@" "%" "$" "?"
   "=" "->" "=>"[@name=TraitArrow]
 
   TypeOp<op> { op }
@@ -165,7 +165,7 @@ Label { lowerid | upperid }
   LogicOp<op> { op }
   AppendOp { "++" }
   CompareOp { "<" "="? | ">" "="? | "==" | "!=" }
-  MergeOp { "," }
+  MergeOp { "," | ",," }
   ForwardOp { "^" }
   IndexOp { "!!" }
   LengthOp { "#" }
