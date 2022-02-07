@@ -41,7 +41,7 @@ If you want to start a PLGround server locally, take the first two steps above a
 
 - Install [Ruby](https://www.ruby-lang.org).
 - Execute `bundle install` to get [Ruby on Rails](https://rubyonrails.org) and other gems.
-- Execute `npm run build` if you have modified PureScript code, grammar files, or `app.js` (i.e. every file that `backend/app/assets/javascripts/bundle.js` depends on).
+- Execute `npm run build` if you have modified PureScript code, grammar files, or `app.js` (i.e. every file that `plground/app/assets/javascripts/bundle.js` depends on).
 - Execute `npm run server` to start a web server.
 
 ## REPL Example

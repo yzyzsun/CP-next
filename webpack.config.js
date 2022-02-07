@@ -34,7 +34,7 @@ module.exports = {
   performance: { hints: false },
   output: {
     filename: 'bundle.js',
-    path: path.resolve(__dirname, 'backend/app/assets/javascripts'),
+    path: path.resolve(__dirname, 'plground/app/assets/javascripts'),
     library: 'bundle',
   },
 };

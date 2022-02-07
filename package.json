@@ -10,7 +10,7 @@
     "lezer": "lezer-generator --noTerms --output lezer lezer.grammar",
     "antlr": "antlr -visitor -no-listener antlr/*.g4",
     "build": "npm run lezer && npm run antlr && webpack",
-    "server": "cd backend && rails server"
+    "server": "cd plground && rails server"
   },
   "repository": "git://github.com/yzyzsun/CP-next.git",
   "author": "Yaozhu Sun",
