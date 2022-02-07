@@ -303,7 +303,9 @@ operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
             , [ Infix (reservedOp "&&" $> TmBinary (Logic And)) AssocRight ]
             , [ Infix (reservedOp "||" $> TmBinary (Logic Or )) AssocRight ]
             , [ Infix (reservedOp "^" $> TmForward) AssocLeft ]
-            , [ Infix (reservedOp "," $> TmMerge) AssocLeft ]
+            , [ Infix (reservedOp ",," $> TmMerge) AssocLeft
+              , Infix (reservedOp ","  $> TmMerge) AssocLeft
+              ]
             ]
 
 -- Types --
@@ -379,7 +381,7 @@ fromIntOrNumber (Right number) = TmDouble number
 
 tyParams :: Boolean -> SParser TyParam
 tyParams us = Tuple <$> id <*> pure Nothing <|>
-           parens (Tuple <$> id <* symbol "*" <*> (Just <$> ty))
+              parens (Tuple <$> id <* symbol "*" <*> (Just <$> ty))
   where id = if us then underscore <|> upperIdentifier else upperIdentifier
 
 tmParams :: SParser TmParam

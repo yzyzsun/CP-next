@@ -272,6 +272,7 @@ At
 
 Merge
     :   ','
+    |   ',,'
     ;
 
 Assign
