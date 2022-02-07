@@ -6,7 +6,7 @@ options {
 }
 
 program
-    :   definition* expression
+    :   definition* expression EOF
     ;
 
 definition
