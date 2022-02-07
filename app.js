@@ -84,8 +84,8 @@ export function editorView(state, parent) {
 /* PureScript */
 
 import { default as CP } from './src/CP.purs';
-import * as P from './antlr/index.js';
+import { parse } from './antlr/index.js';
 
 export function interpret(input) {
-  return CP.eval(P.parse(input))();
+  return CP.eval(parse(input))();
 }

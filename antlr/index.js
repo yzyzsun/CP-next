@@ -13,13 +13,13 @@ class CPLexerUpdated extends CPLexer {
       if (this._interp.debug) {
         console.log("Mode Stack Empty. Mode remains unchanged");
       }
-			return this._mode;
-		}
-		if (this._interp.debug) {
-			console.log("popMode back to " + this._modeStack.slice(0, -1));
-		}
-		this.mode(this._modeStack.pop());
-		return this._mode;
+      return this._mode;
+    }
+    if (this._interp.debug) {
+      console.log("popMode back to " + this._modeStack.slice(0, -1));
+    }
+    this.mode(this._modeStack.pop());
+    return this._mode;
   }
 } 
 
