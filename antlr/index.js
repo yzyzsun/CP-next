@@ -11,7 +11,7 @@ class CPLexerUpdated extends CPLexer {
   popMode() {
     if (this._modeStack.length === 0) {
       if (this._interp.debug) {
-        console.log("Mode Stack Empty. Mode remains unchanged");
+        console.log("Mode stack is empty. Mode remains unchanged.");
       }
       return this._mode;
     }
@@ -25,11 +25,11 @@ class CPLexerUpdated extends CPLexer {
 
 class CPErrorListener extends antlr4.error.ErrorListener {
   constructor() {
-      super();
+    super();
   }
 
   syntaxError(recognizer, offendingSymbol, line, column, msg, e) {
-      throw ("SyntaxError at line " + line + ":" + column + "\n" + msg.charAt(0).toUpperCase() + msg.slice(1));
+    throw ("SyntaxError at line " + line + ":" + column + "\n" + msg.charAt(0).toUpperCase() + msg.slice(1));
   }
 }
 
