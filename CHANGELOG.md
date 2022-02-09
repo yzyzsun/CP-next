@@ -2,6 +2,7 @@
 
 - [New] an alternative ANTLR parser, which is faster than purescript-parsing.
 - In a trait definition, `implements` and `inherits` clauses can be written in any order.
+- Support `x ,, y` as an alias to `x , y` for compatibility.
 
 ## 0.1.3
 
