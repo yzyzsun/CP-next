@@ -1,4 +1,5 @@
 metavar var, x, y, z ::= {{ com variable name }}
+metavar label, l {{ tex \ell }} ::= {{ com label name }}
 
 grammar
 
@@ -6,6 +7,7 @@ typ, A, B, C :: 't_' ::= {{ com types }}
   | Top             ::  :: top    {{ com top type }} {{ tex \top }}
   | Base            ::  :: base   {{ com base type }} {{ tex \mathbb{B} }}
   | A -> B          ::  :: arrow  {{ com function type }}
+  | { l : A }       ::  :: rcd    {{ com record type }}
   | A & B           ::  :: and    {{ com intersection type }}
   | ( A )           :: S:: paren
 
@@ -16,6 +18,8 @@ exp, e :: 'e_' ::= {{ com expressions }}
   | fix x : A . e   ::  :: fix    {{ com fixpoint }} {{ tex [[fix]]\,[[x]][[:]][[A]].\;[[e]] }}
   | \ x : A . e : B ::  :: abs    {{ com abstraction }} {{ tex [[\]][[x]][[:]][[A]].\;[[e]][[:]][[B]] }}
   | e1 e2           ::  :: app    {{ com application }}
+  | { l = e }       ::  :: rcd    {{ com record }}
+  | e . l           ::  :: prj    {{ com projection }}
   | e1 ,, e2        ::  :: merge  {{ com merging }}
   | e : A           ::  :: anno   {{ com casting }}
   | e1 [ x ~> e2 ]  :: M:: subst
@@ -25,7 +29,12 @@ val, v :: 'v_' ::= {{ com values }}
   | ()              ::  :: top
   | b               ::  :: base
   | \ x : A . e : B ::  :: abs
+  | { l = v }       ::  :: rcd
   | v1 ,, v2        ::  :: merge
+
+arg :: 'arg_' ::= {{ com arguments }}
+  | v   ::  :: value
+  | {l} ::  :: label
 
 ctx, G {{ tex \Gamma }} :: 'ctx_' ::= {{ com typing context }}
   | []              ::  :: empty  {{ tex \cdot }}
@@ -52,9 +61,7 @@ terminals :: 'terminals_' ::=
   | *            ::  :: disjoint   {{ tex \, * \, }}
   | ~            ::  :: consistent {{ tex \approx }}
   | &            ::  :: intersect  {{ tex \, \& \, }}
-  | ,,           ::  :: merge      {{ tex \, , \, }}
-  | ++           ::  :: append     {{ tex \uplus }}
-  | $            ::  :: apply      {{ tex \, \$ \, }}
+  | ,,           ::  :: merge      {{ tex \, ,\!, \, }}
 
 formula :: 'formula_' ::=
   | judgement             ::  :: judgement
@@ -107,6 +114,11 @@ toplike B
 toplike A -> B
 
 
+toplike A
+---------------- :: Rcd
+toplike {l:A}
+
+
 
 defn
 ordinary A :: :: ordinary :: O_
@@ -125,6 +137,32 @@ ordinary Base
 
 ---------------- :: Arrow
 ordinary (A->B)
+
+
+---------------- :: Rcd
+ordinary {l:A}
+
+
+
+defn
+split A B C :: :: spl :: Sp_
+{{ com Splittable types }}
+{{ tex [[B]] \lhd [[A]] \rhd [[C]] }}
+by
+
+
+-------------------:: And
+split A&B A B
+
+
+split B B1 B2
+----------------------------- :: Arrow
+split A->B A->B1 A->B2
+
+
+split A A1 A2
+----------------------------- :: Rcd
+split {l:A} {l:A1} {l:A2}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -149,28 +187,36 @@ A <: B
 Base <: Base
 
 
+ordinary B2
 B1 <: A1
 A2 <: B2
 ------------------------ :: Arrow
 A1 -> A2 <: B1 -> B2
 
 
+ordinary B
+A <: B
+------------------------ :: Rcd
+{l:A} <: {l:B}
+
+
 ordinary C
 A <: C
-------------------------- :: AndLL
+------------------------- :: AndL
 A & B <: C
 
 
 ordinary C
 B <: C
-------------------------- :: AndLR
+------------------------- :: AndR
 A & B <: C
 
 
+split B B1 B2
+A <: B1
+A <: B2
+------------------------- :: Split
 A <: B
-A <: C
-------------------------- :: AndR
-A <: B & C
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -180,7 +226,43 @@ defns
 Typing :: '' ::=
 
 defn
-G |- e mode A :: :: typing :: 'Typ_'
+A |> B :: :: appdist :: AD_
+{{ com Applicative distribution }}
+{{ tex [[A]] \rhd [[B]] }}
+by
+
+
+---------------- :: Arrow
+A -> B |> A -> B
+
+
+----------------- :: TopArrow
+Top |> Top -> Top
+
+
+A |> A1 -> A2
+B |> B1 -> B2
+--------------------------- :: AndArrow
+A & B |> A1 & B1 -> A2 & B2
+
+
+------------------ :: Rcd
+{l : A} |> {l : A}
+
+
+---------------- :: TopRcd
+Top |> {l : Top}
+
+
+A |> {l : A'}
+B |> {l : B'}
+---------------------- :: AndRcd
+A & B |> {l : A' & B'}
+
+
+
+defn
+G |- e mode A :: :: typing :: Typ_
 {{ com Bidirectional typing }}
 by
 
@@ -211,15 +293,22 @@ G , x : A |- e <= B
 G |- \x : A . e : B => A->B
 
 
-G |- e1 => A -> B
-G |- e2 <= A
+G |- e1 => A
+A |> B -> C
+G |- e2 <= B
 ----------------------- :: App
-G |- e1 e2 => B
+G |- e1 e2 => C
 
 
-G |- e1 => Top
------------------------ :: AppTop
-G |- e1 e2 => Top
+G |- e => A
+----------------------- :: Rcd
+G |- {l=e} => {l:A}
+
+
+G |- e => A
+A |> {l:B}
+----------------------- :: Prj
+G |- e.l => B
 
 
 G |- e1 => A
@@ -271,11 +360,19 @@ v  -->A  ()
 b  -->Base  b
 
 
+ordinary A2
 not toplike A2
 B1 <: A1
 A2 <: B2
 ------------------------------------ :: Arrow
 \x:A1.e:A2  -->B1->B2  \x:A1.e:B2
+
+
+ordinary A
+not toplike A
+v  -->A  v'
+--------------------------------- :: Rcd
+{l=v}  -->{l:A}  {l=v'}
 
 
 ordinary A
@@ -290,10 +387,38 @@ v2  -->A  v2'
 v1,,v2  -->A  v2'
 
 
-v  -->A  v1
-v  -->B  v2
---------------------------------- :: And
-v  -->A&B  v1,,v2
+split A A1 A2
+v  -->A1  v1
+v  -->A2  v2
+--------------------------------- :: Split
+v  -->A  v1,,v2
+
+
+
+defn
+v ; arg --> e :: :: papp :: PApp_
+{{ com Parallel application }}
+{{ tex [[v]]\,\bullet\,[[arg]]\;[[-->]]\;[[e]] }}
+by
+
+
+----------------- :: Top
+() ; arg  -->  ()
+
+
+v  -->A  v'
+------------------------------------ :: Abs
+\x:A.e:B ; v  -->  e [ x ~> v' ] : B
+
+
+------------------- :: Rcd
+{l=v} ; {l}  -->  v
+
+
+v1 ; arg  -->  e1
+v2 ; arg  -->  e2
+------------------------- :: Merge
+v1,,v2 ; arg  -->  e1,,e2
 
 
 
@@ -308,13 +433,14 @@ by
 fix x : A . e  -->  e [ x ~> fix x : A . e ] : A
 
 
-v  -->A  v'
------------------------------------------------------ :: Beta
-(\ x : A . e : B) v  -->  e [ x ~> v' ] : B
+v1 ; v2  -->  e
+---------------- :: PApp
+v1 v2  -->  e
 
 
----------------- :: BetaTop
-() v  -->  ()
+v ; {l}  -->  e
+---------------- :: PPrj
+v.l  -->  e
 
 
 v  -->A  v'
@@ -330,6 +456,22 @@ e1 e2  -->  e1' e2
 e2  -->  e2'
 ------------------------------------- :: AppR
 v1 e2  -->  v1 e2'
+
+
+e  -->  e'
+------------------------------------- :: Rcd
+{l=e}  -->  {l=e'}
+
+
+e  -->  e'
+------------------------------------- :: Prj
+e.l  -->  e'.l
+
+
+e1  -->  e1'
+e2  -->  e2'
+------------------------------------- :: Merge
+e1 ,, e2  -->  e1' ,, e2'
 
 
 e1  -->  e1'
