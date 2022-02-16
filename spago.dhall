@@ -27,7 +27,6 @@
   , "parsing"
   , "partial"
   , "prelude"
-  , "psci-support"
   , "spec"
   , "strings"
   , "transformers"

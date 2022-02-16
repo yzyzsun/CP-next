@@ -18,10 +18,10 @@
   "homepage": "https://plground.org",
   "devDependencies": {
     "@codemirror/basic-setup": "^0.19.0",
-    "@lezer/generator": "^0.15.2",
+    "@lezer/generator": "^0.15.4",
     "purescript": "^0.14.5",
     "purs-loader": "^3.7.2",
-    "spago": "^0.20.3",
+    "spago": "^0.20.7",
     "vsce": "^1.100.1",
     "webpack": "^5.58.2",
     "webpack-cli": "^4.9.0"
