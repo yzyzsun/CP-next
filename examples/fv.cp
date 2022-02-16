@@ -57,7 +57,7 @@ fv = trait implements ExpSig<FV> => {
   (Var       s).fv = [s];
 };
 
-eval' (Ctx * Env) = trait implements ExpSig<FV => Eval (Env&Ctx)> => {
+evalWithFV (Ctx * Env) = trait implements ExpSig<FV => Eval (Env&Ctx)> => {
   (Lit       n).eval _   = n;
   (Add   e1 e2).eval ctx = e1.eval ctx + e2.eval ctx;
   (Let s e1 e2).eval ctx = if elem s e2.fv
@@ -74,12 +74,16 @@ print = trait implements ExpSig<Print> => {
   (Var       s).print = s;
 };
 
-repo Exp = trait [self : ExpSig<Exp>] => {
+type Poly = { id : forall A. A -> A };
+idTrait = trait implements Poly => { id = /\A. \(x:A) -> x };
+idPoly = (new idTrait).id @Poly;
+
+repo Exp = trait [self : ExpSig<Exp>] implements Top => {
   num = Add (Lit 4) (Lit 8);
   var = Let "x" (Lit 4) (Let "y" (Lit 8) (Add (Var "x") (Var "y")));
 };
 
-exp = new repo @(Eval Env) , evalNum @Env , evalVar @Top;
+exp = new repo @(Eval Env) ,, evalNum @Env ,, evalVar @Top;
 
-exp' = new repo @(Eval Env & FV & Print) , eval' @Top , fv , print;
+exp' = new repo @(Eval Env & FV & Print) ,, evalWithFV @Top ,, fv ,, print;
 exp'.var.print ++ " is " ++ toString (exp'.var.eval { env = empty })
