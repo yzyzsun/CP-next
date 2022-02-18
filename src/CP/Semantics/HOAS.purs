@@ -23,7 +23,6 @@ eval = runTrampoline <<< go <<< tmHoas
     go e@(TmString _) = pure e
     go e@(TmBool _)   = pure e
     go TmUnit = pure TmUnit
-    go TmUndefined = pure TmUndefined
     go (TmUnary op e) = unop op <$> go e
     go (TmBinary op e1 e2) = do
       e1' <- go e1
@@ -76,15 +75,8 @@ eval = runTrampoline <<< go <<< tmHoas
 cast :: Tm -> Ty -> Maybe Tm
 cast e _ | not (isValue e) = unsafeCrashWith $
   "CP.Semantics.HOAS.cast: " <> show e <> " is not a value"
-cast _ t | isTopLike t = Just TmUnit
-cast v t | Just (t1 /\ t2) <- split t = do
-  let m1 = isOptionalRcd t1
-      m2 = isOptionalRcd t2
-      v1 = cast v t1
-      v2 = cast v t2
-  (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
-  where isOptionalRcd (TyRcd _ _ true) = Just TmUnit
-        isOptionalRcd _ = Nothing
+cast v t | Just (t1 /\ t2) <- split t = TmMerge <$> cast v t1 <*> cast v t2
+cast _ t | isTopLike t = Just $ genTopLike t
 cast (TmInt i)    TyInt    = Just $ TmInt i
 cast (TmDouble n) TyDouble = Just $ TmDouble n
 cast (TmString s) TyString = Just $ TmString s
@@ -94,6 +86,7 @@ cast (TmHAbs abs targ1 tret1 _) (TyArrow _ tret2 _)
 cast (TmMerge v1 v2) t = cast v1 t <|> cast v2 t
 cast (TmRcd l t e) (TyRcd l' t' _)
   | l == l' && t <: t' = Just $ TmRcd l t' e
+cast (TmRcd _ _ _) (TyRcd _ _ true) = Just TmUnit
 cast (TmHTAbs tabs td1 tf1 _) (TyForall a td2 t2)
   | td2 <: td1 && tf1 (TyVar a) <: t2
   = Just $ TmHTAbs tabs td1 (tyHoas a t2) true
@@ -102,7 +95,6 @@ cast (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 cast _ _ = Nothing
 
 paraApp :: Tm -> Arg -> Tm
-paraApp TmUnit _ = TmUnit
 paraApp (TmHAbs abs _ _ false) (TmArg e) = abs $ TmRef $ new e
 paraApp (TmHAbs abs _ tret true) (TmArg e) = TmAnno (abs $ TmRef $ new e) tret
 paraApp (TmHAbs abs targ tret _) (TmAnnoArg e) =
@@ -113,13 +105,21 @@ paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
 paraApp v arg = unsafeCrashWith $ "CP.Semantics.HOAS.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
 
+genTopLike :: Ty -> Tm
+genTopLike TyTop = TmUnit
+genTopLike (TyArrow _ t _) = TmHAbs (\_ -> TmUnit) TyTop t true
+genTopLike (TyRcd l t _) = TmRcd l t TmUnit
+genTopLike (TyForall a _ t) = TmHTAbs (\_ -> TmUnit) TyTop (tyHoas a t) true
+genTopLike (TyRec _ t) = genTopLike t
+genTopLike t = unsafeCrashWith $ "CP.Semantics.HOAS.genTopLike: " <>
+  "cannot generate a top-like value of type " <> show t
+
 isValue :: Tm -> Boolean
 isValue (TmInt _)    = true
 isValue (TmDouble _) = true
 isValue (TmString _) = true
 isValue (TmBool _)   = true
 isValue TmUnit       = true
-isValue TmUndefined  = true
 isValue (TmHAbs _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true

@@ -12,7 +12,7 @@ import Data.Map (insert, lookup, union)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\))
-import Language.CP.Semantics.Common (Arg(..), binop, toString, unop)
+import Language.CP.Semantics.Common (Arg(..), binop, genTopLike, toString, unop)
 import Language.CP.Subtyping (isTopLike, split, (<:))
 import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
 import Language.CP.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..), unfold)
@@ -77,25 +77,18 @@ cast tm ty = runMaybeT $ go tm ty
     go :: Tm -> Ty -> MaybeT (EvalT m) Tm
     go e _ | not (isValue e) = unsafeCrashWith $
       "CP.Semantics.Closure.cast: " <> show e <> " is not a value"
-    go _ t | isTopLike t = pure TmUnit
-    go v t | Just (t1 /\ t2) <- split t = do
-      let m1 = isOptionalRcd t1
-          m2 = isOptionalRcd t2
-          v1 = go v t1
-          v2 = go v t2
-      (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
-      where isOptionalRcd (TyRcd _ _ true) = pure TmUnit
-            isOptionalRcd _ = empty
+    go v t | Just (t1 /\ t2) <- split t = TmMerge <$> go v t1 <*> go v t2
+    go _ t | isTopLike t = pure $ genTopLike t
     go (TmMerge v1 v2) t = go v1 t <|> go v2 t
     go (TmInt i)    TyInt    = pure $ TmInt i
     go (TmDouble n) TyDouble = pure $ TmDouble n
     go (TmString s) TyString = pure $ TmString s
     go (TmBool b)   TyBool   = pure $ TmBool b
     go (TmFold t v) t'@(TyRec _ _) | t <: t' = pure $ TmFold t' v
-    go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2 _) = do
+    go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2 opt) = do
       t1' <- lift $ local (const env) $ expand t1
       if l1 == l2 && t1' <: t2 then pure $ TmClosure env (TmRcd l2 t2 e)
-                               else empty
+      else if opt then pure TmUnit else empty
     go (TmClosure env (TmAbs x e targ1 tret1 _)) (TyArrow _ tret2 _) = do
       targ1' <- lift $ local (const env) $ expand targ1
       tret1' <- lift $ local (const env) $ expand tret1
@@ -116,7 +109,6 @@ cast tm ty = runMaybeT $ go tm ty
     go _ _ = empty
 
 paraApp :: Tm -> Arg -> Tm
-paraApp TmUnit _ = TmUnit
 paraApp (TmClosure env (TmAbs x e1 _ _ false)) (TmArg e2) =
   TmClosure (insert x (TmBind e2) env) e1
 paraApp (TmClosure env (TmAbs x e1 _ tret true)) (TmArg e2) =
@@ -133,12 +125,12 @@ paraApp v arg = unsafeCrashWith $ "CP.Semantics.Closure.paraApp: " <>
 
 selectLabel :: Tm -> Label -> Tm
 selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUndefined, TmUndefined -> TmUndefined
-  TmUndefined, e2' -> e2'
-  e1', TmUndefined -> e1'
+  TmUnit, TmUnit -> TmUnit
+  TmUnit, e2' -> e2'
+  e1', TmUnit -> e1'
   e1', e2' -> TmMerge e1' e2'
 selectLabel (TmClosure env (TmRcd l' t e)) l | l == l' = TmClosure env (TmAnno e t)
-selectLabel _ _ = TmUndefined
+selectLabel _ _ = TmUnit
 
 unop' :: UnOp -> Tm -> Tm
 unop' Len (TmClosure _ (TmArray _ arr)) = TmInt (length arr)
@@ -178,7 +170,6 @@ isValue (TmDouble _) = true
 isValue (TmString _) = true
 isValue (TmBool _)   = true
 isValue TmUnit       = true
-isValue TmUndefined  = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmFold _ e) = isValue e
 isValue (TmClosure _ (TmRcd _ _ _)) = true

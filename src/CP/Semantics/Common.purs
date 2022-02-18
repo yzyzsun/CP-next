@@ -5,7 +5,7 @@ import Prelude
 import Data.Array (length, (!!))
 import Data.Maybe (Maybe(..))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), UnOp(..))
-import Language.CP.Syntax.Core (Tm(..), Ty)
+import Language.CP.Syntax.Core (Tm(..), Ty(..))
 import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
 
@@ -28,7 +28,7 @@ binop Index (TmArray t arr) (TmInt i) = case arr !! i of
   Just e -> TmAnno e t
   Nothing -> unsafeCrashWith $ "CP.Semantics.Common.binop: the index " <>
     show i <> " is out of bounds for " <> show (TmArray t arr)
-binop Coalesce TmUndefined v2 = v2
+binop Coalesce TmUnit v2 = v2
 binop Coalesce v1 _ = v1
 binop op v1 v2 = unsafeCrashWithBinop op v1 v2
 
@@ -92,12 +92,21 @@ toString v = unsafeCrashWith $
 
 selectLabel :: Tm -> Label -> Tm
 selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUndefined, TmUndefined -> TmUndefined
-  TmUndefined, e2' -> e2'
-  e1', TmUndefined -> e1'
+  TmUnit, TmUnit -> TmUnit
+  TmUnit, e2' -> e2'
+  e1', TmUnit -> e1'
   e1', e2' -> TmMerge e1' e2'
 selectLabel (TmRcd l' t e) l | l == l' = TmAnno e t
-selectLabel _ _ = TmUndefined
+selectLabel _ _ = TmUnit
+
+genTopLike :: Ty -> Tm
+genTopLike TyTop = TmUnit
+genTopLike (TyArrow _ t _) = TmAbs "#top" TmUnit TyTop t true
+genTopLike (TyRcd l t _) = TmRcd l t TmUnit
+genTopLike (TyForall a _ t) = TmTAbs a TyTop TmUnit t true
+genTopLike (TyRec _ t) = genTopLike t
+genTopLike t = unsafeCrashWith $ "CP.Semantics.Common.genTopLike: " <>
+  "cannot generate a top-like value of type " <> show t
 
 data Arg = TmArg Tm | TmAnnoArg Tm | TyArg Ty
 

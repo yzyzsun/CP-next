@@ -96,7 +96,7 @@ infer (S.TmBinary Index e1 e2) = do
                pure $ C.TmBinary Index e1' (C.TmAnno e2' C.TyInt) /\ t1'
              _ -> throwTypeError $ "Index is not defined between" <+>
                                    show t1 <+> "and" <+> show t2
--- this undefined-coalescing operator is only used for record default values
+-- this unit-coalescing operator is only used for record default values
 infer (S.TmBinary Coalesce (S.TmPrj e1 label) e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- infer e2
@@ -408,7 +408,6 @@ infer (S.TmType a sorts params t e) = do
 infer e = throwTypeError $ "expected a desugared term, but got" <+> show e
 
 distApp :: C.Ty -> Either C.Ty C.Ty -> Typing C.Ty
-distApp C.TyTop _ = pure C.TyTop
 distApp (C.TyArrow targ tret _) (Left t) | t <: targ = pure tret
                                          | otherwise = throwTypeError $
   "expected the argument type to be a subtype of the parameter type, but got" <+>
