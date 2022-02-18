@@ -178,7 +178,7 @@ defaultPattern
     ;
 
 recordUpdate
-    :   BraceOpen expression Vbar ((labelDecl Assign expression) Semicolon)* (labelDecl Assign expression)? BraceClose
+    :   BraceOpen expression With ((labelDecl Assign expression) Semicolon)* (labelDecl Assign expression)? BraceClose
     ;
 
 typeParam

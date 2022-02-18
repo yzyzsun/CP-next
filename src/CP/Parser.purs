@@ -237,7 +237,7 @@ bracketsWithoutConsumingSpace = between (char '[') (char ']')
 
 recordUpdate :: SParser Tm -> SParser Tm
 recordUpdate p = do
-  rcd <- try $ p <* symbol "|"
+  rcd <- try $ p <* reserved "with"
   fields <- sepEndBySemi (Tuple <$> identifier <* symbol "=" <*> p)
   pure $ TmUpdate rcd fields
 
@@ -411,7 +411,7 @@ langDef :: LanguageDef
 langDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "undefined", "if", "then", "else", "toString"
   , "trait", "implements", "inherits", "override", "new", "fold", "unfold"
-  , "let", "letrec", "open", "in", "type", "forall", "mu"
+  , "let", "letrec", "open", "in", "with", "type", "forall", "mu"
   , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
   ]
 }

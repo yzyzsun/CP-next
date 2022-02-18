@@ -119,6 +119,10 @@ In
     :   'in'
     ;
 
+With
+    :   'with'
+    ;
+
 ToString
     :   'toString'
     ;
@@ -293,10 +297,6 @@ Dot
 
 DotDot
     :   '..'
-    ;
-
-Vbar
-    :   '|'
     ;
 
 Dollar

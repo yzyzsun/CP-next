@@ -127,7 +127,7 @@ instance Show Tm where
     "letrec" <+> x <+> showTyParams tyParams <> showTmParams tmParams <>
     ":" <+> show t <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmOpen e1 e2) = parens $ "open" <+> show e1 <+> "in" <+> show e2
-  show (TmUpdate rcd fields) = braces $ show rcd <+> "|" <+>
+  show (TmUpdate rcd fields) = braces $ show rcd <+> "with" <+>
     intercalate "; " (fields <#> \(l /\ e) -> l <+> "=" <+> show e)
   show (TmTrait self sig e1 e2) = parens $ "trait" <>
     maybe "" (" " <> _) (showSelfAnno self) <+>

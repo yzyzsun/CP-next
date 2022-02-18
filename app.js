@@ -22,7 +22,7 @@ export const cp = new LanguageSupport(LRLanguage.define({
       }),
       styleTags({
         'type let letrec trait implements inherits mu': t.definitionKeyword,
-        'if then else new open in toString fold unfold forall Int Double Bool String Top Bot Trait': t.keyword,
+        'if then else new open in with toString fold unfold forall Int Double Bool String Top Bot Trait': t.keyword,
         'override': t.modifier,
         'true false undefined': t.atom,
         Unit: t.unit,
@@ -80,8 +80,7 @@ export function editorView(state, parent) {
 }
 
 
-
-/* PureScript */
+/* PureScript & ANTLR */
 
 import { default as CP } from './src/CP.purs';
 import { parse } from './antlr/index.js';

@@ -43,7 +43,7 @@ type VarSig<Exp> = {
 
 type Env = { env : String -> Int };
 evalVar (Ctx * Env) = trait implements VarSig<Eval (Env&Ctx)> => {
-  (Let s e1 e2).eval ctx = e2.eval { ctx | env = insert s (e1.eval ctx) ctx.env };
+  (Let s e1 e2).eval ctx = e2.eval { ctx with env = insert s (e1.eval ctx) ctx.env };
   (Var       s).eval ctx = lookup s ctx.env;
 };
 
@@ -61,7 +61,7 @@ evalWithFV (Ctx * Env) = trait implements ExpSig<FV => Eval (Env&Ctx)> => {
   (Lit       n).eval _   = n;
   (Add   e1 e2).eval ctx = e1.eval ctx + e2.eval ctx;
   (Let s e1 e2).eval ctx = if elem s e2.fv
-                           then e2.eval { ctx | env = insert s (e1.eval ctx) ctx.env }
+                           then e2.eval { ctx with env = insert s (e1.eval ctx) ctx.env }
                            else e2.eval ctx;
   (Var       s).eval ctx = lookup s ctx.env;
 };

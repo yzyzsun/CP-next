@@ -97,7 +97,7 @@ MethodPattern {
 }
 
 RecordUpdate {
-  braces<TermName "|" sepEndBySemi<LabelDecl "=" expression>>
+  braces<TermName kw<"with"> sepEndBySemi<LabelDecl "=" expression>>
 }
 
 typeParam { TypeNameDecl | parens<TypeNameDecl "*" type> }
