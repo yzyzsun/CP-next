@@ -33,6 +33,7 @@ data Ty = TyInt
         | TySort Ty (Maybe Ty)
         | TySig Name Name Ty
         | TyArray Ty
+        | TyDiff Ty Ty
 
 instance Show Ty where
   show TyInt    = "Int"
@@ -55,6 +56,7 @@ instance Show Ty where
   show (TySig a b t) = -- \<a, b> accepts an expanded form of original <I => O>
     parens $ "\\" <> angles (a <> "," <+> b) <+> "->" <+> show t
   show (TyArray t) = brackets $ show t
+  show (TyDiff t1 t2) = parens $ show t1 <+> "\\" <+> show t2
 
 derive instance Eq Ty
 
@@ -184,6 +186,7 @@ tySubst a s (TySort ti to) = TySort (tySubst a s ti) (tySubst a s <$> to)
 tySubst a s (TySig a' b' t) = TySig a' b'
   (if a == a' || a == b' then t else tySubst a s t)
 tySubst a s (TyArray t) = TyArray (tySubst a s t)
+tySubst a s (TyDiff t1 t2) = TyDiff (tySubst a s t1) (tySubst a s t2)
 tySubst _ _ t = t
 
 -- Helpers --

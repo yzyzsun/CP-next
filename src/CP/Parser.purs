@@ -9,6 +9,7 @@ import Data.CodePoint.Unicode (isLower)
 import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, null, some, toUnfoldable)
+import Data.List.NonEmpty (toList)
 import Data.Maybe (Maybe(..), isJust, isNothing, optional)
 import Data.String (codePointFromChar)
 import Data.String.CodeUnits as SCU
@@ -17,7 +18,7 @@ import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..
 import Language.CP.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam, SelfAnno)
 import Language.CP.Util (foldl1, isCapitalized)
 import Text.Parsing.Parser (Parser, fail, position)
-import Text.Parsing.Parser.Combinators (between, choice, endBy, lookAhead, manyTill, sepEndBy, try)
+import Text.Parsing.Parser.Combinators (between, choice, endBy, lookAhead, manyTill, sepEndBy, sepEndBy1, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (anyChar, char, satisfy)
@@ -238,7 +239,7 @@ bracketsWithoutConsumingSpace = between (char '[') (char ']')
 recordUpdate :: SParser Tm -> SParser Tm
 recordUpdate p = do
   rcd <- try $ p <* reserved "with"
-  fields <- sepEndBySemi (Tuple <$> identifier <* symbol "=" <*> p)
+  fields <- sepEndBySemi1 (Tuple <$> identifier <* symbol "=" <*> p)
   pure $ TmUpdate rcd fields
 
 recordLit :: SParser Tm -> SParser Tm
@@ -370,6 +371,7 @@ recordTy = braces $ TyRcd <$> sepEndBySemi do
 
 toperators :: OperatorTable Identity String Ty
 toperators = [ [ Infix (reservedOp "&"  $> TyAnd) AssocLeft  ]
+             , [ Infix (reservedOp "\\" $> TyDiff) AssocLeft ]
              , [ Infix (reservedOp "->" $> TyArrow) AssocRight ]
              ]
 
@@ -460,6 +462,9 @@ angles = lang.angles
 
 brackets :: forall a. SParser a -> SParser a
 brackets = lang.brackets
+
+sepEndBySemi1 :: forall a. SParser a -> SParser (List a)
+sepEndBySemi1 p = toList <$> sepEndBy1 p (symbol ";")
 
 sepEndBySemi :: forall a. SParser a -> SParser (List a)
 sepEndBySemi = flip sepEndBy $ symbol ";"

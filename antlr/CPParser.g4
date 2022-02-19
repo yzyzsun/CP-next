@@ -24,6 +24,7 @@ termDef
 
 type
     :   <assoc=left> type Intersect type
+    |   <assoc=left> type Backslash type
     |   <assoc=right> type Arrow type
     |   ForAll typeParam+ Dot type
     |   Mu typeNameDecl Dot type

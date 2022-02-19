@@ -9,6 +9,7 @@
   forward @left
   merge @left
   intersect @left
+  diff @left
   arrow @right
 }
 
@@ -28,6 +29,7 @@ TermDef {
 
 type {
   type !arrow TypeOp<"->"> type |
+  type !diff TypeOp<"\\"> type |
   type !intersect TypeOp<"&"> type |
   kw<"forall"> typeParam+ "." type |
   kw<"mu"> TypeNameDecl "." type |
@@ -175,5 +177,6 @@ Label { lowerid | upperid }
   @precedence { LineComment, minus }
   @precedence { BlockComment, "{" }
   @precedence { CompareOp, "<" }
+  @precedence { TypeOp<"\\">, "\\" }
 
 }

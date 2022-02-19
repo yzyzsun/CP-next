@@ -2,7 +2,7 @@ module Language.CP.Typing where
 
 import Prelude
 
-import Data.Array (all, difference, elem, head, notElem, null, unzip)
+import Data.Array (all, elem, head, notElem, null, unzip)
 import Data.Either (Either(..))
 import Data.Foldable (foldr)
 import Data.List (List(..), filter, last, singleton, sort, (:))
@@ -19,7 +19,8 @@ import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
 import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
 import Language.CP.Transform (transform, transform', transformTyDef)
-import Language.CP.Util (unsafeFromJust, (<+>))
+import Language.CP.TypeDiff (tyDiff)
+import Language.CP.Util (foldr1, unsafeFromJust, (<+>))
 
 infer :: S.Tm -> Typing (C.Tm /\ C.Ty)
 infer (S.TmInt i)    = pure $ C.TmInt i /\ C.TyInt
@@ -198,8 +199,9 @@ infer (S.TmUpdate rcd fields) = do
     pure $ C.TmRcd l t' e'
   let t' = foldr rcdTy C.TyTop fields'
   if t <: t' then do
-    let outdate = C.TmAnno rcd' (diffRcdTy t t')
-    let update = foldr C.TmMerge C.TmUnit fields'
+    d <- tyDiff t t'
+    let outdate = C.TmAnno rcd' d
+    let update = foldr1 C.TmMerge fields'
     pure $ C.TmMerge outdate update /\ t
   else throwTypeError $ "cannot safely update the record" <+> show rcd
   where rcdTy :: C.Tm -> C.Ty -> C.Ty
@@ -355,11 +357,10 @@ infer (S.TmExclude e te) = do
   e' /\ t <- infer e
   te' <- transform te
   case t of
-    C.TyArrow ti to true ->
-      if to <: te' then let t' = C.TyArrow ti (diffRcdTy to te') true in
-                        pure $ C.TmAnno e' t' /\ t'
-      else throwTypeError $ "expected to exclude supertype from" <+> show e <>
-                            ", but got" <+> show te
+    C.TyArrow ti to true -> do
+      d <- tyDiff to te'
+      let t' = C.TyArrow ti d true
+      pure $ C.TmAnno e' t' /\ t'
     _ -> throwTypeError $ "expected to exclude from a trait, but got" <+> show e
 infer (S.TmFold t e) = do
   t' <- transformTyRec t
@@ -459,15 +460,6 @@ transformTyRec t = do
   case t' of C.TyRec _ _ -> pure t'
              _ -> throwTypeError $
                "fold/unfold expected a recursive type, but got" <+> show t
-
-diffRcdTy :: C.Ty -> C.Ty -> C.Ty
-diffRcdTy x y = fromArray (difference (toArray x) (toArray y))
-  where
-    fromArray :: Array C.Ty -> C.Ty
-    fromArray = foldr C.TyAnd C.TyTop
-    toArray :: C.Ty -> Array C.Ty
-    toArray (C.TyAnd t1 t2) = toArray t1 <> toArray t2
-    toArray t = [t]
 
 collectLabels :: C.Ty -> Set Label
 collectLabels (C.TyAnd t1 t2) = Set.union (collectLabels t1) (collectLabels t2)

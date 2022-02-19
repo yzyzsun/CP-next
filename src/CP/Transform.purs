@@ -12,6 +12,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Context (Typing, addTyBind, lookupSort, lookupTyAlias, lookupTyBind, throwTypeError)
 import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
+import Language.CP.TypeDiff (tyDiff)
 import Language.CP.Util (foldl1, isCapitalized, (<+>))
 
 transform :: S.Ty -> Typing C.Ty
@@ -33,6 +34,10 @@ translate (S.TyForall xs t) =
   where disjointness :: Maybe S.Ty -> Typing C.Ty
         disjointness (Just s) = translate s
         disjointness Nothing  = pure C.TyTop
+translate (S.TyDiff t1 t2) = do
+  t1' <- translate t1
+  t2' <- translate t2
+  tyDiff t1' t2'
 
 translate S.TyInt    = pure C.TyInt
 translate S.TyDouble = pure C.TyDouble
@@ -104,6 +109,7 @@ expand (S.TySort ti to) = do
                    Nothing -> pure $ S.TySort ti' (Just ti')
       _ -> pure $ S.TySort ti' (Just ti')
 expand (S.TyArray t) = S.TyArray <$> expand t
+expand (S.TyDiff t1 t2) = S.TyDiff <$> expand t1 <*> expand t2
 expand t = pure t
 
 -- If a type declaration is parametrized with sorts,
@@ -135,4 +141,6 @@ distinguish isCtor isOut (S.TyAbs a t) = S.TyAbs a <$> distinguish isCtor isOut 
 distinguish isCtor isOut (S.TyTrait ti to) = S.TyTrait <$>
   traverse (distinguish isCtor (not isOut)) ti <*> distinguish isCtor isOut to
 distinguish isCtor isOut (S.TyArray t) = S.TyArray <$> distinguish isCtor isOut t
+distinguish isCtor isOut (S.TyDiff t1 t2) = 
+  S.TyDiff <$> distinguish isCtor isOut t1 <*> distinguish isCtor isOut t2
 distinguish _ _ t = pure t
