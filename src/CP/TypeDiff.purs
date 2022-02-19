@@ -18,12 +18,14 @@ tyDiff m s = runMaybeT (diff m s) >>= case _ of
   Nothing -> throwTypeError $ "cannot subtract " <> show s <> " from " <> show m
   -- this algorithm does not depend on subtyping or disjointness
   where diff :: Ty -> Ty -> MaybeT Typing Ty
-        diff TyBot TyBot = pure TyTop
-        diff t TyBot = diff t t
-        diff TyBot _ = empty
         diff t1 t2 | isTopLike t1 || isTopLike t2 = pure t1
         diff t1 t2 | Just (t3 /\ t4) <- split t1 =
           tyMerge t1 <$> diff t3 t2 <*> diff t4 t2
+        diff t (TyAnd t1 t2) = (diff t t1 >>= \t' -> diff t' t2) <|>
+                               (diff t t2 >>= \t' -> diff t' t1)
+        diff TyBot TyBot = pure TyTop
+        diff t TyBot = diff t t  -- should not precede left-split
+        diff TyBot _ = empty     -- should not precede right-and
         diff t@(TyArrow targ1 tret1 b) (TyArrow targ2 tret2 _) = do
           dret <- diff tret1 tret2
           if dret == tret1 then pure t  -- disjoint (m * s)
@@ -48,8 +50,10 @@ tyDiff m s = runMaybeT (diff m s) >>= case _ of
                         else empty
           Nothing -> empty
         diff t (TyVar a) = diff (TyVar a) t  -- only disjointness matters
-        diff t (TyAnd t1 t2) = (diff t t1 >>= \t' -> diff t' t2) <|>
-                               (diff t t2 >>= \t' -> diff t' t1)
+        diff (TyArray t1) (TyArray t2) = TyArray <$> diff t1 t2
+        -- TODO: recursive type difference
+        diff (TyRec _ _) _ = empty
+        diff _ (TyRec _ _) = empty
         diff t1 t2 | t1 == t2  = pure TyTop
                    | otherwise = pure t1
 
