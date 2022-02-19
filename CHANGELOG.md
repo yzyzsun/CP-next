@@ -1,8 +1,10 @@
 ## Unreleased
 
 - [New] an alternative ANTLR parser, which is faster than purescript-parsing.
+- [New] support type difference (`T1 \ T2`).
 - In a trait definition, `implements` and `inherits` clauses can be written in any order.
 - Support `x ,, y` as an alias to `x , y` for compatibility.
+- Change the notation of record updates from `{ rcd | x = 1 }` (Elm-style) to `{ rcd with x = 1 }` (OCaml-style).
 
 ## 0.1.3
 

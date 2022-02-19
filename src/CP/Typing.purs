@@ -374,9 +374,12 @@ infer (S.TmUnfold t e) = do
   else throwTypeError $ "cannot unfold" <+> show e <+> "to" <+> show t
 infer (S.TmToString e) = do
   e' /\ t <- infer e
-  if t == C.TyInt || t == C.TyDouble || t == C.TyString || t == C.TyBool
-  then pure $ C.TmToString e' /\ C.TyString
+  if t <: C.TyInt then pureToString e' C.TyInt
+  else if t <: C.TyDouble then pureToString e' C.TyDouble
+  else if t <: C.TyString then pureToString e' C.TyString
+  else if t <: C.TyBool then pureToString e' C.TyBool
   else throwTypeError $ "cannot show" <+> show t
+  where pureToString e' t = pure $ C.TmToString (C.TmAnno e' t) /\ C.TyString
 infer (S.TmArray arr) = do
   if null arr then
     pure $ C.TmArray C.TyBot [] /\ C.TyArray C.TyBot
