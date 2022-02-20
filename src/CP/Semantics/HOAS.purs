@@ -75,7 +75,14 @@ eval = runTrampoline <<< go <<< tmHoas
 cast :: Tm -> Ty -> Maybe Tm
 cast e _ | not (isValue e) = unsafeCrashWith $
   "CP.Semantics.HOAS.cast: " <> show e <> " is not a value"
-cast v t | Just (t1 /\ t2) <- split t = TmMerge <$> cast v t1 <*> cast v t2
+cast v t | Just (t1 /\ t2) <- split t = do
+  let m1 = isOptionalRcd t1
+      m2 = isOptionalRcd t2
+      v1 = cast v t1
+      v2 = cast v t2
+  (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
+  where isOptionalRcd (TyRcd _ _ true) = Just TmUnit
+        isOptionalRcd _ = Nothing
 cast _ t | isTopLike t = Just $ genTopLike t
 cast (TmInt i)    TyInt    = Just $ TmInt i
 cast (TmDouble n) TyDouble = Just $ TmDouble n
@@ -86,7 +93,6 @@ cast (TmHAbs abs targ1 tret1 _) (TyArrow _ tret2 _)
 cast (TmMerge v1 v2) t = cast v1 t <|> cast v2 t
 cast (TmRcd l t e) (TyRcd l' t' _)
   | l == l' && t <: t' = Just $ TmRcd l t' e
-cast (TmRcd _ _ _) (TyRcd _ _ true) = Just TmUnit
 cast (TmHTAbs tabs td1 tf1 _) (TyForall a td2 t2)
   | td2 <: td1 && tf1 (TyVar a) <: t2
   = Just $ TmHTAbs tabs td1 (tyHoas a t2) true

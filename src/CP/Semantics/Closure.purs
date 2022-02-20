@@ -77,7 +77,14 @@ cast tm ty = runMaybeT $ go tm ty
     go :: Tm -> Ty -> MaybeT (EvalT m) Tm
     go e _ | not (isValue e) = unsafeCrashWith $
       "CP.Semantics.Closure.cast: " <> show e <> " is not a value"
-    go v t | Just (t1 /\ t2) <- split t = TmMerge <$> go v t1 <*> go v t2
+    go v t | Just (t1 /\ t2) <- split t = do
+      let m1 = isOptionalRcd t1
+          m2 = isOptionalRcd t2
+          v1 = go v t1
+          v2 = go v t2
+      (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
+      where isOptionalRcd (TyRcd _ _ true) = pure TmUnit
+            isOptionalRcd _ = empty
     go _ t | isTopLike t = pure $ genTopLike t
     go (TmMerge v1 v2) t = go v1 t <|> go v2 t
     go (TmInt i)    TyInt    = pure $ TmInt i
@@ -85,10 +92,10 @@ cast tm ty = runMaybeT $ go tm ty
     go (TmString s) TyString = pure $ TmString s
     go (TmBool b)   TyBool   = pure $ TmBool b
     go (TmFold t v) t'@(TyRec _ _) | t <: t' = pure $ TmFold t' v
-    go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2 opt) = do
+    go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2 _) = do
       t1' <- lift $ local (const env) $ expand t1
       if l1 == l2 && t1' <: t2 then pure $ TmClosure env (TmRcd l2 t2 e)
-      else if opt then pure TmUnit else empty
+                               else empty
     go (TmClosure env (TmAbs x e targ1 tret1 _)) (TyArrow _ tret2 _) = do
       targ1' <- lift $ local (const env) $ expand targ1
       tret1' <- lift $ local (const env) $ expand tret1
