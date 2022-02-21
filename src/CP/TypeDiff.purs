@@ -16,7 +16,7 @@ tyDiff :: Ty -> Ty -> Typing Ty
 tyDiff m s = runMaybeT (diff m s) >>= case _ of
   Just d  -> pure d
   Nothing -> throwTypeError $ "cannot subtract " <> show s <> " from " <> show m
-  -- this algorithm does not depend on subtyping or disjointness
+  -- this algorithm does not depend on separate definitions of subtyping or disjointness
   where diff :: Ty -> Ty -> MaybeT Typing Ty
         diff t1 t2 | isTopLike t1 || isTopLike t2 = pure t1
         diff t1 t2 | Just (t3 /\ t4) <- split t1 =
@@ -40,7 +40,7 @@ tyDiff m s = runMaybeT (diff m s) >>= case _ of
           if d == t1 then pure t  -- disjoint (m * s)
           else do dd <- diff td2 td1
                   if isTopLike dd  -- supertype (m :> s)
-                  then pure $ TyForall a1 td1 dd else empty
+                  then pure $ TyForall a1 td1 d else empty
           where t2' = tySubst a2 (TyVar a1) t2
         diff (TyVar a1) (TyVar a2) | a1 == a2 = pure TyTop
         diff (TyVar a) t = lift (lookupTyBind a) >>= case _ of
@@ -59,10 +59,14 @@ tyDiff m s = runMaybeT (diff m s) >>= case _ of
 
 tyMerge :: Ty -> Ty -> Ty -> Ty
 tyMerge (TyAnd _ _) t1 t2 = TyAnd t1 t2
-tyMerge (TyArrow targ tret b) (TyArrow _ t1 _) (TyArrow _ t2 _) =
-  TyArrow targ (tyMerge tret t1 t2) b
-tyMerge (TyRcd l t b) (TyRcd _ t1 _) (TyRcd _ t2 _) = TyRcd l (tyMerge t t1 t2) b
-tyMerge (TyForall a td t) (TyForall _ _ t1) (TyForall _ _ t2) =
-  TyForall a td (tyMerge t t1 t2)
+tyMerge (TyArrow targ tret b) (TyArrow targ1 t1 b1) (TyArrow targ2 t2 b2)
+  | targ == targ1 && targ == targ2 && b == b1 && b == b2
+  = TyArrow targ (tyMerge tret t1 t2) b
+tyMerge (TyRcd l t b) (TyRcd l1 t1 b1) (TyRcd l2 t2 b2)
+  | l == l1 && l == l2 && b == b1 && b == b2
+  = TyRcd l (tyMerge t t1 t2) b
+tyMerge (TyForall a td t) (TyForall a1 td1 t1) (TyForall a2 td2 t2)
+  | a == a1 && a == a2 && td == td1 && td == td2
+  = TyForall a td (tyMerge t t1 t2)
 tyMerge t t1 t2 = unsafeCrashWith $ "CP.TypeDiff.tyMerge: " <>
   "cannot merge " <> show t1 <> " and " <> show t2 <> " according to " <> show t
