@@ -25,6 +25,8 @@ import Text.Parsing.Parser.String (anyChar, char, satisfy)
 import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
 
 type SParser a = Parser String a
+data Definition = TmDef Name TyParamList TmParamList (Maybe Ty) Tm | TyDef Name (List Name) (List Name) Ty
+newtype Program = Program (List Definition) Tm
 
 -- Program --
 
