@@ -146,6 +146,18 @@ instance Show Tm where
   -- because sort argument expansion from B<T> to B<T, #T> already prevents
   -- distinguishing output occurrences of T in B any more.
 
+-- Sort or Expression Definitions and Program --
+data Definition = TmDef Name TyParamList TmParamList (Maybe Ty) Tm | TyDef Name (List Name) (List Name) Ty
+data Program = Program (List Definition) Tm
+
+instance Show Definition where
+  show (TmDef name tyParams tmParams t e) = name <+>
+    showTyParams tyParams <> showTmParams tmParams <>
+    showMaybe ": " t " " <> "=" <+> show e <> ";"
+  show (TyDef name sorts params t) = "type" <+> name <+>
+    intercalate' " " (angles <$> sorts) <> intercalate' " " params <>
+    "=" <+> show t <> ";"
+
 showDoc :: Tm -> String
 showDoc (TmDoc e) = "`" <> showDoc e <> "`"
 showDoc (TmPos _ (TmDoc e)) = "[" <> showDoc e <> "]"
