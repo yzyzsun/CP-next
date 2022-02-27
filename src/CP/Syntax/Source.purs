@@ -162,7 +162,7 @@ data Program = Program (List Definition) Tm
 
 instance Show Program where
   show (Program defs e) = case defs of
-    [] -> show e
+    [] -> "\n" ++ show e
     (d : ds) -> show d ++ "\n" ++ show ds
 
 showDoc :: Tm -> String

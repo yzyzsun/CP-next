@@ -15,7 +15,7 @@ import Data.String (codePointFromChar)
 import Data.String.CodeUnits as SCU
 import Data.Tuple (Tuple(..))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
-import Language.CP.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam, SelfAnno)
+import Language.CP.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam, SelfAnno, Definition)
 import Language.CP.Util (foldl1, isCapitalized)
 import Text.Parsing.Parser (Parser, fail, position)
 import Text.Parsing.Parser.Combinators (between, choice, endBy, lookAhead, manyTill, sepEndBy, sepEndBy1, try)
@@ -26,12 +26,18 @@ import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, 
 
 type SParser a = Parser String a
 
--- Program --
+-- Program and Definitions --
 
-program :: SParser Tm
-program = fix $ \p -> tyDef p <|> tmDef p <|> expr
+program :: SParser Program
+program = do
+  definitions <- definition
+  evaluatedTerm <- expr
+  pure $ Program definitions evaluatedTerm
 
-tyDef :: SParser Tm -> SParser Tm
+definition :: SParser Definition
+definition = fix $ \p -> tyDef p <|> tmDef p
+
+tyDef :: SParser Tm -> SParser Definition
 tyDef p = do
   reserved "type"
   a <- upperIdentifier
@@ -41,9 +47,9 @@ tyDef p = do
   t <- ty
   symbol ";"
   e <- p
-  pure $ TmType a sorts parms t e
+  pure $ TyDef a sorts parms t e
 
-tmDef :: SParser Tm -> SParser Tm
+tmDef :: SParser Tm -> SParser Definition
 tmDef p = do
   def <- try do
     x <- lowerIdentifier
@@ -52,10 +58,9 @@ tmDef p = do
     t <- optional (symbol ":" *> ty)
     symbol "="
     pure $ TmDef x tys tms t
-  e1 <- expr
+  e <- expr
   symbol ";"
-  e2 <- p
-  pure $ def e1 e2
+  pure $ def e
 
 -- Expressions --
 
