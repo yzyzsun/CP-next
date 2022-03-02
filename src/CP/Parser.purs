@@ -29,16 +29,16 @@ type SParser a = Parser String a
 -- Program and Definitions --
 
 program :: SParser Program
-program = do
-  definitions <- definition
+program = fix $ \p -> do
+  definitions <- many definition
   evaluatedTerm <- expr
   pure $ Program definitions evaluatedTerm
 
 definition :: SParser Definition
-definition = fix $ \p -> tyDef p <|> tmDef p
+definition = tyDef <|> tmDef
 
-tyDef :: SParser Tm -> SParser Definition
-tyDef p = do
+tyDef :: SParser Definition
+tyDef = do
   reserved "type"
   a <- upperIdentifier
   sorts <- many (angles upperIdentifier)
@@ -46,11 +46,10 @@ tyDef p = do
   symbol "="
   t <- ty
   symbol ";"
-  e <- p
-  pure $ TyDef a sorts parms t e
+  pure $ TyDef a sorts parms t
 
-tmDef :: SParser Tm -> SParser Definition
-tmDef p = do
+tmDef :: SParser Definition
+tmDef = do
   def <- try do
     x <- lowerIdentifier
     tys <- many $ try $ tyParams false

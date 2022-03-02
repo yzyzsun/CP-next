@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
-import Data.Foldable (class Foldable, any, intercalate, null)
+import Data.Foldable (class Foldable, any, foldl, intercalate, null)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple (fst, snd)
@@ -146,6 +146,19 @@ instance Show Tm where
   -- because sort argument expansion from B<T> to B<T, #T> already prevents
   -- distinguishing output occurrences of T in B any more.
 
+showDoc :: Tm -> String
+showDoc (TmDoc e) = "`" <> showDoc e <> "`"
+showDoc (TmPos _ (TmDoc e)) = "[" <> showDoc e <> "]"
+showDoc (TmPos _ e) = showDoc e
+showDoc (TmNew e) = showDoc e
+showDoc (TmVar "Endl") = "\\\\"
+showDoc (TmApp (TmApp (TmVar "Comp") e1) e2) = showDoc e1 <> showDoc e2
+showDoc (TmApp (TmVar "Str") (TmString s)) = s
+showDoc (TmApp (TmVar "Str") (TmToString s)) = "\\(" <> show s <> ")"
+showDoc (TmApp (TmVar x) e) = "\\" <> x <> showDoc e
+showDoc (TmApp e1 e2) = showDoc e1 <> showDoc e2
+showDoc e = "(" <> show e <> ")"
+
 -- Type or Expression Definitions --
 data Definition = TmDef Name TyParamList TmParamList (Maybe Ty) Tm | TyDef Name (List Name) (List Name) Ty
 
@@ -161,22 +174,7 @@ instance Show Definition where
 data Program = Program (List Definition) Tm
 
 instance Show Program where
-  show (Program defs e) = case defs of
-    [] -> show e
-    (d : ds) -> show d ++ "\n" ++ show ds
-
-showDoc :: Tm -> String
-showDoc (TmDoc e) = "`" <> showDoc e <> "`"
-showDoc (TmPos _ (TmDoc e)) = "[" <> showDoc e <> "]"
-showDoc (TmPos _ e) = showDoc e
-showDoc (TmNew e) = showDoc e
-showDoc (TmVar "Endl") = "\\\\"
-showDoc (TmApp (TmApp (TmVar "Comp") e1) e2) = showDoc e1 <> showDoc e2
-showDoc (TmApp (TmVar "Str") (TmString s)) = s
-showDoc (TmApp (TmVar "Str") (TmToString s)) = "\\(" <> show s <> ")"
-showDoc (TmApp (TmVar x) e) = "\\" <> x <> showDoc e
-showDoc (TmApp e1 e2) = showDoc e1 <> showDoc e2
-showDoc e = "(" <> show e <> ")"
+  show (Program defs e) = (foldl (\d1 d2 -> d1 <> "\n" <> d2) $ map (\d -> show d) defs) <> show e
 
 -- Substitution --
 
