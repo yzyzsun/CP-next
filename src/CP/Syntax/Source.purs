@@ -174,7 +174,7 @@ instance Show Definition where
 data Program = Program (List Definition) Tm
 
 instance Show Program where
-  show (Program defs e) = (foldl (\d1 d2 -> d1 <> "\n" <> d2) $ map (\d -> show d) defs) <> show e
+  show (Program defs e) = (foldl (\d1 d2 -> d1 <> "\n" <> d2) "" (map show defs)) <> show e
 
 -- Substitution --
 
