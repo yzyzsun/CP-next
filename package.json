@@ -19,11 +19,11 @@
   "devDependencies": {
     "@codemirror/basic-setup": "^0.19.0",
     "@lezer/generator": "^0.15.4",
-    "purescript": "^0.14.5",
+    "purescript": "^0.14.7",
     "purs-loader": "^3.7.2",
     "spago": "^0.20.7",
-    "vsce": "^1.100.1",
-    "webpack": "^5.58.2",
+    "vsce": "^2.6.7",
+    "webpack": "^5.70.0",
     "webpack-cli": "^4.9.0"
   },
   "dependencies": {
