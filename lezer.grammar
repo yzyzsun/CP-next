@@ -167,7 +167,7 @@ Label { lowerid | upperid }
   LogicOp<op> { op }
   AppendOp { "++" }
   CompareOp { "<" "="? | ">" "="? | "==" | "!=" }
-  MergeOp { "," | ",," }
+  MergeOp { "," | ",," | "+," | ",+" }
   ForwardOp { "^" }
   IndexOp { "!!" }
   LengthOp { "#" }

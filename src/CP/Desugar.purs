@@ -7,7 +7,7 @@ import Data.Either (Either(..))
 import Data.List (List(..), foldr, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested ((/\))
-import Language.CP.Syntax.Source (MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..))
+import Language.CP.Syntax.Source (Bias(..), MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..))
 import Language.CP.Util (foldl1)
 
 -- typing-related desugaring is delayed until type inference
@@ -19,7 +19,7 @@ desugar (TmTAbs xs e) =
   where disjointness t = Just (fromMaybe TyTop t)
 desugar (TmRcd Nil) = TmUnit
 desugar (TmRcd xs) =
-  foldl1 TmMerge (xs <#> \x -> TmRcd (singleton (desugarField x)))
+  foldl1 (TmMerge Neutral) (xs <#> \x -> TmRcd (singleton (desugarField x)))
   where
     desugarField :: RcdField -> RcdField
     -- TODO: override inner traits instead of outer ones
@@ -51,7 +51,7 @@ desugar (TmBinary op e1 e2) = TmBinary op (desugar e1) (desugar e2)
 desugar (TmIf e1 e2 e3) = TmIf (desugar e1) (desugar e2) (desugar e3)
 desugar (TmApp e1 e2) = TmApp (desugar e1) (desugar e2)
 desugar (TmAnno e t) = TmAnno (desugar e) t
-desugar (TmMerge e1 e2) = TmMerge (desugar e1) (desugar e2)
+desugar (TmMerge bias e1 e2) = TmMerge bias (desugar e1) (desugar e2)
 desugar (TmPrj e l) = TmPrj (desugar e) l
 desugar (TmTApp e t) = TmTApp (desugar e) t
 desugar (TmOpen e1 e2) = TmOpen (desugar e1) (desugar e2)

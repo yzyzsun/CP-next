@@ -75,7 +75,7 @@ data Tm = TmInt Int
         | TmApp Tm Tm
         | TmAbs TmParamList Tm
         | TmAnno Tm Ty
-        | TmMerge Tm Tm
+        | TmMerge Bias Tm Tm
         | TmRcd (List RcdField)
         | TmPrj Tm Label
         | TmTApp Tm Ty
@@ -97,6 +97,14 @@ data Tm = TmInt Int
         | TmType Name (List Name) (List Name) Ty Tm
         | TmDef Name TyParamList TmParamList (Maybe Ty) Tm Tm
 
+data Bias = Neutral | Leftist | Rightist
+derive instance Eq Bias
+
+instance Show Bias where
+  show Neutral  = ","
+  show Leftist  = "+,"
+  show Rightist = ",+"
+
 -- TODO: add type parameters
 data RcdField = RcdField Boolean Label TmParamList (Either Tm MethodPattern)
               | DefaultPattern MethodPattern
@@ -117,7 +125,7 @@ instance Show Tm where
   show (TmApp e1 e2) = parens $ show e1 <+> show e2
   show (TmAbs xs e) = parens $ "\\" <> showTmParams xs <> "->" <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
-  show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
+  show (TmMerge bias e1 e2) = parens $ show e1 <+> show bias <+> show e2
   show (TmRcd xs) = braces $ showRcdTm xs
   show (TmPrj e l) = show e <> "." <> l
   show (TmTApp e t) = parens $ show e <+> "@" <> show t

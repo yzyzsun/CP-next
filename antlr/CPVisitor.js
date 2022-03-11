@@ -256,7 +256,11 @@ export default class CPVisitor extends CPParserVisitor {
           case CPParser.Forward:
             return new AST.TmForward(opexpr1, opexpr2);
           case CPParser.Merge:
-            return new AST.TmMerge(opexpr1, opexpr2);
+            return new AST.TmMerge(AST.Neutral.value, opexpr1, opexpr2);
+          case CPParser.LeftistMerge:
+            return new AST.TmMerge(AST.Leftist.value, opexpr1, opexpr2);
+          case CPParser.RightistMerge:
+            return new AST.TmMerge(AST.Rightist.value, opexpr1, opexpr2);
           default:
             console.error("Error at Binary Opexpr");
         }

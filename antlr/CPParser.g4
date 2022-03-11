@@ -68,7 +68,7 @@ opexpr
     |   <assoc=right> opexpr And opexpr
     |   <assoc=right> opexpr Or opexpr
     |   <assoc=left> opexpr Forward opexpr
-    |   <assoc=left> opexpr Merge opexpr
+    |   <assoc=left> opexpr (Merge | LeftistMerge | RightistMerge) opexpr
     ;
 
 lexpr

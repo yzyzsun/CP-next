@@ -15,7 +15,7 @@ import Data.String (codePointFromChar)
 import Data.String.CodeUnits as SCU
 import Data.Tuple (Tuple(..))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
-import Language.CP.Syntax.Source (MethodPattern(..), RcdField(..), RcdTy(..), Tm(..), TmParam(..), Ty(..), TyParam, SelfAnno)
+import Language.CP.Syntax.Source (Bias(..), MethodPattern(..), RcdField(..), RcdTy(..), SelfAnno, Tm(..), TmParam(..), Ty(..), TyParam)
 import Language.CP.Util (foldl1, isCapitalized)
 import Text.Parsing.Parser (Parser, fail, position)
 import Text.Parsing.Parser.Combinators (between, choice, endBy, lookAhead, manyTill, sepEndBy, sepEndBy1, try)
@@ -296,16 +296,18 @@ operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
             , [ Infix (reservedOp "++" $> TmBinary Append) AssocLeft ]
             , [ Infix (reservedOp "==" $> TmBinary (Comp Eql)) AssocNone
               , Infix (reservedOp "!=" $> TmBinary (Comp Neq)) AssocNone
-              , Infix (reservedOp "<"  $> TmBinary (Comp Lt )) AssocNone
-              , Infix (reservedOp "<=" $> TmBinary (Comp Le )) AssocNone
-              , Infix (reservedOp ">"  $> TmBinary (Comp Gt )) AssocNone
-              , Infix (reservedOp ">=" $> TmBinary (Comp Ge )) AssocNone
+              , Infix (reservedOp "<"  $> TmBinary (Comp  Lt)) AssocNone
+              , Infix (reservedOp "<=" $> TmBinary (Comp  Le)) AssocNone
+              , Infix (reservedOp ">"  $> TmBinary (Comp  Gt)) AssocNone
+              , Infix (reservedOp ">=" $> TmBinary (Comp  Ge)) AssocNone
               ]
             , [ Infix (reservedOp "&&" $> TmBinary (Logic And)) AssocRight ]
-            , [ Infix (reservedOp "||" $> TmBinary (Logic Or )) AssocRight ]
+            , [ Infix (reservedOp "||" $> TmBinary (Logic  Or)) AssocRight ]
             , [ Infix (reservedOp "^" $> TmForward) AssocLeft ]
-            , [ Infix (reservedOp ",," $> TmMerge) AssocLeft
-              , Infix (reservedOp ","  $> TmMerge) AssocLeft
+            , [ Infix (reservedOp ",," $> TmMerge  Neutral) AssocLeft
+              , Infix (reservedOp ","  $> TmMerge  Neutral) AssocLeft
+              , Infix (reservedOp "+," $> TmMerge  Leftist) AssocLeft
+              , Infix (reservedOp ",+" $> TmMerge Rightist) AssocLeft
               ]
             ]
 

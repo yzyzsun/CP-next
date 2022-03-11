@@ -141,18 +141,25 @@ infer (S.TmAnno e ta) = do
   ta' <- transform ta
   if t <: ta' then pure $ C.TmAnno e' ta' /\ ta' else throwTypeError $
     "annotated" <+> show ta <+> "is not a supertype of inferred" <+> show t
-infer (S.TmMerge e1 e2) = do
+infer (S.TmMerge bias e1 e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- infer e2
   case t1, t2 of
     C.TyArrow targ1 tret1 true, C.TyArrow targ2 tret2 true -> do
-      disjoint tret1 tret2
-      pure $ trait "#self" (C.TmMerge (appToSelf e1') (appToSelf e2'))
-                   (C.TyAnd targ1 targ2) (C.TyAnd tret1 tret2)
+      ifNeutral bias $ disjoint tret1 tret2
+      trait "#self" <$> merge bias (appToSelf e1') (appToSelf e2') tret1 tret2
+                    <@> C.TyAnd targ1 targ2 <@> C.TyAnd tret1 tret2
     _, _ -> do
-      disjoint t1 t2
-      pure $ C.TmMerge e1' e2' /\ C.TyAnd t1 t2
+      ifNeutral bias $ disjoint t1 t2
+      merge bias e1' e2' t1 t2 <#> (_ /\ C.TyAnd t1 t2)
   where appToSelf e = C.TmApp e (C.TmVar "#self") true
+        merge :: S.Bias -> C.Tm -> C.Tm -> C.Ty -> C.Ty -> Typing C.Tm
+        merge S.Neutral l r _ _ = pure $ C.TmMerge l r
+        merge S.Leftist l r tl tr = C.TmMerge l <$> C.TmAnno r <$> tyDiff tr tl
+        merge S.Rightist l r tl tr = C.TmMerge r <$> C.TmAnno l <$> tyDiff tl tr
+        ifNeutral :: S.Bias -> Typing Unit -> Typing Unit
+        ifNeutral S.Neutral = identity
+        ifNeutral _ = const $ pure unit
 infer (S.TmRcd (Cons (S.RcdField _ l Nil (Left e)) Nil)) = do
   e' /\ t <- infer e
   pure $ C.TmRcd l t e' /\ C.TyRcd l t false
@@ -241,8 +248,8 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
     inferFromSig rs@(S.TyAnd _ _) e = inferFromSig (S.TyRcd $ combineRcd rs) e
     inferFromSig s (S.TmPos p e) = S.TmPos p (inferFromSig s e)
     inferFromSig s (S.TmOpen e1 e2) = S.TmOpen e1 (inferFromSig s e2)
-    inferFromSig s (S.TmMerge e1 e2) =
-      S.TmMerge (inferFromSig s e1) (inferFromSig s e2)
+    inferFromSig s (S.TmMerge bias e1 e2) =
+      S.TmMerge bias (inferFromSig s e1) (inferFromSig s e2)
     inferFromSig (S.TyRcd xs) r@(S.TmRcd (Cons (S.RcdField o l Nil (Left e)) Nil)) =
       case last $ filterRcd (_ == l) xs of
         Just (S.RcdTy _ ty _) ->
@@ -256,11 +263,11 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
               e = inferFromSig ty' (desugarMethodPattern pat) in
           S.RcdField false l params (Left e)
       where patterns :: Label -> Array Label
-            patterns l = patternsFromRcd (S.TmMerge (fromMaybe S.TmUnit me1) ne2) l
+            patterns l = patternsFromRcd (S.TmMerge S.Neutral (fromMaybe S.TmUnit me1) ne2) l
             patternsFromRcd :: S.Tm -> Label -> Array Label
             patternsFromRcd (S.TmPos _ e) l = patternsFromRcd e l
             patternsFromRcd (S.TmOpen _ e) l = patternsFromRcd e l
-            patternsFromRcd (S.TmMerge e1 e2) l =
+            patternsFromRcd (S.TmMerge _ e1 e2) l =
               patternsFromRcd e1 l <> patternsFromRcd e2 l
             patternsFromRcd (S.TmRcd (Cons (S.RcdField _ l' _ (Left e)) Nil)) l =
               if innerLabel e == l then [l'] else []
@@ -312,7 +319,7 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
       where selectOverride :: S.Tm -> Array Label
             selectOverride (S.TmPos _ e0) = selectOverride e0
             selectOverride (S.TmOpen _ e0) = selectOverride e0
-            selectOverride (S.TmMerge e1 e2) = selectOverride e1 <> selectOverride e2
+            selectOverride (S.TmMerge _ e1 e2) = selectOverride e1 <> selectOverride e2
             -- TODO: only override the inner field if it's a method pattern
             selectOverride (S.TmRcd (Cons (S.RcdField true l _ _) Nil)) = [l]
             selectOverride _ = []

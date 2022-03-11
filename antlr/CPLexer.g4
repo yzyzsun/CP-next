@@ -279,6 +279,14 @@ Merge
     |   ',,'
     ;
 
+LeftistMerge
+    :   '+,'
+    ;
+
+RightistMerge
+    :   ',+'
+    ;
+
 Assign
     :   '='
     ;
