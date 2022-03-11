@@ -69,6 +69,7 @@ formula :: 'formula_' ::=
   | formula1 or formula2  :: M:: or        {{ tex [[formula1]] \lor [[formula2]] }}
   | formula1 and formula2 :: M:: and       {{ tex [[formula1]] \land [[formula2]] }}
   | ( formula )           :: M:: brackets  {{ tex ([[formula]]) }}
+  | < formula >           :: M:: highlight {{ tex \colorbox{lightgray}{$[[formula]]$} }}
   | uniq G                ::  :: uniqG     {{ tex }}
   | x : A in G            ::  :: inG
   | x notin fv e          ::  :: fresh
@@ -172,7 +173,7 @@ defns
 Subtyping :: '' ::=
 
 defn
-A <: B :: :: sub :: S_
+A <: B :: :: sub :: Sub_
 {{ com Subtyping }}
 by
 

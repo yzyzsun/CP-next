@@ -2,43 +2,149 @@
 
 \usepackage{amsmath,amssymb}
 \usepackage[margin=1in]{geometry}
+\usepackage{multicol}
 \usepackage{ottalt}
 \usepackage{xcolor}
+\usepackage{xspace}
 
 \inputott{ott}
 
+\newcommand\calculus{$\lambda_i^+$\xspace}
+
 \begin{document}
 
-\section{Syntax of $\lambda_i$}
+\section*{Syntax of \calculus}
 \begin{align*}
   &\text{Types}       &A,B,C& ::= [[Top]] ~|~ [[Base]] ~|~ [[A -> B]] ~|~ [[A & B]] \\
+  &\text{Type indices}&[[T]]& ::= [[Base]] ~|~ [[->T]] ~|~ [[T1 & T2]] \\
   &\text{Expressions} &    e& ::= [[()]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[e1 ,, e2]] ~|~ [[e : A]] \\
   &\text{Values}      &    v& ::= [[()]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[v1 ,, v2]] \\
 \end{align*}
 
-\section{Syntax of MiniJS}
-\begin{align*}
-  &\text{Type indices} & [[T]]& ::= [[Base]] ~|~ [[->T]] ~|~ [[T1 & T2]] \\
-  &\text{Expressions}  & [[E]]& ::= [[V]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x. E]] ~|~ [[\x. E]] ~|~ [[E1 $ E2]] ~|~ [[E1 ++ E2]] ~|~ [[co E]] \\
-  &\text{Values}       & [[V]]& ::= [[{</ Ti |-> Ei />}]] \\
-  &\text{Coercion}     &[[co]]& ::= [[identity]] ~|~ [[clear]] ~|~ [[becard T co1 co2]] ~|~ [[proj T]] ~|~ [[co1 <> co2]] ~|~ [[co1 . co2]] \\
-\end{align*}
+\vspace{-.1in}
 
-\boxed{[[|A|]]} \hfill \textit{(Type translation)}
+\boxed{[[|A|]] = [[T]]} \hfill \textit{(Type translation)}
 \begin{mathpar}
 \inferrule{}{ [[|Base|]] = [[Base]] }
 \and
 \inferrule{}{ [[|A->B|]] = [[->|B|]] }
 \and
-\inferrule{ |A| \le |B| }{ [[|A&B|]] = [[|A|&|B|]] }
-\and
-\inferrule{ |A| > |B| }{ [[|A&B|]] = [[|B|&|A|]] }
+\inferrule{}{ [[|A&B|]] = [[|A|&|B|]] }
 \end{mathpar}
 
-\section{Coercion}
-\ottdefnsCoercion
+\section*{Compiling from \calculus to JavaScript}
 
-\section{Semantics}
-\ottdefnsCompilation
+\ottdefncompile
+
+\begin{multicols}{3}
+\begin{verbatim}
+/* S1 */
+var z = {};
+
+/* S2 */
+var z = {};
+z.<t> = b;
+
+/* S3 */
+var x = (() => {
+  J;
+  return y;
+})();
+
+/* S4 */
+var z = {};
+z.<t> = x => {
+  J;
+  return y;
+};
+
+/* S5 */
+J1;
+J2;
+J3;
+
+/* S6 */
+J1;
+J2;
+var z = {...x, ...y};
+
+/* S7 */
+J1;
+var y = {};
+J2;
+\end{verbatim}
+\end{multicols}
+
+\ottdefndistapp
+
+\begin{multicols}{3}
+\begin{verbatim}
+/* S8 */
+var z = {};
+
+
+
+/* S9 */
+J1;
+J2;
+var z = {...z1, ...z2};
+
+/* S10 */
+var z = x.<t>(y);
+
+\end{verbatim}
+\end{multicols}
+
+\ottdefncosub
+
+\begin{multicols}{3}
+\begin{verbatim}
+/* S11 */
+y.<t> = x.<t>;
+
+
+
+
+
+
+/* S12 */
+y.<t2> = p => {
+  var x2 = x.<t1>(p);
+  var y2 = {};
+  J2;
+  return y2;
+};
+
+/* S13 */
+var y1 = {};
+J1;
+var y2 = {};
+J2;
+J3;
+\end{verbatim}
+\end{multicols}
+
+\ottdefncomerge
+
+\begin{multicols}{2}
+\begin{verbatim}
+/* S14 */
+z = {...x, ...y};
+
+
+
+
+
+
+/* S15 */
+z.<t> = p => {
+  var y1 = x1.<t1>(p);
+  var y2 = x2.<t2>(p);
+  var y = {};
+  J;
+  return y;
+};
+\end{verbatim}
+\end{multicols}
 
 \end{document}
