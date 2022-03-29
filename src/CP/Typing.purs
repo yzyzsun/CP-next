@@ -128,13 +128,13 @@ infer (S.TmApp e1 e2) = do
   where app :: C.Ty -> C.Ty -> Maybe C.Ty
         app (C.TyArrow targ tret _) t | t === targ = Just tret
         app _ _ = Nothing
-infer (S.TmAbs (Cons (S.TmParam x (Just targ)) Nil) e) = do
+infer (S.TmAbs (S.TmParam x (Just targ) : Nil) e) = do
   targ' <- transform targ
   e' /\ tret <- addTmBind x targ' $ infer e
   pure $ C.TmAbs x e' targ' tret false /\ C.TyArrow targ' tret false
-infer (S.TmAbs (Cons (S.TmParam x Nothing) Nil) _) = throwTypeError $
+infer (S.TmAbs (S.TmParam x Nothing : Nil) _) = throwTypeError $
   "lambda parameter" <+> show x <+> "should be annotated with a type"
-infer (S.TmAbs (Cons (S.WildCard _) Nil) _) = throwTypeError $
+infer (S.TmAbs (S.WildCard _ : Nil) _) = throwTypeError $
   "record wildcards should only occur in traits with interfaces implemented"
 infer (S.TmAnno e ta) = do
   e' /\ t <- infer e
@@ -160,7 +160,7 @@ infer (S.TmMerge bias e1 e2) = do
         ifNeutral :: S.Bias -> Typing Unit -> Typing Unit
         ifNeutral S.Neutral = identity
         ifNeutral _ = const $ pure unit
-infer (S.TmRcd (Cons (S.RcdField _ l Nil (Left e)) Nil)) = do
+infer (S.TmRcd (S.RcdField _ l Nil (Left e) : Nil)) = do
   e' /\ t <- infer e
   pure $ C.TmRcd l t e' /\ C.TyRcd l t false
 infer (S.TmPrj e l) = do
@@ -173,7 +173,7 @@ infer (S.TmTApp e ta) = do
   ta' <- transform ta
   t <- distApp tf (Right ta')
   pure $ C.TmTApp e' ta' /\ t 
-infer (S.TmTAbs (Cons (a /\ Just td) Nil) e) = do
+infer (S.TmTAbs ((a /\ Just td) : Nil) e) = do
   td' <- transform td
   e' /\ t <- addTyBind a td' $ infer e
   pure $ C.TmTAbs a td' e' t false /\ C.TyForall a td' t
@@ -250,13 +250,13 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
     inferFromSig s (S.TmOpen e1 e2) = S.TmOpen e1 (inferFromSig s e2)
     inferFromSig s (S.TmMerge bias e1 e2) =
       S.TmMerge bias (inferFromSig s e1) (inferFromSig s e2)
-    inferFromSig (S.TyRcd xs) r@(S.TmRcd (Cons (S.RcdField o l Nil (Left e)) Nil)) =
+    inferFromSig (S.TyRcd xs) r@(S.TmRcd (S.RcdField o l Nil (Left e) : Nil)) =
       case last $ filterRcd (_ == l) xs of
         Just (S.RcdTy _ ty _) ->
           S.TmRcd (singleton (S.RcdField o l Nil (Left (inferFromSig ty e))))
         _ -> r
     inferFromSig (S.TyRcd xs)
-        (S.TmRcd (Cons (S.DefaultPattern pat@(S.MethodPattern _ label _ _)) Nil)) =
+        (S.TmRcd (S.DefaultPattern pat@(S.MethodPattern _ label _ _) : Nil)) =
       desugar $ S.TmRcd $ filterRcd (_ `notElem` patterns label) xs <#>
         \(S.RcdTy l ty _) ->
           let params /\ ty' = paramsAndInnerTy ty
@@ -269,7 +269,7 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
             patternsFromRcd (S.TmOpen _ e) l = patternsFromRcd e l
             patternsFromRcd (S.TmMerge _ e1 e2) l =
               patternsFromRcd e1 l <> patternsFromRcd e2 l
-            patternsFromRcd (S.TmRcd (Cons (S.RcdField _ l' _ (Left e)) Nil)) l =
+            patternsFromRcd (S.TmRcd (S.RcdField _ l' _ (Left e) : Nil)) l =
               if innerLabel e == l then [l'] else []
             patternsFromRcd _ _ = []
             innerLabel :: S.Tm -> Label
@@ -277,19 +277,18 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
             innerLabel (S.TmOpen _ e) = innerLabel e
             innerLabel (S.TmAbs _ e) = innerLabel e
             innerLabel (S.TmTrait _ _ _ e) = innerLabel e
-            innerLabel (S.TmRcd (Cons (S.RcdField _ l _ _) Nil)) = l
+            innerLabel (S.TmRcd (S.RcdField _ l _ _ : Nil)) = l
             innerLabel _ = "#nothing"
             paramsAndInnerTy :: S.Ty -> S.TmParamList /\ S.Ty
             paramsAndInnerTy (S.TyArrow targ tret) =
               let params /\ ty = paramsAndInnerTy tret in
               (S.TmParam "_" (Just targ) : params) /\ ty
             paramsAndInnerTy ty = Nil /\ ty
-    inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons (S.TmParam x Nothing) Nil) e) =
+    inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.TmParam x Nothing : Nil) e) =
       S.TmAbs (singleton (S.TmParam x (Just targ))) (inferFromSig tret e)
-    inferFromSig (S.TyArrow _ tret)
-                 (S.TmAbs param@(Cons (S.TmParam _ (Just _)) Nil) e) =
+    inferFromSig (S.TyArrow _ tret) (S.TmAbs param@(S.TmParam _ (Just _) : Nil) e) =
       S.TmAbs param (inferFromSig tret e)
-    inferFromSig (S.TyArrow targ tret) (S.TmAbs (Cons (S.WildCard defaults) Nil) e)
+    inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.WildCard defaults : Nil) e)
       -- TODO: better error messages for mismatch
       | defaults `matchOptional` targ =
         S.TmAbs (singleton (S.TmParam wildcardName (Just targ)))
@@ -321,7 +320,7 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
             selectOverride (S.TmOpen _ e0) = selectOverride e0
             selectOverride (S.TmMerge _ e1 e2) = selectOverride e1 <> selectOverride e2
             -- TODO: only override the inner field if it's a method pattern
-            selectOverride (S.TmRcd (Cons (S.RcdField true l _ _) Nil)) = [l]
+            selectOverride (S.TmRcd (S.RcdField true l _ _ : Nil)) = [l]
             selectOverride _ = []
             -- TODO: make sure every field overrides some field in super-trait
             removeOverride :: C.Ty -> Array Label -> C.Ty

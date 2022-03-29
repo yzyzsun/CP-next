@@ -4,8 +4,8 @@ import Prelude
 
 import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
-import Data.Foldable (class Foldable, any, intercalate, null)
-import Data.List (List(..))
+import Data.Foldable (class Foldable, any, foldMap, intercalate, null)
+import Data.List (List)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -221,11 +221,8 @@ showTmParams :: TmParamList -> String
 showTmParams params = intercalate' " " $ params <#> case _ of
   TmParam x (Just t) -> parens $ x <+> ":" <+> show t
   TmParam x Nothing -> x
-  WildCard defaults -> "{" <+> showFields defaults <> ".. }"
-  where showFields :: DefaultFields -> String
-        showFields Nil = ""
-        showFields (Cons (x /\ e) xs) =
-          x <+> "=" <+> show e <> ";" <+> showFields xs
+  WildCard defaults -> "{" <> foldMap showField defaults <> "..}"
+  where showField (x /\ e) = x <+> "=" <+> show e <> "; "
 
 type RcdTyList = List RcdTy
 data RcdTy = RcdTy Label Ty Boolean
