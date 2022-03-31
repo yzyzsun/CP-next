@@ -13,7 +13,7 @@ import Data.Traversable (for, traverse)
 import Data.Tuple (fst, uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Context (Pos(..), Typing, addSort, addTmBind, addTyAlias, addTyBind, localPos, lookupTmBind, lookupTyBind, throwTypeError)
-import Language.CP.Desugar (desugar, desugarMethodPattern)
+import Language.CP.Desugar (deMP, desugar)
 import Language.CP.Subtyping (isTopLike, (<:), (===))
 import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
 import Language.CP.Syntax.Core as C
@@ -260,7 +260,7 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
       desugar $ S.TmRcd $ filterRcd (_ `notElem` patterns label) xs <#>
         \(S.RcdTy l ty _) ->
           let params /\ ty' = paramsAndInnerTy ty
-              e = inferFromSig ty' (desugarMethodPattern pat) in
+              e = inferFromSig ty' (desugar (deMP pat)) in
           S.RcdField false l params (Left e)
       where patterns :: Label -> Array Label
             patterns l = patternsFromRcd (S.TmMerge S.Neutral (fromMaybe S.TmUnit me1) ne2) l

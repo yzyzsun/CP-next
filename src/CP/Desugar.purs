@@ -3,7 +3,7 @@ module Language.CP.Desugar where
 import Prelude
 
 import Data.Bifunctor (rmap)
-import Data.Either (Either(..))
+import Data.Either (Either(..), either)
 import Data.List (List(..), foldr, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested ((/\))
@@ -24,9 +24,7 @@ desugar (TmRcd xs) =
     desugarField :: RcdField -> RcdField
     -- TODO: override inner traits instead of outer ones
     desugarField (RcdField o l p f) =
-      RcdField o l Nil $ Left $ desugar $ TmAbs p $ case f of
-        Left e -> e
-        Right pat -> desugarMethodPattern pat
+      RcdField o l Nil $ Left $ desugar $ TmAbs p $ either identity deMP f
     -- desugaring of default patterns is done in `inferFromSig`
     desugarField def@(DefaultPattern _) = def
 desugar (TmTrait self sig e1 e2) =
@@ -68,6 +66,6 @@ desugar (TmPos p e) = TmPos p (desugar e)
 desugar (TmType a sorts params t e) = TmType a sorts params t (desugar e)
 desugar e = e
 
-desugarMethodPattern :: MethodPattern -> Tm
-desugarMethodPattern (MethodPattern self l p e) = desugar $
+deMP :: MethodPattern -> Tm
+deMP (MethodPattern self l p e) =
   TmTrait self Nothing Nothing (TmRcd (singleton (RcdField false l p (Left e))))
