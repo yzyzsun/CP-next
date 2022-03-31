@@ -91,19 +91,27 @@ export default class CPVisitor extends CPParserVisitor {
       };
       return new AST.TyTrait(ti, to);
     } else {
-      let type = this.visitAtype(ctx.getChild(0));
+      let type = this.visitBtype(ctx.getChild(0));
       for (let i = 1; i < ctx.getChildCount(); i++) {
-        const child = ctx.getChild(i);
-        if (child.ruleIndex === CPParser.RULE_sort) {
-          type = new AST.TyApp(type, this.visitSort(child));
-        } else if (child.ruleIndex === CPParser.RULE_atype) {
-          type = new AST.TyApp(type, this.visitAtype(child));
-        } else {
-          continue;
-        }
+        type = new AST.TyApp(type, this.visitBtype(ctx.getChild(i)));
       }
       return type;
     }
+  }
+
+
+  // Visit a parse tree produced by CPParser#btype.
+  visitBtype(ctx) {
+    let type = this.visitAtype(ctx.getChild(0));
+    for (let i = 1; i < ctx.getChildCount(); i++) {
+      const child = ctx.getChild(i);
+      if (child.ruleIndex === CPParser.RULE_sort) {
+        type = new AST.TyApp(type, this.visitSort(child));
+      } else {
+        continue;
+      }
+    }
+    return type;
   }
 
 
@@ -395,7 +403,7 @@ export default class CPVisitor extends CPParserVisitor {
   // Visit a parse tree produced by CPParser#fold.
   visitFold(ctx) {
     return new AST.TmFold(
-      this.visitAtype(ctx.atype()),
+      this.visitTypeArg(ctx.typeArg()),
       this.visitDotexpr(ctx.dotexpr())
     );
   }
@@ -404,7 +412,7 @@ export default class CPVisitor extends CPParserVisitor {
   // Visit a parse tree produced by CPParser#unfold.
   visitUnfold(ctx) {
     return new AST.TmUnfold(
-      this.visitAtype(ctx.atype()),
+      this.visitTypeArg(ctx.typeArg()),
       this.visitDotexpr(ctx.dotexpr())
     );
   }
@@ -430,10 +438,8 @@ export default class CPVisitor extends CPParserVisitor {
       const child = ctx.getChild(i);
       if (child.ruleIndex === CPParser.RULE_dotexpr) {
         fexpr = new AST.TmApp(fexpr, this.visitDotexpr(child));
-      } else if (child.ruleIndex === CPParser.RULE_atype) {
-        fexpr = new AST.TmTApp(fexpr, this.visitAtype(child));
       } else {
-        continue;
+        fexpr = new AST.TmTApp(fexpr, this.visitTypeArg(child));
       }
     }
     if (isCtor) {
@@ -609,6 +615,12 @@ export default class CPVisitor extends CPParserVisitor {
         this.visitExpression(ctx.expression())
       )
     );
+  }
+
+
+  // Visit a parse tree produced by CPParser#typeArg.
+  visitTypeArg(ctx) {
+    return this.visitBtype(ctx.btype());
   }
 
 

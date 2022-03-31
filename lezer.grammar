@@ -34,7 +34,11 @@ type {
   kw<"forall"> typeParam+ "." type |
   kw<"mu"> TypeNameDecl "." type |
   kW<"Trait"> angles<sort> |
-  atype (atype | angles<sort>)*
+  btype btype*
+}
+
+btype {
+  atype angles<sort>*
 }
 
 atype {
@@ -68,10 +72,10 @@ lexpr {
   IfElse { kw<"if"> expression kw<"then"> expression kw<"else"> expression } |
   Trait { kw<"trait"> SelfAnno? (kw<"implements"> type)? (kw<"inherits"> opexpr)? (kw<"implements"> type)? "=>" opexpr } |
   New { kw<"new"> opexpr } | ToString { kw<"toString"> dotexpr } |
-  kw<"fold"> "@" atype dotexpr | kw<"unfold"> "@" atype dotexpr
+  kw<"fold"> typeArg dotexpr | kw<"unfold"> typeArg dotexpr
 }
 
-fexpr { dotexpr (dotexpr | "@" atype)* }
+fexpr { dotexpr (dotexpr | typeArg)* }
 
 dotexpr { aexpr ("." Label)* }
 
@@ -117,7 +121,8 @@ brackets<contents> { "[" contents "]" }
 angles<contents> { "<" contents ">" }
 
 sepEndBySemi<clause> { (clause ";")* clause? }
-sort { atype ("=>" atype)? }
+sort { type ("=>" type)? }
+typeArg { "@" btype }
 
 TypeNameDecl { upperid }
 TypeName { upperid }
@@ -137,7 +142,7 @@ Label { lowerid | upperid }
 
   BlockComment { "{-" blockCommentRest }
   blockCommentRest { "-" blockCommentAfterHyphen | ![-] blockCommentRest }
-  blockCommentAfterHyphen { "}" | blockCommentRest }
+  blockCommentAfterHyphen { "}" | ![}] blockCommentRest }
 
   underscore { "_" }
   idChar { std.asciiLetter | std.digit | underscore | "'" }

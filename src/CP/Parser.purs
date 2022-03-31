@@ -80,8 +80,8 @@ fexpr :: SParser Tm -> SParser Tm
 fexpr e = do
   Tuple isCtor f <- Tuple true <<< TmVar <$> upperIdentifier <|>
                     Tuple false <$> dotexpr e
-  args <- many $ flip TmTApp <$ char '@' <*> aty ty <|>
-                 flip TmApp <$> dotexpr e
+  args <- many $ flip TmTApp <$> tyArg <|>
+                 flip TmApp  <$> dotexpr e
   pure $ (if isCtor then TmNew else identity) (foldl (#) f args)
 
 dotexpr :: SParser Tm -> SParser Tm
@@ -190,16 +190,14 @@ toString = do
 fold :: SParser Tm
 fold = do
   reserved "fold"
-  symbol "@"
-  t <- aty ty
+  t <- tyArg
   e <- dotexpr expr
   pure $ TmFold t e
 
 unfold :: SParser Tm
 unfold = do
   reserved "unfold"
-  symbol "@"
-  t <- aty ty
+  t <- tyArg
   e <- dotexpr expr
   pure $ TmUnfold t e
 
@@ -314,11 +312,14 @@ operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
 -- Types --
 
 ty :: SParser Ty
-ty = fix \t -> buildExprParser toperators $ bty t
+ty = fix \t -> buildExprParser toperators $ cty t
+
+cty :: SParser Ty -> SParser Ty
+cty t = foldl TyApp <$> bty t <*> many (bty t) <|>
+        forallTy <|> traitTy <|> muTy
 
 bty :: SParser Ty -> SParser Ty
-bty t = foldl TyApp <$> aty t <*> many (aty t <|> sortTy t) <|>
-        forallTy <|> traitTy <|> muTy
+bty t = foldl TyApp <$> aty t <*> many (sortTy t)
 
 aty :: SParser Ty -> SParser Ty
 aty t = choice [ reserved "Int"    $> TyInt
@@ -382,6 +383,9 @@ toperators = [ [ Infix (reservedOp "&"  $> TyAnd) AssocLeft  ]
 fromIntOrNumber :: Either Int Number -> Tm
 fromIntOrNumber (Left int) = TmInt int
 fromIntOrNumber (Right number) = TmDouble number
+
+tyArg :: SParser Ty
+tyArg = char '@' *> bty ty
 
 tyParams :: Boolean -> SParser TyParam
 tyParams us = Tuple <$> id <*> pure Nothing <|>

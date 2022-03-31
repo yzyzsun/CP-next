@@ -29,7 +29,11 @@ type
     |   ForAll typeParam+ Dot type
     |   Mu typeNameDecl Dot type
     |   TraitType Less type (FatArrow type)? Greater
-    |   atype (atype | Less sort Greater)*
+    |   btype btype*
+    ;
+
+btype
+    :   atype (Less sort Greater)*
     ;
 
 atype
@@ -124,15 +128,15 @@ toStr
     ;
 
 fold
-    :   Fold At atype dotexpr
+    :   Fold typeArg dotexpr
     ;
 
 unfold
-    :   Unfold At atype dotexpr
+    :   Unfold typeArg dotexpr
     ;
 
 fexpr
-    :   (ctorName | dotexpr) (dotexpr | At atype)*
+    :   (ctorName | dotexpr) (dotexpr | typeArg)*
     ;
 
 dotexpr
@@ -180,6 +184,10 @@ defaultPattern
 
 recordUpdate
     :   BraceOpen expression With ((labelDecl Assign expression) Semicolon)* (labelDecl Assign expression)? BraceClose
+    ;
+
+typeArg
+    :   At btype
     ;
 
 typeParam
