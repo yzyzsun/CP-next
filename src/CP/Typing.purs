@@ -2,6 +2,7 @@ module Language.CP.Typing where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Data.Array (all, elem, head, notElem, null, unzip)
 import Data.Either (Either(..))
 import Data.Foldable (foldr)
@@ -284,10 +285,8 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
               let params /\ ty = paramsAndInnerTy tret in
               (S.TmParam "_" (Just targ) : params) /\ ty
             paramsAndInnerTy ty = Nil /\ ty
-    inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.TmParam x Nothing : Nil) e) =
-      S.TmAbs (singleton (S.TmParam x (Just targ))) (inferFromSig tret e)
-    inferFromSig (S.TyArrow _ tret) (S.TmAbs param@(S.TmParam _ (Just _) : Nil) e) =
-      S.TmAbs param (inferFromSig tret e)
+    inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.TmParam x mt : Nil) e) =
+      S.TmAbs (singleton (S.TmParam x (mt <|> Just targ))) (inferFromSig tret e)
     inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.WildCard defaults : Nil) e)
       -- TODO: better error messages for mismatch
       | defaults `matchOptional` targ =
@@ -302,6 +301,12 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
       let t' = fromMaybe (fromMaybe S.TyTop ti) mt in
       S.TmTrait (Just (self' /\ Just t')) sig'
                 (inferFromSig to <$> e1) (inferFromSig to e2)
+    inferFromSig (S.TyForall ((a /\ td) : as) ty) (S.TmTAbs ((a' /\ td') : Nil) e) =
+      S.TmTAbs (singleton (a' /\ (td' <|> td))) (inferFromSig ty' e)
+      where ty' = (if as == Nil then identity else S.TyForall as)
+                  (S.tySubst a (S.TyVar a') ty)
+    inferFromSig (S.TyRec a t1) (S.TmFold t2 e) =
+      S.TmFold t2 (inferFromSig (S.tySubst a t2 t1) e)
     inferFromSig _ e = e
     combineRcd :: S.Ty -> S.RcdTyList
     combineRcd (S.TyAnd (S.TyRcd xs) (S.TyRcd ys)) = xs <> ys
