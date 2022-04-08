@@ -212,9 +212,9 @@ infer (S.TmUpdate rcd fields) = do
   let t' = foldr rcdTy C.TyTop fields'
   if t <: t' then do
     d <- tyDiff t t'
-    let outdate = C.TmAnno rcd' d
-    let update = foldr1 C.TmMerge fields'
-    pure $ C.TmMerge outdate update /\ t
+    let merge = if isTopLike d then identity else C.TmMerge (C.TmAnno rcd' d)
+        updating = foldr1 C.TmMerge fields'
+    pure $ merge updating /\ t
   else throwTypeError $ "cannot safely update the record" <+> show rcd
   where rcdTy :: C.Tm -> C.Ty -> C.Ty
         rcdTy (C.TmRcd l t _) s = C.TyAnd (C.TyRcd l t false) s
@@ -389,12 +389,9 @@ infer (S.TmUnfold t e) = do
   else throwTypeError $ "cannot unfold" <+> show e <+> "to" <+> show t
 infer (S.TmToString e) = do
   e' /\ t <- infer e
-  if t <: C.TyInt then pureToString e' C.TyInt
-  else if t <: C.TyDouble then pureToString e' C.TyDouble
-  else if t <: C.TyString then pureToString e' C.TyString
-  else if t <: C.TyBool then pureToString e' C.TyBool
+  if t == C.TyInt || t == C.TyDouble || t == C.TyString || t == C.TyBool
+  then pure $ C.TmToString e' /\ C.TyString
   else throwTypeError $ "cannot show" <+> show t
-  where pureToString e' t = pure $ C.TmToString (C.TmAnno e' t) /\ C.TyString
 infer (S.TmArray arr) = do
   if null arr then
     pure $ C.TmArray C.TyBot [] /\ C.TyArray C.TyBot

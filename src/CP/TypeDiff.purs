@@ -15,7 +15,7 @@ import Partial.Unsafe (unsafeCrashWith)
 
 tyDiff :: Ty -> Ty -> Typing Ty
 tyDiff m s = runMaybeT (diff m s) >>= case _ of
-  Just d  -> pure d
+  Just d  -> pure $ simplify d
   Nothing -> throwTypeError $ "cannot subtract " <> show s <> " from " <> show m
   -- this algorithm does not depend on separate definitions of subtyping or disjointness
   where diff :: Ty -> Ty -> MaybeT Typing Ty
@@ -71,3 +71,17 @@ tyMerge (TyForall a td t) (TyForall a1 td1 t1) (TyForall a2 td2 t2)
   = TyForall a td (tyMerge t t1 t2)
 tyMerge t t1 t2 = unsafeCrashWith $ "CP.TypeDiff.tyMerge: " <>
   "cannot merge " <> show t1 <> " and " <> show t2 <> " according to " <> show t
+
+simplify :: Ty -> Ty
+simplify t | isTopLike t = TyTop
+simplify t@(TyAnd t1 t2) = case isTopLike t1, isTopLike t2 of
+  true,  true  -> TyTop
+  true,  false -> t2
+  false, true  -> t1
+  false, false -> t
+simplify (TyArrow targ tret b) = TyArrow targ (simplify tret) b
+simplify (TyRcd l t b) = TyRcd l (simplify t) b
+simplify (TyForall a td t) = TyForall a td (simplify t)
+simplify (TyRec a t) = TyRec a (simplify t)
+simplify (TyArray t) = TyArray (simplify t)
+simplify t = t
