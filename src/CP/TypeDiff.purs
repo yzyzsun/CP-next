@@ -9,6 +9,7 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\))
 import Language.CP.Context (Typing, lookupTyBind, throwTypeError)
 import Language.CP.Subtyping (isTopLike, split)
+import Language.CP.Syntax.Common (Name)
 import Language.CP.Syntax.Core (Ty(..), tySubst)
 import Partial.Unsafe (unsafeCrashWith)
 
@@ -43,19 +44,19 @@ tyDiff m s = runMaybeT (diff m s) >>= case _ of
                   then pure $ TyForall a1 td1 d else empty
           where t2' = tySubst a2 (TyVar a1) t2
         diff (TyVar a1) (TyVar a2) | a1 == a2 = pure TyTop
-        diff (TyVar a) t = lift (lookupTyBind a) >>= case _ of
-          Just td -> do d <- diff t td       -- a * td ->
-                        if isTopLike d       -- t :> td ->
-                        then pure $ TyVar a  -- a * t
-                        else empty
-          Nothing -> empty
-        diff t (TyVar a) = diff (TyVar a) t  -- only disjointness matters
+        diff (TyVar a) t = disjoint a t >>= if _ then pure (TyVar a) else empty
+        diff t (TyVar a) = disjoint a t >>= if _ then pure t else empty
         diff (TyArray t1) (TyArray t2) = TyArray <$> diff t1 t2
         -- TODO: recursive type difference
         diff (TyRec _ _) _ = empty
         diff _ (TyRec _ _) = empty
         diff t1 t2 | t1 == t2  = pure TyTop
                    | otherwise = pure t1
+        disjoint :: Name -> Ty -> MaybeT Typing Boolean
+        disjoint a t = lift (lookupTyBind a) >>= case _ of
+          Just td -> do d <- diff t td
+                        pure $ isTopLike d
+          Nothing -> pure $ false
 
 tyMerge :: Ty -> Ty -> Ty -> Ty
 tyMerge (TyAnd _ _) t1 t2 = TyAnd t1 t2
