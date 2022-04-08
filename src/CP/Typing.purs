@@ -148,16 +148,20 @@ infer (S.TmMerge bias e1 e2) = do
   case t1, t2 of
     C.TyArrow targ1 tret1 true, C.TyArrow targ2 tret2 true -> do
       ifNeutral bias $ disjoint tret1 tret2
-      trait "#self" <$> merge bias (appToSelf e1') (appToSelf e2') tret1 tret2
-                    <@> C.TyAnd targ1 targ2 <@> C.TyAnd tret1 tret2
+      e /\ t <- merge bias (appToSelf e1') (appToSelf e2') tret1 tret2
+      pure $ trait "#self" e (C.TyAnd targ1 targ2) t
     _, _ -> do
       ifNeutral bias $ disjoint t1 t2
-      merge bias e1' e2' t1 t2 <#> (_ /\ C.TyAnd t1 t2)
+      merge bias e1' e2' t1 t2
   where appToSelf e = C.TmApp e (C.TmVar "#self") true
-        merge :: S.Bias -> C.Tm -> C.Tm -> C.Ty -> C.Ty -> Typing C.Tm
-        merge S.Neutral l r _ _ = pure $ C.TmMerge l r
-        merge S.Leftist l r tl tr = C.TmMerge l <$> C.TmAnno r <$> tyDiff tr tl
-        merge S.Rightist l r tl tr = C.TmMerge r <$> C.TmAnno l <$> tyDiff tl tr
+        merge :: S.Bias -> C.Tm -> C.Tm -> C.Ty -> C.Ty -> Typing (C.Tm /\ C.Ty)
+        merge S.Neutral l r tl tr = pure $ C.TmMerge l r /\ C.TyAnd tl tr
+        merge S.Leftist l r tl tr = do
+          diff <- tyDiff tr tl
+          pure $ C.TmMerge l (C.TmAnno r diff) /\ C.TyAnd tl diff
+        merge S.Rightist l r tl tr = do
+          diff <- tyDiff tl tr
+          pure $ C.TmMerge r (C.TmAnno l diff) /\ C.TyAnd tr diff
         ifNeutral :: S.Bias -> Typing Unit -> Typing Unit
         ifNeutral S.Neutral = identity
         ifNeutral _ = const $ pure unit
