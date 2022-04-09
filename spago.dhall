@@ -23,17 +23,17 @@
   , "node-path"
   , "node-readline"
   , "now"
+  , "numbers"
   , "ordered-collections"
   , "parsing"
   , "partial"
   , "prelude"
+  , "purescript-js-ast"
   , "spec"
   , "strings"
   , "transformers"
   , "tuples"
   , "unicode"
-  , "purescript-pattern-arrows"
-  , "purescript-js-ast"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
