@@ -73,5 +73,9 @@ askPos = asks (_.pos)
 
 data TypeError = TypeError String Pos
 
+-- TODO: combine two type errors
+instance Semigroup TypeError where
+  append = const
+
 throwTypeError :: forall a. String -> Typing a
 throwTypeError msg = TypeError msg <$> askPos >>= throwError

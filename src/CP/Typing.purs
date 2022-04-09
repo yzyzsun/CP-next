@@ -240,7 +240,7 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
                       (C.TmMerge (C.TmAnno (C.TmVar "super") to') e2') tret
             pure $ ret /\ tret
           else throwTypeError $ "self-type" <+> show t <+>
-            "is not a subtype of inherited self-type" <+> show to
+            "is not a subtype of inherited self-type" <+> show ti
         _ -> throwTypeError $ "expected to inherit a trait, but got" <+> show t1
     Nothing -> do
       e2' /\ t2 <- addTmBind self t' $ infer e2
@@ -443,19 +443,24 @@ disjoint (C.TyAnd t1 t2) t3 = disjoint t1 t3 *> disjoint t2 t3
 disjoint t1 (C.TyAnd t2 t3) = disjoint (C.TyAnd t2 t3) t1
 disjoint (C.TyRcd l1 t1 _) (C.TyRcd l2 t2 _) | l1 == l2  = disjoint t1 t2
                                              | otherwise = pure unit
-disjoint (C.TyVar a) t = do
-  mt' <- lookupTyBind a
-  case mt' of
-    Just t' -> if t' <: t then pure unit else throwTypeError $
-      "type variable" <+> show a <+> "is not disjoint from" <+> show t
-    Nothing -> throwTypeError $ "type variable" <+> show a <+> "is undefined"
-disjoint t (C.TyVar a) = disjoint (C.TyVar a) t
+disjoint (C.TyVar a) (C.TyVar b) =
+  disjointVar a (C.TyVar b) <|> disjointVar b (C.TyVar a)
+disjoint (C.TyVar a) t = disjointVar a t
+disjoint t (C.TyVar a) = disjointVar a t
 disjoint (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) =
   disjointTyBind a1 t1 a2 t2 (C.TyAnd td1 td2)
 disjoint (C.TyRec a1 t1) (C.TyRec a2 t2) = disjointTyBind a1 t1 a2 t2 C.TyBot
 disjoint t1 t2 | t1 /= t2  = pure unit
                | otherwise = throwTypeError $
   "expected two disjoint types, but got" <+> show t1 <+> "and" <+> show t2
+
+disjointVar :: Name -> C.Ty -> Typing Unit
+disjointVar a t = do
+  mt' <- lookupTyBind a
+  case mt' of
+    Just t' -> if t' <: t then pure unit else throwTypeError $
+      "type variable" <+> show a <+> "is not disjoint from" <+> show t
+    Nothing -> throwTypeError $ "type variable" <+> show a <+> "is undefined"
 
 disjointTyBind :: Name -> C.Ty -> Name -> C.Ty -> C.Ty -> Typing Unit
 disjointTyBind a1 t1 a2 t2 td = addTyBind freshName td $
