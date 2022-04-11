@@ -46,12 +46,12 @@ preprocess :: String -> String -> Effect String
 preprocess path program = case match openRegex program of
   Just arr -> do
     let name = unsafeFromJust $ unsafeFromJust $ arr !! 1
-    text <- readTextFile (concat [path, ext name])
+    text <- readTextFile $ filepath name
     preprocess path $ replace openRegex (replace lineRegex " " text) program
   Nothing -> pure program
   where openRegex = unsafeRegex """open\s+(\w+)\s*;""" noFlags
         lineRegex = unsafeRegex """(--.*)?[\r\n]+""" global
-        ext name = name <> ".lib"
+        filepath name = concat [path, name <> ".lib"]
 
 execute :: String -> Mode -> Effect Unit
 execute program mode = do

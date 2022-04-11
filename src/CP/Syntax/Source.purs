@@ -94,7 +94,7 @@ data Tm = TmInt Int
         | TmArray (Array Tm)
         | TmDoc Tm
         | TmPos Position Tm
-        | TmType Name (List Name) (List Name) Ty Tm
+        | TmType Boolean Name (List Name) (List Name) Ty Tm
         | TmDef Name TyParamList TmParamList (Maybe Ty) Tm Tm
 
 data Bias = Neutral | Leftist | Rightist
@@ -155,7 +155,8 @@ instance Show Tm where
   -- `type A<T> extends B<T> = ...` can be rewritten as `type A<T> = B<T> & ...`
   -- because sort argument expansion from B<T> to B<T, #T> already prevents
   -- distinguishing output occurrences of T in B any more.
-  show (TmType a sorts params t e) = "type" <+> a <+>
+  show (TmType isRec a sorts params t e) =
+    (if isRec then "typerec" else "type") <+> a <+>
     intercalate' " " (angles <$> sorts) <> intercalate' " " params <>
     "=" <+> show t <> ";" <+> show e
   show (TmDef x tyParams tmParams t e1 e2) = x <+>

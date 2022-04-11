@@ -170,8 +170,10 @@ infer (S.TmRcd (S.RcdField _ l Nil (Left e) : Nil)) = do
   pure $ C.TmRcd l t e' /\ C.TyRcd l t false
 infer (S.TmPrj e l) = do
   e' /\ t <- infer e
-  case selectLabel t l false of
-    Just t' -> pure $ C.TmPrj e' l /\ t'
+  let r /\ tr = case t of C.TyRec _ _ -> C.TmUnfold t e' /\ C.unfold t
+                          _ -> e' /\ t
+  case selectLabel tr l false of
+    Just t' -> pure $ C.TmPrj r l /\ t'
     _ -> throwTypeError $ "label" <+> show l <+> "is absent in" <+> show t
 infer (S.TmTApp e ta) = do
   e' /\ tf <- infer e
@@ -251,6 +253,7 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
     -- TODO: inference is not complete
     inferFromSig :: S.Ty -> S.Tm -> S.Tm
     inferFromSig rs@(S.TyAnd _ _) e = inferFromSig (S.TyRcd $ combineRcd rs) e
+    inferFromSig s@(S.TyRec _ ty) e = S.TmFold s (inferFromSig ty e)
     inferFromSig s (S.TmPos p e) = S.TmPos p (inferFromSig s e)
     inferFromSig s (S.TmOpen e1 e2) = S.TmOpen e1 (inferFromSig s e2)
     inferFromSig s (S.TmMerge bias e1 e2) =
@@ -309,8 +312,6 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
       S.TmTAbs (singleton (a' /\ (td' <|> td))) (inferFromSig ty' e)
       where ty' = (if as == Nil then identity else S.TyForall as)
                   (S.tySubst a (S.TyVar a') ty)
-    inferFromSig (S.TyRec a t1) (S.TmFold t2 e) =
-      S.TmFold t2 (inferFromSig (S.tySubst a t2 t1) e)
     inferFromSig _ e = e
     combineRcd :: S.Ty -> S.RcdTyList
     combineRcd (S.TyAnd (S.TyRcd xs) (S.TyRcd ys)) = xs <> ys
@@ -409,9 +410,9 @@ infer (S.TmDoc doc) = localPos f $ infer doc
 infer (S.TmPos p e) = localPos f $ infer e
   where f (Pos _ _ inDoc) = Pos p e inDoc
         f UnknownPos = Pos p e false
-infer (S.TmType a sorts params t e) = do
-  t' <- addSorts $ addTyBinds $ transformTyDef t
-  addTyAlias a (sig t') $ infer e
+infer (S.TmType isRec a sorts params t e) = do
+  t' <- addRec $ addSorts $ addTyBinds $ transformTyDef t
+  addTyAlias a (rec (sig t')) $ infer e
   where
     dualSorts :: List (Name /\ Name)
     dualSorts = sorts <#> \sort -> sort /\ ("#" <> sort)
@@ -421,6 +422,10 @@ infer (S.TmType a sorts params t e) = do
     addTyBinds typing = foldr (flip addTyBind C.TyTop) typing params
     sig :: S.Ty -> S.Ty
     sig t' = foldr (uncurry S.TySig) (foldr S.TyAbs t' params) dualSorts
+    addRec :: forall a. Typing a -> Typing a
+    addRec = if isRec then addTyBind a C.TyTop else identity
+    rec :: S.Ty -> S.Ty
+    rec = if isRec then S.TyRec a else identity
 infer e = throwTypeError $ "expected a desugared term, but got" <+> show e
 
 distApp :: C.Ty -> Either C.Ty C.Ty -> Typing C.Ty

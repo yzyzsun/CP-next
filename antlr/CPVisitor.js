@@ -41,13 +41,14 @@ export default class CPVisitor extends CPParserVisitor {
 
   // Visit a parse tree produced by CPParser#typeDef.
   visitTypeDef(ctx, p) {
+    const isRec = ctx.TypeRec() !== null;
     const typeNameDecls = ctx.typeNameDecl();
     const a = this.visitTypeNameDecl(typeNameDecls[0]);
     const sortCount = ctx.Less().length;
     const sorts = this.listify(typeNameDecls.slice(1, sortCount + 1).map(this.visitTypeNameDecl, this));
     const parms = this.listify(typeNameDecls.slice(sortCount + 1).map(this.visitTypeNameDecl, this));
     const t = this.visitType(ctx.type());
-    return new AST.TmType(a, sorts, parms, t, p);
+    return new AST.TmType(isRec, a, sorts, parms, t, p);
   }
 
 
@@ -73,11 +74,6 @@ export default class CPVisitor extends CPParserVisitor {
     } else if (ctx.ForAll()) {
       return new AST.TyForall(
         this.listify(ctx.typeParam().map(this.visitTypeParam, this)),
-        this.visitType(ctx.type(0))
-      );
-    } else if (ctx.Mu()) {
-      return new AST.TyRec(
-        this.visitTypeNameDecl(ctx.typeNameDecl()),
         this.visitType(ctx.type(0))
       );
     } else if (ctx.TraitType()) {

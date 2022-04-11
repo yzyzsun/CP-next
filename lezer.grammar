@@ -20,7 +20,7 @@ open { kw<"open"> (lowerid | upperid) ";" }
 definition { TypeDef | TermDef }
 
 TypeDef {
-  kw<"type"> TypeNameDecl angles<TypeNameDecl>* TypeNameDecl* "=" type ";"
+  (kw<"type"> | kw<"typerec">) TypeNameDecl angles<TypeNameDecl>* TypeNameDecl* "=" type ";"
 }
 
 TermDef {
@@ -32,7 +32,6 @@ type {
   type !diff TypeOp<"\\"> type |
   type !intersect TypeOp<"&"> type |
   kw<"forall"> typeParam+ "." type |
-  kw<"mu"> TypeNameDecl "." type |
   kW<"Trait"> angles<sort> |
   btype btype*
 }

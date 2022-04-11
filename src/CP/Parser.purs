@@ -33,7 +33,7 @@ program = fix $ \p -> tyDef p <|> tmDef p <|> expr
 
 tyDef :: SParser Tm -> SParser Tm
 tyDef p = do
-  reserved "type"
+  isRec <- reserved "type" $> false <|> reserved "typerec" $> true
   a <- upperIdentifier
   sorts <- many (angles upperIdentifier)
   parms <- many upperIdentifier
@@ -41,7 +41,7 @@ tyDef p = do
   t <- ty
   symbol ";"
   e <- p
-  pure $ TmType a sorts parms t e
+  pure $ TmType isRec a sorts parms t e
 
 tmDef :: SParser Tm -> SParser Tm
 tmDef p = do
@@ -316,7 +316,7 @@ ty = fix \t -> buildExprParser toperators $ cty t
 
 cty :: SParser Ty -> SParser Ty
 cty t = foldl TyApp <$> bty t <*> many (bty t) <|>
-        forallTy <|> traitTy <|> muTy
+        forallTy <|> traitTy
 
 bty :: SParser Ty -> SParser Ty
 bty t = foldl TyApp <$> aty t <*> many (sortTy t)
@@ -355,14 +355,6 @@ traitTy = do
     ti <- optional (try (ty <* symbol "=>"))
     to <- ty
     pure $ TyTrait ti to
-
-muTy :: SParser Ty
-muTy = do
-  reserved "mu"
-  a <- upperIdentifier
-  symbol "."
-  t <- ty
-  pure $ TyRec a t
 
 recordTy :: SParser Ty
 recordTy = braces $ TyRcd <$> sepEndBySemi do
@@ -419,7 +411,7 @@ langDef :: LanguageDef
 langDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "undefined", "if", "then", "else", "toString"
   , "trait", "implements", "inherits", "override", "new", "fold", "unfold"
-  , "let", "letrec", "open", "in", "with", "type", "forall", "mu"
+  , "let", "letrec", "open", "in", "with", "type", "typerec", "forall"
   , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
   ]
 }

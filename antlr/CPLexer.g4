@@ -39,12 +39,12 @@ Type
     :   'type'
     ;
 
-ForAll
-    :   'forall'
+TypeRec
+    :   'typerec'
     ;
 
-Mu
-    :   'mu'
+ForAll
+    :   'forall'
     ;
 
 Int
