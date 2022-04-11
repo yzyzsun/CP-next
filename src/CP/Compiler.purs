@@ -1,6 +1,5 @@
 module Language.CP.Compiler where
 
-import Data.Tuple.Nested (type (/\), (/\))
 import Prelude
 
 import Control.Alt ((<|>))
@@ -10,8 +9,8 @@ import Control.Plus as Plus
 import Data.Map (Map, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Number (fromString)
-import Data.Tuple (Tuple)
-import Language.CP.Subtyping (isTopLike)
+import Data.Tuple.Nested ((/\))
+import Language.CP.Subtyping (isTopLike, split)
 import Language.CP.Syntax.Common (Name)
 import Language.CP.Syntax.Core as C
 import Language.CP.Util (unsafeFromJust)
@@ -76,7 +75,8 @@ infer (C.TmAbs x tm targ tret _)
       m   <- runMaybeT $ check tm tret
       case m of
         Just {ast: j, var: y} -> do
-          put ctx
+          ctx' <- get
+          put $ ctx' {tmBindEnv = ctx.tmBindEnv}
           z <- getNewVarName
           let ty = C.TyArrow targ tret false
           let func = JSFunction Nothing [x] (JSBlock (j <> [JSReturn $ JSVar y]))
@@ -89,7 +89,8 @@ infer (C.TmFix x tm ty) = do
   m   <- runMaybeT $ check tm ty
   case m of
     Just {ast: j, var: y} -> do
-      put ctx
+      ctx' <- get
+      put ctx' {tmBindEnv = ctx.tmBindEnv}
       let func = JSFunction Nothing [] (JSBlock (j <> [JSReturn $ JSVar y]))
       let ast = [ JSVariableIntroduction x (Just $ JSApp func []) ]
       pure {ast: ast, var: x, typ: ty }
@@ -188,10 +189,10 @@ subtype x (C.TyArrow ta1 ta2 _) (C.TyArrow tb1 tb2 _) = do
 subtype x (C.TyAnd ta tb) tc = subtype x ta tc <|> subtype x tb tc
 subtype _ _ _ = Plus.empty
 
-split :: C.Ty -> Maybe (C.Ty /\ C.Ty)
-split (C.TyAnd t1 t2) = Just (t1 /\ t2)
-split (C.TyArrow targ tret _) | Just (t1 /\ t2) <- split tret = Just ((C.TyArrow targ t1 false) /\ (C.TyArrow targ t2 false))
-split _ = Nothing
+-- split :: C.Ty -> Maybe (C.Ty /\ C.Ty)
+-- split (C.TyAnd t1 t2) = Just (t1 /\ t2)
+-- split (C.TyArrow targ tret _) | Just (t1 /\ t2) <- split tret = Just ((C.TyArrow targ t1 false) /\ (C.TyArrow targ t2 false))
+-- split _ = Nothing
 
 merge :: String -> String -> C.Ty -> C.Ty -> C.Ty -> State CtxCodeGen {ast:: Array JS, var:: String}
 merge x y _ _ (C.TyAnd _ _) = do
@@ -209,7 +210,7 @@ merge x1 x2 (C.TyArrow _ t1 _) (C.TyArrow _ t2 _) (C.TyArrow _ t _) = do
             <> [JSReturn $ JSVar y]
   let func = JSFunction Nothing ["p"] (JSBlock block) 
   let ast = [JSVariableIntroduction z (Just $ JSObjectLiteral [ (arrowToString t) /\ func ])]
-  pure $ {ast: ast, var: y}
+  pure $ {ast: ast, var: z}
 merge _ _ _ _ _ = unsafeCrashWith "Cannot merge"
 
 isBaseType :: C.Ty -> Boolean
