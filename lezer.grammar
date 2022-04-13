@@ -74,7 +74,9 @@ lexpr {
   kw<"fold"> typeArg dotexpr | kw<"unfold"> typeArg dotexpr
 }
 
-fexpr { dotexpr (dotexpr | typeArg)* }
+fexpr { renamexpr (renamexpr | typeArg)* }
+
+renamexpr { dotexpr ~conflict ("[" Label "<-" LabelDecl "]")? }
 
 dotexpr { aexpr ("." Label)* }
 
@@ -164,14 +166,14 @@ Label { lowerid | upperid }
 
   "(" ")" "{" "}" "[" "]" "<" ">"
   ".." "." ";" ":" "*" "\\" "/\\" "@" "%" "$" "?"
-  "=" "->" "=>"[@name=TraitArrow]
+  "=" "<-" "->" "=>"[@name=TraitArrow]
 
   TypeOp<op> { op }
   ArithOp<op> { op }
   LogicOp<op> { op }
   AppendOp { "++" }
   CompareOp { "<" "="? | ">" "="? | "==" | "!=" }
-  MergeOp { "," | ",," | "+," | ",+" }
+  MergeOp { "," | ",," | "+," | ",+" | "\\\\" }
   ForwardOp { "^" }
   IndexOp { "!!" }
   LengthOp { "#" }

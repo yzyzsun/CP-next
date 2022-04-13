@@ -186,12 +186,20 @@ SlashBackslash
     :   '/\\'
     ;
 
+DoubleBackSlash
+    :   '\\\\'
+    ;
+
 Arrow
     :   '->'
     ;
 
 FatArrow
     :   '=>'
+    ;
+
+LeftArrow
+    :   '<-'
     ;
 
 Intersect

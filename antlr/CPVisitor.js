@@ -265,6 +265,8 @@ export default class CPVisitor extends CPParserVisitor {
             return new AST.TmMerge(AST.Leftist.value, opexpr1, opexpr2);
           case CPParser.RightistMerge:
             return new AST.TmMerge(AST.Rightist.value, opexpr1, opexpr2);
+          case CPParser.DoubleBackSlash:
+            return new AST.TmDiff(opexpr1, opexpr2);
           default:
             console.error("Error at Binary Opexpr");
         }
@@ -418,13 +420,13 @@ export default class CPVisitor extends CPParserVisitor {
   visitFexpr(ctx) {
     const child = ctx.getChild(0);
     let fexpr, isCtor;
-    switch(child.ruleIndex){
+    switch (child.ruleIndex) {
       case CPParser.RULE_ctorName:
         fexpr = new AST.TmVar(this.visitCtorName(child));
         isCtor = true;
         break;
-      case CPParser.RULE_dotexpr:
-        fexpr = this.visitDotexpr(child);
+      case CPParser.RULE_renamexpr:
+        fexpr = this.visitRenamexpr(child);
         isCtor = false;
         break;
       default:
@@ -432,8 +434,8 @@ export default class CPVisitor extends CPParserVisitor {
     }
     for (let i = 1; i < ctx.getChildCount(); i++) {
       const child = ctx.getChild(i);
-      if (child.ruleIndex === CPParser.RULE_dotexpr) {
-        fexpr = new AST.TmApp(fexpr, this.visitDotexpr(child));
+      if (child.ruleIndex === CPParser.RULE_renamexpr) {
+        fexpr = new AST.TmApp(fexpr, this.visitRenamexpr(child));
       } else {
         fexpr = new AST.TmTApp(fexpr, this.visitTypeArg(child));
       }
@@ -442,6 +444,20 @@ export default class CPVisitor extends CPParserVisitor {
       return new AST.TmNew(fexpr);
     } else {
       return fexpr;
+    }
+  }
+
+
+  // Visit a parse tree produced by CPParser#renamexpr.
+  visitRenamexpr(ctx) {
+    const renamexpr = this.visitDotexpr(ctx.dotexpr());
+    if (ctx.label()) {
+      return new AST.TmRename(renamexpr,
+        this.visitLabel(ctx.label()),
+        this.visitLabelDecl(ctx.labelDecl())
+      );
+    } else {
+      return renamexpr;
     }
   }
 

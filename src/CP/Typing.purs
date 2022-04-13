@@ -142,29 +142,24 @@ infer (S.TmAnno e ta) = do
   ta' <- transform ta
   if t <: ta' then pure $ C.TmAnno e' ta' /\ ta' else throwTypeError $
     "annotated" <+> show ta <+> "is not a supertype of inferred" <+> show t
-infer (S.TmMerge bias e1 e2) = do
+infer (S.TmMerge S.Neutral e1 e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- infer e2
   case t1, t2 of
-    C.TyArrow targ1 tret1 true, C.TyArrow targ2 tret2 true -> do
-      ifNeutral bias $ disjoint tret1 tret2
-      e /\ t <- merge bias (appToSelf e1') (appToSelf e2') tret1 tret2
-      pure $ trait "#self" e (C.TyAnd targ1 targ2) t
+    C.TyTop, _ -> pure $ e2' /\ t2
+    _, C.TyTop -> pure $ e1' /\ t1
+    C.TyArrow ti1 to1 true, C.TyArrow ti2 to2 true -> do
+      disjoint to1 to2
+      pure $ trait "#self" (C.TmMerge (appToSelf e1') (appToSelf e2'))
+                           (C.TyAnd ti1 ti2) (C.TyAnd to1 to2)
     _, _ -> do
-      ifNeutral bias $ disjoint t1 t2
-      merge bias e1' e2' t1 t2
+      disjoint t1 t2
+      pure $ C.TmMerge e1' e2' /\ C.TyAnd t1 t2
   where appToSelf e = C.TmApp e (C.TmVar "#self") true
-        merge :: S.Bias -> C.Tm -> C.Tm -> C.Ty -> C.Ty -> Typing (C.Tm /\ C.Ty)
-        merge S.Neutral l r tl tr = pure $ C.TmMerge l r /\ C.TyAnd tl tr
-        merge S.Leftist l r tl tr = do
-          diff <- tyDiff tr tl
-          pure $ C.TmMerge l (C.TmAnno r diff) /\ C.TyAnd tl diff
-        merge S.Rightist l r tl tr = do
-          diff <- tyDiff tl tr
-          pure $ C.TmMerge r (C.TmAnno l diff) /\ C.TyAnd tr diff
-        ifNeutral :: S.Bias -> Typing Unit -> Typing Unit
-        ifNeutral S.Neutral = identity
-        ifNeutral _ = const $ pure unit
+infer (S.TmMerge S.Leftist e1 e2) =
+  infer $ S.TmMerge S.Neutral e1 (S.TmDiff e2 e1)
+infer (S.TmMerge S.Rightist e1 e2) =
+  infer $ S.TmMerge S.Neutral (S.TmDiff e1 e2) e2
 infer (S.TmRcd (S.RcdField _ l Nil (Left e) : Nil)) = do
   e' /\ t <- infer e
   pure $ C.TmRcd l t e' /\ C.TyRcd l t false
@@ -377,7 +372,43 @@ infer (S.TmExclude e te) = do
       d <- tyDiff to te'
       let t' = C.TyArrow ti d true
       pure $ C.TmAnno e' t' /\ t'
-    _ -> throwTypeError $ "expected to exclude from a trait, but got" <+> show e
+    _ -> do
+      d <- tyDiff t te'
+      pure $ C.TmAnno e' d /\ d
+infer (S.TmDiff e1 e2) = do
+  e1' /\ t1 <- infer e1
+  _ /\ t2 <- infer e2
+  case t1, t2 of
+    C.TyArrow ti to1 true, C.TyArrow _ to2 true -> do
+      d <- tyDiff to1 to2
+      pure $ trait "#self" (C.TmAnno (C.TmApp e1' (C.TmVar "#self") true) d) ti d
+    _, _ -> do
+      d <- tyDiff t1 t2
+      pure $ C.TmAnno e1' d /\ d
+infer (S.TmRename e old new) = do
+  _ /\ t <- infer e
+  case t of
+    C.TyArrow ti _ true ->
+      case selectLabel ti old false of
+        Just tl -> do
+          -- e [old <- new] := trait [self] =>
+          --   let super = self [new <- old] in
+          --   (e ^ super) [old <- new]
+          let super = S.TmRename (S.TmVar "#self") new old
+              body = S.TmRename (S.TmForward e super) old new
+          tself <- C.TyAnd (C.TyRcd new tl false) <$> tyDiff ti (C.TyRcd old tl false)
+          ret /\ tret <- addTmBind "#self" tself $ infer body
+          pure $ trait "#self" ret tself tret
+        Nothing -> do
+          -- e [old <- new] := trait [self] => (e ^ self) [old <- new]
+          let body = (S.TmRename (S.TmForward e (S.TmVar "#self")) old new)
+          ret /\ tret <- addTmBind "#self" ti $ infer body
+          pure $ trait "#self" ret ti tret
+    _ ->
+      -- e [old <- new] := (e \ {old : Bot}) , {new = e.old}
+      infer $ S.TmMerge S.Neutral
+        (S.TmExclude e (S.TyRcd (singleton (S.RcdTy old S.TyBot false))))
+        (S.TmRcd (singleton (S.RcdField false new Nil (Left (S.TmPrj e old)))))
 infer (S.TmFold t e) = do
   t' <- transformTyRec t
   e' /\ t'' <- infer e

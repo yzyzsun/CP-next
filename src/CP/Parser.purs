@@ -18,7 +18,7 @@ import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..
 import Language.CP.Syntax.Source (Bias(..), MethodPattern(..), RcdField(..), RcdTy(..), SelfAnno, Tm(..), TmParam(..), Ty(..), TyParam)
 import Language.CP.Util (foldl1, isCapitalized)
 import Text.Parsing.Parser (Parser, fail, position)
-import Text.Parsing.Parser.Combinators (between, choice, endBy, lookAhead, manyTill, sepEndBy, sepEndBy1, try)
+import Text.Parsing.Parser.Combinators (between, choice, endBy, lookAhead, manyTill, option, sepEndBy, sepEndBy1, try)
 import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Text.Parsing.Parser.Language (haskellStyle)
 import Text.Parsing.Parser.String (anyChar, char, satisfy)
@@ -79,10 +79,17 @@ lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|> trait <|> new <|>
 fexpr :: SParser Tm -> SParser Tm
 fexpr e = do
   Tuple isCtor f <- Tuple true <<< TmVar <$> upperIdentifier <|>
-                    Tuple false <$> dotexpr e
+                    Tuple false <$> renamexpr e
   args <- many $ flip TmTApp <$> tyArg <|>
-                 flip TmApp  <$> dotexpr e
+                 flip TmApp  <$> renamexpr e
   pure $ (if isCtor then TmNew else identity) (foldl (#) f args)
+
+renamexpr :: SParser Tm -> SParser Tm
+renamexpr e = dotexpr e >>= \e' -> option e' $ try $ brackets do
+  l1 <- identifier
+  symbol "<-"
+  l2 <- identifier
+  pure $ TmRename e' l1 l2
 
 dotexpr :: SParser Tm -> SParser Tm
 dotexpr e = aexpr e >>= \e' -> foldl (#) e' <$>
@@ -306,6 +313,7 @@ operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
               , Infix (reservedOp ","  $> TmMerge  Neutral) AssocLeft
               , Infix (reservedOp "+," $> TmMerge  Leftist) AssocLeft
               , Infix (reservedOp ",+" $> TmMerge Rightist) AssocLeft
+              , Infix (reservedOp "\\\\" $> TmDiff) AssocLeft
               ]
             ]
 
