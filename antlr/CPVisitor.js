@@ -175,11 +175,6 @@ export default class CPVisitor extends CPParserVisitor {
         opexpr,
         this.visitType(ctx.type())
       );
-    } else if (ctx.Backslash()) {
-      colonexpr = new AST.TmExclude(
-        opexpr,
-        this.visitType(ctx.type())
-      );
     } else {
       colonexpr = opexpr;
     }
@@ -265,7 +260,7 @@ export default class CPVisitor extends CPParserVisitor {
             return new AST.TmMerge(AST.Leftist.value, opexpr1, opexpr2);
           case CPParser.RightistMerge:
             return new AST.TmMerge(AST.Rightist.value, opexpr1, opexpr2);
-          case CPParser.DoubleBackSlash:
+          case CPParser.BackslashMinus:
             return new AST.TmDiff(opexpr1, opexpr2);
           default:
             console.error("Error at Binary Opexpr");
@@ -425,8 +420,8 @@ export default class CPVisitor extends CPParserVisitor {
         fexpr = new AST.TmVar(this.visitCtorName(child));
         isCtor = true;
         break;
-      case CPParser.RULE_renamexpr:
-        fexpr = this.visitRenamexpr(child);
+      case CPParser.RULE_excludexpr:
+        fexpr = this.visitExcludexpr(child);
         isCtor = false;
         break;
       default:
@@ -434,8 +429,8 @@ export default class CPVisitor extends CPParserVisitor {
     }
     for (let i = 1; i < ctx.getChildCount(); i++) {
       const child = ctx.getChild(i);
-      if (child.ruleIndex === CPParser.RULE_renamexpr) {
-        fexpr = new AST.TmApp(fexpr, this.visitRenamexpr(child));
+      if (child.ruleIndex === CPParser.RULE_excludexpr) {
+        fexpr = new AST.TmApp(fexpr, this.visitExcludexpr(child));
       } else {
         fexpr = new AST.TmTApp(fexpr, this.visitTypeArg(child));
       }
@@ -448,16 +443,35 @@ export default class CPVisitor extends CPParserVisitor {
   }
 
 
+  // Visit a parse tree produced by CPParser#excludexpr.
+  visitExcludexpr(ctx) {
+    const renamexpr = this.visitRenamexpr(ctx.renamexpr());
+    if (ctx.DoubleBackslashes()) {
+      return new AST.TmExclude(
+        renamexpr,
+        this.visitBtype(ctx.btype())
+      );
+    } else if (ctx.Backslash()) {
+      return new AST.TmRemoval(
+        renamexpr,
+        this.visitLabel(ctx.label())
+      );
+    } else {
+      return renamexpr;
+    }
+  }
+
+
   // Visit a parse tree produced by CPParser#renamexpr.
   visitRenamexpr(ctx) {
-    const renamexpr = this.visitDotexpr(ctx.dotexpr());
+    const dotexpr = this.visitDotexpr(ctx.dotexpr());
     if (ctx.label()) {
-      return new AST.TmRename(renamexpr,
+      return new AST.TmRename(dotexpr,
         this.visitLabel(ctx.label()),
         this.visitLabelDecl(ctx.labelDecl())
       );
     } else {
-      return renamexpr;
+      return dotexpr;
     }
   }
 

@@ -47,7 +47,7 @@ atype {
 
 RecordType { braces<sepEndBySemi<LabelDecl "?"? ":" type>> }
 
-expression { opexpr ~conflict (":" type | "\\" type)? }
+expression { opexpr ~conflict (":" type)? }
 
 opexpr {
   lexpr | minus opexpr | LogicOp<"!"> opexpr | LengthOp opexpr |
@@ -74,7 +74,9 @@ lexpr {
   kw<"fold"> typeArg dotexpr | kw<"unfold"> typeArg dotexpr
 }
 
-fexpr { renamexpr (renamexpr | typeArg)* }
+fexpr { excludexpr (excludexpr | typeArg)* }
+
+excludexpr { renamexpr ("\\\\" btype | "\\" Label)? }
 
 renamexpr { dotexpr ~conflict ("[" Label "<-" LabelDecl "]")? }
 
@@ -165,7 +167,7 @@ Label { lowerid | upperid }
   Unit { "()" }
 
   "(" ")" "{" "}" "[" "]" "<" ">"
-  ".." "." ";" ":" "*" "\\" "/\\" "@" "%" "$" "?"
+  ".." "." ";" ":" "*" "\\" "/\\" "\\\\" "@" "%" "$" "?"
   "=" "<-" "->" "=>"[@name=TraitArrow]
 
   TypeOp<op> { op }
@@ -173,7 +175,7 @@ Label { lowerid | upperid }
   LogicOp<op> { op }
   AppendOp { "++" }
   CompareOp { "<" "="? | ">" "="? | "==" | "!=" }
-  MergeOp { "," | ",," | "+," | ",+" | "\\\\" }
+  MergeOp { "," | ",," | "+," | ",+" | "\\-" }
   ForwardOp { "^" }
   IndexOp { "!!" }
   LengthOp { "#" }

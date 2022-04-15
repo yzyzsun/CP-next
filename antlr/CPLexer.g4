@@ -186,7 +186,11 @@ SlashBackslash
     :   '/\\'
     ;
 
-DoubleBackSlash
+BackslashMinus
+    :   '\\-'
+    ;
+
+DoubleBackslashes
     :   '\\\\'
     ;
 

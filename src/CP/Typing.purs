@@ -375,6 +375,8 @@ infer (S.TmExclude e te) = do
     _ -> do
       d <- tyDiff t te'
       pure $ C.TmAnno e' d /\ d
+infer (S.TmRemoval e l) = do
+  infer $ S.TmExclude e (S.TyRcd (singleton (S.RcdTy l S.TyBot false)))
 infer (S.TmDiff e1 e2) = do
   e1' /\ t1 <- infer e1
   _ /\ t2 <- infer e2

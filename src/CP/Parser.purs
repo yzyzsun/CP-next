@@ -64,9 +64,7 @@ expr = fix $ \e -> position >>= \p -> TmPos p <$> colonexpr e
 
 colonexpr :: SParser Tm -> SParser Tm
 colonexpr e = opexpr e >>= \e' ->
-  TmAnno e' <$ symbol ":" <*> ty <|>
-  TmExclude e' <$ symbol "\\" <*> ty <|>
-  pure e'
+  TmAnno e' <$ symbol ":" <*> ty <|> pure e'
 
 opexpr :: SParser Tm -> SParser Tm
 opexpr e = buildExprParser operators $ lexpr e
@@ -79,10 +77,16 @@ lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|> trait <|> new <|>
 fexpr :: SParser Tm -> SParser Tm
 fexpr e = do
   Tuple isCtor f <- Tuple true <<< TmVar <$> upperIdentifier <|>
-                    Tuple false <$> renamexpr e
+                    Tuple false <$> excludexpr e
   args <- many $ flip TmTApp <$> tyArg <|>
-                 flip TmApp  <$> renamexpr e
+                 flip TmApp  <$> excludexpr e
   pure $ (if isCtor then TmNew else identity) (foldl (#) f args)
+
+excludexpr :: SParser Tm -> SParser Tm
+excludexpr e = renamexpr e >>= \e' ->
+  TmExclude e' <$ symbol "\\\\" <*> aty ty <|>
+  TmRemoval e' <$ symbol "\\" <*> identifier <|>
+  pure e'
 
 renamexpr :: SParser Tm -> SParser Tm
 renamexpr e = dotexpr e >>= \e' -> option e' $ try $ brackets do
@@ -313,7 +317,7 @@ operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
               , Infix (reservedOp ","  $> TmMerge  Neutral) AssocLeft
               , Infix (reservedOp "+," $> TmMerge  Leftist) AssocLeft
               , Infix (reservedOp ",+" $> TmMerge Rightist) AssocLeft
-              , Infix (reservedOp "\\\\" $> TmDiff) AssocLeft
+              , Infix (reservedOp "\\-" $> TmDiff) AssocLeft
               ]
             ]
 

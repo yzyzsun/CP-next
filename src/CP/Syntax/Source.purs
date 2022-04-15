@@ -88,6 +88,7 @@ data Tm = TmInt Int
         | TmNew Tm
         | TmForward Tm Tm
         | TmExclude Tm Ty
+        | TmRemoval Tm Label
         | TmDiff Tm Tm
         | TmRename Tm Label Label
         | TmFold Ty Tm
@@ -147,8 +148,9 @@ instance Show Tm where
     "=>" <+> show e2
   show (TmNew e) = parens $ "new" <+> show e
   show (TmForward e1 e2) = parens $ show e1 <+> "^" <+> show e2
-  show (TmExclude e t) = parens $ show e <+> "\\" <+> show t
-  show (TmDiff e1 e2) = parens $ show e1 <+> "\\\\" <+> show e2
+  show (TmExclude e t) = parens $ show e <+> "\\\\" <+> show t
+  show (TmRemoval e l) = parens $ show e <+> "\\" <+> l
+  show (TmDiff e1 e2) = parens $ show e1 <+> "\\-" <+> show e2
   show (TmRename e old new) = parens $ show e <+> brackets (old <+> "<-" <+> new)
   show (TmFold t e) = parens $ "fold @" <> show t <+> show e
   show (TmUnfold t e) = parens $ "unfold @" <> show t <+> show e

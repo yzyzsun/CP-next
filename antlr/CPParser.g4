@@ -57,7 +57,7 @@ recordTypeField
     ;
 
 expression
-    :   opexpr (Colon type | Backslash type)?
+    :   opexpr (Colon type)?
     ;
 
 opexpr
@@ -71,7 +71,7 @@ opexpr
     |   <assoc=right> opexpr And opexpr
     |   <assoc=right> opexpr Or opexpr
     |   <assoc=left> opexpr Forward opexpr
-    |   <assoc=left> opexpr (Merge | LeftistMerge | RightistMerge | DoubleBackSlash) opexpr
+    |   <assoc=left> opexpr (Merge | LeftistMerge | RightistMerge | BackslashMinus) opexpr
     ;
 
 lexpr
@@ -135,7 +135,11 @@ unfold
     ;
 
 fexpr
-    :   (ctorName | renamexpr) (renamexpr | typeArg)*
+    :   (ctorName | excludexpr) (excludexpr | typeArg)*
+    ;
+
+excludexpr
+    :   renamexpr (DoubleBackslashes btype | Backslash label)?
     ;
 
 renamexpr

@@ -1,7 +1,7 @@
 ## Unreleased
 
 - [New] an alternative ANTLR parser, which is faster than purescript-parsing.
-- [New] support type difference (`T1 \ T2`).
+- [New] support type difference (`T1 \ T2`), term difference (`e1 \- e2`), field removal (`e \ l`), and label renaming (`e [ old <- new ]`).
 - [New] support leftist merge (`+,`) and rightist merge (`,+`).
 - Support `x ,, y` as an alias to `x , y` for compatibility.
 - In a trait definition, `implements` and `inherits` clauses can be written in any order.
@@ -45,5 +45,5 @@ Initial version of Next-Gen CP; most functionalities of CP are reimplemented.
 - The syntax of object self-type annotations is changed from `(Ctor x [self : T])` to `[self : T]@(Ctor x)`.
 - The keyword `extends` is removed: `type A extends B = C` can be rewritten as `type A = B & C`.
 - `number.toString` is now `toString number`.
-- Exclusion operators have a lower priority now. For example, the parentheses in `(t1 \ T1) , (t2 \ T2)` are necessary.
+- The exclusion operator is changed from a single backslash (`\`) to double backslashes (`\\`), e.g. `e1\\T1 , e2\\T2`.
 - Type annotations have the lowest priority now. For example, the parentheses in `{} , (ctx:Context)` are necessary.
