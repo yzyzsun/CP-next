@@ -367,14 +367,24 @@ infer (S.TmForward e1 e2) = do
 infer (S.TmExclude e te) = do
   e' /\ t <- infer e
   te' <- transform te
+  -- `check` helps to make sure `l` was present in `e` before exclusion,
+  -- since the field removal `e \ l` desugars to `e \\ {l : Bot}`
+  let check = case te' of C.TyRcd l C.TyBot false -> checkLabel l
+                          _ -> const $ pure unit
   case t of
     C.TyArrow ti to true -> do
+      check to
       d <- tyDiff to te'
       let t' = C.TyArrow ti d true
       pure $ C.TmAnno e' t' /\ t'
     _ -> do
+      check t
       d <- tyDiff t te'
       pure $ C.TmAnno e' d /\ d
+  where checkLabel :: Label -> C.Ty -> Typing Unit
+        checkLabel l (C.TyAnd t1 t2) = checkLabel l t1 <|> checkLabel l t2
+        checkLabel l (C.TyRcd l' _ _) | l == l' = pure unit
+        checkLabel l _ = throwTypeError $ "label" <+> show l <+> "is absent in" <+> show e
 infer (S.TmRemoval e l) = do
   infer $ S.TmExclude e (S.TyRcd (singleton (S.RcdTy l S.TyBot false)))
 infer (S.TmDiff e1 e2) = do
@@ -398,7 +408,7 @@ infer (S.TmRename e old new) = do
           --   (e ^ super) [old <- new]
           let super = S.TmRename (S.TmVar "#self") new old
               body = S.TmRename (S.TmForward e super) old new
-          tself <- C.TyAnd (C.TyRcd new tl false) <$> tyDiff ti (C.TyRcd old tl false)
+          tself <- C.TyAnd (C.TyRcd new tl false) <$> tyDiff ti (C.TyRcd old C.TyBot false)
           ret /\ tret <- addTmBind "#self" tself $ infer body
           pure $ trait "#self" ret tself tret
         Nothing -> do
@@ -407,9 +417,8 @@ infer (S.TmRename e old new) = do
           ret /\ tret <- addTmBind "#self" ti $ infer body
           pure $ trait "#self" ret ti tret
     _ ->
-      -- e [old <- new] := (e \ {old : Bot}) , {new = e.old}
-      infer $ S.TmMerge S.Neutral
-        (S.TmExclude e (S.TyRcd (singleton (S.RcdTy old S.TyBot false))))
+      -- e [old <- new] := e \ old , {new = e.old}
+      infer $ S.TmMerge S.Neutral (S.TmRemoval e old)
         (S.TmRcd (singleton (S.RcdField false new Nil (Left (S.TmPrj e old)))))
 infer (S.TmFold t e) = do
   t' <- transformTyRec t
