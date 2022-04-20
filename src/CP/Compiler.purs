@@ -6,9 +6,11 @@ import Control.Alt ((<|>))
 import Control.Monad.Maybe.Trans (MaybeT, lift, runMaybeT)
 import Control.Monad.State (State, get, put)
 import Control.Plus as Plus
+import Data.Array (sortBy)
 import Data.Map (Map, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Number (fromString)
+import Data.String (joinWith)
 import Data.Tuple.Nested ((/\))
 import Language.CP.Subtyping (isTopLike, split)
 import Language.CP.Syntax.Common (Name)
@@ -31,13 +33,29 @@ typeToString C.TyInt = "Int"
 typeToString C.TyDouble = "Double"
 typeToString C.TyString = "String"
 typeToString C.TyBool = "Bool"
-typeToString (C.TyArrow _ to _) = "Fun_" <> typeToString to
-typeToString (C.TyAnd t1 t2) = "And_" <> typeToString t1 <> "_" <> typeToString t2
+typeToString (C.TyArrow _ to _) = arrowToString to
+typeToString (C.TyAnd t1 t2) = andToString t1 t2
 -- typeToString C.TyRcd label ty _ = "Rcd_" <> label <> "_" <> typeToString ty
 typeToString _ = ""
 
+andToString :: C.Ty -> C.Ty -> String
+andToString ta tb = "andBegin_" <> joinWith "_" (map typeToString (sortBy typeOrdering (flattenAnd (C.TyAnd ta tb)))) <> "_andEnd"
+
+typeOrdering :: C.Ty -> C.Ty -> Ordering
+typeOrdering ta tb | isBaseType ta && isBaseType tb = compare (typeToString ta) (typeToString tb)
+typeOrdering ta _  | isBaseType ta = LT
+typeOrdering _ tb  | isBaseType tb = GT
+typeOrdering (C.TyArrow _ ta _)  (C.TyArrow _ tb _) = typeOrdering ta tb
+typeOrdering (C.TyArrow _ _ _) _ = GT
+typeOrdering _ (C.TyArrow _ _ _ ) = LT
+typeOrdering _ _ = EQ
+
+flattenAnd :: C.Ty -> Array C.Ty
+flattenAnd (C.TyAnd ta tb) = flattenAnd ta <> flattenAnd tb
+flattenAnd t = [t]
+
 arrowToString :: C.Ty -> String
-arrowToString t = "Fun_" <> typeToString t
+arrowToString t = "fun_" <> typeToString t
 
 getNewVarName :: State CtxCodeGen String
 getNewVarName = do
@@ -178,8 +196,8 @@ subtype x (C.TyArrow ta1 ta2 _) (C.TyArrow tb1 tb2 _) = do
   x2 <- lift getNewVarName
   {ast : j2, var : y2} <- subtype x2 ta2 tb2
   y <- lift getNewVarName
-  let t1 = typeToString $ C.TyArrow ta1 ta2 false
-  let t2 = typeToString $ C.TyArrow tb1 tb2 false
+  let t1 = arrowToString ta2
+  let t2 = arrowToString tb2
   let block  = [JSVariableIntroduction x2 (Just $ JSApp (JSAccessor t1 $ JSVar x) [JSVar "p"])]
             <> j2
             <> [JSReturn $ JSVar y2]
