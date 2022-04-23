@@ -12,29 +12,30 @@ typ, A, B, C :: 't_' ::= {{ com types }}
   | ( A )           :: S:: paren
 
 exp, e :: 'e_' ::= {{ com expressions }}
-  | ()              ::  :: top    {{ com top value }}
+  | {}              ::  :: top    {{ com top value }}
   | b               ::  :: base   {{ com base literal }} {{ tex b }}
   | x               ::  :: var    {{ com variable }}
   | fix x : A . e   ::  :: fix    {{ com fixpoint }} {{ tex [[fix]]\,[[x]][[:]][[A]].\;[[e]] }}
   | \ x : A . e : B ::  :: abs    {{ com abstraction }} {{ tex [[\]][[x]][[:]][[A]].\;[[e]][[:]][[B]] }}
   | e1 e2           ::  :: app    {{ com application }}
   | { l = e }       ::  :: rcd    {{ com record }}
-  | e . l           ::  :: prj    {{ com projection }}
+  | e . l           ::  :: proj   {{ com projection }}
   | e1 ,, e2        ::  :: merge  {{ com merging }}
   | e : A           ::  :: anno   {{ com casting }}
   | e1 [ x ~> e2 ]  :: M:: subst
   | ( e )           :: S:: paren
 
 val, v :: 'v_' ::= {{ com values }}
-  | ()              ::  :: top
+  | {}              ::  :: top
   | b               ::  :: base
   | \ x : A . e : B ::  :: abs
   | { l = v }       ::  :: rcd
   | v1 ,, v2        ::  :: merge
 
 arg :: 'arg_' ::= {{ com arguments }}
+  | x   ::  :: var
   | v   ::  :: value
-  | {l} ::  :: label
+  | l   ::  :: label
 
 ctx, G {{ tex \Gamma }} :: 'ctx_' ::= {{ com typing context }}
   | []              ::  :: empty  {{ tex \cdot }}
@@ -70,6 +71,7 @@ formula :: 'formula_' ::=
   | formula1 and formula2 :: M:: and       {{ tex [[formula1]] \land [[formula2]] }}
   | ( formula )           :: M:: brackets  {{ tex ([[formula]]) }}
   | < formula >           :: M:: highlight {{ tex \colorbox{lightgray}{$[[formula]]$} }}
+  | [ formula ]           :: M:: hide      {{ tex }}
   | uniq G                ::  :: uniqG     {{ tex }}
   | x : A in G            ::  :: inG
   | x notin fv e          ::  :: fresh
@@ -136,10 +138,12 @@ ordinary Top
 ordinary Base
 
 
+ordinary B
 ---------------- :: Arrow
 ordinary (A->B)
 
 
+ordinary A
 ---------------- :: Rcd
 ordinary {l:A}
 
@@ -270,7 +274,7 @@ by
 
 uniq G
 ----------------- :: Top
-G |- () => Top
+G |- {} => Top
 
 
 uniq G
@@ -308,7 +312,7 @@ G |- {l=e} => {l:A}
 
 G |- e => A
 A |> {l:B}
------------------------ :: Prj
+----------------------- :: Proj
 G |- e.l => B
 
 
@@ -354,15 +358,15 @@ by
 ordinary A
 toplike A
 --------------------- :: Top
-v  -->A  ()
+v  -->A  {}
 
 
 --------------------- :: Base
 b  -->Base  b
 
 
-ordinary A2
-not toplike A2
+ordinary B2
+not toplike B2
 B1 <: A1
 A2 <: B2
 ------------------------------------ :: Arrow
@@ -404,7 +408,7 @@ by
 
 
 ----------------- :: Top
-() ; arg  -->  ()
+{} ; arg  -->  {}
 
 
 v  -->A  v'
@@ -413,7 +417,7 @@ v  -->A  v'
 
 
 ------------------- :: Rcd
-{l=v} ; {l}  -->  v
+{l=v} ; l  -->  v
 
 
 v1 ; arg  -->  e1
@@ -439,8 +443,8 @@ v1 ; v2  -->  e
 v1 v2  -->  e
 
 
-v ; {l}  -->  e
----------------- :: PPrj
+v ; l  -->  e
+---------------- :: PProj
 v.l  -->  e
 
 
@@ -465,7 +469,7 @@ e  -->  e'
 
 
 e  -->  e'
-------------------------------------- :: Prj
+------------------------------------- :: Proj
 e.l  -->  e'.l
 
 

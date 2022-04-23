@@ -15,19 +15,19 @@
 
 \section*{Syntax of \calculus}
 \begin{align*}
-  &\text{Types}       &A,B,C& ::= [[Top]] ~|~ [[Base]] ~|~ [[A -> B]] ~|~ [[A & B]] \\
-  &\text{Type indices}&[[T]]& ::= [[Base]] ~|~ [[->T]] ~|~ [[T1 & T2]] \\
-  &\text{Expressions} &    e& ::= [[()]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[e1 ,, e2]] ~|~ [[e : A]] \\
-  &\text{Values}      &    v& ::= [[()]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[v1 ,, v2]] \\
+  &\text{Types}       &A,B,C& ::= [[Top]] ~|~ [[Base]] ~|~ [[A -> B]] ~|~ [[{l : A}]] ~|~ [[A & B]] \\
+  &\text{Type indices}&[[T]]& ::= [[Base]] ~|~ [[->T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
+  &\text{Expressions} &    e& ::= [[{}]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[{l = e}]] ~|~ [[e.l]] ~|~ [[e1 ,, e2]] ~|~ [[e : A]] \\
+  &\text{Values}      &    v& ::= [[{}]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[{l = v}]] ~|~ [[v1 ,, v2]] \\
 \end{align*}
-
-\vspace{-.1in}
 
 \boxed{[[|A|]] = [[T]]} \hfill \textit{(Type translation)}
 \begin{mathpar}
 \inferrule{}{ [[|Base|]] = [[Base]] }
 \and
 \inferrule{}{ [[|A->B|]] = [[->|B|]] }
+\and
+\inferrule{}{ [[|{l:A}|]] = [[{l:|A|}]] }
 \and
 \inferrule{}{ [[|A&B|]] = [[|A|&|B|]] }
 \end{mathpar}
@@ -64,11 +64,21 @@ J2;
 J3;
 
 /* S6 */
+J;
+var z = {};
+z.<t> = x;
+
+/* S7 */
+J1;
+J2;
+
+
+/* S8 */
 J1;
 J2;
 var z = {...x, ...y};
 
-/* S7 */
+/* S9 */
 J1;
 var y = {};
 J2;
@@ -79,19 +89,20 @@ J2;
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* S8 */
+/* S10 */
 var z = {};
 
+/* S11 */
+var z = x.<t>(y);
+
+/* S12 */
+var z = x.<t>;
 
 
-/* S9 */
+/* S13 */
 J1;
 J2;
 var z = {...z1, ...z2};
-
-/* S10 */
-var z = x.<t>(y);
-
 \end{verbatim}
 \end{multicols}
 
@@ -99,15 +110,10 @@ var z = x.<t>(y);
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* S11 */
+/* S14 */
 y.<t> = x.<t>;
 
-
-
-
-
-
-/* S12 */
+/* S15 */
 y.<t2> = p => {
   var x2 = x.<t1>(p);
   var y2 = {};
@@ -115,7 +121,13 @@ y.<t2> = p => {
   return y2;
 };
 
-/* S13 */
+/* S16 */
+var x0 = x.<t1>;
+var y0 = {};
+J;
+y.<t2> = y0;
+
+/* S17 */
 var y1 = {};
 J1;
 var y2 = {};
@@ -126,9 +138,9 @@ J3;
 
 \ottdefncomerge
 
-\begin{multicols}{2}
+\begin{multicols}{3}
 \begin{verbatim}
-/* S14 */
+/* S17 */
 z = {...x, ...y};
 
 
@@ -136,7 +148,7 @@ z = {...x, ...y};
 
 
 
-/* S15 */
+/* S18 */
 z.<t> = p => {
   var y1 = x1.<t1>(p);
   var y2 = x2.<t2>(p);
@@ -144,6 +156,13 @@ z.<t> = p => {
   J;
   return y;
 };
+
+/* S19 */
+var y1 = x1.<t1>;
+var y2 = x2.<t2>;
+var y = {};
+J;
+z.<t> = y;
 \end{verbatim}
 \end{multicols}
 

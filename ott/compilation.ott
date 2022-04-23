@@ -1,11 +1,12 @@
 grammar
 
 T {{ tex \tau }} :: 'ti_' ::= {{ com Type indices }}
-  | Base    ::  :: base  {{ com base type }} {{ tex \mathbb{B} }}
-  | -> T    ::  :: arrow {{ com function type }} {{ tex \overrightarrow{[[T]]} }}
-  | T1 & T2 ::  :: and   {{ com intersection type }}
-  | | A |   :: M:: translation {{ tex |[[A]]| }}
-  | ( A )   :: S:: paren
+  | Base      ::  :: base  {{ com base type }} {{ tex \mathbb{B} }}
+  | -> T      ::  :: arrow {{ com function type }} {{ tex \overrightarrow{[[T]]} }}
+  | { l : T } ::  :: rcd   {{ com record type }}
+  | T1 & T2   ::  :: and   {{ com intersection type }}
+  | | A |     :: M:: translation {{ tex |[[A]]| }}
+  | ( A )     :: S:: paren
 
 J, S :: 'js_' ::= {{ com JavaScript statements }}
   | nothing ::  :: empty {{ tex \varnothing }}
@@ -23,7 +24,7 @@ by
 
 
 -------------------------- :: Top
-G |- () => Top ~~> z in S1
+G |- {} => Top ~~> z in S1
 
 
 toplike B
@@ -60,11 +61,24 @@ G |- e2 <= B ~~> y in J2
 G |- e1 e2 => C ~~> z in S5
 
 
+T = {l : |A|}
+G |- e => A ~~> x in J
+----------------------------------- :: Rcd
+G |- {l = e} => {l : A} ~~> z in S6
+
+
+G |- e => A ~~> x in J1
+A |> {l : B}
+< A |> x ; l --> z with J2 >
+---------------------------- :: Proj
+G |- e.l => B ~~> z in S7
+
+
 G |- e1 => A ~~> x in J1
 G |- e2 => B ~~> y in J2
 A * B
 ---------------------------------- :: Merge
-G |- e1 ,, e2 => A & B ~~> z in S6
+G |- e1 ,, e2 => A & B ~~> z in S8
 
 
 G |- e <= A ~~> x in J
@@ -75,34 +89,36 @@ G |- e:A => A ~~> x in J
 G |- e => A ~~> x in J1
 A <: B ~~> x ~> y with J2
 ------------------------- :: Sub
-G |- e <= B ~~> y in S7
+G |- e <= B ~~> y in S9
 
 
 
 defn
-A |> x ; y --> z with J :: :: distapp :: A_
+A |> x ; arg --> z with J :: :: distapp :: A_
 {{ com Distributive application }}
-{{ tex [[A]]\;\rhd\;[[x]]\,\bullet\,[[y]]\;[[-->]]\;[[z]]\;\textbf{with}\;[[J]] }}
+{{ tex [[A]]\;\rhd\;[[x]]\,\bullet\,[[arg]]\;[[-->]]\;[[z]]\;\textbf{with}\;[[J]] }}
 by
 
 
 toplike A
------------------------- :: TopArrow
-A |> x ; y --> z with S8
-
-
-T1 = ->|A2|
-T2 = ->|B2|
-A |> x ; y --> z1 with J1
-B |> x ; y --> z2 with J2
----------------------------- :: AndArrow
-A & B |> x ; y --> z with S9
+--------------------------- :: Top
+A |> x ; arg --> z with S10
 
 
 T = ->|B|
 ------------------------------ :: Arrow
-A -> B |> x ; y --> z with S10
+A -> B |> x ; y --> z with S11
 
+
+T = {l : |A|}
+------------------------------- :: Rcd
+{l : A} |> x ; l --> z with S12
+
+
+A |> x ; arg --> z1 with J1
+B |> x ; arg --> z2 with J2
+------------------------------- :: And
+A & B |> x ; arg --> z with S13
 
 
 defn
@@ -120,7 +136,7 @@ A <: B ~~> x ~> y with nothing
 
 T = |Base|
 -------------------------------- :: Base
-Base <: Base ~~> x ~> y with S11
+Base <: Base ~~> x ~> y with S14
 
 
 T1 = ->|A2|
@@ -129,7 +145,15 @@ ordinary B2
 B1 <: A1 ~~> x1 ~> y1 with J1
 A2 <: B2 ~~> x2 ~> y2 with J2
 ---------------------------------------- :: Arrow
-A1 -> A2 <: B1 -> B2 ~~> x ~> y with S12
+A1 -> A2 <: B1 -> B2 ~~> x ~> y with S15
+
+
+T1 = {l : |A|}
+T2 = {l : |B|}
+ordinary B
+A <: B ~~> x0 ~> y0 with J
+---------------------------------- :: Rcd
+{l:A} <: {l:B} ~~> x ~> y with S16
 
 
 ordinary C
@@ -149,7 +173,7 @@ A <: B1 ~~> x ~> y1 with J1
 A <: B2 ~~> x ~> y2 with J2
 < y1 : B1 |> z : B <| y2 : B2 with J3 >
 --------------------------------------- :: Split
-A <: B ~~> x ~> z with S13
+A <: B ~~> x ~> z with S17
 
 
 
@@ -163,12 +187,19 @@ by
 T1 = |A|
 T2 = |B|
 ---------------------------------- :: And
-x : A |> z : A&B <| y : B with S14
-
+x : A |> z : A&B <| y : B with S17
 
 T = ->|B|
 T1 = ->|B1|
 T2 = ->|B2|
 y1 : B1 |> y : B <| y2 : B2 with J
 --------------------------------------------- :: Arrow
-x1 : A->B1 |> z : A->B <| x2 : A->B2 with S15
+x1 : A->B1 |> z : A->B <| x2 : A->B2 with S18
+
+
+T = {l : |A|}
+T1 = {l : |A1|}
+T2 = {l : |A2|}
+y1 : A1 |> y : A <| y2 : A2 with J
+------------------------------------------------ :: Rcd
+x1 : {l:A1} |> z : {l:A} <| x2 : {l:A2} with S19
