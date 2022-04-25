@@ -1,4 +1,4 @@
-OTTFILES = lambdaip.ott compilation.ott
+OTTFILES = fiplus.ott compilation.ott
 DOCNAME  = doc
 
 $(DOCNAME).pdf: $(DOCNAME).mng $(OTTFILES)

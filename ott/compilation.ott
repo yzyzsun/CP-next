@@ -3,6 +3,7 @@ grammar
 T {{ tex \tau }} :: 'ti_' ::= {{ com Type indices }}
   | Base      ::  :: base  {{ com base type }} {{ tex \mathbb{B} }}
   | -> T      ::  :: arrow {{ com function type }} {{ tex \overrightarrow{[[T]]} }}
+  | \-/ T     ::  :: all   {{ com universal type }} {{ tex [[T]]^\forall }}
   | { l : T } ::  :: rcd   {{ com record type }}
   | T1 & T2   ::  :: and   {{ com intersection type }}
   | | A |     :: M:: translation {{ tex |[[A]]| }}
@@ -61,24 +62,38 @@ G |- e2 <= B ~~> y in J2
 G |- e1 e2 => C ~~> z in S5
 
 
+T = \-/|B|
+G , X * A |- e <= B ~~> y in J
+--------------------------------------------------- :: TAbs
+G |- /\ X * A. e : B => Forall X * A. B ~~> z in S6
+
+
+G |- e => B ~~> y in J1
+B |> Forall X*C1. C2
+G |- A * C1
+< B |> y ; A --> z with J2 >
+--------------------------------- :: TApp
+G |- e A => C2 [X~>A] ~~> z in S7
+
+
 T = {l : |A|}
 G |- e => A ~~> x in J
 ----------------------------------- :: Rcd
-G |- {l = e} => {l : A} ~~> z in S6
+G |- {l = e} => {l : A} ~~> z in S8
 
 
 G |- e => A ~~> x in J1
 A |> {l : B}
 < A |> x ; l --> z with J2 >
 ---------------------------- :: Proj
-G |- e.l => B ~~> z in S7
+G |- e.l => B ~~> z in S9
 
 
 G |- e1 => A ~~> x in J1
 G |- e2 => B ~~> y in J2
-A * B
----------------------------------- :: Merge
-G |- e1 ,, e2 => A & B ~~> z in S8
+G |- A * B
+----------------------------------- :: Merge
+G |- e1 ,, e2 => A & B ~~> z in S10
 
 
 G |- e <= A ~~> x in J
@@ -89,7 +104,7 @@ G |- e:A => A ~~> x in J
 G |- e => A ~~> x in J1
 A <: B ~~> x ~> y with J2
 ------------------------- :: Sub
-G |- e <= B ~~> y in S9
+G |- e <= B ~~> y in S11
 
 
 
@@ -102,23 +117,29 @@ by
 
 toplike A
 --------------------------- :: Top
-A |> x ; arg --> z with S10
+A |> x ; arg --> z with S12
 
 
 T = ->|B|
 ------------------------------ :: Arrow
-A -> B |> x ; y --> z with S11
+A -> B |> x ; y --> z with S13
+
+
+T1 = \-/|B|
+T2 = |C|
+------------------------------------- :: All
+Forall X*A. B |> x ; C --> z with S14
 
 
 T = {l : |A|}
 ------------------------------- :: Rcd
-{l : A} |> x ; l --> z with S12
+{l : A} |> x ; l --> z with S15
 
 
 A |> x ; arg --> z1 with J1
 B |> x ; arg --> z2 with J2
 ------------------------------- :: And
-A & B |> x ; arg --> z with S13
+A & B |> x ; arg --> z with S16
 
 
 defn
@@ -136,7 +157,7 @@ A <: B ~~> x ~> y with nothing
 
 T = |Base|
 -------------------------------- :: Base
-Base <: Base ~~> x ~> y with S14
+Base <: Base ~~> x ~> y with S17
 
 
 T1 = ->|A2|
@@ -145,7 +166,16 @@ ordinary B2
 B1 <: A1 ~~> x1 ~> y1 with J1
 A2 <: B2 ~~> x2 ~> y2 with J2
 ---------------------------------------- :: Arrow
-A1 -> A2 <: B1 -> B2 ~~> x ~> y with S15
+A1 -> A2 <: B1 -> B2 ~~> x ~> y with S18
+
+
+T1 = \-/|A2|
+T2 = \-/|B2|
+ordinary B2
+B1 <: A1 ~~> x1 ~> y1 with J1
+A2 <: B2 ~~> x2 ~> y2 with J2
+------------------------------------------------------ :: All
+Forall X*A1. A2 <: Forall X*B1. B2 ~~> x ~> y with S19
 
 
 T1 = {l : |A|}
@@ -153,7 +183,7 @@ T2 = {l : |B|}
 ordinary B
 A <: B ~~> x0 ~> y0 with J
 ---------------------------------- :: Rcd
-{l:A} <: {l:B} ~~> x ~> y with S16
+{l:A} <: {l:B} ~~> x ~> y with S20
 
 
 ordinary C
@@ -173,7 +203,7 @@ A <: B1 ~~> x ~> y1 with J1
 A <: B2 ~~> x ~> y2 with J2
 < y1 : B1 |> z : B <| y2 : B2 with J3 >
 --------------------------------------- :: Split
-A <: B ~~> x ~> z with S17
+A <: B ~~> x ~> z with S21
 
 
 
@@ -187,14 +217,22 @@ by
 T1 = |A|
 T2 = |B|
 ---------------------------------- :: And
-x : A |> z : A&B <| y : B with S17
+x : A |> z : A&B <| y : B with S22
 
 T = ->|B|
 T1 = ->|B1|
 T2 = ->|B2|
 y1 : B1 |> y : B <| y2 : B2 with J
 --------------------------------------------- :: Arrow
-x1 : A->B1 |> z : A->B <| x2 : A->B2 with S18
+x1 : A->B1 |> z : A->B <| x2 : A->B2 with S23
+
+
+T = \-/|B|
+T1 = \-/|B1|
+T2 = \-/|B2|
+y1 : B1 |> y : B <| y2 : B2 with J
+------------------------------------------------------------------------ :: All
+x1 : Forall X*A. B1 |> z : Forall X*A. B <| x2 : Forall X*A. B2 with S24
 
 
 T = {l : |A|}
@@ -202,4 +240,4 @@ T1 = {l : |A1|}
 T2 = {l : |A2|}
 y1 : A1 |> y : A <| y2 : A2 with J
 ------------------------------------------------ :: Rcd
-x1 : {l:A1} |> z : {l:A} <| x2 : {l:A2} with S19
+x1 : {l:A1} |> z : {l:A} <| x2 : {l:A2} with S25

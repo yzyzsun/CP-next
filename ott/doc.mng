@@ -9,21 +9,31 @@
 
 \inputott{ott}
 
-\newcommand\calculus{$\lambda_i^+$\xspace}
+\newcommand\calculus{$\mathsf{F}_i^+$\xspace}
+
+\title{Compiling from \calculus to JavaScript}
+\author{Yaozhu Sun}
 
 \begin{document}
 
+\maketitle
+
 \section*{Syntax of \calculus}
 \begin{align*}
-  &\text{Types}       &A,B,C& ::= [[Top]] ~|~ [[Base]] ~|~ [[A -> B]] ~|~ [[{l : A}]] ~|~ [[A & B]] \\
-  &\text{Type indices}&[[T]]& ::= [[Base]] ~|~ [[->T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
-  &\text{Expressions} &    e& ::= [[{}]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[{l = e}]] ~|~ [[e.l]] ~|~ [[e1 ,, e2]] ~|~ [[e : A]] \\
-  &\text{Values}      &    v& ::= [[{}]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[{l = v}]] ~|~ [[v1 ,, v2]] \\
+  &\text{Types}       &A,B,C ::=&~ [[Top]] ~|~ [[Bot]] ~|~ [[Base]] ~|~ [[X]] ~|~ [[A -> B]] ~|~ [[Forall X*A. B]] ~|~ [[{l : A}]] ~|~ [[A & B]] \\
+  &\text{Type indices}&[[T]] ::=&~ [[Base]] ~|~ [[->T]] ~|~ [[\-/T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
+  &\text{Expressions} &    e ::=&~ [[{}]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[/\X*A. e:B]] ~|~ [[e A]] ~|~ [[{l = e}]] ~|~ [[e.l]] \\
+  &                   &        |&~ [[e1 ,, e2]] ~|~ [[e : A]] \\
+  &\text{Values}      &    v ::=&~ [[{}]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[/\X*A. e:B]] ~|~ [[{l = v}]] ~|~ [[v1 ,, v2]] \\
 \end{align*}
 
 \boxed{[[|A|]] = [[T]]} \hfill \textit{(Type translation)}
 \begin{mathpar}
 \inferrule{}{ [[|Base|]] = [[Base]] }
+\and
+\inferrule{}{ [[|X|]] = X }
+\and
+\inferrule{}{ [[|Forall X*A. B|]] = [[\-/|B|]] }
 \and
 \inferrule{}{ [[|A->B|]] = [[->|B|]] }
 \and
@@ -32,8 +42,13 @@
 \inferrule{}{ [[|A&B|]] = [[|A|&|B|]] }
 \end{mathpar}
 
-\section*{Compiling from \calculus to JavaScript}
+\bigskip\bigskip
 
+\ottdefntoplike
+
+\ottdefnordinary
+
+\newpage
 \ottdefncompile
 
 \begin{multicols}{3}
@@ -64,56 +79,70 @@ J2;
 J3;
 
 /* S6 */
-J;
 var z = {};
-z.<t> = x;
+z.<t> = X => {
+  J;
+  return y;
+}
 
 /* S7 */
 J1;
 J2;
 
-
 /* S8 */
+J;
+var z = {};
+z.<t> = x;
+
+/* S9 */
+J1;
+J2;
+
+/* S10 */
 J1;
 J2;
 var z = {...x, ...y};
 
-/* S9 */
+/* S11 */
 J1;
 var y = {};
 J2;
 \end{verbatim}
 \end{multicols}
 
+\newpage
 \ottdefndistapp
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* S10 */
+/* S12 */
 var z = {};
 
-/* S11 */
+/* S13 */
 var z = x.<t>(y);
 
-/* S12 */
+/* S14 */
+var z = x.<t1>(t2);
+
+/* S15 */
 var z = x.<t>;
 
-
-/* S13 */
+/* S16 */
 J1;
 J2;
 var z = {...z1, ...z2};
 \end{verbatim}
 \end{multicols}
 
+\newpage
 \ottdefncosub
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* S14 */
+/* S17 */
 y.<t> = x.<t>;
 
-/* S15 */
+/* S18 */
 y.<t2> = p => {
   var x2 = x.<t1>(p);
   var y2 = {};
@@ -121,13 +150,21 @@ y.<t2> = p => {
   return y2;
 };
 
-/* S16 */
+/* S19 */
+y.<t2> = X => {
+  var x2 = x.<t1>(X);
+  var y2 = {};
+  J2;
+  return y2;
+};
+
+/* S20 */
 var x0 = x.<t1>;
 var y0 = {};
 J;
 y.<t2> = y0;
 
-/* S17 */
+/* S21 */
 var y1 = {};
 J1;
 var y2 = {};
@@ -136,19 +173,15 @@ J3;
 \end{verbatim}
 \end{multicols}
 
+\newpage
 \ottdefncomerge
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* S17 */
+/* S22 */
 z = {...x, ...y};
 
-
-
-
-
-
-/* S18 */
+/* S23 */
 z.<t> = p => {
   var y1 = x1.<t1>(p);
   var y2 = x2.<t2>(p);
@@ -157,12 +190,25 @@ z.<t> = p => {
   return y;
 };
 
-/* S19 */
+/* S24 */
+z.<t> = X => {
+  var y1 = x1.<t1>(X);
+  var y2 = x2.<t2>(X);
+  var y = {};
+  J;
+  return y;
+};
+
+
+
+/* S25 */
 var y1 = x1.<t1>;
 var y2 = x2.<t2>;
 var y = {};
 J;
 z.<t> = y;
+
+
 \end{verbatim}
 \end{multicols}
 
