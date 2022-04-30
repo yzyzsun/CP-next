@@ -15,7 +15,7 @@ import Data.String (codePointFromChar)
 import Data.String.CodeUnits as SCU
 import Data.Tuple (Tuple(..))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
-import Language.CP.Syntax.Source (Bias(..), MethodPattern(..), RcdField(..), RcdTy(..), SelfAnno, Tm(..), TmParam(..), Ty(..), TyParam)
+import Language.CP.Syntax.Source (Bias(..), MethodPattern(..), RcdField(..), RcdTy(..), SelfAnno, Tm(..), TmParam(..), Ty(..), TyParam, TypeDef(..))
 import Language.CP.Util (foldl1, isCapitalized)
 import Text.Parsing.Parser (Parser, fail, position)
 import Text.Parsing.Parser.Combinators (between, choice, endBy, lookAhead, manyTill, option, sepEndBy, sepEndBy1, try)
@@ -29,19 +29,31 @@ type SParser a = Parser String a
 -- Program --
 
 program :: SParser Tm
-program = fix $ \p -> tyDef p <|> tmDef p <|> expr
+program = fix $ \p -> interface p <|> tyDef p <|> tmDef p <|> expr
+
+interface :: SParser Tm -> SParser Tm
+interface p = do
+  reserved "interface"
+  a <- upperIdentifier
+  sorts <- many (angles upperIdentifier)
+  params <- many upperIdentifier
+  def <- option Interface (reserved "extends" *> bty ty <#> InterfaceExtends)
+  t <- recordTy
+  symbol ";"
+  e <- p
+  pure $ TmType def a sorts params t e
 
 tyDef :: SParser Tm -> SParser Tm
 tyDef p = do
-  isRec <- reserved "type" $> false <|> reserved "typerec" $> true
+  reserved "type"
   a <- upperIdentifier
   sorts <- many (angles upperIdentifier)
-  parms <- many upperIdentifier
+  params <- many upperIdentifier
   symbol "="
   t <- ty
   symbol ";"
   e <- p
-  pure $ TmType isRec a sorts parms t e
+  pure $ TmType TypeAlias a sorts params t e
 
 tmDef :: SParser Tm -> SParser Tm
 tmDef p = do
@@ -84,7 +96,7 @@ fexpr e = do
 
 excludexpr :: SParser Tm -> SParser Tm
 excludexpr e = renamexpr e >>= \e' ->
-  TmExclude e' <$ symbol "\\\\" <*> aty ty <|>
+  TmExclude e' <$ symbol "\\\\" <*> bty ty <|>
   TmRemoval e' <$ symbol "\\" <*> identifier <|>
   pure e'
 
@@ -423,7 +435,7 @@ langDef :: LanguageDef
 langDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "undefined", "if", "then", "else", "toString"
   , "trait", "implements", "inherits", "override", "new", "fold", "unfold"
-  , "let", "letrec", "open", "in", "with", "type", "typerec", "forall"
+  , "let", "letrec", "open", "in", "with", "type", "interface", "extends", "forall"
   , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
   ]
 }

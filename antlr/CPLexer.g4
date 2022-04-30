@@ -39,8 +39,12 @@ Type
     :   'type'
     ;
 
-TypeRec
-    :   'typerec'
+Interface
+    :   'interface'
+    ;
+
+Extends
+    :   'extends'
     ;
 
 ForAll

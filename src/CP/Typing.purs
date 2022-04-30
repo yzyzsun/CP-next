@@ -5,7 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Array (all, elem, head, notElem, null, unzip)
 import Data.Either (Either(..))
-import Data.Foldable (foldr)
+import Data.Foldable (foldl, foldr)
 import Data.List (List(..), filter, last, singleton, sort, (:))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set)
@@ -195,11 +195,13 @@ infer (S.TmLetrec x Nil Nil t e1 e2) = do
 -- TODO: find a more efficient algorithm
 infer (S.TmOpen e1 e2) = do
   e1' /\ t1 <- infer e1
-  let b = foldr (\l s -> (l /\ unsafeFromJust (selectLabel t1 l false)) : s)
-                Nil (collectLabels t1)
+  let r /\ tr = case t1 of C.TyRec _ _ -> C.TmUnfold t1 e1' /\ C.unfold t1
+                           _ -> e1' /\ t1
+      b = foldr (\l s -> (l /\ unsafeFromJust (selectLabel tr l false)) : s)
+                Nil (collectLabels tr)
   e2' /\ t2 <- foldr (uncurry addTmBind) (infer e2) b
   let open (l /\ t) e = letIn l (C.TmPrj (C.TmVar opened) l) t e t2
-  pure $ letIn opened e1' t1 (foldr open e2' b) t2 /\ t2
+  pure $ letIn opened r tr (foldr open e2' b) t2 /\ t2
   where opened = "#opened"
 infer (S.TmUpdate rcd fields) = do
   rcd' /\ t <- infer rcd
@@ -452,9 +454,18 @@ infer (S.TmDoc doc) = localPos f $ infer doc
 infer (S.TmPos p e) = localPos f $ infer e
   where f (Pos _ _ inDoc) = Pos p e inDoc
         f UnknownPos = Pos p e false
-infer (S.TmType isRec a sorts params t e) = do
-  t' <- addRec $ addSorts $ addTyBinds $ transformTyDef t
-  addTyAlias a (rec (sig t')) $ infer e
+infer (S.TmType def a sorts params t e) = case def of
+  S.TypeAlias -> do
+    t' <- addSorts $ addTyBinds $ transformTyDef t
+    addTyAlias a (sig t') $ infer e
+  S.Interface -> do
+    t' <- addSorts $ addTyBinds $ addTyBind a C.TyTop $ transformTyDef t
+    addTyAlias a (sig (S.TyRec a t')) $ infer e
+    -- TODO: addTyAlias a (S.TyRec a (sig t'))
+  S.InterfaceExtends super -> do
+    let self = S.TyVar ("#" <> a) # withSorts # withParams
+        e' = S.TmType S.TypeAlias a sorts params (S.TyAnd super self) e
+    infer $ S.TmType S.Interface ("#" <> a) sorts params t e'
   where
     dualSorts :: List (Name /\ Name)
     dualSorts = sorts <#> \sort -> sort /\ ("#" <> sort)
@@ -463,11 +474,12 @@ infer (S.TmType isRec a sorts params t e) = do
     addTyBinds :: forall a. Typing a -> Typing a
     addTyBinds typing = foldr (flip addTyBind C.TyTop) typing params
     sig :: S.Ty -> S.Ty
-    sig t' = foldr (uncurry S.TySig) (foldr S.TyAbs t' params) dualSorts
-    addRec :: forall a. Typing a -> Typing a
-    addRec = if isRec then addTyBind a C.TyTop else identity
-    rec :: S.Ty -> S.Ty
-    rec = if isRec then S.TyRec a else identity
+    sig t' = foldr (uncurry S.TySig) (foldr S.TyAbs t' params) dualSorts    
+    withSorts :: S.Ty -> S.Ty
+    withSorts t' = let sort = S.TyVar >>> flip S.TySort Nothing in
+                   foldl (S.TyApp >>> (sort >>> _)) t' sorts
+    withParams :: S.Ty -> S.Ty
+    withParams t' = foldl (S.TyApp >>> (S.TyVar >>> _)) t' params
 infer e = throwTypeError $ "expected a desugared term, but got" <+> show e
 
 distApp :: C.Ty -> Either C.Ty C.Ty -> Typing C.Ty

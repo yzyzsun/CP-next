@@ -21,7 +21,7 @@ export const cp = new LanguageSupport(LRLanguage.define({
         Document(tree)   { return { from: tree.from + 1, to: tree.to - 1 } },
       }),
       styleTags({
-        'type typerec let letrec trait implements inherits': t.definitionKeyword,
+        'type interface extends let letrec trait implements inherits': t.definitionKeyword,
         'if then else new open in with toString fold unfold forall Int Double Bool String Top Bot Trait': t.keyword,
         'override': t.modifier,
         'true false undefined': t.atom,

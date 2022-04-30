@@ -6,7 +6,7 @@ import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, any, foldMap, intercalate, null)
 import Data.List (List)
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, maybe)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
@@ -97,7 +97,7 @@ data Tm = TmInt Int
         | TmArray (Array Tm)
         | TmDoc Tm
         | TmPos Position Tm
-        | TmType Boolean Name (List Name) (List Name) Ty Tm
+        | TmType TypeDef Name (List Name) (List Name) Ty Tm
         | TmDef Name TyParamList TmParamList (Maybe Ty) Tm Tm
 
 data Bias = Neutral | Leftist | Rightist
@@ -112,6 +112,8 @@ instance Show Bias where
 data RcdField = RcdField Boolean Label TmParamList (Either Tm MethodPattern)
               | DefaultPattern MethodPattern
 data MethodPattern = MethodPattern SelfAnno Label TmParamList Tm
+
+data TypeDef = TypeAlias | Interface | InterfaceExtends Ty
 
 instance Show Tm where
   show (TmInt i)    = show i
@@ -158,13 +160,14 @@ instance Show Tm where
   show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
   show (TmDoc e) = show e
   show (TmPos _pos e) = show e
-  -- `type A<T> extends B<T> = ...` can be rewritten as `type A<T> = B<T> & ...`
-  -- because sort argument expansion from B<T> to B<T, #T> already prevents
-  -- distinguishing output occurrences of T in B any more.
-  show (TmType isRec a sorts params t e) =
-    (if isRec then "typerec" else "type") <+> a <+>
+  show (TmType def a sorts params t e) =
+    let keyword = case def of TypeAlias -> "type"
+                              _ -> "interface"
+        extends = case def of InterfaceExtends super -> "extends" <+> show super
+                              _ -> ""
+    in keyword <+> a <+>
     intercalate' " " (angles <$> sorts) <> intercalate' " " params <>
-    "=" <+> show t <> ";" <+> show e
+    extends <+> "=" <+> show t <> ";" <+> show e
   show (TmDef x tyParams tmParams t e1 e2) = x <+>
     showTyParams tyParams <> showTmParams tmParams <>
     showMaybe ": " t " " <> "=" <+> show e1 <> ";" <+> show e2

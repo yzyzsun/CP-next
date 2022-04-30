@@ -5,7 +5,7 @@ type ExpSig<Exp> = {
   Add: Exp -> Exp -> Exp;
 };
 
-typerec Exp = {
+interface Exp {
   eval: Int;
   dbl:  Exp;
   eq:   Exp -> Bool;

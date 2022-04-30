@@ -17,10 +17,14 @@
 
 open { kw<"open"> (lowerid | upperid) ";" }
 
-definition { TypeDef | TermDef }
+definition { Interface | TypeDef | TermDef }
+
+Interface {
+  kw<"interface"> TypeNameDecl angles<TypeNameDecl>* TypeNameDecl* (kw<"extends"> btype)? RecordType ";"
+}
 
 TypeDef {
-  (kw<"type"> | kw<"typerec">) TypeNameDecl angles<TypeNameDecl>* TypeNameDecl* "=" type ";"
+  kw<"type"> TypeNameDecl angles<TypeNameDecl>* TypeNameDecl* "=" type ";"
 }
 
 TermDef {

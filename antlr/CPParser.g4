@@ -10,12 +10,17 @@ program
     ;
 
 definition
-    :   typeDef
+    :   interfaceDef
+    |   typeDef
     |   termDef
     ;
 
+interfaceDef
+    :   Interface typeNameDecl (Less typeNameDecl Greater)* typeNameDecl* (Extends btype)? recordType Semicolon
+    ;
+
 typeDef
-    :   (Type | TypeRec) typeNameDecl (Less typeNameDecl Greater)* typeNameDecl* Assign type Semicolon
+    :   Type typeNameDecl (Less typeNameDecl Greater)* typeNameDecl* Assign type Semicolon
     ;
 
 termDef

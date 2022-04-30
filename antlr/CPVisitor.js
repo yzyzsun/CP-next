@@ -34,21 +34,35 @@ export default class CPVisitor extends CPParserVisitor {
   visitDefinition(ctx, program) {
     const typeDef = ctx.typeDef();
     const termDef = ctx.termDef();
+    const interfaceDef = ctx.interfaceDef();
     if (typeDef) return this.visitTypeDef(typeDef, program);
-    else return this.visitTermDef(termDef, program);
+    else if (termDef) return this.visitTermDef(termDef, program);
+    else return this.visitInterfaceDef(interfaceDef, program);
+  }
+
+
+  // Visit a parse tree produced by CPParser#interfaceDef.
+  visitInterfaceDef(ctx, p) {
+    const typeNameDecls = ctx.typeNameDecl();
+    const a = this.visitTypeNameDecl(typeNameDecls[0]);
+    const sortCount = ctx.Less().length;
+    const sorts = this.listify(typeNameDecls.slice(1, sortCount + 1).map(this.visitTypeNameDecl, this));
+    const parms = this.listify(typeNameDecls.slice(sortCount + 1).map(this.visitTypeNameDecl, this));
+    const def = ctx.Extends() ? new AST.InterfaceExtends(this.visitBtype(ctx.btype())) : AST.Interface.value;
+    const t = this.visitRecordType(ctx.recordType());
+    return new AST.TmType(def, a, sorts, parms, t, p);
   }
 
 
   // Visit a parse tree produced by CPParser#typeDef.
   visitTypeDef(ctx, p) {
-    const isRec = ctx.TypeRec() !== null;
     const typeNameDecls = ctx.typeNameDecl();
     const a = this.visitTypeNameDecl(typeNameDecls[0]);
     const sortCount = ctx.Less().length;
     const sorts = this.listify(typeNameDecls.slice(1, sortCount + 1).map(this.visitTypeNameDecl, this));
     const parms = this.listify(typeNameDecls.slice(sortCount + 1).map(this.visitTypeNameDecl, this));
     const t = this.visitType(ctx.type());
-    return new AST.TmType(isRec, a, sorts, parms, t, p);
+    return new AST.TmType(AST.TypeAlias.value, a, sorts, parms, t, p);
   }
 
 
