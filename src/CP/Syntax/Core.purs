@@ -10,7 +10,7 @@ import Language.CP.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brac
 import Language.CP.Util ((<+>))
 
 foreign import data TmRef :: Type
-foreign import new :: Tm -> TmRef
+foreign import ref :: Tm -> TmRef
 foreign import done :: TmRef -> Boolean
 foreign import read :: TmRef -> Tm
 foreign import write :: Tm -> TmRef -> Tm

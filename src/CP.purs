@@ -21,9 +21,8 @@ import Language.CP.Semantics.StepTrace as StepTrace
 import Language.CP.Semantics.Subst as SmallStep
 import Language.CP.Syntax.Source (Tm, showDoc)
 import Language.CP.Typing (infer)
-import Text.Parsing.Parser (ParseError(..), runParser)
-import Text.Parsing.Parser.Pos (Position(..))
-import Text.Parsing.Parser.String (eof)
+import Parsing (ParseError(..), Position(..), runParser)
+import Parsing.String (eof)
 
 data Mode = SmallStep | StepTrace | BigStep | HOAS | Closure
 
@@ -66,7 +65,7 @@ showTypeError (TypeError msg (Pos pos expr inDoc)) =
   (if inDoc then showDoc else show) expr
 
 -- Big-step evaluation used after ANTLR parsing
-eval :: Tm -> Effect String
-eval e = case runTyping $ infer $ desugar e of
+evaluate :: Tm -> Effect String
+evaluate e = case runTyping $ infer $ desugar e of
   Left err -> throw $ showTypeError err
   Right (e' /\ _) -> pure $ show (BigStep.eval e')

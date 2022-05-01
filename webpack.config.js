@@ -4,23 +4,6 @@ const TerserPlugin = require('terser-webpack-plugin');
 module.exports = {
   mode: 'production',
   entry: './app.js',
-  module: {
-    rules: [
-      {
-        test: /\.purs$/,
-        exclude: /node_modules/,
-        use: [
-          {
-            loader: 'purs-loader',
-            options: {
-              spago: true,
-              pscIde: true,
-            },
-          },
-        ],
-      },
-    ],
-  },
   resolve: {
     fallback: {
       fs: false,

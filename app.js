@@ -5,7 +5,7 @@ import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { LRLanguage, LanguageSupport, continuedIndent, foldNodeProp, indentNodeProp } from '@codemirror/language';
-import { styleTags, tags as t } from '@codemirror/highlight';
+import { styleTags, tags as t } from '@lezer/highlight';
 import { parser } from './lezer.js';
 
 export const cp = new LanguageSupport(LRLanguage.define({
@@ -82,9 +82,9 @@ export function editorView(state, parent) {
 
 /* PureScript & ANTLR */
 
-import { default as CP } from './src/CP.purs';
+import { evaluate } from './output/Language.CP/index.js';
 import { parse } from './antlr/index.js';
 
 export function interpret(input) {
-  return CP.eval(parse(input))();
+  return evaluate(parse(input))();
 }

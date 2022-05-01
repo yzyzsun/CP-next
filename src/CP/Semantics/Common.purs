@@ -4,9 +4,9 @@ import Prelude
 
 import Data.Array (length, (!!))
 import Data.Maybe (Maybe(..))
+import Data.Number ((%))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), UnOp(..))
 import Language.CP.Syntax.Core (Tm(..), Ty(..))
-import Math ((%))
 import Partial.Unsafe (unsafeCrashWith)
 
 unop :: UnOp -> Tm -> Tm

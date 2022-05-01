@@ -8,7 +8,7 @@ import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop
 import Language.CP.Semantics.Subst (cast, paraApp)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (Tm(..), done, new, read, tmSubst, unfold, write)
+import Language.CP.Syntax.Core (Tm(..), done, read, ref, tmSubst, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = Trampoline
@@ -39,12 +39,12 @@ eval = runTrampoline <<< go
     go (TmApp e1 e2 coercive) = do
       e1' <- go e1
       let arg = if coercive then TmAnnoArg else TmArg
-      go $ paraApp e1' (arg (TmRef (new e2)))
+      go $ paraApp e1' (arg (TmRef (ref e2)))
     go e@(TmAbs _ _ _ _ _) = pure e
     go fix@(TmFix x e _) = do
-      let ref = new fix
-      res <- go $ tmSubst x (TmRef ref) e
-      pure $ write res ref
+      let r = ref fix
+      s <- go $ tmSubst x (TmRef r) e
+      pure $ write s r
     go anno@(TmAnno e t) = do
       e' <- go' e
       case cast e' t of
@@ -55,7 +55,7 @@ eval = runTrampoline <<< go
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
-    go (TmRcd l t e) = pure $ TmRcd l t (TmRef (new e))
+    go (TmRcd l t e) = pure $ TmRcd l t (TmRef (ref e))
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmTAbs _ _ _ _ _) = pure e
@@ -67,7 +67,7 @@ eval = runTrampoline <<< go
             go' e' = unsafeCrashWith $ "CP.Semantics.NaturalSubst.eval: " <>
                                        "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
-    go (TmArray t arr) = pure $ TmArray t (TmRef <<< new <$> arr)
+    go (TmArray t arr) = pure $ TmArray t (TmRef <<< ref <$> arr)
     go (TmRef ref) = if done ref then pure e else do
       e' <- go e
       pure $ write e' ref

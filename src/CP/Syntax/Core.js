@@ -1,21 +1,21 @@
 "use strict";
 
-exports.new = function (e) {
+export function ref(e) {
   return { term: e, done: false };
-};
+}
 
-exports.done = function (ref) {
+export function done(ref) {
   return ref.done;
-};
+}
 
-exports.read = function (ref) {
+export function read(ref) {
   return ref.term;
-};
+}
 
-exports.write = function (v) {
+export function write(v) {
   return function (ref) {
     ref.term = v;
     ref.done = true;
     return v;
   };
-};
+}

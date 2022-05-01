@@ -10,7 +10,7 @@ import Language.CP.Semantics.Closure (EvalT, binop', cast, closure, expand, para
 import Language.CP.Semantics.Common (Arg(..), toString)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (EvalBind(..), Tm(..), done, new, read, unfold, write)
+import Language.CP.Syntax.Core (EvalBind(..), Tm(..), done, read, ref, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = EvalT Trampoline
@@ -48,7 +48,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       e1' <- go e1
       e2' <- closure e2
       let arg = if coercive then TmAnnoArg else TmArg
-      go $ paraApp e1' (arg (TmRef (new e2')))
+      go $ paraApp e1' (arg (TmRef (ref e2')))
     go e@(TmAbs _ _ _ _ _) = closure e
     go (TmFix x e _) = local (\env -> insert x (TmBind e) env) (go e)
     go anno@(TmAnno e t) = do

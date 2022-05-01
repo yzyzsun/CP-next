@@ -11,7 +11,7 @@ import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
 import Language.CP.Util (isCapitalized, (<+>))
-import Text.Parsing.Parser.Pos (Position)
+import Parsing (Position)
 
 -- Types --
 

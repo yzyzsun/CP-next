@@ -9,7 +9,7 @@ import Data.Tuple.Nested ((/\))
 import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Language.CP.Subtyping (isTopLike, split, (<:))
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (Tm(..), Ty(..), done, new, read, tmHoas, tyHoas, unfold, write)
+import Language.CP.Syntax.Core (Tm(..), Ty(..), done, read, ref, tmHoas, tyHoas, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = Trampoline
@@ -52,7 +52,7 @@ eval = runTrampoline <<< go <<< tmHoas
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
-    go (TmRcd l t e) = pure $ TmRcd l t (TmRef (new e))
+    go (TmRcd l t e) = pure $ TmRcd l t (TmRef (ref e))
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmHTAbs _ _ _ _) = pure e
@@ -64,7 +64,7 @@ eval = runTrampoline <<< go <<< tmHoas
             go' e' = unsafeCrashWith $ "CP.Semantics.HOAS.eval: " <>
                                        "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
-    go (TmArray t arr) = pure $ TmArray t (TmRef <<< new <$> arr)
+    go (TmArray t arr) = pure $ TmArray t (TmRef <<< ref <$> arr)
     go (TmRef ref) = if done ref then pure e else do
       e' <- go e
       pure $ write e' ref
@@ -101,10 +101,10 @@ cast (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 cast _ _ = Nothing
 
 paraApp :: Tm -> Arg -> Tm
-paraApp (TmHAbs abs _ _ false) (TmArg e) = abs $ TmRef $ new e
-paraApp (TmHAbs abs _ tret true) (TmArg e) = TmAnno (abs $ TmRef $ new e) tret
+paraApp (TmHAbs abs _ _ false) (TmArg e) = abs $ TmRef $ ref e
+paraApp (TmHAbs abs _ tret true) (TmArg e) = TmAnno (abs $ TmRef $ ref e) tret
 paraApp (TmHAbs abs targ tret _) (TmAnnoArg e) =
-  TmAnno (abs $ TmRef $ new $ TmAnno e targ) tret
+  TmAnno (abs $ TmRef $ ref $ TmAnno e targ) tret
 paraApp (TmHTAbs tabs _ _ false) (TyArg ta) = tabs ta
 paraApp (TmHTAbs tabs _ tf true) (TyArg ta) = TmAnno (tabs ta) (tf ta)
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)

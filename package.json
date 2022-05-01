@@ -9,7 +9,7 @@
     "vscode": "cd vscode && vsce package",
     "lezer": "lezer-generator --noTerms --output lezer lezer.grammar",
     "antlr": "antlr -visitor -no-listener antlr/*.g4",
-    "build": "npm run lezer && npm run antlr && webpack",
+    "build": "npm run lezer && npm run antlr && spago build && webpack",
     "server": "cd plground && rails server"
   },
   "repository": "git://github.com/yzyzsun/CP-next.git",
@@ -17,16 +17,15 @@
   "license": "Apache-2.0",
   "homepage": "https://plground.org",
   "devDependencies": {
-    "@codemirror/basic-setup": "^0.19.0",
-    "@lezer/generator": "^0.15.4",
-    "purescript": "^0.14.7",
-    "purs-loader": "^3.7.2",
-    "spago": "^0.20.7",
-    "vsce": "^2.6.7",
-    "webpack": "^5.70.0",
-    "webpack-cli": "^4.9.0"
+    "@codemirror/basic-setup": "^0.20.0",
+    "@lezer/generator": "^0.16.0",
+    "purescript": "^0.15.0",
+    "spago": "^0.20.8",
+    "vsce": "^2.7.0",
+    "webpack": "^5.72.0",
+    "webpack-cli": "^4.9.2"
   },
   "dependencies": {
-    "antlr4": "^4.9.3"
+    "antlr4": "^4.10.1"
   }
 }

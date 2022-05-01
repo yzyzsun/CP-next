@@ -1,18 +1,21 @@
 import CPParser from './CPParser.js';
 import CPParserVisitor from './CPParserVisitor.js';
 
-import { default as AST } from '../src/CP/Syntax/Source.purs';
-import { default as OP } from '../src/CP/Syntax/Common.purs';
-import { default as PS } from '../src/PS.purs';
+import { Left, Right } from '../output/Data.Either/index.js';
+import { Nil, Cons } from '../output/Data.List/index.js';
+import { Nothing, Just } from '../output/Data.Maybe/index.js';
+import { Tuple } from '../output/Data.Tuple/index.js';
+import * as AST from '../output/Language.CP.Syntax.Source/index.js';
+import * as OP from '../output/Language.CP.Syntax.Common/index.js';
 
 
 export default class CPVisitor extends CPParserVisitor {
 
   // Convert an array to a list.
   listify(array) {
-    let list = PS.Nil.value;
+    let list = Nil.value;
     for (const each of array.reverse()) {
-      list = new PS.Cons(each, list);
+      list = new Cons(each, list);
     }
     return list;
   }
@@ -71,7 +74,7 @@ export default class CPVisitor extends CPParserVisitor {
     const x = this.visitTermNameDecl(ctx.termNameDecl());
     const tys = this.listify(ctx.typeParam().map(this.visitTypeParam, this));
     const tms = this.listify(ctx.termParam().map(this.visitTermParam, this));
-    const t = ctx.type() ? new PS.Just(this.visitType(ctx.type())) : PS.Nothing.value;
+    const t = ctx.type() ? new Just(this.visitType(ctx.type())) : Nothing.value;
     const e = this.visitExpression(ctx.expression());
     return new AST.TmDef(x, tys, tms, t, e, p);
   }
@@ -93,10 +96,10 @@ export default class CPVisitor extends CPParserVisitor {
     } else if (ctx.TraitType()) {
       let ti, to;
       if (ctx.FatArrow()) {
-        ti = new PS.Just(this.visitType(ctx.type(0)));
+        ti = new Just(this.visitType(ctx.type(0)));
         to = this.visitType(ctx.type(1));
       } else {
-        ti = PS.Nothing.value;
+        ti = Nothing.value;
         to = this.visitType(ctx.type(0));
       };
       return new AST.TyTrait(ti, to);
@@ -382,9 +385,9 @@ export default class CPVisitor extends CPParserVisitor {
   // Visit a parse tree produced by CPParser#trait.
   visitTrait(ctx) {
     let x = new AST.TmTrait(
-      ctx.selfAnno() ? new PS.Just(this.visitSelfAnno(ctx.selfAnno())) : PS.Nothing.value,
-      ctx.type() ? new PS.Just(this.visitType(ctx.type())) : PS.Nothing.value,
-      ctx.opexpr().length === 2 ? new PS.Just(this.visitOpexpr(ctx.opexpr(0))) : PS.Nothing.value,
+      ctx.selfAnno() ? new Just(this.visitSelfAnno(ctx.selfAnno())) : Nothing.value,
+      ctx.type() ? new Just(this.visitType(ctx.type())) : Nothing.value,
+      ctx.opexpr().length === 2 ? new Just(this.visitOpexpr(ctx.opexpr(0))) : Nothing.value,
       ctx.opexpr().length === 2 ? this.visitOpexpr(ctx.opexpr(1)) : this.visitOpexpr(ctx.opexpr(0))
     );
     return x;
@@ -599,7 +602,7 @@ export default class CPVisitor extends CPParserVisitor {
       ctx.Override() !== null,
       this.visitLabelDecl(ctx.labelDecl()),
       this.listify(ctx.termParam().map(this.visitTermParam, this)),
-      new PS.Left(this.visitExpression(ctx.expression()))
+      new Left(this.visitExpression(ctx.expression()))
     );
   }
 
@@ -608,7 +611,7 @@ export default class CPVisitor extends CPParserVisitor {
   visitRecordUpdate(ctx) {
     const fields = [];
     for (let i = 0; i < ctx.labelDecl().length; i++) {
-      fields.push(new PS.Tuple(
+      fields.push(new Tuple(
         this.visitLabelDecl(ctx.labelDecl(i)),
         this.visitExpression(ctx.expression(i+1))
       ));
@@ -635,8 +638,8 @@ export default class CPVisitor extends CPParserVisitor {
       ctx.Override() !== null,
       this.visitLabelDecl(ctx.labelDecl(0)),
       this.listify(params),
-      new PS.Right(new AST.MethodPattern(
-        ctx.selfAnno() ? new PS.Just(this.visitSelfAnno(ctx.selfAnno())) : PS.Nothing.value,
+      new Right(new AST.MethodPattern(
+        ctx.selfAnno() ? new Just(this.visitSelfAnno(ctx.selfAnno())) : Nothing.value,
         this.visitLabelDecl(ctx.labelDecl(1)),
         this.listify(nestedParams),
         this.visitExpression(ctx.expression())
@@ -649,7 +652,7 @@ export default class CPVisitor extends CPParserVisitor {
   visitDefaultPattern(ctx) {
     return new AST.DefaultPattern(
       new AST.MethodPattern(
-        ctx.selfAnno() ? new PS.Just(this.visitSelfAnno(ctx.selfAnno())) : PS.Nothing.value,
+        ctx.selfAnno() ? new Just(this.visitSelfAnno(ctx.selfAnno())) : Nothing.value,
         this.visitLabelDecl(ctx.labelDecl()),
         this.listify(ctx.termParam().map(this.visitTermParam, this)),
         this.visitExpression(ctx.expression())
@@ -666,9 +669,9 @@ export default class CPVisitor extends CPParserVisitor {
 
   // Visit a parse tree produced by CPParser#typeParam.
   visitTypeParam(ctx) {
-    return new PS.Tuple(
+    return new Tuple(
       this.visitTypeNameDecl(ctx.typeNameDecl()),
-      ctx.type() ? new PS.Just(this.visitType(ctx.type())) : PS.Nothing.value
+      ctx.type() ? new Just(this.visitType(ctx.type())) : Nothing.value
     );
   }
 
@@ -681,10 +684,10 @@ export default class CPVisitor extends CPParserVisitor {
           case CPParser.RULE_termNameDecl:
             return new AST.TmParam(
               this.visitTermNameDecl(ctx.termNameDecl()),
-              PS.Nothing.value
+              Nothing.value
             );
           case CPParser.RULE_Underscore:
-            return new AST.TmParam("_", PS.Nothing.value);
+            return new AST.TmParam("_", Nothing.value);
           case CPParser.RULE_wildcard:
             return this.visitWildcard(ctx.wildcard());
           default:
@@ -694,7 +697,7 @@ export default class CPVisitor extends CPParserVisitor {
       case 5:
         return new AST.TmParam(
           ctx.termNameDecl() === null ? "_" : this.visitTermNameDecl(ctx.termNameDecl()),
-          new PS.Just(this.visitType(ctx.type()))
+          new Just(this.visitType(ctx.type()))
         );
       default:
         console.error("Error at TermParam");
@@ -709,7 +712,7 @@ export default class CPVisitor extends CPParserVisitor {
     const expressions = ctx.expression().map(this.visitExpression, this);
     const defaultFields = [];
     for (let i = 0; i < labelDecls.length; i++){
-      defaultFields.push(new PS.Tuple(labelDecls[i], expressions[i]));
+      defaultFields.push(new Tuple(labelDecls[i], expressions[i]));
     }
     return new AST.WildCard(this.listify(defaultFields));
   }
@@ -717,9 +720,9 @@ export default class CPVisitor extends CPParserVisitor {
 
   // Visit a parse tree produced by CPParser#selfAnno.
   visitSelfAnno(ctx) {
-    return new PS.Tuple(
+    return new Tuple(
       this.visitTermNameDecl(ctx.termNameDecl()),
-      ctx.type() ? new PS.Just(this.visitType(ctx.type())) : PS.Nothing.value
+      ctx.type() ? new Just(this.visitType(ctx.type())) : Nothing.value
     );
   }
 
@@ -729,10 +732,10 @@ export default class CPVisitor extends CPParserVisitor {
     let ti, to;
     if (ctx.FatArrow()) {
       ti = this.visitType(ctx.type(0));
-      to = new PS.Just(this.visitType(ctx.type(1)));
+      to = new Just(this.visitType(ctx.type(1)));
     } else {
       ti = this.visitType(ctx.type(0));
-      to = PS.Nothing.value;
+      to = Nothing.value;
     }
     return new AST.TySort(ti, to);
   }
@@ -896,7 +899,7 @@ export default class CPVisitor extends CPParserVisitor {
       false,
       this.visitLabelDecl(ctx.labelDecl()),
       params,
-      new PS.Left(this.visitExpression(ctx.expression()))
+      new Left(this.visitExpression(ctx.expression()))
     );
   }
 

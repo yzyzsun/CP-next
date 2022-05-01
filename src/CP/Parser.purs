@@ -17,12 +17,12 @@ import Data.Tuple (Tuple(..))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
 import Language.CP.Syntax.Source (Bias(..), MethodPattern(..), RcdField(..), RcdTy(..), SelfAnno, Tm(..), TmParam(..), Ty(..), TyParam, TypeDef(..))
 import Language.CP.Util (foldl1, isCapitalized)
-import Text.Parsing.Parser (Parser, fail, position)
-import Text.Parsing.Parser.Combinators (between, choice, endBy, lookAhead, manyTill, option, sepEndBy, sepEndBy1, try)
-import Text.Parsing.Parser.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
-import Text.Parsing.Parser.Language (haskellStyle)
-import Text.Parsing.Parser.String (anyChar, char, satisfy)
-import Text.Parsing.Parser.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
+import Parsing (Parser, fail, position)
+import Parsing.Combinators (between, choice, endBy, lookAhead, manyTill, option, sepEndBy, sepEndBy1, try)
+import Parsing.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
+import Parsing.Language (haskellStyle)
+import Parsing.String (anyChar, char, satisfy)
+import Parsing.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
 
 type SParser a = Parser String a
 
