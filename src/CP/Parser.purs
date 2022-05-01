@@ -5,24 +5,25 @@ import Prelude hiding (between)
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Array as Array
-import Data.CodePoint.Unicode (isLower)
-import Data.Either (Either(..))
+import Data.Either (Either(..), either)
 import Data.Identity (Identity)
 import Data.List (List, foldl, many, null, some, toUnfoldable)
 import Data.List.NonEmpty (toList)
 import Data.Maybe (Maybe(..), isJust, isNothing, optional)
-import Data.String (codePointFromChar)
 import Data.String.CodeUnits as SCU
+import Data.String.Regex.Flags (noFlags)
 import Data.Tuple (Tuple(..))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
 import Language.CP.Syntax.Source (Bias(..), MethodPattern(..), RcdField(..), RcdTy(..), SelfAnno, Tm(..), TmParam(..), Ty(..), TyParam, TypeDef(..))
 import Language.CP.Util (foldl1, isCapitalized)
 import Parsing (Parser, fail, position)
-import Parsing.Combinators (between, choice, endBy, lookAhead, manyTill, option, sepEndBy, sepEndBy1, try)
+import Parsing.Combinators (between, choice, endBy, option, sepEndBy, sepEndBy1, try)
 import Parsing.Expr (Assoc(..), Operator(..), OperatorTable, buildExprParser)
 import Parsing.Language (haskellStyle)
-import Parsing.String (anyChar, char, satisfy)
-import Parsing.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef, upper)
+import Parsing.String (char, regex)
+import Parsing.String.Basic (lower, upper)
+import Parsing.Token (GenLanguageDef(..), LanguageDef, TokenParser, makeTokenParser, unGenLanguageDef)
+import Partial.Unsafe (unsafeCrashWith)
 
 type SParser a = Parser String a
 
@@ -242,8 +243,8 @@ document p = position >>= \pos -> TmPos pos <<< TmDoc <$> do
     recordArg = TmRcd <$> sepEndBySemi (recordField p false)
     interpolation = newStr <<< TmToString <$> parensWithoutTrailingSpace p
     newline = char '\\' $> newEndl
-    plaintext = newStr <<< TmString <$>
-                stringTill (char '\\' <|> char ']' <|> char '`')
+    plaintext = newStr <<< TmString <$> re
+    re = either unsafeCrashWith identity $ regex """[^\\\]`]+""" noFlags
     newEndl = TmNew (TmVar "Endl")
     newStr s = TmNew (TmApp (TmVar "Str") s)
     newComp x y = TmNew (TmApp (TmApp (TmVar "Comp") x) y)
@@ -494,9 +495,6 @@ sepEndBySemi = flip sepEndBy $ symbol ";"
 endBySemi :: forall a. SParser a -> SParser (List a)
 endBySemi = flip endBy $ symbol ";"
 
-lower :: SParser Char
-lower = satisfy $ isLower <<< codePointFromChar
-
 ident :: SParser Char -> SParser String
 ident identStart = lexeme $ try do
   let languageDef = unGenLanguageDef langDef
@@ -511,8 +509,3 @@ lowerIdentifier = ident lower
 
 upperIdentifier :: SParser String
 upperIdentifier = ident upper
-
-stringTill :: forall a. SParser a -> SParser String
-stringTill p = do chars <- manyTill anyChar (lookAhead p)
-                  if null chars then fail "Unexpected empty string"
-                  else pure $ SCU.fromCharArray $ toUnfoldable chars
