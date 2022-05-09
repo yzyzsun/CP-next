@@ -34,6 +34,8 @@
   , "transformers"
   , "tuples"
   , "unicode"
+  , "stringutils"
+  , "refs"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]

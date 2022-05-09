@@ -97,8 +97,6 @@ data Tm = TmInt Int
         | TmArray (Array Tm)
         | TmDoc Tm
         | TmPos Position Tm
-        | TmType TypeDef Name (List Name) (List Name) Ty Tm
-        | TmDef Name TyParamList TmParamList (Maybe Ty) Tm Tm
 
 data Bias = Neutral | Leftist | Rightist
 derive instance Eq Bias
@@ -112,8 +110,6 @@ instance Show Bias where
 data RcdField = RcdField Boolean Label TmParamList (Either Tm MethodPattern)
               | DefaultPattern MethodPattern
 data MethodPattern = MethodPattern SelfAnno Label TmParamList Tm
-
-data TypeDef = TypeAlias | Interface | InterfaceExtends Ty
 
 instance Show Tm where
   show (TmInt i)    = show i
@@ -160,17 +156,6 @@ instance Show Tm where
   show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
   show (TmDoc e) = show e
   show (TmPos _pos e) = show e
-  show (TmType def a sorts params t e) =
-    let keyword = case def of TypeAlias -> "type"
-                              _ -> "interface"
-        extends = case def of InterfaceExtends super -> "extends" <+> show super
-                              _ -> ""
-    in keyword <+> a <+>
-    intercalate' " " (angles <$> sorts) <> intercalate' " " params <>
-    extends <+> "=" <+> show t <> ";" <+> show e
-  show (TmDef x tyParams tmParams t e1 e2) = x <+>
-    showTyParams tyParams <> showTmParams tmParams <>
-    showMaybe ": " t " " <> "=" <+> show e1 <> ";" <+> show e2
 
 showDoc :: Tm -> String
 showDoc (TmDoc e) = "`" <> showDoc e <> "`"
@@ -184,6 +169,31 @@ showDoc (TmApp (TmVar "Str") (TmToString s)) = "\\(" <> show s <> ")"
 showDoc (TmApp (TmVar x) e) = "\\" <> x <> showDoc e
 showDoc (TmApp e1 e2) = showDoc e1 <> showDoc e2
 showDoc e = "(" <> show e <> ")"
+
+-- Definitions --
+data TypeDef = TypeAlias | Interface | InterfaceExtends Ty
+
+data Def = TyDef TypeDef Name (List Name) (List Name) Ty
+         | TmDef Name TyParamList TmParamList (Maybe Ty) Tm
+
+instance Show Def where
+  show (TyDef def a sorts params t) =
+    let keyword = case def of TypeAlias -> "type"
+                              _ -> "interface"
+        extends = case def of InterfaceExtends super -> "extends" <+> show super
+                              _ -> ""
+    in keyword <+> a <+>
+    intercalate' " " (angles <$> sorts) <> intercalate' " " params <>
+    extends <+> "=" <+> show t <> ";"
+  show (TmDef x tyParams tmParams t e) = x <+>
+    showTyParams tyParams <> showTmParams tmParams <>
+    showMaybe ": " t " " <> "=" <+> show e <> ";"
+
+-- Program --
+data Prog = Prog (List Def) Tm
+
+instance Show Prog where
+  show (Prog defs e) = intercalate' "\n" (map show defs) <> "\n" <> show e
 
 -- Substitution --
 

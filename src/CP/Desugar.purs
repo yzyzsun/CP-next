@@ -7,7 +7,7 @@ import Data.Either (Either(..), either)
 import Data.List (List(..), foldr, singleton)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested ((/\))
-import Language.CP.Syntax.Source (Bias(..), MethodPattern(..), RcdField(..), Tm(..), TmParam(..), Ty(..))
+import Language.CP.Syntax.Source (Bias(..), Def(..), MethodPattern(..), Prog(..), RcdField(..), Tm(..), TmParam(..), Ty(..))
 import Language.CP.Util (foldl1)
 
 -- typing-related desugaring is delayed until type inference
@@ -39,9 +39,6 @@ desugar (TmLetrec x tyParams tmParams t e1 e2) =
         tyOf = case _ of TmParam _ (Just ty) -> ty
                          TmParam _ Nothing -> TyBot
                          WildCard _ -> TyBot
-desugar (TmDef x tyParams tmParams t e1 e2) = desugar $
-  case t of Just t' -> TmLetrec x tyParams tmParams t' e1 e2
-            Nothing -> TmLet x tyParams tmParams e1 e2
 
 desugar (TmUnary op e) = TmUnary op (desugar e)
 desugar (TmBinary op e1 e2) = TmBinary op (desugar e1) (desugar e2)
@@ -65,9 +62,22 @@ desugar (TmToString e) = TmToString (desugar e)
 desugar (TmArray arr) = TmArray (desugar <$> arr)
 desugar (TmDoc e) = TmDoc (desugar e)
 desugar (TmPos p e) = TmPos p (desugar e)
-desugar (TmType def a sorts params t e) = TmType def a sorts params t (desugar e)
 desugar e = e
 
 deMP :: MethodPattern -> Tm
 deMP (MethodPattern self l p e) =
   TmTrait self Nothing Nothing (TmRcd (singleton (RcdField false l p (Left e))))
+
+desugarDef :: Def -> Def
+desugarDef (TmDef x tyParams tmParams Nothing e) = TmDef x Nil Nil Nothing $
+  desugar (TmTAbs tyParams (TmAbs tmParams e))
+desugarDef (TmDef x tyParams tmParams (Just t) e) = TmDef x Nil Nil (Just t') $
+  desugar (TmTAbs tyParams (TmAbs tmParams e))
+  where t' = TyForall tyParams (foldr TyArrow t (tyOf <$> tmParams))
+        tyOf = case _ of TmParam _ (Just ty) -> ty
+                         TmParam _ Nothing -> TyBot
+                         WildCard _ -> TyBot
+desugarDef d = d
+
+desugarProg :: Prog -> Prog
+desugarProg (Prog defs e) = Prog (map desugarDef defs) (desugar e)

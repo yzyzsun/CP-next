@@ -14,7 +14,7 @@ import Data.String.CodeUnits as SCU
 import Data.String.Regex.Flags (noFlags)
 import Data.Tuple (Tuple(..))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
-import Language.CP.Syntax.Source (Bias(..), MethodPattern(..), RcdField(..), RcdTy(..), SelfAnno, Tm(..), TmParam(..), Ty(..), TyParam, TypeDef(..))
+import Language.CP.Syntax.Source (Bias(..), Def(..), MethodPattern(..), Prog(..), RcdField(..), RcdTy(..), SelfAnno, Tm(..), TmParam(..), Ty(..), TyParam, TypeDef(..))
 import Language.CP.Util (foldl1, isCapitalized)
 import Parsing (Parser, fail, position)
 import Parsing.Combinators (between, choice, endBy, option, sepEndBy, sepEndBy1, try)
@@ -29,23 +29,30 @@ type SParser a = Parser String a
 
 -- Program --
 
-program :: SParser Tm
-program = fix $ \p -> interface p <|> tyDef p <|> tmDef p <|> expr
+program :: SParser Prog
+program = do
+  defs <- many def
+  optExpr <- optional expr
+  pure $ Prog defs $ case optExpr of
+    Just e -> e
+    Nothing -> TmUnit
 
-interface :: SParser Tm -> SParser Tm
-interface p = do
+def :: SParser Def
+def = interface <|> tyDef <|> tmDef
+
+interface :: SParser Def
+interface = do
   reserved "interface"
   a <- upperIdentifier
   sorts <- many (angles upperIdentifier)
   params <- many upperIdentifier
-  def <- option Interface (reserved "extends" *> bty ty <#> InterfaceExtends)
+  typeDef <- option Interface (reserved "extends" *> bty ty <#> InterfaceExtends)
   t <- recordTy
   symbol ";"
-  e <- p
-  pure $ TmType def a sorts params t e
+  pure $ TyDef typeDef a sorts params t
 
-tyDef :: SParser Tm -> SParser Tm
-tyDef p = do
+tyDef :: SParser Def
+tyDef = do
   reserved "type"
   a <- upperIdentifier
   sorts <- many (angles upperIdentifier)
@@ -53,22 +60,20 @@ tyDef p = do
   symbol "="
   t <- ty
   symbol ";"
-  e <- p
-  pure $ TmType TypeAlias a sorts params t e
+  pure $ TyDef TypeAlias a sorts params t
 
-tmDef :: SParser Tm -> SParser Tm
-tmDef p = do
-  def <- try do
+tmDef :: SParser Def
+tmDef = do
+  d <- try do
     x <- lowerIdentifier
     tys <- many $ try $ tyParams false
     tms <- many tmParams
     t <- optional (symbol ":" *> ty)
     symbol "="
     pure $ TmDef x tys tms t
-  e1 <- expr
+  e <- expr
   symbol ";"
-  e2 <- p
-  pure $ def e1 e2
+  pure $ d e
 
 -- Expressions --
 
