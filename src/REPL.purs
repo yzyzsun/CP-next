@@ -6,14 +6,16 @@ import Ansi.Codes (Color(..))
 import Ansi.Output (foreground, withGraphics)
 import Control.Monad.Except (runExcept)
 import Control.Monad.State (runStateT)
-import Data.Time (diff)
+import Data.Array (filter)
+import Data.Array.NonEmpty (NonEmptyArray, foldl1, fromArray)
 import Data.Either (Either(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Data.String (Pattern(..), stripPrefix, trim)
-import Data.String.Utils (stripMargin)
+import Data.String (Pattern(..), drop, lastIndexOf, length, splitAt, stripPrefix, trim)
+import Data.String.Utils (startsWith, stripMargin)
+import Data.Time (diff)
 import Data.Time.Duration (Milliseconds(..))
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Class.Console (error)
 import Effect.Console (log)
@@ -22,9 +24,12 @@ import Effect.Now (nowTime)
 import Effect.Ref (Ref, modify_, new, read, write)
 import Language.CP (importDefs, inferType, interpret, showTypeError)
 import Language.CP.Context (CompilerState, Mode(..), fromState, initState, ppState, runTyping)
+import Language.CP.Util (unsafeFromJust)
 import Node.Encoding (Encoding(..))
+import Node.FS.Stats (isDirectory)
 import Node.FS.Sync as Sync
-import Node.ReadLine (Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
+import Node.Path (FilePath, concat, sep)
+import Node.ReadLine (Completer, Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
 
 -- commands
 type Cmd = String -> Ref CompilerState -> Effect Unit
@@ -108,7 +113,7 @@ mayTime cmd arg ref = do
   endTime <- nowTime
   st <- read ref
   if st.timing then let seconds = showSeconds $ diff endTime beginTime in
-    log $ "(time: " <> seconds <> ")"
+    info $ "Time: " <> seconds
   else pure unit
 
 -- command dispatcher
@@ -138,10 +143,65 @@ handler interface ref input = do
   dispatch (trim input) ref
   prompt interface
 
+-- completers
+data Syntax = ConstSyntax String | FileSyntax String
+
+getCompleter :: Syntax -> Completer
+getCompleter (ConstSyntax target) input =
+  if startsWith input target
+  then pure { completions : [target], matched : input }
+  else noCompletion ""
+getCompleter (FileSyntax s) input = let target = s <> " " in
+  if startsWith input target
+  then pure { completions : [target], matched : input }
+  else if startsWith target input
+  then completePath target $ drop (length target) input
+  else noCompletion ""
+  where
+    completePath :: String -> Completer
+    completePath cmd path = do
+      let dir /\ base = splitPath path
+      exists <- Sync.exists dir
+      if exists then do
+        stat <- Sync.stat dir
+        if isDirectory stat then do
+          files <- Sync.readdir dir
+          let candidates = filter (startsWith base) files
+          pure { completions : map (\f -> cmd <> concat [dir, f]) candidates, matched : cmd <> path }
+        else noCompletion ""
+      else noCompletion ""
+
+    splitPath :: FilePath -> FilePath /\ FilePath
+    splitPath path = case lastIndexOf (Pattern sep) path of
+        Just i -> let r = splitAt (i + 1) path in r.before /\ r.after
+        Nothing -> "." /\ path
+
+mergeCompleter :: Completer -> Completer -> Completer
+mergeCompleter c1 c2 input = do
+  r1 <- c1 input
+  r2 <- c2 input
+  pure { completions : r1.completions <> r2.completions, matched : input }
+
+makeCompleter :: NonEmptyArray Syntax -> Completer
+makeCompleter rules = foldl1 mergeCompleter $ map getCompleter rules
+
+completer :: Completer
+completer = makeCompleter $ unsafeFromJust $ fromArray
+  [ ConstSyntax ":?"
+  , ConstSyntax ":help"
+  , ConstSyntax ":show mode"
+  , ConstSyntax ":show env"
+  , ConstSyntax ":set mode SmallStep", ConstSyntax ":set mode StepTrace", ConstSyntax ":set mode BigStep"
+  , ConstSyntax ":set mode HOAS", ConstSyntax ":set mode Closure"
+  , ConstSyntax ":set timing"
+  , ConstSyntax ":type"
+  , FileSyntax ":load"
+  , FileSyntax ":import" ]
+
 repl :: Effect Unit
 repl = do
   log "Next-Gen CP REPL, dev version"
-  interface <- createConsoleInterface noCompletion
+  interface <- createConsoleInterface completer
   setPrompt "> " interface
   prompt interface
   ref <- new initState
@@ -151,6 +211,9 @@ repl = do
 
 fatal :: String -> Effect Unit
 fatal msg = error $ withGraphics (foreground Red) msg
+
+info :: String -> Effect Unit
+info msg = log $ withGraphics (foreground Blue) msg
 
 readTextFile :: String -> Effect String
 readTextFile f = do
