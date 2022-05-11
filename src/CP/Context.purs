@@ -15,7 +15,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Syntax.Common (Name)
 import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
-import Parsing (ParseError, Position, parseErrorMessage, parseErrorPosition)
+import Parsing (Position)
 
 type Typing = ReaderT Ctx (Except TypeError)
 
@@ -126,6 +126,5 @@ fromState b = { tmBindEnv : fromFoldable $ map (\(x /\ t /\ _) -> x /\ t) b.tmBi
               , pos : UnknownPos
               }
 
-throwParseError :: forall a. ParseError -> Checking a
-throwParseError err = let pos = Pos (parseErrorPosition err) S.TmUnit false in
-  throwError $ TypeError (parseErrorMessage err) pos
+throwCheckError :: forall a. String -> Checking a
+throwCheckError msg = throwError $ TypeError msg UnknownPos

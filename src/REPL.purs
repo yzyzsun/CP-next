@@ -54,7 +54,7 @@ setMode arg ref = case arg of
   "BigStep"   -> set BigStep
   "HOAS"      -> set HOAS
   "Closure"   -> set Closure
-  other       -> error $ "invalid mode: " <> other
+  other       -> fatal $ "Invalid mode: " <> other
   where
     set :: Mode -> Effect Unit
     set mode = modify_ (\st -> st { mode = mode }) ref
@@ -71,9 +71,8 @@ typeExpr :: Cmd
 typeExpr expr ref = do
   st <- read ref
   case runTyping (inferType expr) (fromState st) of
-    Left err -> error $ showTypeError err
-    Right output -> do
-      log output
+    Left err -> fatal $ showTypeError err
+    Right output -> log output
 
 loadFile :: Cmd
 loadFile file ref = do
@@ -85,21 +84,21 @@ importFile file ref = do
   code <- readTextFile file
   st <- read ref
   case runExcept $ runStateT (importDefs code) st of
-    Left err -> error $ showTypeError err
+    Left err -> fatal $ showTypeError err
     Right (_ /\ st') -> write st' ref
 
 evalProg :: Cmd
 evalProg code ref = do
   st <- read ref
   case runExcept $ runStateT (interpret code) st of
-    Left err -> error $ showTypeError err
+    Left err -> fatal $ showTypeError err
     Right (output /\ st') -> do
       log output
       write st' ref
 
 errorCmd :: Cmd
-errorCmd _ ref = do
-  error "Invalid input!"
+errorCmd input ref = do
+  fatal $ "Invalid command: " <> input
   printHelp "" ref
 
 mayTime :: Cmd -> Cmd
@@ -109,7 +108,7 @@ mayTime cmd arg ref = do
   endTime <- nowTime
   st <- read ref
   if st.timing then let seconds = showSeconds $ diff endTime beginTime in
-    log $ "(time: " <> seconds <> "s)"
+    log $ "(time: " <> seconds <> ")"
   else pure unit
 
 -- command dispatcher
@@ -150,11 +149,14 @@ repl = do
 
 -- helpers
 
+fatal :: String -> Effect Unit
+fatal msg = error $ withGraphics (foreground Red) msg
+
 readTextFile :: String -> Effect String
 readTextFile f = do
   result <- try $ Sync.readTextFile UTF8 f
   case result of Right text -> pure text
-                 Left err -> error (withGraphics (foreground Red) (message err)) $> ""
+                 Left err -> fatal (message err) $> ""
 
 showSeconds :: Milliseconds -> String
 showSeconds (Milliseconds n) = show (n / 1000.0) <> "s"

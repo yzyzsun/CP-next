@@ -12,7 +12,7 @@ import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Exception (throw)
-import Language.CP.Context (Checking, CompilerState, Mode(..), Pos(..), TypeError(..), Typing, emptyCtx, runTyping, throwParseError, throwTypeError)
+import Language.CP.Context (Checking, CompilerState, Mode(..), Pos(..), TypeError(..), Typing, emptyCtx, runTyping, throwCheckError, throwTypeError)
 import Language.CP.Desugar (desugar, desugarProg)
 import Language.CP.Parser (expr, program, whiteSpace)
 import Language.CP.Semantics.HOAS as HOAS
@@ -35,7 +35,7 @@ inferType code = case runParser code (whiteSpace *> expr <* eof) of
 
 importDefs :: String -> Checking Unit
 importDefs code = case runParser code (whiteSpace *> program <* eof) of
-  Left err -> throwParseError err
+  Left err -> throwCheckError $ showParseError err code
   Right prog -> do
     let prog' = desugarProg prog
     _ <- checkProg prog'
@@ -43,7 +43,7 @@ importDefs code = case runParser code (whiteSpace *> program <* eof) of
 
 interpret :: String -> Checking String
 interpret code = case runParser code (whiteSpace *> program <* eof) of
-  Left err -> throwParseError err
+  Left err -> throwCheckError $ showParseError err code
   Right prog -> do
     let prog' = desugarProg prog
     let e' = case prog' of S.Prog _ e -> e
