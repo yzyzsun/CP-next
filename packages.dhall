@@ -122,6 +122,32 @@ let upstream =
 
 let overrides = {=}
 
-let additions = {=}
+let additions = 
+    { pattern-arrows = 
+        { dependencies = 
+            [ "control"
+            , "nonempty"
+            , "prelude"
+            , "profunctor"
+            ]
+        , repo =
+            "https://github.com/paluh/purescript-pattern-arrows.git"
+        , version =
+            "master"    
+        }
+    , js-ast = 
+        { dependencies = 
+            [ "arrays"
+            , "pattern-arrows"
+            , "prelude"
+            , "transformers"
+            , "strings"
+            ]
+        , repo = 
+            "https://github.com/purescript-codegen/purescript-js-ast.git"
+        , version = 
+            "master"
+        }
+    }
 
 in  upstream // overrides // additions

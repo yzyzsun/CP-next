@@ -13,6 +13,8 @@
   , "foldable-traversable"
   , "free"
   , "identity"
+  , "integers"
+  , "js-ast"
   , "lists"
   , "maybe"
   , "newtype"
