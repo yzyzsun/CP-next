@@ -144,7 +144,7 @@ let additions =
             , "strings"
             ]
         , repo = 
-            "https://github.com/purescript-codegen/purescript-js-ast.git"
+            "https://github.com/yzyzsun/purescript-js-ast.git"
         , version = 
             "master"
         }
