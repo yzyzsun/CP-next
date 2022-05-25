@@ -118,6 +118,9 @@ ppState st = S.intercalate' "\n" (map ppTmBinding st.tmBindings) <>
     ppTmBinding (x /\ t /\ _) = "term " <> x <> " : " <> show t
     ppTyAlias (x /\ t) = "type " <> x <> " = " <> show t
 
+clearEnv :: CompilerState -> CompilerState
+clearEnv st = st { tmBindings = Nil, tyAliases = empty }
+
 fromState :: CompilerState -> Ctx
 fromState b = { tmBindEnv : fromFoldable $ map (\(x /\ t /\ _) -> x /\ t) b.tmBindings
               , tyAliasEnv : b.tyAliases

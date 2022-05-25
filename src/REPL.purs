@@ -23,12 +23,13 @@ import Effect.Exception (message, try)
 import Effect.Now (nowTime)
 import Effect.Ref (Ref, modify_, new, read, write)
 import Language.CP (importDefs, inferType, interpret, showTypeError)
-import Language.CP.Context (CompilerState, Mode(..), fromState, initState, ppState, runTyping)
+import Language.CP.Context (CompilerState, Mode(..), clearEnv, fromState, initState, ppState, runTyping)
 import Language.CP.Util (unsafeFromJust)
 import Node.Encoding (Encoding(..))
 import Node.FS.Stats (isDirectory)
 import Node.FS.Sync as Sync
 import Node.Path (FilePath, concat, sep)
+import Node.Process (exit)
 import Node.ReadLine (Completer, Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
 
 -- commands
@@ -38,22 +39,21 @@ printHelp :: Cmd
 printHelp _ _ = log $ stripMargin
   """
   |Avaiable commands:
-  |  :show mode
-  |  :set mode SmallStep|StepTrace|BigStep|HOAS|Closure
-  |  :set timing
-  |  :show env
+  |  :mode
+  |  :mode SmallStep|StepTrace|BigStep|HOAS|Closure
+  |  :timing
+  |  :env
+  |  :env clear
   |  :type <expr>
   |  :load <file>
   |  :import <file>
   """
 
-showMode :: Cmd
-showMode _ ref = do
-  st <- read ref
-  log $ show st.mode
-
-setMode :: Cmd
-setMode arg ref = case arg of
+showOrSetMode :: Cmd
+showOrSetMode arg ref = case arg of
+  "" -> do
+    st <- read ref
+    log $ show st.mode
   "SmallStep" -> set SmallStep
   "StepTrace" -> set StepTrace
   "BigStep"   -> set BigStep
@@ -67,10 +67,13 @@ setMode arg ref = case arg of
 setTiming :: Cmd
 setTiming _ = modify_ (\st -> st { timing = true })
 
-showEnv :: Cmd
-showEnv _ ref = do
-  st <- read ref
-  log $ ppState st
+showOrClearEnv :: Cmd
+showOrClearEnv arg ref = case arg of
+  "" -> do
+    st <- read ref
+    log $ ppState st
+  "clear" -> modify_ clearEnv ref
+  other -> fatal $ "Invalid argument: " <> other
 
 typeExpr :: Cmd
 typeExpr expr ref = do
@@ -118,11 +121,11 @@ mayTime cmd arg ref = do
 
 -- command dispatcher
 dispatch :: Cmd
-dispatch input = ifMatchesAny (":?" : ":help" : Nil) printHelp $
-  ifMatches ":show mode" showMode $
-  ifMatches ":set mode" setMode $
-  ifMatches ":set timing" setTiming $
-  ifMatches ":show env" showEnv $
+dispatch input = ifMatchesAny (":?" : ":h" : ":help" : Nil) printHelp $
+  ifMatchesAny (":q" : ":quit" : ":exit" : Nil) (\_ -> \_ -> exit 0) $
+  ifMatches ":mode" showOrSetMode $
+  ifMatches ":timing" setTiming $
+  ifMatches ":env" showOrClearEnv $
   ifMatches ":type" (mayTime typeExpr) $
   ifMatches ":load" (mayTime loadFile) $
   ifMatches ":import" (mayTime importFile) $
@@ -187,13 +190,14 @@ makeCompleter rules = foldl1 mergeCompleter $ map getCompleter rules
 
 completer :: Completer
 completer = makeCompleter $ unsafeFromJust $ fromArray
-  [ ConstSyntax ":?"
-  , ConstSyntax ":help"
-  , ConstSyntax ":show mode"
-  , ConstSyntax ":show env"
-  , ConstSyntax ":set mode SmallStep", ConstSyntax ":set mode StepTrace", ConstSyntax ":set mode BigStep"
-  , ConstSyntax ":set mode HOAS", ConstSyntax ":set mode Closure"
-  , ConstSyntax ":set timing"
+  [ ConstSyntax ":help"
+  , ConstSyntax ":quit", ConstSyntax ":exit"
+  , ConstSyntax ":mode"
+  , ConstSyntax ":mode SmallStep", ConstSyntax ":mode StepTrace", ConstSyntax ":mode BigStep"
+  , ConstSyntax ":mode HOAS", ConstSyntax ":mode Closure"
+  , ConstSyntax ":timing"
+  , ConstSyntax ":env"
+  , ConstSyntax ":env clear"
   , ConstSyntax ":type"
   , FileSyntax ":load"
   , FileSyntax ":import" ]

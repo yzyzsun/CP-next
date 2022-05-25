@@ -22,6 +22,7 @@
   , "node-fs"
   , "node-fs-aff"
   , "node-path"
+  , "node-process"
   , "node-readline"
   , "now"
   , "numbers"
