@@ -145,7 +145,7 @@ app _ = Nothing
 
 tapp :: C.Ty -> Maybe { param :: Name, tdis :: C.Ty, tbody :: C.Ty }
 tapp (C.TyForall param tdis tbody) = Just { param, tdis, tbody }
-tapp C.TyTop = Just { param: "#top", tdis: C.TyTop, tbody: C.TyTop }
+tapp C.TyTop = Just { param: "$top", tdis: C.TyTop, tbody: C.TyTop }
 tapp (C.TyAnd t1 t2) | Just { param: param1, tdis: tdis1, tbody: tbody1 } <- tapp t1
                      , Just { param: param2, tdis: tdis2, tbody: tbody2 } <- tapp t2
                      = let tbody2' = C.tySubst param2 (C.TyVar param1) tbody2 in

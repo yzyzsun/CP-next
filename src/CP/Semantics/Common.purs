@@ -101,7 +101,7 @@ selectLabel _ _ = TmUnit
 
 genTopLike :: Ty -> Tm
 genTopLike TyTop = TmUnit
-genTopLike (TyArrow _ t _) = TmAbs "#top" TmUnit TyTop t true
+genTopLike (TyArrow _ t _) = TmAbs "$top" TmUnit TyTop t true
 genTopLike (TyRcd l t _) = TmRcd l t TmUnit
 genTopLike (TyForall a _ t) = TmTAbs a TyTop TmUnit t true
 genTopLike (TyRec _ t) = genTopLike t

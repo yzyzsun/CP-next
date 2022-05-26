@@ -150,12 +150,12 @@ infer (S.TmMerge S.Neutral e1 e2) = do
     _, C.TyTop -> pure $ e1' /\ t1
     C.TyArrow ti1 to1 true, C.TyArrow ti2 to2 true -> do
       disjoint to1 to2
-      pure $ trait "#self" (C.TmMerge (appToSelf e1') (appToSelf e2'))
+      pure $ trait "$self" (C.TmMerge (appToSelf e1') (appToSelf e2'))
                            (C.TyAnd ti1 ti2) (C.TyAnd to1 to2)
     _, _ -> do
       disjoint t1 t2
       pure $ C.TmMerge e1' e2' /\ C.TyAnd t1 t2
-  where appToSelf e = C.TmApp e (C.TmVar "#self") true
+  where appToSelf e = C.TmApp e (C.TmVar "$self") true
 infer (S.TmMerge S.Leftist e1 e2) =
   infer $ S.TmMerge S.Neutral e1 (S.TmDiff e2 e1)
 infer (S.TmMerge S.Rightist e1 e2) =
@@ -202,7 +202,7 @@ infer (S.TmOpen e1 e2) = do
   e2' /\ t2 <- foldr (uncurry addTmBind) (infer e2) b
   let open (l /\ t) e = letIn l (C.TmPrj (C.TmVar opened) l) t e t2
   pure $ letIn opened r tr (foldr open e2' b) t2 /\ t2
-  where opened = "#opened"
+  where opened = "$open"
 infer (S.TmUpdate rcd fields) = do
   rcd' /\ t <- infer rcd
   fields' <- for fields \(l /\ e) -> do
@@ -283,7 +283,7 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
             innerLabel (S.TmAbs _ e) = innerLabel e
             innerLabel (S.TmTrait _ _ _ e) = innerLabel e
             innerLabel (S.TmRcd (S.RcdField _ l _ _ : Nil)) = l
-            innerLabel _ = "#nothing"
+            innerLabel _ = "$nothing"
             paramsAndInnerTy :: S.Ty -> S.TmParamList /\ S.Ty
             paramsAndInnerTy (S.TyArrow targ tret) =
               let params /\ ty = paramsAndInnerTy tret in
@@ -296,7 +296,7 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
       | defaults `matchOptional` targ =
         S.TmAbs (singleton (S.TmParam wildcardName (Just targ)))
                 (open defaults (S.TmOpen wildcardVar (inferFromSig tret e)))
-      where wildcardName = "#wildcard"
+      where wildcardName = "$wildcard"
             wildcardVar = S.TmVar wildcardName
             open fields body = foldr letFieldIn body fields
             letFieldIn (l /\ e1) e2 = S.TmLet l Nil Nil
@@ -353,7 +353,7 @@ infer (S.TmNew e) = do
   case t of
     C.TyArrow ti to true ->
       if to <: ti then
-        pure $ C.TmFix "#self" (C.TmApp e' (C.TmVar "#self") true) to /\ to
+        pure $ C.TmFix "$self" (C.TmApp e' (C.TmVar "$self") true) to /\ to
       else throwTypeError $ "input type is not a supertype of output type in" <+>
                             "Trait<" <+> show ti <+> "=>" <+> show to <+> ">"
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
@@ -395,7 +395,7 @@ infer (S.TmDiff e1 e2) = do
   case t1, t2 of
     C.TyArrow ti to1 true, C.TyArrow _ to2 true -> do
       d <- tyDiff to1 to2
-      pure $ trait "#self" (C.TmAnno (C.TmApp e1' (C.TmVar "#self") true) d) ti d
+      pure $ trait "$self" (C.TmAnno (C.TmApp e1' (C.TmVar "$self") true) d) ti d
     _, _ -> do
       d <- tyDiff t1 t2
       pure $ C.TmAnno e1' d /\ d
@@ -408,16 +408,16 @@ infer (S.TmRename e old new) = do
           -- e [old <- new] := trait [self] =>
           --   let super = self [new <- old] in
           --   (e ^ super) [old <- new]
-          let super = S.TmRename (S.TmVar "#self") new old
+          let super = S.TmRename (S.TmVar "$self") new old
               body = S.TmRename (S.TmForward e super) old new
           tself <- C.TyAnd (C.TyRcd new tl false) <$> tyDiff ti (C.TyRcd old C.TyBot false)
-          ret /\ tret <- addTmBind "#self" tself $ infer body
-          pure $ trait "#self" ret tself tret
+          ret /\ tret <- addTmBind "$self" tself $ infer body
+          pure $ trait "$self" ret tself tret
         Nothing -> do
           -- e [old <- new] := trait [self] => (e ^ self) [old <- new]
-          let body = (S.TmRename (S.TmForward e (S.TmVar "#self")) old new)
-          ret /\ tret <- addTmBind "#self" ti $ infer body
-          pure $ trait "#self" ret ti tret
+          let body = (S.TmRename (S.TmForward e (S.TmVar "$self")) old new)
+          ret /\ tret <- addTmBind "$self" ti $ infer body
+          pure $ trait "$self" ret ti tret
     _ ->
       -- e [old <- new] := e \ old , {new = e.old}
       infer $ S.TmMerge S.Neutral (S.TmRemoval e old)
@@ -463,12 +463,12 @@ infer (S.TmType def a sorts params t e) = case def of
     addTyAlias a (sig (S.TyRec a t')) $ infer e
     -- TODO: addTyAlias a (S.TyRec a (sig t'))
   S.InterfaceExtends super -> do
-    let self = S.TyVar ("#" <> a) # withSorts # withParams
+    let self = S.TyVar ("$" <> a) # withSorts # withParams
         e' = S.TmType S.TypeAlias a sorts params (S.TyAnd super self) e
-    infer $ S.TmType S.Interface ("#" <> a) sorts params t e'
+    infer $ S.TmType S.Interface ("$" <> a) sorts params t e'
   where
     dualSorts :: List (Name /\ Name)
-    dualSorts = sorts <#> \sort -> sort /\ ("#" <> sort)
+    dualSorts = sorts <#> \sort -> sort /\ ("$" <> sort)
     addSorts :: forall a. Typing a -> Typing a
     addSorts typing = foldr (uncurry addSort) typing dualSorts
     addTyBinds :: forall a. Typing a -> Typing a

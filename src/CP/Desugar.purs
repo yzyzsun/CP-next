@@ -28,7 +28,7 @@ desugar (TmRcd xs) =
     -- desugaring of default patterns is done in `inferFromSig`
     desugarField def@(DefaultPattern _) = def
 desugar (TmTrait self sig e1 e2) =
-  let self'@(x /\ _) = fromMaybe ("#self" /\ Nothing) self in
+  let self'@(x /\ _) = fromMaybe ("$self" /\ Nothing) self in
   TmTrait (Just self') (Just (fromMaybe TyTop sig))
           (desugar <$> e1) (TmOpen (TmVar x) (desugar e2))
 desugar (TmLet x tyParams tmParams e1 e2) =
