@@ -24,28 +24,39 @@ G |- e mode A ~~> z in J :: :: compile :: J_
 by
 
 
--------------------------- :: Top
-G |- {} => Top ~~> z in S1
+------------------------------- :: Top
+G |- {} => Top ~~> z in nothing
 
 
 toplike B
----------------------------------- :: TopAbs
-G |- \x:A. e:B => A->B ~~> z in S1
+--------------------------------------- :: TopAbs
+G |- \x:A. e:B => A->B ~~> z in nothing
+
+
+toplike B
+-------------------------------------------------------- :: TopTAbs
+G |- /\ X * A. e : B => Forall X * A. B ~~> z in nothing
+
+
+G |- e => A
+toplike A
+---------------------------------------- :: TopRcd
+G |- {l = e} => {l : A} ~~> z in nothing
 
 
 T = |Base|
 -------------------------- :: Base
-G |- b => Base ~~> z in S2
+G |- b => Base ~~> z in S1
 
 
 x : A in G
----------------------------- :: Var
-G |- x => A ~~> x in nothing
+----------------------- :: Var
+G |- x => A ~~> z in S2
 
 
-G, x:A |- e <= A ~~> y in J
+G, x:A |- e <= A ~~> x in J
 -------------------------------- :: Fix
-G |- fix x:A. e => A ~~> x in S3
+G |- fix x:A. e => A ~~> z in S3
 
 
 T = ->|B|
@@ -77,28 +88,28 @@ G |- e A => C2 [X~>A] ~~> z in S7
 
 
 T = {l : |A|}
-G |- e => A ~~> x in J
+G |- e => A ~~> y in J
 ----------------------------------- :: Rcd
 G |- {l = e} => {l : A} ~~> z in S8
 
 
-G |- e => A ~~> x in J1
+G |- e => A ~~> y in J1
 A |> {l : B}
-< A |> x ; l --> z with J2 >
+< A |> y ; l --> z with J2 >
 ---------------------------- :: Proj
 G |- e.l => B ~~> z in S9
 
 
-G |- e1 => A ~~> x in J1
-G |- e2 => B ~~> y in J2
+G |- e1 => A ~~> z in J1
+G |- e2 => B ~~> z in J2
 G |- A * B
 ----------------------------------- :: Merge
 G |- e1 ,, e2 => A & B ~~> z in S10
 
 
-G |- e <= A ~~> x in J
+G |- e <= A ~~> z in J
 ------------------------ :: Anno
-G |- e:A => A ~~> x in J
+G |- e:A => A ~~> z in J
 
 
 G |- e => A ~~> x in J1
@@ -116,30 +127,30 @@ by
 
 
 toplike A
---------------------------- :: Top
-A |> x ; arg --> z with S12
+------------------------------- :: Top
+A |> x ; arg --> z with nothing
 
 
 T = ->|B|
 ------------------------------ :: Arrow
-A -> B |> x ; y --> z with S13
+A -> B |> x ; y --> z with S12
 
 
 T1 = \-/|B|
 T2 = |C|
 ------------------------------------- :: All
-Forall X*A. B |> x ; C --> z with S14
+Forall X*A. B |> x ; C --> z with S13
 
 
 T = {l : |A|}
 ------------------------------- :: Rcd
-{l : A} |> x ; l --> z with S15
+{l : A} |> x ; l --> z with S14
 
 
-A |> x ; arg --> z1 with J1
-B |> x ; arg --> z2 with J2
+A |> x ; arg --> z with J1
+B |> x ; arg --> z with J2
 ------------------------------- :: And
-A & B |> x ; arg --> z with S16
+A & B |> x ; arg --> z with S15
 
 
 defn
@@ -157,25 +168,25 @@ A <: B ~~> x ~> y with nothing
 
 T = |Base|
 -------------------------------- :: Base
-Base <: Base ~~> x ~> y with S17
+Base <: Base ~~> x ~> y with S16
 
 
 T1 = ->|A2|
 T2 = ->|B2|
 ordinary B2
-B1 <: A1 ~~> x1 ~> y1 with J1
+B1 <: A1
 A2 <: B2 ~~> x2 ~> y2 with J2
 ---------------------------------------- :: Arrow
-A1 -> A2 <: B1 -> B2 ~~> x ~> y with S18
+A1 -> A2 <: B1 -> B2 ~~> x ~> y with S17
 
 
 T1 = \-/|A2|
 T2 = \-/|B2|
 ordinary B2
-B1 <: A1 ~~> x1 ~> y1 with J1
+B1 <: A1
 A2 <: B2 ~~> x2 ~> y2 with J2
 ------------------------------------------------------ :: All
-Forall X*A1. A2 <: Forall X*B1. B2 ~~> x ~> y with S19
+Forall X*A1. A2 <: Forall X*B1. B2 ~~> x ~> y with S18
 
 
 T1 = {l : |A|}
@@ -183,7 +194,7 @@ T2 = {l : |B|}
 ordinary B
 A <: B ~~> x0 ~> y0 with J
 ---------------------------------- :: Rcd
-{l:A} <: {l:B} ~~> x ~> y with S20
+{l:A} <: {l:B} ~~> x ~> y with S19
 
 
 ordinary C
@@ -203,7 +214,7 @@ A <: B1 ~~> x ~> y1 with J1
 A <: B2 ~~> x ~> y2 with J2
 < y1 : B1 |> z : B <| y2 : B2 with J3 >
 --------------------------------------- :: Split
-A <: B ~~> x ~> z with S21
+A <: B ~~> x ~> z with S20
 
 
 
@@ -217,14 +228,14 @@ by
 T1 = |A|
 T2 = |B|
 ---------------------------------- :: And
-x : A |> z : A&B <| y : B with S22
+x : A |> z : A&B <| y : B with S21
 
 T = ->|B|
 T1 = ->|B1|
 T2 = ->|B2|
 y1 : B1 |> y : B <| y2 : B2 with J
 --------------------------------------------- :: Arrow
-x1 : A->B1 |> z : A->B <| x2 : A->B2 with S23
+x1 : A->B1 |> z : A->B <| x2 : A->B2 with S22
 
 
 T = \-/|B|
@@ -232,7 +243,7 @@ T1 = \-/|B1|
 T2 = \-/|B2|
 y1 : B1 |> y : B <| y2 : B2 with J
 ------------------------------------------------------------------------ :: All
-x1 : Forall X*A. B1 |> z : Forall X*A. B <| x2 : Forall X*A. B2 with S24
+x1 : Forall X*A. B1 |> z : Forall X*A. B <| x2 : Forall X*A. B2 with S23
 
 
 T = {l : |A|}
@@ -240,4 +251,4 @@ T1 = {l : |A1|}
 T2 = {l : |A2|}
 y1 : A1 |> y : A <| y2 : A2 with J
 ------------------------------------------------ :: Rcd
-x1 : {l:A1} |> z : {l:A} <| x2 : {l:A2} with S25
+x1 : {l:A1} |> z : {l:A} <| x2 : {l:A2} with S24

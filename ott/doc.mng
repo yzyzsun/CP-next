@@ -50,87 +50,93 @@
 
 \newpage
 \ottdefncompile
+\bigskip\bigskip\bigskip
 
 \begin{multicols}{3}
 \begin{verbatim}
 /* S1 */
-var z = {};
+z[t] = b;
 
 /* S2 */
-var z = {};
-z.<t> = b;
+Object.assign(z, x);
+
+
 
 /* S3 */
-var x = (() => {
-  J;
-  return y;
-})();
+var f = x => { J };
+Object.assign(z,
+  new function() {
+    f(this)
+  }
+);
 
 /* S4 */
-var z = {};
-z.<t> = x => {
+z[t] = x => {
+  var y = {};
   J;
   return y;
 };
 
+
 /* S5 */
+var x = {};
 J1;
+var y = {};
 J2;
 J3;
 
 /* S6 */
-var z = {};
-z.<t> = X => {
+z[t] = X => {
+  var y = {};
   J;
   return y;
-}
+};
 
 /* S7 */
+var y = {};
 J1;
 J2;
 
 /* S8 */
+var y = {};
 J;
-var z = {};
-z.<t> = x;
+z[t] = y;
 
 /* S9 */
+var y = {};
 J1;
 J2;
 
 /* S10 */
 J1;
 J2;
-var z = {...x, ...y};
 
 /* S11 */
+var x = {};
 J1;
-var y = {};
 J2;
 \end{verbatim}
 \end{multicols}
 
-\newpage
+\vfill
 \ottdefndistapp
 
 \begin{multicols}{3}
 \begin{verbatim}
 /* S12 */
-var z = {};
+Object.assign(z, x[t](y));
 
 /* S13 */
-var z = x.<t>(y);
+Object.assign(z, x[t1](t2));
 
 /* S14 */
-var z = x.<t1>(t2);
+Object.assign(z, x[t]);
+
+
 
 /* S15 */
-var z = x.<t>;
-
-/* S16 */
 J1;
 J2;
-var z = {...z1, ...z2};
 \end{verbatim}
 \end{multicols}
 
@@ -139,32 +145,32 @@ var z = {...z1, ...z2};
 
 \begin{multicols}{3}
 \begin{verbatim}
+/* S16 */
+y[t] = x[t];
+
 /* S17 */
-y.<t> = x.<t>;
+y[t2] = p => {
+  var x2 = x[t1](p);
+  var y2 = {};
+  J2;
+  return y2;
+};
 
 /* S18 */
-y.<t2> = p => {
-  var x2 = x.<t1>(p);
+y[t2] = X => {
+  var x2 = x[t1](X);
   var y2 = {};
   J2;
   return y2;
 };
 
 /* S19 */
-y.<t2> = X => {
-  var x2 = x.<t1>(X);
-  var y2 = {};
-  J2;
-  return y2;
-};
-
-/* S20 */
-var x0 = x.<t1>;
+var x0 = x[t1];
 var y0 = {};
 J;
-y.<t2> = y0;
+y[t2] = y0;
 
-/* S21 */
+/* S20 */
 var y1 = {};
 J1;
 var y2 = {};
@@ -178,35 +184,36 @@ J3;
 
 \begin{multicols}{3}
 \begin{verbatim}
+/* S21 */
+Object.assign(z, x, y);
+
 /* S22 */
-z = {...x, ...y};
+z[t] = p => {
+  var y1 = x1[t1](p);
+  var y2 = x2[t2](p);
+  var y = {};
+  J;
+  return y;
+};
+
 
 /* S23 */
-z.<t> = p => {
-  var y1 = x1.<t1>(p);
-  var y2 = x2.<t2>(p);
+z[t] = X => {
+  var y1 = x1[t1](X);
+  var y2 = x2[t2](X);
   var y = {};
   J;
   return y;
 };
+
+
 
 /* S24 */
-z.<t> = X => {
-  var y1 = x1.<t1>(X);
-  var y2 = x2.<t2>(X);
-  var y = {};
-  J;
-  return y;
-};
-
-
-
-/* S25 */
-var y1 = x1.<t1>;
-var y2 = x2.<t2>;
+var y1 = x1[t1];
+var y2 = x2[t2];
 var y = {};
 J;
-z.<t> = y;
+z[t] = y;
 
 
 \end{verbatim}
