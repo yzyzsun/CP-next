@@ -98,9 +98,11 @@ J1;
 J2;
 
 /* S8 */
-var y = {};
-J;
-z[t] = y;
+z[t] = () => {
+  var y = {};
+  J;
+  return y;
+};
 
 /* S9 */
 var y = {};
@@ -130,9 +132,7 @@ Object.assign(z, x[t](y));
 Object.assign(z, x[t1](t2));
 
 /* S14 */
-Object.assign(z, x[t]);
-
-
+Object.assign(z, x[t]());
 
 /* S15 */
 J1;
@@ -165,10 +165,12 @@ y[t2] = X => {
 };
 
 /* S19 */
-var x0 = x[t1];
-var y0 = {};
-J;
-y[t2] = y0;
+y[t2] = () => {
+  var x0 = x[t1]();
+  var y0 = {};
+  J;
+  return y0;
+}
 
 /* S20 */
 var y1 = {};
@@ -209,8 +211,8 @@ z[t] = X => {
 
 
 /* S24 */
-var y1 = x1[t1];
-var y2 = x2[t2];
+var y1 = x1[t1]();
+var y2 = x2[t2]();
 var y = {};
 J;
 z[t] = y;
