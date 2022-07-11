@@ -1,0 +1,98 @@
+<style>
+  .text-sc { font-variant: small-caps; }
+</style>
+<div class="container">
+  <div class="jumbotron mt-5 pb-5">
+    <h1 class="display-4">Welcome to <strong>PLGround</strong>!</h1>
+    <p class="lead mt-4">
+      This website is the artifact of the OOPSLA'22 paper <em>Compositional Embeddings of Domain-Specific Languages</em>.
+      The artifact includes an in-browser implementation of <abbr title="Compositional Programming">CP</abbr> and  <abbr title="Extensible Typesetting">ExT</abbr> as well as several applications.
+      You can click on the links listed below to view the source code and rendered output.
+    </p>
+    <!-- <hr class="my-4">
+    <ul>
+      <li>We have tried our best to anonymize this website to meet the requirement of double-blind reviewing.</li>
+      <li>We promise not to collect your identity information when you visit our web pages.</li>
+    </ul> -->
+  </div>
+  <a href="/nobody" class="btn btn-primary btn-lg btn-block">Try it yourself?</a>
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <h2>1. Minipedia</h2>
+      <p>
+        Minipedia is a mini document repository of states and cities, which reconstructs a small portion of Wikipedia.
+        Minipedia currently contains the ten smallest countries in the world as well as their capitals.
+        Besides, there are two programmatically sorted lists by area and population.
+      </p>
+      <h4>Microstates</h4>
+      <ol>
+        <li><a href="/minipedia/VaticanCity">Vatican City State</a></li>
+        <li><a href="/minipedia/Monaco">Principality of Monaco</a></li>
+        <li><a href="/minipedia/Nauru">Republic of Nauru</a></li>
+        <li><a href="/minipedia/Tuvalu">Tuvalu</a></li>
+        <li><a href="/minipedia/SanMarino">Republic of San Marino</a></li>
+        <li><a href="/minipedia/Liechtenstein">Principality of Liechtenstein</a></li>
+        <li><a href="/minipedia/MarshallIslands">Marshall Islands</a></li>
+        <li><a href="/minipedia/SaintKittsAndNevis">Federation of Saint Christopher and Nevis</a></li>
+        <li><a href="/minipedia/Maldives">Republic of Maldives</a></li>
+        <li><a href="/minipedia/Malta">Republic of Malta</a></li>
+      </ol>
+      <h4>Cities</h4>
+      <ol>
+        <li><a href="/minipedia/Yaren">Yaren</a></li>
+        <li><a href="/minipedia/Funafuti">Funafuti</a></li>
+        <li><a href="/minipedia/SanMarinoCity">San Marino</a></li>
+        <li><a href="/minipedia/Vaduz">Vaduz</a></li>
+        <li><a href="/minipedia/Majuro">Majuro</a></li>
+        <li><a href="/minipedia/Basseterre">Basseterre</a></li>
+        <li><a href="/minipedia/Male">Malé</a></li>
+        <li><a href="/minipedia/Valletta">Valletta</a></li>
+      </ol>
+      <h4>Lists</h4>
+      <ol>
+        <li><a href="/minipedia/ListByArea">Smallest Countries by Area</a></li>
+        <li><a href="/minipedia/ListByPopulation">Smallest Countries by Population</a></li>
+      </ol>
+      <h4><a href="/minipedia/IndexOfLibraries">Index of ExT Libraries</a></h4>
+      <div class="my-5"></div>
+    </div>
+    <div class="col-md-6">
+      <h2>2. Fractals</h2>
+      <p>
+        General-purpose computation in compositional embeddings enables computational graphics like fractals.
+        The recurring patterns in fractals can be efficiently drawn with the help of linguistic reuse.
+        Five well-known variants of fractals have been implemented:
+      </p>
+      <ol>
+        <li><a href="/fractals/SierpinskiCarpet">Sierpiński Carpet</a></li>
+        <li><a href="/fractals/TSquare">T-Square</a></li>
+        <li><a href="/fractals/KochCurve">Koch Curve</a></li>
+        <li><a href="/fractals/KochSnowflake">Koch Snowflake</a></li>
+        <li><a href="/fractals/KochAntiSnowflake">Koch Anti-Snowflake</a></li>
+      </ol>
+      <p><em>Note:</em> Koch fractals share a common library: <a href="/fractals/LibKoch">LibKoch</a>.</p>
+      <div class="my-5"></div>
+      <h2>3. Charts</h2>
+      <p>
+        Charts can be customized in many different ways.
+        The customization of charts shows how compositional embeddings adapt object-oriented design patterns,
+        such as <span class="text-sc">Strategy</span> and <span class="text-sc">Decorator</span>, for type-safe delegation via trait composition.
+        <ul>
+          <li><a href="/nobody/config">Configuration</a></li>
+          <li><a href="/nobody/data">Data Source</a></li>
+          <li><a href="/nobody/charts">Main File</a></li>
+        </ul>
+      </p>
+      <div class="my-5"></div>
+      <h3>4. <a href="/nobody/region">Region DSL</a></h3>
+      <div class="my-5"></div>
+      <h3>5. <a href="/nobody/CSE">Common Subexpression Elimination</a></h3>
+      <div class="my-5"></div>
+    </div>
+  </div>
+  <hr>
+  <div class="my-2">
+    Minipedia uses the text of Wikipedia, licensed under
+    <a href="https://en.wikipedia.org/wiki/Wikipedia:Text_of_Creative_Commons_Attribution-ShareAlike_3.0_Unported_License">CC BY-SA 3.0</a>.
+  </div>
+</div>

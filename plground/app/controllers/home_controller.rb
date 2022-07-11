@@ -4,6 +4,7 @@ class HomeController < ApplicationController
 
   def index
     @docs = Doc.where(access: [:pub, :open])
+    render :home
   end
 
   def user
