@@ -65,7 +65,7 @@ execute program mode = do
 
 main :: Effect Unit
 main = do
-  log "Next-Gen CP REPL, version 0.1.3"
+  log "Next-Gen CP REPL, version OOPSLA22"
   interface <- createConsoleInterface noCompletion
   setPrompt "> " interface
   prompt interface
