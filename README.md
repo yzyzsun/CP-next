@@ -1,87 +1,49 @@
-# CP - The Next Generation
+# Compositional Embeddings of Domain-Specific Languages (Artifact)
 
-CP is a *compositional* programming language, founded on a core calculus named *Fi+*. The next-gen CP is shipped with more features and implemented in [PureScript](https://www.purescript.org) (a Haskell-like language that compiles to JavaScript).
+This is the artifact of the OOPSLA'22 paper *Compositional Embeddings of Domain-Specific Languages*. The artifact contains an in-browser interpreter of the <abbr title="Compositional Programming">CP</abbr> language with support for the <abbr title="Extensible Typesetting">ExT</abbr> DSL. The code examples and applications mentioned in the paper are also included.
 
-## Language Features
-
-- A typed lambda calculus with six base types (`Int` `Double` `String` `Bool` `Top` `Bot`), built-in arrays (`[1; 2; 3] : [Int]`), and some built-in operations over them;
-- A merge operator [^Merge], disjoint intersection types [^λi] and disjoint polymorphism [^Fi];
-- Nested composition and distributive subtyping [^NeColus];
-- Compositional Programming [^CP] with first-class traits [^SEDEL];
-- Type-directed operational semantics for *Fi+* [^Fi+] with {substitution,closure,HOAS}-based {big,small}-step variants;
-- An embedded DSL for document authoring called ExT [^ExT].
-
-[^Merge]: Jana Dunfield. [Elaborating Intersection and Union Types](https://research.cs.queensu.ca/home/jana/papers/intcomp-jfp/Dunfield14_elaboration.pdf). In *JFP 2014*.  
-[^λi]: Bruno C. d. S. Oliveira, Zhiyuan Shi, and João Alpuim. [Disjoint Intersection Types](https://i.cs.hku.hk/~bruno/papers/icfp2016.pdf). In *ICFP 2016*.  
-[^Fi]: João Alpuim, Bruno C. d. S. Oliveira, and Zhiyuan Shi. [Disjoint Polymorphism](https://i.cs.hku.hk/~bruno/papers/ESOP2017.pdf). In *ESOP 2017*.  
-[^SEDEL]: Xuan Bi and Bruno C. d. S. Oliveira. [Typed First-Class Traits](https://i.cs.hku.hk/~bruno/papers/traits.pdf). In *ECOOP 2018*.  
-[^NeColus]: Xuan Bi, Bruno C. d. S. Oliveira, and Tom Schrijvers. [The Essence of Nested Composition](https://i.cs.hku.hk/~bruno/papers/nested.pdf). In *ECOOP 2018*.  
-[^CP]: Weixin Zhang, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Compositional Programming](https://i.cs.hku.hk/~bruno/papers/toplas2021.pdf). In *TOPLAS 2021*.  
-[^Fi+]: Andong Fan, Xuejing Huang, Han Xu, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Direct Foundations for Compositional Programming](https://andongfan.com/ecoop22-preprint.pdf). In *ECOOP 2022*.  
-[^ExT]: Yaozhu Sun, Utkarsh Dhandhania, and Bruno C. d. S. Oliveira. [Compositional Embeddings of Domain-Specific Languages](https://yzsun.me/attachments/CEDSL-draft.pdf). *Unpublished*.  
+You can always check [github.com/yzyzsun/CP-next](https://github.com/yzyzsun/CP-next) for the up-to-date version and build from source.
 
 ## Online Demo
 
-[PLGround](https://plground.org) provides an online CP interpreter and a wiki-like document repository. Documents are written in ExT and rendered in your web browser.
+[PLGround.org](https://plground.org) provides an online interpreter and a wiki-like document repository. Documents are written in ExT and rendered in your web browser.
 
 Since the frontend code uses the Fetch API, PLGround is expected to work on Chrome 42+, Firefox 39+, Edge 14+, Safari 10.1+, or other modern browsers.
 
-## CLI Setup
+## Docker Images
 
-If you want to run CP programs locally using a CLI, you can follow the procedure below:
+If you prefer to run CP programs using a CLI or start a PLGround server locally, the most accessible way is to use the Docker images.
 
-- First of all, you need to install [Node.js](https://nodejs.org).
-- Then execute `npm install` to get all of the dev dependencies.
-- After installation, you can choose either of the following npm scripts:
-  - `npm start` to run a REPL;
-  - `npm test` to run a test suite checking `examples/*.cp`.
+### CLI
 
-If you want to start a PLGround server locally, take the first two steps above and then:
-
-- Install [Ruby](https://www.ruby-lang.org).
-- Execute `bundle install` to get [Ruby on Rails](https://rubyonrails.org) and other gems.
-- Execute `npm run build` if you have modified PureScript code, grammar files, or `app.js` (i.e. every file that `plground/app/assets/javascripts/bundle.js` depends on).
-- Execute `npm run server` to start a web server.
-
-## REPL Example
+To start a CP REPL via Docker, please run the following command:
 
 ```
-$ npm start
-......
-Next-Gen CP REPL, version x.x.x
-
-> :load examples/bench.cp
-7773
-<BigStep mode: 1.024s>
-
-> :mode StepTrace
-
-> 1+2*3
-(1 + (2 * 3))
-......
-(1 + 6)
-↓ Step-BinaryV
-7
-<StepTrace mode: 0.021s>
+docker run -it yzyzsun/cp-next
 ```
 
-## Grammar Maintenance
+In the REPL, you can load CP programs using commands like `:load examples/calc.cp` or switch to other evaluation modes using commands like `:mode StepTrace`.
 
-There are currently four different copies of the CP grammar. If you want to modify the grammar, please remember to change them all:
+To run a test suite that checks all of `examples/*.cp`, please run `spago test` in the shell inside the Docker container; or simply run in your terminal:
 
-1. PureScript parser based on parser combinators, used in REPL ([see the code here](./src/CP/Parser.purs)).
-2. ANTLR-generated LL(*) parser, used in PLGround ([see this directory](./antlr/)).
-3. Lezer-generated incremental parser for the CodeMirror 6 code editor ([see the grammar file](./lezer.grammar)).
-4. TextMate grammar specification for VS Code, mainly keyword highlighting ([see the JSON file](./vscode/CP.tmLanguage.json)).
+```
+docker run -it yzyzsun/cp-next spago test
+```
 
-## VS Code Extension
+### PLGround
 
-CP language support can be found on [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=yzyzsun.cp-next).
+To start a local server for PLGround, please specify the tag `plground`:
 
-If you want to build it from scratch, please execute `npm run vscode`. Then a `.vsix` file will be generated in `vscode/`.
+```
+docker run -it yzyzsun/cp-next:plground -p 3000:3000
+```
 
-## Next-Gen CP versus Original CP
+Then you can visit PLGround at <127.0.0.1:3000>  on your browser. The website is preloaded with the code examples and applications mentioned in the paper:
 
-The original CP (hereinafter CP1) is introduced and formalized in our TOPLAS paper *Compositional Programming*. Its reference implementation is included in the [artifact](https://github.com/wxzh/CP). The next-gen CP (hereinafter CP2) polishes the syntax of CP1 and extends it with new features, but their semantics are essentially the same. CP2 has a brand-new implementation that supersedes the original one.
+1. The main example: Region DSL;
+2. Extra demo of transformation: CSE;
+3. Application #1: Minipedia;
+4. Application #2: Fractals;
+5. Application #3: Charts.
 
-Concerning implementation languages, CP1 is written in Haskell, while CP2 is written in PureScript. Thus, CP2 can easily run in a web browser without losing the ability to run traditionally in a terminal. Concerning the semantics of the core calculus *Fi+*, it is further elaborated to *F-co* in CP1 but has direct operational semantics in CP2. Furthermore, new features recently added and some syntactic differences can be found at [CHANGELOG.md](CHANGELOG.md).
+Since the paper does not perform any quantitative evaluation, there is no experimental data to be reproduced. Instead, you can click the [Render] button on each page to check that all code can type check and produce human-readable outputs.
