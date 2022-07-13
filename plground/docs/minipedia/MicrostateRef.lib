@@ -1,0 +1,173 @@
+refs = [
+{
+   name = "ref1";
+   author = "John Doe, the 1th";
+   title = "Encyclopedia Part 1";
+   year = 1901;
+   publisher = "1 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref2";
+   author = "John Doe, the 2th";
+   title = "Encyclopedia Part 2";
+   year = 1902;
+   publisher = "2 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref3";
+   author = "John Doe, the 3th";
+   title = "Encyclopedia Part 3";
+   year = 1903;
+   publisher = "3 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref4";
+   author = "John Doe, the 4th";
+   title = "Encyclopedia Part 4";
+   year = 1904;
+   publisher = "4 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref5";
+   author = "John Doe, the 5th";
+   title = "Encyclopedia Part 5";
+   year = 1905;
+   publisher = "5 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref6";
+   author = "John Doe, the 6th";
+   title = "Encyclopedia Part 6";
+   year = 1906;
+   publisher = "6 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref7";
+   author = "John Doe, the 7th";
+   title = "Encyclopedia Part 7";
+   year = 1907;
+   publisher = "7 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref8";
+   author = "John Doe, the 8th";
+   title = "Encyclopedia Part 8";
+   year = 1908;
+   publisher = "8 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref9";
+   author = "John Doe, the 9th";
+   title = "Encyclopedia Part 9";
+   year = 1909;
+   publisher = "9 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref10";
+   author = "John Doe, the 10th";
+   title = "Encyclopedia Part 10";
+   year = 1910;
+   publisher = "10 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref11";
+   author = "John Doe, the 11th";
+   title = "Encyclopedia Part 11";
+   year = 1911;
+   publisher = "11 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref12";
+   author = "John Doe, the 12th";
+   title = "Encyclopedia Part 12";
+   year = 1912;
+   publisher = "12 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref13";
+   author = "John Doe, the 13th";
+   title = "Encyclopedia Part 13";
+   year = 1913;
+   publisher = "13 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref14";
+   author = "John Doe, the 14th";
+   title = "Encyclopedia Part 14";
+   year = 1914;
+   publisher = "14 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref15";
+   author = "John Doe, the 15th";
+   title = "Encyclopedia Part 15";
+   year = 1915;
+   publisher = "15 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref16";
+   author = "John Doe, the 16th";
+   title = "Encyclopedia Part 16";
+   year = 1916;
+   publisher = "16 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref17";
+   author = "John Doe, the 17th";
+   title = "Encyclopedia Part 17";
+   year = 1917;
+   publisher = "17 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref18";
+   author = "John Doe, the 18th";
+   title = "Encyclopedia Part 18";
+   year = 1918;
+   publisher = "18 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref19";
+   author = "John Doe, the 19th";
+   title = "Encyclopedia Part 19";
+   year = 1919;
+   publisher = "19 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref20";
+   author = "John Doe, the 20th";
+   title = "Encyclopedia Part 20";
+   year = 1920;
+   publisher = "20 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref21";
+   author = "John Doe, the 21th";
+   title = "Encyclopedia Part 21";
+   year = 1921;
+   publisher = "21 Publishing House";
+   edition = "Edition 1";
+};
+];
+
+ftns = [
+];

@@ -1,0 +1,1202 @@
+refs = [
+{
+   name = "ref1";
+   author = "John Doe, the 1th";
+   title = "Encyclopedia Part 1";
+   year = 1901;
+   publisher = "1 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref2";
+   author = "John Doe, the 2th";
+   title = "Encyclopedia Part 2";
+   year = 1902;
+   publisher = "2 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref3";
+   author = "John Doe, the 3th";
+   title = "Encyclopedia Part 3";
+   year = 1903;
+   publisher = "3 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref4";
+   author = "John Doe, the 4th";
+   title = "Encyclopedia Part 4";
+   year = 1904;
+   publisher = "4 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref5";
+   author = "John Doe, the 5th";
+   title = "Encyclopedia Part 5";
+   year = 1905;
+   publisher = "5 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref6";
+   author = "John Doe, the 6th";
+   title = "Encyclopedia Part 6";
+   year = 1906;
+   publisher = "6 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref7";
+   author = "John Doe, the 7th";
+   title = "Encyclopedia Part 7";
+   year = 1907;
+   publisher = "7 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref8";
+   author = "John Doe, the 8th";
+   title = "Encyclopedia Part 8";
+   year = 1908;
+   publisher = "8 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref9";
+   author = "John Doe, the 9th";
+   title = "Encyclopedia Part 9";
+   year = 1909;
+   publisher = "9 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref10";
+   author = "John Doe, the 10th";
+   title = "Encyclopedia Part 10";
+   year = 1910;
+   publisher = "10 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref11";
+   author = "John Doe, the 11th";
+   title = "Encyclopedia Part 11";
+   year = 1911;
+   publisher = "11 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref12";
+   author = "John Doe, the 12th";
+   title = "Encyclopedia Part 12";
+   year = 1912;
+   publisher = "12 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref13";
+   author = "John Doe, the 13th";
+   title = "Encyclopedia Part 13";
+   year = 1913;
+   publisher = "13 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref14";
+   author = "John Doe, the 14th";
+   title = "Encyclopedia Part 14";
+   year = 1914;
+   publisher = "14 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref15";
+   author = "John Doe, the 15th";
+   title = "Encyclopedia Part 15";
+   year = 1915;
+   publisher = "15 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref16";
+   author = "John Doe, the 16th";
+   title = "Encyclopedia Part 16";
+   year = 1916;
+   publisher = "16 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref17";
+   author = "John Doe, the 17th";
+   title = "Encyclopedia Part 17";
+   year = 1917;
+   publisher = "17 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref18";
+   author = "John Doe, the 18th";
+   title = "Encyclopedia Part 18";
+   year = 1918;
+   publisher = "18 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref19";
+   author = "John Doe, the 19th";
+   title = "Encyclopedia Part 19";
+   year = 1919;
+   publisher = "19 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref20";
+   author = "John Doe, the 20th";
+   title = "Encyclopedia Part 20";
+   year = 1920;
+   publisher = "20 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref21";
+   author = "John Doe, the 21th";
+   title = "Encyclopedia Part 21";
+   year = 1921;
+   publisher = "21 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref22";
+   author = "John Doe, the 22th";
+   title = "Encyclopedia Part 22";
+   year = 1922;
+   publisher = "22 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref23";
+   author = "John Doe, the 23th";
+   title = "Encyclopedia Part 23";
+   year = 1923;
+   publisher = "23 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref24";
+   author = "John Doe, the 24th";
+   title = "Encyclopedia Part 24";
+   year = 1924;
+   publisher = "24 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref25";
+   author = "John Doe, the 25th";
+   title = "Encyclopedia Part 25";
+   year = 1925;
+   publisher = "25 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref26";
+   author = "John Doe, the 26th";
+   title = "Encyclopedia Part 26";
+   year = 1926;
+   publisher = "26 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref27";
+   author = "John Doe, the 27th";
+   title = "Encyclopedia Part 27";
+   year = 1927;
+   publisher = "27 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref28";
+   author = "John Doe, the 28th";
+   title = "Encyclopedia Part 28";
+   year = 1928;
+   publisher = "28 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref29";
+   author = "John Doe, the 29th";
+   title = "Encyclopedia Part 29";
+   year = 1929;
+   publisher = "29 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref30";
+   author = "John Doe, the 30th";
+   title = "Encyclopedia Part 30";
+   year = 1930;
+   publisher = "30 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref31";
+   author = "John Doe, the 31th";
+   title = "Encyclopedia Part 31";
+   year = 1931;
+   publisher = "31 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref32";
+   author = "John Doe, the 32th";
+   title = "Encyclopedia Part 32";
+   year = 1932;
+   publisher = "32 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref33";
+   author = "John Doe, the 33th";
+   title = "Encyclopedia Part 33";
+   year = 1933;
+   publisher = "33 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref34";
+   author = "John Doe, the 34th";
+   title = "Encyclopedia Part 34";
+   year = 1934;
+   publisher = "34 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref35";
+   author = "John Doe, the 35th";
+   title = "Encyclopedia Part 35";
+   year = 1935;
+   publisher = "35 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref36";
+   author = "John Doe, the 36th";
+   title = "Encyclopedia Part 36";
+   year = 1936;
+   publisher = "36 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref37";
+   author = "John Doe, the 37th";
+   title = "Encyclopedia Part 37";
+   year = 1937;
+   publisher = "37 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref38";
+   author = "John Doe, the 38th";
+   title = "Encyclopedia Part 38";
+   year = 1938;
+   publisher = "38 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref39";
+   author = "John Doe, the 39th";
+   title = "Encyclopedia Part 39";
+   year = 1939;
+   publisher = "39 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref40";
+   author = "John Doe, the 40th";
+   title = "Encyclopedia Part 40";
+   year = 1940;
+   publisher = "40 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref41";
+   author = "John Doe, the 41th";
+   title = "Encyclopedia Part 41";
+   year = 1941;
+   publisher = "41 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref42";
+   author = "John Doe, the 42th";
+   title = "Encyclopedia Part 42";
+   year = 1942;
+   publisher = "42 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref43";
+   author = "John Doe, the 43th";
+   title = "Encyclopedia Part 43";
+   year = 1943;
+   publisher = "43 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref44";
+   author = "John Doe, the 44th";
+   title = "Encyclopedia Part 44";
+   year = 1944;
+   publisher = "44 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref45";
+   author = "John Doe, the 45th";
+   title = "Encyclopedia Part 45";
+   year = 1945;
+   publisher = "45 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref46";
+   author = "John Doe, the 46th";
+   title = "Encyclopedia Part 46";
+   year = 1946;
+   publisher = "46 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref47";
+   author = "John Doe, the 47th";
+   title = "Encyclopedia Part 47";
+   year = 1947;
+   publisher = "47 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref48";
+   author = "John Doe, the 48th";
+   title = "Encyclopedia Part 48";
+   year = 1948;
+   publisher = "48 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref49";
+   author = "John Doe, the 49th";
+   title = "Encyclopedia Part 49";
+   year = 1949;
+   publisher = "49 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref50";
+   author = "John Doe, the 50th";
+   title = "Encyclopedia Part 50";
+   year = 1950;
+   publisher = "50 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref51";
+   author = "John Doe, the 51th";
+   title = "Encyclopedia Part 51";
+   year = 1951;
+   publisher = "51 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref52";
+   author = "John Doe, the 52th";
+   title = "Encyclopedia Part 52";
+   year = 1952;
+   publisher = "52 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref53";
+   author = "John Doe, the 53th";
+   title = "Encyclopedia Part 53";
+   year = 1953;
+   publisher = "53 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref54";
+   author = "John Doe, the 54th";
+   title = "Encyclopedia Part 54";
+   year = 1954;
+   publisher = "54 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref55";
+   author = "John Doe, the 55th";
+   title = "Encyclopedia Part 55";
+   year = 1955;
+   publisher = "55 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref56";
+   author = "John Doe, the 56th";
+   title = "Encyclopedia Part 56";
+   year = 1956;
+   publisher = "56 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref57";
+   author = "John Doe, the 57th";
+   title = "Encyclopedia Part 57";
+   year = 1957;
+   publisher = "57 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref58";
+   author = "John Doe, the 58th";
+   title = "Encyclopedia Part 58";
+   year = 1958;
+   publisher = "58 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref59";
+   author = "John Doe, the 59th";
+   title = "Encyclopedia Part 59";
+   year = 1959;
+   publisher = "59 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref60";
+   author = "John Doe, the 60th";
+   title = "Encyclopedia Part 60";
+   year = 1960;
+   publisher = "60 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref61";
+   author = "John Doe, the 61th";
+   title = "Encyclopedia Part 61";
+   year = 1961;
+   publisher = "61 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref62";
+   author = "John Doe, the 62th";
+   title = "Encyclopedia Part 62";
+   year = 1962;
+   publisher = "62 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref63";
+   author = "John Doe, the 63th";
+   title = "Encyclopedia Part 63";
+   year = 1963;
+   publisher = "63 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref64";
+   author = "John Doe, the 64th";
+   title = "Encyclopedia Part 64";
+   year = 1964;
+   publisher = "64 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref65";
+   author = "John Doe, the 65th";
+   title = "Encyclopedia Part 65";
+   year = 1965;
+   publisher = "65 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref66";
+   author = "John Doe, the 66th";
+   title = "Encyclopedia Part 66";
+   year = 1966;
+   publisher = "66 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref67";
+   author = "John Doe, the 67th";
+   title = "Encyclopedia Part 67";
+   year = 1967;
+   publisher = "67 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref68";
+   author = "John Doe, the 68th";
+   title = "Encyclopedia Part 68";
+   year = 1968;
+   publisher = "68 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref69";
+   author = "John Doe, the 69th";
+   title = "Encyclopedia Part 69";
+   year = 1969;
+   publisher = "69 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref70";
+   author = "John Doe, the 70th";
+   title = "Encyclopedia Part 70";
+   year = 1970;
+   publisher = "70 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref71";
+   author = "John Doe, the 71th";
+   title = "Encyclopedia Part 71";
+   year = 1971;
+   publisher = "71 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref72";
+   author = "John Doe, the 72th";
+   title = "Encyclopedia Part 72";
+   year = 1972;
+   publisher = "72 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref73";
+   author = "John Doe, the 73th";
+   title = "Encyclopedia Part 73";
+   year = 1973;
+   publisher = "73 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref74";
+   author = "John Doe, the 74th";
+   title = "Encyclopedia Part 74";
+   year = 1974;
+   publisher = "74 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref75";
+   author = "John Doe, the 75th";
+   title = "Encyclopedia Part 75";
+   year = 1975;
+   publisher = "75 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref76";
+   author = "John Doe, the 76th";
+   title = "Encyclopedia Part 76";
+   year = 1976;
+   publisher = "76 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref77";
+   author = "John Doe, the 77th";
+   title = "Encyclopedia Part 77";
+   year = 1977;
+   publisher = "77 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref78";
+   author = "John Doe, the 78th";
+   title = "Encyclopedia Part 78";
+   year = 1978;
+   publisher = "78 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref79";
+   author = "John Doe, the 79th";
+   title = "Encyclopedia Part 79";
+   year = 1979;
+   publisher = "79 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref80";
+   author = "John Doe, the 80th";
+   title = "Encyclopedia Part 80";
+   year = 1980;
+   publisher = "80 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref81";
+   author = "John Doe, the 81th";
+   title = "Encyclopedia Part 81";
+   year = 1981;
+   publisher = "81 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref82";
+   author = "John Doe, the 82th";
+   title = "Encyclopedia Part 82";
+   year = 1982;
+   publisher = "82 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref83";
+   author = "John Doe, the 83th";
+   title = "Encyclopedia Part 83";
+   year = 1983;
+   publisher = "83 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref84";
+   author = "John Doe, the 84th";
+   title = "Encyclopedia Part 84";
+   year = 1984;
+   publisher = "84 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref85";
+   author = "John Doe, the 85th";
+   title = "Encyclopedia Part 85";
+   year = 1985;
+   publisher = "85 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref86";
+   author = "John Doe, the 86th";
+   title = "Encyclopedia Part 86";
+   year = 1986;
+   publisher = "86 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref87";
+   author = "John Doe, the 87th";
+   title = "Encyclopedia Part 87";
+   year = 1987;
+   publisher = "87 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref88";
+   author = "John Doe, the 88th";
+   title = "Encyclopedia Part 88";
+   year = 1988;
+   publisher = "88 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref89";
+   author = "John Doe, the 89th";
+   title = "Encyclopedia Part 89";
+   year = 1989;
+   publisher = "89 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref90";
+   author = "John Doe, the 90th";
+   title = "Encyclopedia Part 90";
+   year = 1990;
+   publisher = "90 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref91";
+   author = "John Doe, the 91th";
+   title = "Encyclopedia Part 91";
+   year = 1991;
+   publisher = "91 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref92";
+   author = "John Doe, the 92th";
+   title = "Encyclopedia Part 92";
+   year = 1992;
+   publisher = "92 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref93";
+   author = "John Doe, the 93th";
+   title = "Encyclopedia Part 93";
+   year = 1993;
+   publisher = "93 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref94";
+   author = "John Doe, the 94th";
+   title = "Encyclopedia Part 94";
+   year = 1994;
+   publisher = "94 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref95";
+   author = "John Doe, the 95th";
+   title = "Encyclopedia Part 95";
+   year = 1995;
+   publisher = "95 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref96";
+   author = "John Doe, the 96th";
+   title = "Encyclopedia Part 96";
+   year = 1996;
+   publisher = "96 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref97";
+   author = "John Doe, the 97th";
+   title = "Encyclopedia Part 97";
+   year = 1997;
+   publisher = "97 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref98";
+   author = "John Doe, the 98th";
+   title = "Encyclopedia Part 98";
+   year = 1998;
+   publisher = "98 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref99";
+   author = "John Doe, the 99th";
+   title = "Encyclopedia Part 99";
+   year = 1999;
+   publisher = "99 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref100";
+   author = "John Doe, the 100th";
+   title = "Encyclopedia Part 100";
+   year = 2000;
+   publisher = "100 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref101";
+   author = "John Doe, the 101th";
+   title = "Encyclopedia Part 101";
+   year = 2001;
+   publisher = "101 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref102";
+   author = "John Doe, the 102th";
+   title = "Encyclopedia Part 102";
+   year = 2002;
+   publisher = "102 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref103";
+   author = "John Doe, the 103th";
+   title = "Encyclopedia Part 103";
+   year = 2003;
+   publisher = "103 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref104";
+   author = "John Doe, the 104th";
+   title = "Encyclopedia Part 104";
+   year = 2004;
+   publisher = "104 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref105";
+   author = "John Doe, the 105th";
+   title = "Encyclopedia Part 105";
+   year = 2005;
+   publisher = "105 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref106";
+   author = "John Doe, the 106th";
+   title = "Encyclopedia Part 106";
+   year = 2006;
+   publisher = "106 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref107";
+   author = "John Doe, the 107th";
+   title = "Encyclopedia Part 107";
+   year = 2007;
+   publisher = "107 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref108";
+   author = "John Doe, the 108th";
+   title = "Encyclopedia Part 108";
+   year = 2008;
+   publisher = "108 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref109";
+   author = "John Doe, the 109th";
+   title = "Encyclopedia Part 109";
+   year = 2009;
+   publisher = "109 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref110";
+   author = "John Doe, the 110th";
+   title = "Encyclopedia Part 110";
+   year = 2010;
+   publisher = "110 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref111";
+   author = "John Doe, the 111th";
+   title = "Encyclopedia Part 111";
+   year = 2011;
+   publisher = "111 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref112";
+   author = "John Doe, the 112th";
+   title = "Encyclopedia Part 112";
+   year = 2012;
+   publisher = "112 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref113";
+   author = "John Doe, the 113th";
+   title = "Encyclopedia Part 113";
+   year = 2013;
+   publisher = "113 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref114";
+   author = "John Doe, the 114th";
+   title = "Encyclopedia Part 114";
+   year = 2014;
+   publisher = "114 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref115";
+   author = "John Doe, the 115th";
+   title = "Encyclopedia Part 115";
+   year = 2015;
+   publisher = "115 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref116";
+   author = "John Doe, the 116th";
+   title = "Encyclopedia Part 116";
+   year = 2016;
+   publisher = "116 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref117";
+   author = "John Doe, the 117th";
+   title = "Encyclopedia Part 117";
+   year = 2017;
+   publisher = "117 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref118";
+   author = "John Doe, the 118th";
+   title = "Encyclopedia Part 118";
+   year = 2018;
+   publisher = "118 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref119";
+   author = "John Doe, the 119th";
+   title = "Encyclopedia Part 119";
+   year = 2019;
+   publisher = "119 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref120";
+   author = "John Doe, the 120th";
+   title = "Encyclopedia Part 120";
+   year = 1900;
+   publisher = "120 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref121";
+   author = "John Doe, the 121th";
+   title = "Encyclopedia Part 121";
+   year = 1901;
+   publisher = "121 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref122";
+   author = "John Doe, the 122th";
+   title = "Encyclopedia Part 122";
+   year = 1902;
+   publisher = "122 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref123";
+   author = "John Doe, the 123th";
+   title = "Encyclopedia Part 123";
+   year = 1903;
+   publisher = "123 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref124";
+   author = "John Doe, the 124th";
+   title = "Encyclopedia Part 124";
+   year = 1904;
+   publisher = "124 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref125";
+   author = "John Doe, the 125th";
+   title = "Encyclopedia Part 125";
+   year = 1905;
+   publisher = "125 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref126";
+   author = "John Doe, the 126th";
+   title = "Encyclopedia Part 126";
+   year = 1906;
+   publisher = "126 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref127";
+   author = "John Doe, the 127th";
+   title = "Encyclopedia Part 127";
+   year = 1907;
+   publisher = "127 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref128";
+   author = "John Doe, the 128th";
+   title = "Encyclopedia Part 128";
+   year = 1908;
+   publisher = "128 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref129";
+   author = "John Doe, the 129th";
+   title = "Encyclopedia Part 129";
+   year = 1909;
+   publisher = "129 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref130";
+   author = "John Doe, the 130th";
+   title = "Encyclopedia Part 130";
+   year = 1910;
+   publisher = "130 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref131";
+   author = "John Doe, the 131th";
+   title = "Encyclopedia Part 131";
+   year = 1911;
+   publisher = "131 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref132";
+   author = "John Doe, the 132th";
+   title = "Encyclopedia Part 132";
+   year = 1912;
+   publisher = "132 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref133";
+   author = "John Doe, the 133th";
+   title = "Encyclopedia Part 133";
+   year = 1913;
+   publisher = "133 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref134";
+   author = "John Doe, the 134th";
+   title = "Encyclopedia Part 134";
+   year = 1914;
+   publisher = "134 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref135";
+   author = "John Doe, the 135th";
+   title = "Encyclopedia Part 135";
+   year = 1915;
+   publisher = "135 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref136";
+   author = "John Doe, the 136th";
+   title = "Encyclopedia Part 136";
+   year = 1916;
+   publisher = "136 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref137";
+   author = "John Doe, the 137th";
+   title = "Encyclopedia Part 137";
+   year = 1917;
+   publisher = "137 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref138";
+   author = "John Doe, the 138th";
+   title = "Encyclopedia Part 138";
+   year = 1918;
+   publisher = "138 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref139";
+   author = "John Doe, the 139th";
+   title = "Encyclopedia Part 139";
+   year = 1919;
+   publisher = "139 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref140";
+   author = "John Doe, the 140th";
+   title = "Encyclopedia Part 140";
+   year = 1920;
+   publisher = "140 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref141";
+   author = "John Doe, the 141th";
+   title = "Encyclopedia Part 141";
+   year = 1921;
+   publisher = "141 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref142";
+   author = "John Doe, the 142th";
+   title = "Encyclopedia Part 142";
+   year = 1922;
+   publisher = "142 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref143";
+   author = "John Doe, the 143th";
+   title = "Encyclopedia Part 143";
+   year = 1923;
+   publisher = "143 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref144";
+   author = "John Doe, the 144th";
+   title = "Encyclopedia Part 144";
+   year = 1924;
+   publisher = "144 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref145";
+   author = "John Doe, the 145th";
+   title = "Encyclopedia Part 145";
+   year = 1925;
+   publisher = "145 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref146";
+   author = "John Doe, the 146th";
+   title = "Encyclopedia Part 146";
+   year = 1926;
+   publisher = "146 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref147";
+   author = "John Doe, the 147th";
+   title = "Encyclopedia Part 147";
+   year = 1927;
+   publisher = "147 Publishing House";
+   edition = "Edition 1";
+};
+{
+   name = "ref148";
+   author = "John Doe, the 148th";
+   title = "Encyclopedia Part 148";
+   year = 1928;
+   publisher = "148 Publishing House";
+   edition = "Edition 2";
+};
+{
+   name = "ref149";
+   author = "John Doe, the 149th";
+   title = "Encyclopedia Part 149";
+   year = 1929;
+   publisher = "149 Publishing House";
+   edition = "Edition 3";
+};
+{
+   name = "ref150";
+   author = "John Doe, the 150th";
+   title = "Encyclopedia Part 150";
+   year = 1930;
+   publisher = "150 Publishing House";
+   edition = "Edition 1";
+};
+];

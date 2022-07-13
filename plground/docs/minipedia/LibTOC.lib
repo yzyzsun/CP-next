@@ -1,0 +1,52 @@
+open LibDoc;
+open LibCite;
+open LibInfobox;
+open LibTable;
+
+type TOC = { toc : String };
+
+type ContentsSig<Element> = DocSig<Element> & {
+  Body : Element -> Element;
+};
+
+heading (l:Int) (s:String) = "<h" ++ toString (l+2) ++ " id=\"" ++ s ++ "\">" ++ s ++ "</h" ++ toString (l+2) ++ ">";
+
+listItem (l:Int) (s:String) : String =
+  if l == 0 then "<li><a href=\"#" ++ s ++ "\">" ++ s ++ "</a></li>"
+  else "<li style=\"list-style-type: none;\"><ul>" ++ listItem (l-1) s ++ "</ul></li>";
+
+html' = trait implements ContentsSig<TOC => HTML> inherits html => {
+  override (Section e).html = heading 0 e.html;
+  override (SubSection e).html = heading 1 e.html;
+  override (SubSubSection e).html = heading 2 e.html;
+  [self]@(Body e).html = "<div id=\"toc\"><b>Contents</b>" ++ self.toc ++ "</div>" ++ e.html;
+};
+
+toc = trait implements ContentsSig<HTML => TOC> => {
+  (Comp l r).toc = l.toc ++ r.toc;
+  (Section e).toc = listItem 0 e.html;
+  (SubSection e).toc = listItem 1 e.html;
+  (SubSubSection e).toc = listItem 2 e.html;
+  (Body e).toc = "<ul>" ++ e.toc ++ "</ul>\n";
+  _.toc = "";
+};
+
+cite' (refs : [RefInfo]) = trait implements CiteSig<HTML & TOC> inherits cite refs => {
+  _.toc = ""
+};
+
+svg' = trait implements GraphicSig<HTML & TOC><Hex> inherits svg => {
+  _.toc = ""
+};
+
+stateInfobox' = trait implements InfoboxSig<HTML & TOC><HTML & TOC> StateInfo inherits stateInfobox => {
+  _.toc = ""
+};
+
+cityInfobox' = trait implements InfoboxSig<HTML & TOC><HTML & TOC> CityInfo inherits cityInfobox => {
+  _.toc = ""
+};
+
+table' = trait implements TableSig<HTML & TOC> inherits table => {
+  _.toc = ""
+};

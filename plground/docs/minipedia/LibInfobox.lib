@@ -1,0 +1,129 @@
+open LibSVG;
+open LibNum;
+
+type CSS = { css : String };
+
+type Alignment<Style> = {
+  Left : Style;
+  Right : Style;
+  Center : Style;
+  Justify : Style;
+};
+
+alignment = trait implements Alignment<CSS> => {
+  (Left).css = "left";
+  (Right).css = "right";
+  (Center).css = "center";
+  (Justify).css = "justify";
+};
+
+type Sides = { top: Int; right: Int; bottom: Int; left: Int };
+allSides (i : Int) = { top = i; right = i; bottom = i; left = i };
+
+joinCSS' (a : [CSS]) (i : Int) : String =
+  if i == 0 then "" else joinCSS' a (i-1) ++ (a!!(i-1)).css;
+joinCSS (a : [CSS]) = joinCSS' a (#a);
+
+type StyleSig<Style><Color> = {
+  Concat : [Style] -> Style;
+  BackgroundColor : Color -> Style;
+  Color : Color -> Style;
+  FontSize : Int -> Style;
+  TextAlign : Style -> Style;
+  Padding : Sides -> Style;
+  Border : { width: Int; color: Color } -> Style;
+  Margin : Sides -> Style;
+};
+
+css = trait implements StyleSig<CSS><Hex> => {
+  (Concat a).css = joinCSS a;
+  (BackgroundColor c).css = "background-color: " ++ c.hex ++ "; ";
+  (Color c).css = "color: " ++ c.hex ++ "; ";
+  (FontSize i).css = "font-size: " ++ toString i ++ "px; ";
+  (TextAlign align).css = "text-align: " ++ align.css ++ "; ";
+  (Padding prop).css = "padding: " ++ toString prop.top ++ "px " ++ toString prop.right ++ "px " ++ toString prop.bottom ++ "px " ++ toString prop.left ++ "px; ";
+  (Border prop).css = "border: " ++ toString prop.width ++ "px solid " ++ prop.color.hex ++ "; ";
+  (Margin prop).css = "margin: " ++ toString prop.top ++ "px " ++ toString prop.right ++ "px " ++ toString prop.bottom ++ "px " ++ toString prop.left ++ "px; ";
+};
+
+styleRepo S C = trait [self : StyleSig<S><C> & Alignment<S> & ColorSig<C>] => {
+  row = Border { width = 1; color = Gray };
+  cell = Padding (allSides 5);
+  flag = Margin (allSides 0);
+  name = Concat [
+    BackgroundColor (Silver);
+    FontSize 20;
+    TextAlign (Center);
+    Padding (allSides 10);
+  ];
+  division = Concat [
+    BackgroundColor (Navy);
+    Color (White);
+    TextAlign (Center);
+    Padding (allSides 7);
+  ];
+};
+styles = (new styleRepo @CSS @Hex , css , alignment , color);
+
+
+type DivInfo = {
+  name : String;
+  division : String;
+  languages : [String];
+  area : Int;
+  population : Double;
+  link : String;
+};
+
+type StateInfo = DivInfo & {
+  religions : [String];
+  countryCode : String;
+  capital : DivInfo;
+};
+
+type CityInfo = DivInfo & {
+  cityFlower : String;
+  timeZone : String;
+  state : String;
+};
+
+type InfoboxSig<Element><Graphic> Info = {
+  Table : Element -> Element;
+  Infobox : Info -> Graphic -> Element;
+};
+
+join' (sep : String) (arr : [String]) (i : Int) : String =
+  if i == 0 then ""
+  else if i == 1 then arr!!0
+  else join' sep arr (i-1) ++ sep ++ arr!!(i-1);
+join (sep : String) (arr : [String]) = join' sep arr (#arr);
+
+row (element:String) = "<tr style=\"" ++ styles.row.css ++ "\">" ++ element ++ "</tr>\n";
+header (content:String) (colspan:Int) (style:String) = "<th colspan=\"" ++ toString colspan ++ "\" style=\"" ++ style ++ "\">" ++ content ++ "</th>";
+data (content:String) (style:String) = "<td style=\"" ++ style ++ "\">" ++ content ++ "</td>";
+entry (key:String) (value:String) (style:String) = header key 1 style ++ data value style;
+
+infobox = trait implements InfoboxSig<HTML><HTML> DivInfo => {
+  (Table e).html = "<table><tbody>" ++ e.html ++ "</tbody></table>";
+  (Infobox division flag).html =
+    row (header (flag.html) 2 styles.flag.css) ++
+    row (header division.name 2 styles.name.css) ++
+    row (header division.division 2 styles.division.css) ++
+    row (entry "Official languages" (join " & " division.languages) styles.cell.css) ++
+    row (entry "Area" (toString division.area ++ " km²") styles.cell.css) ++
+    row (entry "Population" (intToMil (doubleToInt (division.population * 1000000.0))) styles.cell.css);
+};
+
+stateInfobox = trait implements InfoboxSig<HTML><HTML> StateInfo inherits infobox => {
+  override (Infobox state flag).html = (new super.Infobox state flag).html ++
+    row (entry "Religions" (join "<br>" state.religions) styles.cell.css) ++
+    row (entry "ISO 3166 code" state.countryCode styles.cell.css) ++
+    row (entry "Capital" state.capital.name styles.cell.css);
+};
+
+cityInfobox = trait implements InfoboxSig<HTML><HTML> CityInfo inherits infobox => {
+  override (Infobox city flag).html = (new super.Infobox city flag).html ++
+    row (entry "City flower" city.cityFlower styles.cell.css) ++
+    row (entry "Time zone" city.timeZone styles.cell.css) ++
+    row (entry "Sovereign state" city.state styles.cell.css);
+};

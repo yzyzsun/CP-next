@@ -1,0 +1,22 @@
+subArray T (a:[T]) (begin:Int) (end:Int) : [T] = 
+  if begin < end then [a!!begin] ++ subArray @T a (begin+1) end
+  else ([]:[T]);
+
+head T (a:[T]) : T = a!!0;
+
+tail T (a:[T]) : [T] = subArray @T a 1 (#a);
+
+printArray' (a:[Int]) (i:Int) : String = 
+  (if i==0 then "[" else "") ++ 
+  (if i==(#a) then "]" else toString (a!!i) ++ "; " ++ printArray' a (i+1));
+printArray (a:[Int]) = printArray' a 0;
+
+-- merge (a:[Int]) (b:[Int]) : [Int]= 
+--  if (#a) == 0 then b
+--  else if (#b) == 0 then a
+--  else if (head @Int a) < (head @Int b) then ([head @Int a] ++ (merge (tail @Int a) b))
+--  else [head @Int b] ++ merge a (tail @Int b);
+
+-- sort (a:[Int]) : [Int] = 
+--  if (#a)<=1 then a
+--  else merge (sort (subArray @Int a 0 ((#a)/2) )) (sort (subArray @Int a ((#a)/2) (#a)));

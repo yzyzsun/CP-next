@@ -1,0 +1,18 @@
+open LibDoc;
+open LibSVG;
+
+type Draw Graphic Color = {
+  init : { x1: Int; y1: Int; x2: Int; y2: Int; width: Int; level: Int };
+  draw : { x1: Int; y1: Int; x2: Int; y2: Int; width: Int; level: Int } -> Graphic;
+};
+
+draw T C = trait [self : DocSig<T> & GraphicSig<T><C> & ColorSig<C> & Draw T C] implements Draw T C => {
+  init = { x1 = 0; y1 = 250; x2 = 729; y2 = 250; width = 1; level = 6 };
+  draw {..} =
+    if level == 0 then Line { x1 = x1; y1 = y1; x2 = x2; y2 = y2; color = Black; width = width}
+    else
+      open {diffx = (x2-x1)/3; diffy = (y2-y1)/3} in
+      let g = draw {x1=x1; y1=y1; x2=x1+diffx; y2=y1+diffy; width=width; level=level-1} in
+      `\g \Translate{h=diffx;v=diffy}[\Rotate{angle=-60; x=x1; y=y1}(g)] \Translate{h=diffx;v=diffy}[\Rotate{angle=60;x=x1+diffx;y=y1+diffy}(g)] \Translate{h=2*diffx; v=2*diffy}(g)`
+      ;
+};

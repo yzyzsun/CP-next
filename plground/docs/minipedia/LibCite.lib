@@ -1,0 +1,33 @@
+type RefInfo = {
+  name : String;
+  author : String;
+  title : String;
+  year : Int;
+  publisher : String;
+  edition : String;
+};
+
+type CiteSig<Element> = {
+  Cite : String -> Element;
+  Bib : Element;
+};
+
+getRefIndex' (arr : [RefInfo]) (s : String) (i : Int) : Int = 
+  if i == #arr then -1
+  else if s == (arr!!i).name then i
+  else getRefIndex' arr s (i+1);
+getRefIndex (arr : [RefInfo]) (s : String) : Int = getRefIndex' arr s 0;
+
+printRef (r : RefInfo) : String = "<span id = \"ref_" ++ r.name ++ "\"> " ++ r.author ++ " <em>" ++ r.title ++ " - " ++ r.edition ++ ".</em> " ++ r.publisher ++ ", " ++ toString r.year ++ "." ++ "</span>";
+bibGen' (arr : [RefInfo]) (i : Int) : String = 
+  if i == (#arr) then ""
+  else toString (i+1) ++ ". " ++ printRef (arr!!i) ++ "<br>" ++ bibGen' arr (i+1);
+bibGen (arr : [RefInfo]) : String = bibGen' arr 0;
+
+type HTML = { html : String };
+
+cite (refs : [RefInfo]) = trait implements CiteSig<HTML> => {
+  (Cite n).html = let index = getRefIndex refs n in
+  	"<sup><a href=\"#ref_" ++ (refs!!index).name ++ "\">" ++ "[" ++ toString (index + 1) ++ "]" ++ "</a></sup>";
+  (Bib).html = bibGen refs;
+};

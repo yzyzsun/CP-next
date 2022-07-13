@@ -1,7 +1,63 @@
-# This file should contain all the record creation needed to seed the database with its default values.
-# The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
-#
-# Examples:
-#
-#   movies = Movie.create([{ name: 'Star Wars' }, { name: 'Lord of the Rings' }])
-#   Character.create(name: 'Luke', movie: movies.first)
+User.create!([
+  {username: "nobody", password: "pa$$w0rd", password_confirmation: "pa$$w0rd"},
+  {username: "fractals", password: "pa$$w0rd", password_confirmation: "pa$$w0rd"},
+  {username: "minipedia", password: "pa$$w0rd", password_confirmation: "pa$$w0rd"}
+])
+Doc.create!([
+  {name: "LibDoc", mode: "library", provide_factory: "new html' , latex' : DocSig'<HTML & LaTeX>", require_library: "", access: "pub", user_id: 1},
+  {name: "LibColor", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 1},
+  {name: "LibSVG", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 1},
+  {name: "config", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 1},
+  {name: "data", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 1},
+  {name: "charts", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 1},
+  {name: "region", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 1},
+  {name: "CSE", mode: "program", provide_factory: "", require_library: "", access: "open", user_id: 1},
+  {name: "LibDoc", mode: "library", provide_factory: "new html : DocSig<HTML>", require_library: "", access: "pub", user_id: 2},
+  {name: "LibColor", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 2},
+  {name: "LibSVG", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 2},
+  {name: "LibKoch", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 2},
+  {name: "KochCurve", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 2},
+  {name: "KochSnowflake", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 2},
+  {name: "KochAntiSnowflake", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 2},
+  {name: "LibShare", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 2},
+  {name: "TSquare", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 2},
+  {name: "SierpinskiCarpet", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 2},
+  {name: "IndexOfLibraries", mode: "doc_only", provide_factory: "", require_library: "LibState", access: "pub", user_id: 3},
+  {name: "LibDoc", mode: "library", provide_factory: "new html : DocSig<HTML>", require_library: "", access: "pub", user_id: 3},
+  {name: "LibTOC", mode: "library", provide_factory: "new html' , toc : ContentsSig<HTML & TOC>", require_library: "", access: "pub", user_id: 3},
+  {name: "LibTable", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "LibCite", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "LibInfobox", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "LibSVG", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "LibTikz", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "LibArray", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "LibNum", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "LibCity", mode: "library", provide_factory: "factory", require_library: "", access: "pub", user_id: 3},
+  {name: "LibState", mode: "library", provide_factory: "factory", require_library: "", access: "pub", user_id: 3},
+  {name: "database", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "refs", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "HongKong", mode: "doc_only", provide_factory: "", require_library: "LibCity", access: "pub", user_id: 3},
+  {name: "Microstate", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "MicrostateRef", mode: "library", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "ListByArea", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "ListByPopulation", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 3},
+  {name: "Nauru", mode: "doc_only", provide_factory: "", require_library: "LibState", access: "pub", user_id: 3},
+  {name: "Monaco", mode: "doc_only", provide_factory: "", require_library: "LibState", access: "pub", user_id: 3},
+  {name: "Maldives", mode: "doc_only", provide_factory: "", require_library: "LibState", access: "pub", user_id: 3},
+  {name: "SanMarino", mode: "doc_only", provide_factory: "", require_library: "LibState", access: "pub", user_id: 3},
+  {name: "Yaren", mode: "doc_only", provide_factory: "", require_library: "LibCity", access: "pub", user_id: 3},
+  {name: "Male", mode: "doc_only", provide_factory: "", require_library: "LibCity", access: "pub", user_id: 3},
+  {name: "Liechtenstein", mode: "doc_only", provide_factory: "", require_library: "LibState", access: "pub", user_id: 3},
+  {name: "Basseterre", mode: "doc_only", provide_factory: "", require_library: "LibCity", access: "pub", user_id: 3},
+  {name: "Funafuti", mode: "doc_only", provide_factory: "", require_library: "LibCity", access: "pub", user_id: 3},
+  {name: "Malta", mode: "doc_only", provide_factory: "", require_library: "LibState", access: "pub", user_id: 3},
+  {name: "VaticanCity", mode: "doc_only", provide_factory: "", require_library: "LibState", access: "pub", user_id: 3},
+  {name: "MarshallIslands", mode: "doc_only", provide_factory: "", require_library: "LibState", access: "pub", user_id: 3},
+  {name: "Valletta", mode: "doc_only", provide_factory: "", require_library: "LibCity", access: "pub", user_id: 3},
+  {name: "Tuvalu", mode: "doc_only", provide_factory: "", require_library: "LibState", access: "pub", user_id: 3},
+  {name: "SanMarinoCity", mode: "doc_only", provide_factory: "", require_library: "LibCity", access: "pub", user_id: 3},
+  {name: "Vaduz", mode: "doc_only", provide_factory: "", require_library: "LibCity", access: "pub", user_id: 3},
+  {name: "SaintKittsAndNevis", mode: "doc_only", provide_factory: "", require_library: "LibState", access: "pub", user_id: 3},
+  {name: "Majuro", mode: "doc_only", provide_factory: "", require_library: "LibCity", access: "pub", user_id: 3},
+  {name: "MonacoFlagTikz", mode: "program", provide_factory: "", require_library: "", access: "pub", user_id: 3}
+])

@@ -1,0 +1,33 @@
+type HTML = { html : String };
+
+type DocSig<Element> = {
+  Comp : Element -> Element -> Element;
+  Str : String -> Element;
+  Endl : Element;
+  Section : Element -> Element;
+  SubSection : Element -> Element;
+  SubSubSection : Element -> Element;
+  Enumerate : Element -> Element;
+  Itemize : Element -> Element;
+  Item : Element -> Element;
+  Href : String -> Element -> Element;
+  Bold : Element -> Element;
+  Emph : Element -> Element;
+  Img : { src: String; alt: String; width: Int; height: Int } -> Element;
+};
+
+html = trait implements DocSig<HTML> => {
+  (Comp l r).html = l.html ++ r.html;
+  (Str s).html = s;
+  (Endl).html = "<br>";
+  (Section e).html = "<h2>" ++ e.html ++ "</h2>";
+  (SubSection e).html = "<h3>" ++ e.html ++ "</h3>";
+  (SubSubSection e).html = "<h4>" ++ e.html ++ "</h4>";
+  (Enumerate e).html = "<ol>" ++ e.html ++ "</ol>";
+  (Itemize e).html = "<ul>" ++ e.html ++ "</ul>";
+  (Item e).html = "<li>" ++ e.html ++ "</li>";
+  (Href s e).html = "<a href=\"" ++ s ++ "\">" ++ e.html ++ "</a>";
+  (Bold e).html = "<b>" ++ e.html ++ "</b>";
+  (Emph e).html = "<em>" ++ e.html ++ "</em>";
+  (Img {..}).html = "<img src=\"" ++ src ++ "\" alt=\"" ++ alt ++ "\" width=\"" ++ toString width ++ "\" height=\"" ++ toString height ++ "\">";
+};

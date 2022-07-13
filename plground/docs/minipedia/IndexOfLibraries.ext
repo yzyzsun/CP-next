@@ -1,0 +1,25 @@
+\Section[An Index of ExT Libraries]
+ Different features of \Emph[ExT] are defined in different libraries. When writing a document, one or more of these libraries can be imported depending on what features are required in the document. These libraries define how to render those \Emph[ExT] constructs in HTML:
+ \Itemize[
+ 	\Item[ \Href("LibDoc")[\Bold[LibDoc]] provides basic document features like bold and italic text, multiple levels of sections, ordered and unordered lists, images, and hyperlinks.]
+ 	\Item[ \Href("LibCite")[\Bold[LibCite]] provides support for citations, and generation of bibliography.]
+ 	\Item[ \Href("LibSVG")[\Bold[LibSVG]] allows the user to add Support Vector Graphics to documents. It is useful for creating flags for countries and cities.]
+ 	\Item[ \Href("LibInfobox")[\Bold[LibInfobox]] helps the user to create Infoboxes which contain basic information about a country or city like flag, population, area, country code, and others.]
+ 	\Item[ \Href("LibTable")[\Bold[LibTable]] adds support for creating tables.]
+  \Item[ \Href("LibTOC")[\Bold[LibTOC]] extends all the libraries mentioned above and adds a new command to generate a table of contents and prefix it to its contents.]
+]
+There are some libraries which do not define new \Emph[ExT] commands but define functions which are used in other libraries or documents written as \Emph[CP] programs: 
+\Itemize[
+  \Item[ \Href("LibArray")[\Bold[LibArray]] defines functions for arrays like subarray, head, and tail]
+  \Item[ \Href("LibNum")[\Bold[LibNum]] defines functions for basic operations on numbers like converting them from \Emph[Double] to \Emph[Int], and converting a large \Emph[Int] to \Emph[String] of format "xxx million"]
+]
+Some libraries just store information that can be used in documents:
+\Itemize[
+ 	\Item[ \Href("database")[\Bold[database]] stores basic information about different cities and countries. This information can be used in different documents like creating Infoboxes, or creating a sorted list of smallest countries.]
+ 	\Item[ \Href("refs")[\Bold[refs]] stores a list of dummy references which are used to demonstrate how citations and bibliographies work.]
+]
+These libraries combine traits defined across different libraries into a single trait for easier usability when writing documents:
+\Itemize[
+ 	\Item[ \Href("LibCity")[\Bold[LibCity]] combines different libraries (LibTOC, database, and refs) that are used in creating pages for cities into a single library.]
+ 	\Item[ \Href("LibState")[\Bold[LibState]] performs the same function as LibCity but for countries.]
+]

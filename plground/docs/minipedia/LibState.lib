@@ -1,0 +1,6 @@
+open LibTOC;
+open database;
+open refs;
+
+factory = (new html' , toc , cite' refs , svg' , color , stateInfobox', table')
+        : ContentsSig<HTML & TOC> & CiteSig<HTML & TOC> & GraphicSig<HTML & TOC><Hex> & ColorSig<Hex> & InfoboxSig<HTML & TOC><HTML & TOC> StateInfo & TableSig<HTML & TOC>;

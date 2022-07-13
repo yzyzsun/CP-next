@@ -1,0 +1,14 @@
+config = {
+  width  = 600;
+  height = 400;
+  margin = 30;
+  maxY   = 140;
+  numY   = 7;
+  line   = false;
+  legend = true;
+  border = true;
+  label  = {
+    data = false;
+    axes = ["Month"; "Price"]
+  }
+};

@@ -1,0 +1,48 @@
+open LibDoc;
+open LibSVG;
+
+type Data = {
+  name: String;
+  color: Hex;
+  d: [{ month: String; price: Int }];
+};
+
+factory = new html , svg , color;
+
+apple = {
+  name = "Apple";
+  color = new factory.Red;
+  d = [
+    { month = "Jan";  price = 140 };
+    { month = "Feb";  price = 68 };
+    { month = "Mar";  price = 61 };
+    { month = "Apr";  price = 72 };
+    { month = "May";  price = 80 };
+    { month = "June"; price = 91 };
+    { month = "July"; price = 96 };
+    { month = "Aug";  price = 134 };
+    { month = "Sept"; price = 117 };
+    { month = "Oct";  price = 109 };
+    { month = "Nov";  price = 123 };
+    { month = "Dec";  price = 133 };
+  ];
+} : Data;
+
+tsmc = {
+  name = "TSMC";
+  color = new factory.Blue;
+  d = [
+    { month = "Jan";  price = 54 };
+    { month = "Feb";  price = 54 };
+    { month = "Mar";  price = 48 };
+    { month = "Apr";  price = 53 };
+    { month = "May";  price = 50 };
+    { month = "June"; price = 57 };
+    { month = "July"; price = 79 };
+    { month = "Aug";  price = 79 };
+    { month = "Sept"; price = 81 };
+    { month = "Oct";  price = 84 };
+    { month = "Nov";  price = 97 };
+    { month = "Dec";  price = 109 };
+  ];
+} : Data;

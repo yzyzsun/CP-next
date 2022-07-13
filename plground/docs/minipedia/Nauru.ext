@@ -1,0 +1,146 @@
+  \Table[\Infobox(nauru)[
+  	\Graph{ width = 600; height = 300 }[
+  		\Rect{ x = 0; y = 0; width = 600; height = 300; color = Blue }
+  		\Rect{ x = 0; y = 137; width = 600; height = 25; color = Yellow }
+  		\Path{ d = "M 150,262.5 L 143.5295,236.6481 L 125,255.8012 L 132.3223,230.1777 L 106.6987,237.5 L 125.8519,218.9705 L 100,212.5 L 125.8519,206.0295 L 106.6987,187.5 L 132.3223,194.8223 L 125,169.1988 L 143.5295,188.3519 L 150,162.5 L 156.4705,188.3519 L 175,169.1988 L 167.6777,194.8223 L 193.3013,187.5 L 174.1481,206.0295 L 200,212.5 L 174.1481,218.9705 L 193.3013,237.5 L 167.6777,230.1777 L 175,255.8012 L 156.4705,236.6481 L 150,262.5 z"; fill = White; stroke = White; width = 0 }
+    ]
+  ]]\\
+\Body[
+  \Section[Introduction]
+  \Bold[Nauru] (\Emph[nah-OO-roo]\Cite("ref9") or \Emph[NOW-roo];\Cite("ref10") Nauruan: \Emph[Naoero)], officially the \Bold[Republic of Nauru] (Nauruan: \Emph[Repubrikin Naoero]) and formerly known as \Bold[Pleasant Island], is an island country and microstate in Oceania, in the Central Pacific. Its nearest neighbour is Banaba Island in Kiribati, 300 km (190 mi) to the east. It further lies northwest of Tuvalu, 1,300 km (810 mi) northeast of the Solomon Islands,\Cite("ref11") east-northeast of Papua New Guinea, southeast of the Federated States of Micronesia and south of the \Href("MarshallIslands")[Marshall Islands]. With only a 21 km2 (8.1 sq mi) area, Nauru is the third-smallest country in the world behind \Href("VaticanCity")[Vatican City] and \Href("Monaco")[Monaco], making it the smallest republic. Additionally, its population of 11,800 is the world’s third smallest, after \Href("Tuvalu")[Tuvalu].
+\\....\\...\\...
+\\
+\Section[History]
+  Nauru was first inhabited by Micronesians and Polynesians at least 3,000 years ago.\Cite("ref17") There were traditionally 12 clans or tribes on Nauru, which are represented in the twelve-pointed star on the country's flag.\Cite("ref18") Traditionally, Nauruans traced their descent matrilineally. Inhabitants practised aquaculture: they caught juvenile ibija fish, acclimatised them to freshwater, and raised them in the Buada Lagoon, providing a reliable food source. The other locally grown components of their diet included coconuts and pandanus fruit.\Cite("ref19")\Cite("ref20") The name "Nauru" may derive from the Nauruan word Anáoero, which means 'I go to the beach.'\Cite("ref21")
+\\
+In 1798, the British sea captain John Fearn, on his trading ship Hunter (300 tons), became the first Westerner to report sighting Nauru, calling it "Pleasant Island", because of its attractive appearance.\Cite("ref22")\Cite("ref23") From at least 1826, Nauruans had regular contact with Europeans on whaling and trading ships who called for provisions and fresh drinking water.\Cite("ref24") The last whaler to call during the age of sail visited in 1904.\Cite("ref25")
+\\
+Around this time, deserters from European ships began to live on the island. The islanders traded food for alcoholic palm wine and firearms.\Cite("ref26") The firearms were used during the 10-year Nauruan Civil War that began in 1878.\Cite("ref27")
+\\....\\...\\...
+\\
+\Section[Geography]
+\Img{
+src = "https://upload.wikimedia.org/wikipedia/commons/f/fc/Nauru-map.gif";
+alt = "Map of Nauru";
+width = 330;
+height = 350;
+}\Emph[Map of Nauru] \\
+  Nauru is a 21 km2 (8.1 sq mi),\Cite("ref2") oval-shaped island in the southwestern Pacific Ocean, 55.95 km (34.77 mi) south of the equator.\Cite("ref59") The island is surrounded by a coral reef, which is exposed at low tide and dotted with pinnacles.\Cite("ref3") The presence of the reef has prevented the establishment of a seaport, although channels in the reef allow small boats access to the island.\Cite("ref60") A fertile coastal strip 150 to 300 m (490 to 980 ft) wide lies inland from the beach.\Cite("ref3")
+\\
+Coral cliffs surround Nauru's central plateau. The highest point of the plateau, called the Command Ridge, is 71 m (233 ft) above sea level.\Cite("ref61")
+\\
+The only fertile areas on Nauru are on the narrow coastal belt where coconut palms flourish. The land around Buada Lagoon supports bananas, pineapples, vegetables, pandanus trees, and indigenous hardwoods, such as the tamanu tree.\Cite("ref3")
+  \SubSection[Climate]
+  
+Nauru's climate is hot and very humid year-round because of its proximity to the equator and the ocean. Nauru is hit by monsoon rains between November and February, but rarely has cyclones. Annual rainfall is highly variable and is influenced by the El Niño–Southern Oscillation, with several significant recorded droughts.\Cite("ref17")\Cite("ref63") The temperature on Nauru ranges between 30 and 35 °C (86 and 95 °F) during the day and is quite stable at around 25 °C (77 °F) at night.\Cite("ref64")
+\\
+Streams and rivers do not exist in Nauru. Water is gathered from roof catchment systems. Water is brought to Nauru as ballast on ships returning for loads of phosphate.\Cite("ref65")
+\\
+\Tbody[
+\Trow[\Theader[\Bold[Month]]  \Theader[\Bold[Jan]]  \Theader[\Bold[Feb]]  \Theader[\Bold[Mar]]  \Theader[\Bold[Apr]]  \Theader[\Bold[May]]  \Theader[\Bold[Jun]]  \Theader[\Bold[Jul]]  \Theader[\Bold[Aug]]  \Theader[\Bold[Sep]]  \Theader[\Bold[Oct]]  \Theader[\Bold[Nov]]  \Theader[\Bold[Dec]]  \Theader[\Bold[Year]]  ]
+\Trow[\Tdata[Record_high_°C]  \Tdata[34]  \Tdata[37]  \Tdata[35]  \Tdata[35]  \Tdata[32]  \Tdata[32]  \Tdata[35]  \Tdata[33]  \Tdata[35]  \Tdata[34]  \Tdata[36]  \Tdata[35]  \Tdata[37]  ]
+\Trow[\Tdata[Average_high_°C]  \Tdata[30]  \Tdata[30]  \Tdata[30]  \Tdata[30]  \Tdata[30]  \Tdata[30]  \Tdata[30]  \Tdata[30]  \Tdata[30]  \Tdata[31]  \Tdata[31]  \Tdata[31]  \Tdata[30]  ]
+\Trow[\Tdata[Average_low_°C]  \Tdata[25]  \Tdata[25]  \Tdata[25]  \Tdata[25]  \Tdata[25]  \Tdata[25]  \Tdata[25]  \Tdata[25]  \Tdata[25]  \Tdata[25]  \Tdata[25]  \Tdata[25]  \Tdata[25]  ]
+\Trow[\Tdata[Record_low_°C]  \Tdata[21]  \Tdata[21]  \Tdata[21]  \Tdata[21]  \Tdata[20]  \Tdata[21]  \Tdata[20]  \Tdata[21]  \Tdata[20]  \Tdata[21]  \Tdata[21]  \Tdata[21]  \Tdata[20]  ]
+\Trow[\Tdata[Average_precipitation_mm_(inches)]  \Tdata[280]  \Tdata[250]  \Tdata[190]  \Tdata[190]  \Tdata[120]  \Tdata[110]  \Tdata[150]  \Tdata[130]  \Tdata[120]  \Tdata[100]  \Tdata[120]  \Tdata[280]  \Tdata[2,080]  ]
+\Trow[\Tdata[Average_precipitation_days]  \Tdata[16]  \Tdata[14]  \Tdata[13]  \Tdata[11]  \Tdata[9]  \Tdata[9]  \Tdata[12]  \Tdata[14]  \Tdata[11]  \Tdata[10]  \Tdata[13]  \Tdata[15]  \Tdata[152]  ]
+]
+  \SubSection[Ecology]
+  Fauna is sparse on the island because of a lack of vegetation and the consequences of phosphates mining. Many indigenous birds have disappeared or become rare owing to the destruction of their habitat.\Cite("ref66") There are about 60 recorded vascular plant species native to the island, none of which are endemic. Coconut farming, mining, and introduced species have seriously disturbed the native vegetation.\Cite("ref17")
+\\
+There are no native land mammals, but there are native insects, land crabs, and birds, including the endemic Nauru reed warbler. The Polynesian rat, cats, dogs, pigs, and chickens have been introduced to Nauru from ships.\Cite("ref67") The diversity of the reef marine life makes fishing a popular activity for tourists on the island; also popular are scuba diving and snorkelling.\Cite("ref68")
+  \Section[Politics]
+  The president of Nauru is Lionel Aingimea, who heads a 19-member unicameral parliament. The country is a member of the United Nations, the Commonwealth of Nations, and the Asian Development Bank. Nauru also participates in the Commonwealth and Olympic Games. Recently Nauru became a member country of the International Renewable Energy Agency (IRENA). The Republic of Nauru became the 189th member of the International Monetary Fund in April 2016.
+\\
+Nauru is a republic with a parliamentary system of government.\Cite("ref55") The president is both head of state and head of government and is dependent on parliamentary confidence to remain president. A 19-member unicameral parliament is elected every three years.\Cite("ref69") The parliament elects the president from its members, and the president appoints a cabinet of five to six members.\Cite("ref70")
+\\
+Nauru does not have any formal structure for political parties, and candidates typically stand for office as independents; fifteen of the 19 members of the current Parliament are independents. Four parties that have been active in Nauruan politics are the Nauru Party, the Democratic Party, Nauru First and the Centre Party. However, alliances within the government are often formed based on extended family ties rather than party affiliation.\Cite("ref71")
+  \\....\\...\\...
+  \SubSection[Foreign Relations]
+Following independence in 1968, Nauru joined the Commonwealth of Nations as a Special Member; it became a full member in 1999.\Cite("ref78") The country was admitted to the Asian Development Bank in 1991 and the United Nations in 1999.\Cite("ref79") Nauru is a member of the South Pacific Regional Environment Programme, the South Pacific Commission, and the South Pacific Applied Geoscience Commission.\Cite("ref80") In February 2021, Nauru announced it would be formally withdrawing from the Pacific Islands Forum in a joint statement with Marshall Islands, Kiribati, and the Federated States of Micronesia after a dispute regarding Henry Puna's election as the Forum's secretary-general.\Cite("ref81")\Cite("ref82")
+\\
+Nauru has no armed forces, though there is a small police force under civilian control.\Cite("ref2") Australia is responsible for Nauru's defence under an informal agreement between the two countries.\Cite("ref2") The September 2005 memorandum of understanding between Australia and Nauru provides the latter with financial aid and technical assistance, including a Secretary of Finance to prepare the budget, and advisers on health and education. This aid is in return for Nauru's housing of asylum seekers while their applications for entry into Australia are processed.\Cite("ref83") Nauru uses the Australian dollar as its official currency.\Cite("ref3")
+\\
+Nauru has used its position as a member of the United Nations to gain financial support from both Taiwan (officially the Republic of China or ROC) and mainland China (officially the People's Republic of China or PRC) by changing its recognition from one to the other under the One-China policy. On 21 July 2002, Nauru signed an agreement to establish diplomatic relations with the PRC, accepting US$130 million from the PRC for this action.\Cite("ref84") In response, the ROC severed diplomatic relations with Nauru two days later. Nauru later re-established links with the ROC on 14 May 2005,\Cite("ref85") and diplomatic ties with the PRC were officially severed on 31 May 2005.\Cite("ref86") However, the PRC continues to maintain a representative office on Nauru.\Cite("ref87")
+\\....\\...\\...
+  \SubSection[Administrative Divisions]
+  Nauru is divided into fourteen administrative districts, which are grouped into eight electoral constituencies and are further divided into villages.\Cite("ref3")\Cite("ref2") The most populous district is Denigomodu, with 1,804 residents, of which 1,497 reside in an NPC settlement called "Location". The following table shows population by district according to the 2011 census.\Cite("ref102")
+  \Tbody[
+  \Trow[\Theader[\Bold[Nr.]]  \Theader[\Bold[District]]  \Theader[\Bold[Former Name]]  \Theader[\Bold[Area(ha)]]  \Theader[\Bold[Population(2011)]]  \Theader[\Bold[No. of villages]]  \Theader[\Bold[Density(persons/ha)]]  ]
+\Trow[\Tdata[1]  \Tdata[Aiwo]  \Tdata[Aiue]  \Tdata[110]  \Tdata[1,220]  \Tdata[8]  \Tdata[11.1]  ]
+\Trow[\Tdata[2]  \Tdata[Anabar]  \Tdata[Anebwor]  \Tdata[150]  \Tdata[452]  \Tdata[15]  \Tdata[3.0]  ]
+\Trow[\Tdata[3]  \Tdata[Anetan]  \Tdata[Añetañ]  \Tdata[100]  \Tdata[587]  \Tdata[12]  \Tdata[5.9]  ]
+\Trow[\Tdata[4]  \Tdata[Anibare]  \Tdata[Anybody]  \Tdata[310]  \Tdata[226]  \Tdata[17]  \Tdata[0.7]  ]
+\Trow[\Tdata[5]  \Tdata[Baitsi]  \Tdata[Beidi, Baiti]  \Tdata[120]  \Tdata[513]  \Tdata[15]  \Tdata[4.3]  ]
+\Trow[\Tdata[6]  \Tdata[Boe]  \Tdata[Boi]  \Tdata[50]  \Tdata[851]  \Tdata[4]  \Tdata[17.0]  ]
+\Trow[\Tdata[7]  \Tdata[Buada]  \Tdata[Arenibok]  \Tdata[260]  \Tdata[739]  \Tdata[14]  \Tdata[2.8]  ]
+\Trow[\Tdata[8]  \Tdata[Denigomodu]  \Tdata[Denikomotu]  \Tdata[118]  \Tdata[1,804]  \Tdata[17]  \Tdata[15.3]  ]
+\Trow[\Tdata[9]  \Tdata[Ewa]  \Tdata[Eoa]  \Tdata[120]  \Tdata[446]  \Tdata[12]  \Tdata[3.7]  ]
+\Trow[\Tdata[10]  \Tdata[Ijuw]  \Tdata[Ijub]  \Tdata[110]  \Tdata[178]  \Tdata[13]  \Tdata[1.6]  ]
+\Trow[\Tdata[11]  \Tdata[Meneng]  \Tdata[Meneñ]  \Tdata[310]  \Tdata[1,380]  \Tdata[18]  \Tdata[4.5]  ]
+\Trow[\Tdata[12]  \Tdata[Nibok]  \Tdata[Ennibeck]  \Tdata[160]  \Tdata[484]  \Tdata[11]  \Tdata[3.0]  ]
+\Trow[\Tdata[13]  \Tdata[Uaboe]  \Tdata[Ueboi]  \Tdata[80]  \Tdata[318]  \Tdata[6]  \Tdata[3.0]  ]
+\Trow[\Tdata[14]  \Tdata[Yaren]  \Tdata[Moqua]  \Tdata[150]  \Tdata[747]  \Tdata[7]  \Tdata[4.0]  ]
+\Trow[\Tdata[_]  \Tdata[Nauru]  \Tdata[Naoero]  \Tdata[2,120]  \Tdata[10,084]  \Tdata[169]  \Tdata[4.8]  ]
+  ]
+\\
+\Section[Economy]
+  The Nauruan economy peaked in the mid-1970s, when its GDP per capita was estimated to be US$50,000, second only to Saudi Arabia.\Cite("ref57") Most of this came from phosphate mining, which declined from the early 1980s.\Cite("ref103"):5 There are few other resources, and most necessities are imported.\Cite("ref3")\Cite("ref104") Small-scale mining is still conducted by RONPhos, formerly known as the Nauru Phosphate Corporation.\Cite("ref3") The government places a percentage of RONPhos's earnings into the Nauru Phosphate Royalties Trust. The trust manages long-term investments, which were intended to support the citizens after the phosphate reserves were exhausted.\Cite("ref105")
+\\
+Because of mismanagement, the trust's fixed and current assets were reduced considerably and may never fully recover. The failed investments included financing Leonardo the Musical in 1993.\Cite("ref106") The Mercure Hotel in Sydney\Cite("ref107") and Nauru House in Melbourne were sold in 2004 to finance debts and Air Nauru's only Boeing 737 was repossessed in December 2005. Normal air service resumed after the aircraft was replaced with a Boeing 737-300 airliner in June 2006.\Cite("ref108") In 2005, the corporation sold its remaining real estate in Melbourne, the vacant Savoy Tavern site, for $7.5 million.\Cite("ref109")
+\\
+The value of the trust is estimated to have shrunk from A$1.3 billion in 1991 to A$138 million in 2002.\Cite("ref110") Nauru currently lacks money to perform many of the basic functions of government; for example, the National Bank of Nauru is insolvent. The CIA World Factbook estimated a GDP per capita of US$5,000 in 2005.\Cite("ref2") The Asian Development Bank 2007 economic report on Nauru estimated GDP per capita at US$2,400 to US$2,715.\Cite("ref103")
+\\
+There are no personal taxes in Nauru. The unemployment rate is estimated to be 23 percent, and of those who have jobs, the government employs 95 per cent.\Cite("ref2")\Cite("ref111") The Asian Development Bank notes that, although the administration has a strong public mandate to implement economic reforms, in the absence of an alternative to phosphate mining, the medium-term outlook is for continued dependence on external assistance.\Cite("ref110") Tourism is not a major contributor to the economy.\Cite("ref112")
+\\....\\...\\...
+\\
+\Section[Population]
+\SubSection[Demographics]
+Nauru had 10,670 residents as of July 2018.\Cite("ref4")\Cite("ref5") The population was previously larger, but in 2006 1,500 people left the island during a repatriation of immigrant workers from Kiribati and Tuvalu. The repatriation was motivated by significant layoffs in phosphate mining.\Cite("ref103")
+\\
+Nauru is one of the most Westernized countries in the South Pacific.\Cite("ref122")
+\\
+\SubSection[Ethnic groups]
+Fifty-eight percent of people in Nauru are ethnically Nauruan, 26 percent are other Pacific Islander, 8 percent are European, and 8 percent are Han Chinese.\Cite("ref2")
+\\
+\SubSection[Languages]
+The official language of Nauru is Nauruan,\Cite("ref1") a distinct Micronesian language, which is spoken by 96 per cent of ethnic Nauruans at home.\Cite("ref103") English is widely spoken and is the language of government and commerce, as Nauruan is not used outside the country.\Cite("ref2")\Cite("ref3")
+\\
+\SubSection[Religion]
+The main religion practised on the island is Christianity (the main denominations are Nauru Congregational Church 35.71%, Roman Catholic 32.96%, Assemblies of God 12.98%, and Baptist 1.48%).\Cite("ref3") The Constitution provides for freedom of religion. The government has restricted the religious practices of The Church of Jesus Christ of Latter-day Saints and the Jehovah's Witnesses, most of whom are foreign workers employed by the government-owned Nauru Phosphate Corporation.\Cite("ref123") The Catholics are pastorally served by the Roman Catholic Diocese of Tarawa and Nauru, with see at Tarawa in Kiribati.
+\\\\
+\Section[Culture]
+Angam Day, held on 26 October, celebrates the recovery of the Nauruan population after the two World Wars and the 1920 influenza epidemic.\Cite("ref124") The displacement of the indigenous culture by colonial and contemporary Western influences is significant.\Cite("ref125") Few of the old customs have been preserved, but some forms of traditional music, arts and crafts, and fishing are still practised.\Cite("ref126")
+\\
+\SubSection[Media]
+There are no daily news publications on Nauru, although there is one fortnightly publication, Mwinen Ko. There is a state-owned television station, Nauru Television (NTV), which broadcasts programs from New Zealand and Australia, and a state-owned non-commercial radio station, Radio Nauru, which carries programs from Radio Australia and the BBC.\Cite("ref127")
+\\
+\SubSection[Sport]
+Australian rules football is the most popular sport in Nauru—it and weightlifting are considered the country's national sports. There is an Australian rules football league with eight teams.\Cite("ref128") Other sports popular in Nauru include volleyball, netball, fishing, weightlifting and tennis. Many weightlifters on the islands have skilfully secured competitions and defeated athletes of far bigger nations. Nauru participates in the Commonwealth Games and has participated in the Summer Olympic Games in weightlifting and judo.\Cite("ref129")
+\\
+Nauru's national basketball team competed at the 1969 Pacific Games, where it defeated the Solomon Islands and Fiji.
+\\
+The Nauru national rugby sevens team made its international debut at the 2015 Pacific Games.\Cite("ref130")
+\\
+Nauru competed in the 2015 Oceania Sevens Championship in New Zealand.
+\\
+\SubSection[Holidays]
+Independence Day is celebrated on 31 January.\Cite("ref131")
+\\\\
+\Section[Public Services]
+\SubSection[Education]
+Literacy on Nauru is 96 percent. Education is compulsory for children from six to sixteen years old, and two more non-compulsory years are offered (years 11 and 12).\Cite("ref132") The island has three primary schools and two secondary schools, the latter being Nauru College and Nauru Secondary School.\Cite("ref133") There is a campus of the University of the South Pacific on Nauru. Before this campus was built in 1987, students would study either by distance or abroad.\Cite("ref134") Since 2011, the University of New England, Australia has established a presence on the island with around 30 Nauruan teachers studying for an associate degree in education. These students will continue onto the degree to complete their studies.\Cite("ref135") This project is led by Associate Professor Pep Serow and funded by the Australian Department of Foreign Affairs and Trade.
+\\
+The previous community public library was destroyed in a fire. As of 1999 a new one had not yet been built, and no bookmobile services are available as of that year. Sites with libraries include the University of the South Pacific campus, Nauru Secondary, Kayser College, and Aiwo Primary.\Cite("ref136") The Nauru Community Library is in the new University of the South Pacific Nauru Campus building, which was officially opened in May 2018.
+\\
+\SubSection[Health]
+Life expectancy on Nauru in 2009 was 60.6 years for males and 68.0 years for females.\Cite("ref138")
+\\
+By measure of mean body mass index (BMI), Nauruans are the most overweight people in the world;\Cite("ref137") 97 per cent of men and 93 per cent of women are overweight or obese.\Cite("ref137") In 2012, the obesity rate was 71.7 per cent.\Cite("ref139") Obesity on the Pacific islands is common.
+\\
+Nauru has the world's highest level of type 2 diabetes, with more than 40 per cent of the population affected.\Cite("ref140") Other significant dietary-related problems on Nauru include kidney disease and heart disease.\Cite("ref138")
+\\
+\\\\
+\Section[References]
+\Bib
+]

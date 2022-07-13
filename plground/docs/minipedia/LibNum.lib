@@ -1,0 +1,21 @@
+doubleToInt' (n:Double) (id:Double) (cd:Double) (ii:Int) (ci:Int): Int =
+  if id+cd > n then
+    if cd <= 1.0 then ii else doubleToInt' n (id) (cd/10.0) (ii) (ci/10)
+  else doubleToInt' n (id+cd) (cd) (ii+ci) (ci);
+
+doubleToInt (n:Double) : Int = if n < 0.0 then -doubleToInt (-n) else doubleToInt' n 0.0 1000000.0 0 1000000;
+
+charToInt (n:String) : Int = 
+  if n=="0" then 0 else
+  if n=="1" then 1 else
+  if n=="2" then 2 else
+  if n=="3" then 3 else
+  if n=="4" then 4 else
+  if n=="5" then 5 else
+  if n=="6" then 6 else
+  if n=="7" then 7 else
+  if n=="8" then 8 else
+  if n=="9" then 9 else -1;
+
+
+intToMil (n:Int) = if n < 1000000 then toString n else toString (n/1000000) ++ "." ++ toString ((n/1000)%1000) ++ " million";

@@ -1,0 +1,275 @@
+open LibInfobox;
+
+dummy = {
+  name = "";
+  division = "";
+  languages = [];
+  area = 0;
+  population = 0.0;
+  link = "";
+} : DivInfo ;
+
+yaren = {
+  name = "Yaren";
+  division = "District";
+  state = "Republic of Nauru";
+  languages = ["Nauruan"; "English"];
+  area = 1;
+  population = 0.000747;
+  cityFlower = "NA";
+  timeZone = "UTC+12:00";
+  link = "Yaren";
+} : CityInfo ;
+
+funafuti = {
+  name = "Funafuti";
+  division = "Atoll";
+  state = "Tuvalu";
+  languages = ["Tuvaluan"; "English"];
+  area = 2;
+  population = 0.006320;
+  cityFlower = "NA";
+  timeZone = "UTC+12:00";
+  link = "Funafuti";
+} : CityInfo ;
+
+sanmarinocity = {
+  name = "City of San Marino";
+  division = "Castello";
+  state = "Republic of San Marino";
+  languages = ["Italian"];
+  area = 7;
+  population = 0.004071;
+  cityFlower = "NA";
+  timeZone = "UTC+1:00 (CET) / Summer: UTC+2:00(CEST)";
+  link = "SanMarinoCity";
+} : CityInfo ;
+
+vaduz = {
+  name = "Vaduz";
+  division = "Municipality";
+  state = "Principality of Liechtenstein";
+  languages = ["German"];
+  area = 17;
+  population = 0.005696;
+  cityFlower = "NA";
+  timeZone = "UTC+1:00 (CET) / Summer: UTC+2:00(CEST)";
+  link = "Vaduz";
+} : CityInfo ;
+
+majuro = {
+  name = "Majuro";
+  division = "City";
+  state = "Marshall Islands";
+  languages = ["Marshallese"; "English"];
+  area = 10;
+  population = 0.027797;
+  cityFlower = "NA";
+  timeZone = "UTC+12:00 (MHT)";
+  link = "Majuro";
+} : CityInfo ;
+
+basseterre = {
+  name = "Basseterre";
+  division = "City";
+  state = "Federation of Saint Christopher and Nevis";
+  languages = ["Saint Kitts Creole"; "English"];
+  area = 6;
+  population = 0.014000;
+  cityFlower = "NA";
+  timeZone = "UTC-4:00 (AST)";
+  link = "Basseterre";
+} : CityInfo ;
+
+male = {
+  name = "Malé";
+  division = "City";
+  state = "Republic of Maldives";
+  languages = ["Dhivehi"; "English"];
+  area = 11;
+  population = 0.227486;
+  cityFlower = "NA";
+  timeZone = "UTC+5:00 (MST)";
+  link = "Male";
+} : CityInfo ;
+
+valletta = {
+  name = "Valletta";
+  division = "City";
+  state = "Republic of Malta";
+  languages = ["Maltese"; "English"];
+  area = 1;
+  population = 0.005827;
+  cityFlower = "NA";
+  timeZone = "UTC+1:00(CET) / Summer: UTC+2:00(CEST)";
+  link = "Valletta";
+} : CityInfo ;
+
+vatican = {
+  name = "Vatican City State";
+  division = "Country";
+  capital = dummy;
+  languages = ["Italian"];
+  religions = ["Catholicism (official)"];
+  area = 0;
+  population = 0.001000;
+  countryCode = "VA";
+  link = "VaticanCity";
+} : StateInfo ;
+
+monaco = {
+  name = "Principality of Monaco";
+  division = "Country";
+  capital = dummy;
+  languages = ["French"];
+  religions = [
+    "Christianity (86%)";
+    "None (12%)";
+    "Judaism (2%)";
+  ];
+  area = 2;
+  population = 0.038300;
+  countryCode = "MC";
+  link = "Monaco";
+} : StateInfo ;
+
+nauru = {
+  name = "Republic of Nauru";
+  division = "Country";
+  capital = yaren ;
+  languages = ["Nauruan"; "English"];
+  religions = [
+    "Christianity (93%)";
+    "Others (7%)";
+  ];
+  area = 21;
+  population = 0.010671;
+  countryCode = "NR";
+  link = "Nauru";
+} : StateInfo ;
+
+tuvalu = {
+  name = "Tuvalu";
+  division = "Country";
+  capital = funafuti ;
+  languages = ["Tuvaluan"; "English"];
+  religions = [
+    "Christianity (96%)";
+    "Others (4%)";
+  ];
+  area = 26;
+  population = 0.011646;
+  countryCode = "TV";
+  link = "Tuvalu";
+} : StateInfo ;
+
+sanmarino = {
+  name = "Republic of San Marino";
+  division = "Country";
+  capital = sanmarinocity ;
+  languages = ["Italian"];
+  religions = [
+    "Catholicism (97%)";
+    "Others (3%)";
+  ];
+  area = 61;
+  population = 0.033600;
+  countryCode = "SM";
+  link = "SanMarino";
+} : StateInfo ;
+
+liechtenstein = {
+  name = "Principality of Liechtenstein";
+  division = "Country";
+  capital = vaduz ;
+  languages = ["German"];
+  religions = [
+    "Christianity (83%)";
+    "None (7%)";
+    "Islam (6%)";
+    "Others (4%)";
+  ];
+  area = 160;
+  population = 0.038896;
+  countryCode = "LI";
+  link = "Liechtenstein";
+} : StateInfo ;
+
+marshall = {
+  name = "Marshall Islands";
+  division = "Country";
+  capital = majuro ;
+  languages = ["Marshallese"; "English"];
+  religions = [
+    "Christianity (97%)";
+    "None (2%)";
+    "Others (1%)";
+  ];
+  area = 181;
+  population = 0.054701;
+  countryCode = "MH";
+  link = "MarshallIslands";
+} : StateInfo ;
+
+skan = {
+  name = "Federation of Saint Christopher and Nevis";
+  division = "Country";
+  capital = basseterre ;
+  languages = ["English"; "Saint Kitts Creole"];
+  religions = [
+    "Christianity (94.6%)";
+    "None (1.6%)";
+    "Hinduism (1.5%)";
+    "Others (2.3%)";
+  ];
+  area = 261;
+  population = 0.052441;
+  countryCode = "KN";
+  link = "SaintKittsAndNevis";
+} : StateInfo ;
+
+malta = {
+    name = "Republic of Malta";
+  division = "Country";
+  capital = valletta ;
+  languages = ["English"; "Maltese"];
+  religions = [
+    "Christianity (90%)";
+    "None (5%)";
+    "Islam (2%)";
+    "Others (3%)";
+  ];
+  area = 316;
+  population = 0.514564;
+  countryCode = "MT";
+  link = "Malta";
+} : StateInfo ;
+
+maldives = {
+    name = "Republic of Maldives";
+  division = "Country";
+  capital = male ;
+  languages = ["English"; "Dhivehi"];
+  religions = [
+    "Islam (100.0%)";
+  ];
+  area = 300;
+  population = 0.383135;
+  countryCode = "MV";
+  link = "Maldives";
+} : StateInfo ;
+
+hk = {
+  name = "Hong Kong";
+  division = "Special Administrative Region";
+  state = "People's Republic of China";
+  languages = ["Cantonese"; "Mandarin"; "English"];
+  area = 1110;
+  population = 7.500700;
+  cityFlower = "Bauhinia";
+  timeZone = "UTC+08:00 (HKT)";
+  link = "HongKong";
+} : CityInfo ;
+
+statesdb = [vatican; monaco; nauru; tuvalu; sanmarino; liechtenstein; marshall; skan; malta; maldives ];
+citiesdb = [basseterre; majuro; vaduz; hk; sanmarinocity; funafuti; yaren; male; valletta ];

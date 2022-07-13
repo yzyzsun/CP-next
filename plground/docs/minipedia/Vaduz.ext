@@ -1,0 +1,136 @@
+\Table[\Infobox(vaduz)[
+  \Graph{width = 100; height = 400}[
+    \Rect{ x = 0; y = 0; width = 25; height = 400; color = Red }
+  	\Rect{ x = 25; y = 0; width = 25; height = 400; color = White }
+  	\Rect{ x = 50; y = 0; width = 50; height = 400; color = Red }
+  ]
+]]\\
+\Body[
+\Section[Vaduz]
+\Bold[Vaduz] \Cite("ref3") is the capital of \Href("Liechtestein")[Liechtenstein] and also the seat of the national parliament. The city, which is located along the Rhine River, has 5,696 residents.\Cite("ref1") The most prominent landmark of Vaduz is Vaduz Castle, being perched atop a steep hill in the middle of the city. It is home to the reigning prince of Liechtenstein and the Liechtenstein princely family. The city's distinctive architecture is also displayed in landmarks such as the Cathedral of St. Florin, Government House, City Hall, the National Art Gallery, as well as the National Museum. Although Vaduz is the best-known town in the principality internationally, it is not the largest; neighbouring Schaan has a larger population.
+\\
+\Section[Etymology]
+The name of Vaduz had been first recorded as \Emph[de Faduzes]. The name of the settlement, like most other towns in the Rhine Valley region, is of Romance origin. The name can be traced back to Old Rhaeto-Romance root auadutg, meaning aqueduct, which in turn evolved from the Latin aquaeductus.\Cite("ref3")
+\\
+\Section[History]
+Vaduz is mentioned in historic 12th-century manuscripts as \Emph[Faduzes]. In 1322 a mention of the castle is made, which was sacked by the Swiss in 1499 during the Swabian War. The entire city was also destroyed.
+\\
+In the 17th century the Liechtenstein family was seeking a seat in the Imperial diet, the Reichstag. However, since they did not hold any territory that was directly under the Imperial throne, they were unable to meet the primary requirement to qualify.
+\\
+The family yearned for the added power a seat in the Imperial government would bring, and therefore sought to acquire lands that would be reichsunmittelbar, or held without any feudal personage other than the Holy Roman Emperor himself having rights on the land. After some time, the family was able to arrange the purchase of the minuscule Herrschaft ("Lordship") of Schellenberg and countship of Vaduz (in 1699 and 1712 respectively) from the Hohenems. Tiny Schellenberg and Vaduz possessed exactly the political status required: no feudal lord other than the Emperor.
+\\
+Thereby, on 23 January 1719, after purchase had been duly made, Charles VI, Holy Roman Emperor, decreed Vaduz and Schellenberg were united, and raised to the dignity of Fürstentum (principality) with the name "Liechtenstein" in honour of "(his) true servant, Anton Florian of Liechtenstein". It is on this date that Liechtenstein became a sovereign member state of the Holy Roman Empire. As a testament to the pure political expediency of the purchases, the Princes of Liechtenstein did not set foot in their new principality for over 120 years.
+\\
+\Section[Geography]
+\SubSection[Climate]
+Vaduz features an oceanic climate with warm summers and chilly winters. Köppen-Geiger climate classification system classifies its climate as Marine West Coast Climate (Cfb).\Cite("ref4") The city experiences a noticeable increase in precipitation during the summer, but in general all twelve months see some precipitation. Vaduz receives, on average, approximately 900 mm (35.43 in) of precipitation per year. Vaduz's warmest month, July, sees average high temperatures reach 25 °C (77 °F) while average low temperatures are about 14 °C (57 °F). The city's coldest month, January, sees average highs of 3 °C (37 °F) and average lows of −3 °C (27 °F).
+\Tbody[
+\Trow[\Theader[\Bold[Month]]  \Theader[\Bold[Jan]]  \Theader[\Bold[Feb]]  \Theader[\Bold[Mar]]  \Theader[\Bold[Apr]]  \Theader[\Bold[May]]  \Theader[\Bold[Jun]]  \Theader[\Bold[Jul]]  \Theader[\Bold[Aug]]  \Theader[\Bold[Sep]]  \Theader[\Bold[Oct]]  \Theader[\Bold[Nov]]  \Theader[\Bold[Dec]]  \Theader[\Bold[Year]]  ]
+\Trow[\Tdata[Average_high_°C]  \Tdata[4.3]  \Tdata[5.9]  \Tdata[11.1]  \Tdata[15.1]  \Tdata[19.8]  \Tdata[22.3]  \Tdata[24.5]  \Tdata[23.7]  \Tdata[19.7]  \Tdata[15.5]  \Tdata[8.9]  \Tdata[5.1]  \Tdata[14.7]  ]
+\Trow[\Tdata[Daily_mean_°C]  \Tdata[0.7]  \Tdata[2.0]  \Tdata[6.2]  \Tdata[9.9]  \Tdata[14.4]  \Tdata[17.0]  \Tdata[19.0]  \Tdata[18.4]  \Tdata[14.8]  \Tdata[10.9]  \Tdata[5.1]  \Tdata[1.8]  \Tdata[10.0]  ]
+\Trow[\Tdata[Average_low_°C]  \Tdata[−2.8]  \Tdata[−1.8]  \Tdata[1.9]  \Tdata[4.8]  \Tdata[9.3]  \Tdata[12.1]  \Tdata[14.0]  \Tdata[13.9]  \Tdata[10.5]  \Tdata[6.7]  \Tdata[1.7]  \Tdata[−1.4]  \Tdata[5.7]  ]
+\Trow[\Tdata[Average_precipitation_mm_(inches)]  \Tdata[41]  \Tdata[38]  \Tdata[57]  \Tdata[55]  \Tdata[86]  \Tdata[115]  \Tdata[138]  \Tdata[142]  \Tdata[102]  \Tdata[63]  \Tdata[59]  \Tdata[52]  \Tdata[947]  ]
+\Trow[\Tdata[Average_snowfall_cm_(inches)]  \Tdata[14.2]  \Tdata[14.4]  \Tdata[6.4]  \Tdata[0.4]  \Tdata[0]  \Tdata[0]  \Tdata[0]  \Tdata[0]  \Tdata[0]  \Tdata[0]  \Tdata[4.7]  \Tdata[11.9]  \Tdata[52]  ]
+\Trow[\Tdata[Average_precipitation_days_(≥_1.0_mm)]  \Tdata[7.3]  \Tdata[6.9]  \Tdata[9.4]  \Tdata[9.6]  \Tdata[11.9]  \Tdata[12.8]  \Tdata[13.2]  \Tdata[13.2]  \Tdata[9.8]  \Tdata[8.3]  \Tdata[9.0]  \Tdata[8.4]  \Tdata[119.8]  ]
+\Trow[\Tdata[Average_snowy_days_(≥_1.0_cm)]  \Tdata[3.9]  \Tdata[3.9]  \Tdata[2.1]  \Tdata[0.2]  \Tdata[0]  \Tdata[0]  \Tdata[0]  \Tdata[0]  \Tdata[0]  \Tdata[0]  \Tdata[1.4]  \Tdata[3.3]  \Tdata[14.8]  ]
+\Trow[\Tdata[Average_relative_humidity_(%)]  \Tdata[75]  \Tdata[72]  \Tdata[67]  \Tdata[65]  \Tdata[67]  \Tdata[71]  \Tdata[72]  \Tdata[75]  \Tdata[77]  \Tdata[76]  \Tdata[78]  \Tdata[77]  \Tdata[73]  ]
+\Trow[\Tdata[Mean_monthly_sunshine_hours]  \Tdata[70]  \Tdata[91]  \Tdata[124]  \Tdata[144]  \Tdata[166]  \Tdata[170]  \Tdata[194]  \Tdata[177]  \Tdata[145]  \Tdata[116]  \Tdata[68]  \Tdata[52]  \Tdata[1,516]  ]
+
+]
+\\
+\SubSection[Landmarks]
+\Img{
+  src = "https://upload.wikimedia.org/wikipedia/commons/9/95/ViewFromVaduzCastle.jpg";
+  alt = "Vaduz Castle";
+  width = 1900/2;
+  height = 716/2;
+}\\ \Emph[\Bold[Vaduz Castle overlooking the city]] \\
+The most prominent landmark of Vaduz is Vaduz Castle, the home of the reigning prince of Liechtenstein and the Liechtenstein princely family. The castle is visible from almost any location in Vaduz, being perched atop a steep hill in the middle of the city. The Cathedral of St. Florin, Government House and City Hall are also well-known landmarks, displaying the various styles and periods of architecture that the city is known for.
+\\
+\Section[Demographics]
+As of 2019, 5,696 people lived in Vaduz.\Cite("ref1") Foreigners resident in the city make up 42% of the population.\Cite("ref6") With 67% the population is predominantly Roman Catholic, while the percentage of Catholics is significantly higher among residents with Liechtenstein nationality (81%) than among foreigner residents (47%). The largest minority religions in the city are Protestantism (10%) and Islam (8%).\Cite("ref7")
+\\
+\Bold[Religion in Vaduz - 2015]\Cite("ref7")
+\Tbody[
+\Trow[\Theader[\Bold[religion]]  \Theader[\Bold[percent]]  ]
+\Trow[\Tdata[Roman_Catholicism]  \Tdata[67%]  ]
+\Trow[\Tdata[Protestantism]  \Tdata[10%]  ]
+\Trow[\Tdata[Other_Christians]  \Tdata[ 3%]  ]
+\Trow[\Tdata[Islam]  \Tdata[8%]  ]
+\Trow[\Tdata[Others/undeclared]  \Tdata[4%]  ]
+\Trow[\Tdata[Non-religious] \Tdata[9%] ]
+]
+Note: Percentage is more than 100 due to rounding.
+\\
+\Section[Culture]
+The National Art Gallery as well as the National Museum are located in Vaduz. The art gallery (Kunstmuseum Liechtenstein) is a museum of modern and contemporary art, also showing displays from the private princely Liechtenstein Collection, the main public display of which is in Vienna. The building is an architectural landmark built by the Swiss architects Morger, Degelo and Kerez. It was completed in November 2000 and forms a "black box" of tinted concrete and black basalt stone. The museum collection is also the national art collection of Liechtenstein. The Liechtenstein National Museum is showing a permanent exhibition on the cultural and natural history of Liechtenstein as well as special exhibitions. There are also the Postage Stamp Museum and a Ski Museum.
+\\
+\Section[Economy and transport]
+Vaduz has a lively tourist industry, despite being one of the very few capital cities in the world without an airport – the nearest major airport is Zurich, at a distance of 120 km (75 mi).
+\\
+\SubSection[Bus connections to rail hubs]
+There are frequent bus connections between nearby mainline railway stations including Buchs, Sargans and Fedlkirch, operated by Liechtenstein Bus.
+\\
+\SubSection[Schaan-Vaduz railway station]
+Vaduz has no railway station as such and is not directly served by a railway line. Schaan-Vaduz is one of the four train stations serving Liechtenstein It is located in the town of Schaan, a couple of kilometres north of Vaduz. It is owned by the Austrian Federal Railways (ÖBB). The station is served by eighteen regional, stopping trains per day, nine in each direction between Switzerland and Austria. It is situated on the international and electrified Feldkirch-Buchs line, between the station of in Buchs SG (in Switzerland) and the stop of Forst Hilti (in the northern suburb of Schaan).
+\\
+\Section[Education]
+Vaduz has two primary schools, Äule Primary School, near the Vaduzer-Saal;\Cite("ref8") and Ebenholz Primary School,\Cite("ref9") near the University of Liechtenstein, which is also located in the city. Both schools have the same secretariat and administration.\Cite("ref8") The school assignments of children are largely determined by their street addresses.\Cite("ref9") There are four kindergarten sites, of the Kindergarten Bartlegrosch, in Vaduz.\Cite("ref10")
+\\
+Realschule Vaduz and Oberschule Vaduz are in the Schulzentrum Mühleholz II in Vaduz. Liechtensteinisches Gymnasium is also located in Vaduz. Realschule Schaan and Sportschule Liechtenstein are in nearby Schaan.\Cite("ref11")
+\\
+\Section[Notable people]
+\Itemize[
+    \Item[Barbara Erni (1743–1785) thief and confidence trickster, the last person to be executed in Liechtenstein]
+    \Item[Aurelia Frick, 2017]
+    \Item[Josef Rheinberger (1839–1901), organist and composer \Cite("ref12")]
+    \Item[Carl von In der Maur (1852 in Wiener Neustadt - 1913), government official]
+    \Item[Prince Aloys of Liechtenstein (1869 in Hollenegg – 1955) renounced his rights to the succession on 26 February 1923, in favor of his son Franz Joseph II.]
+    \Item[Josef Ospelt (1881–1962), first Prime Minister of Liechtenstein from 2 March 1921 to 27 April 1922]
+    \Item[Gilbert von In der Maur (1887-1959), military officer, leading figure of the Austrian National Socialist Party]
+    \Item[Medea de Novara (1905–2001) actress who appeared in Mexican films \Cite("ref13")]
+    \Item[Franz Joseph II, Prince of Liechtenstein (1906 in Deutschlandsberg – 1989 in Grabs) the reigning Prince of Liechtenstein from 1938 until his death, lived full-time in the principality.]
+    \Item[Hans-Adam II, Prince of Liechtenstein (born 1945 in Zurich) the monarch and head of state of Liechtenstein, lives in Vaduz Castle]
+    \Item[Wolfgang Haas (born 1948), first archbishop of the Archdiocese of Vaduz]
+    \Item[Evelyne Bermann (born 1950) artist, specializes in glass acrylics]
+    \Item[Marlies Amann-Marxer (born 1952), politician who served as Minister of Infrastructure, Environment and Sport in the Government of the Principality of Liechtenstein]
+    \Item[Christoph Zeller (born 1956 or 1957) a German billionaire businessman, owns Ivoclar Vivadent]
+    \Item[Alexander Kellner (born 1961) a Brazilian geologist and paleontologist, expert in pterosaurs]
+    \Item[Adrian Hasler (born 1964), politician and the current Prime Minister of Liechtenstein]
+    \Item[Alois, Hereditary Prince of Liechtenstein (born 1968 in Zürich) regent of Liechtenstein since 2004]
+    \Item[Aurelia Frick (born 1975) a Liechtenstein politician, Minister of Foreign Affairs, Education and Culture.]
+    \Item[Ruslaan Mumtaz (born 1982), Indian Bollywood film and television actor \Cite("ref14")]
+    \Item[Raphael Gray (born 1982) a British computer hacker]
+]
+\\
+\SubSection[Footballers]
+\Itemize[
+    \Item[Rainer Hasler (1958–2014) footballer who played as a defender, selected by the Liechtenstein Football Association as the country's Golden Player]
+    \Item[Ronny Büchel (born 1982) a former international footballer, played 72 games for the national side]
+    \Item[Philippe Erne (born 1986) an international footballer, 34 games for the national side]
+    \Item[Marco Ritzberger (born 1986) a retired footballer, played for FC Vaduz and played 35 games for the national side]
+    \Item[Mathias Christen (born 1987), international footballer, played 36 games for the national side]
+    \Item[Andreas Christen (born 1989) is an international footballer, played 27 games for the national side]
+    \Item[Lucas Eberle (born 1990) a Liechtensteiner footballer, played 12 games for the national side]
+    \Item[Nicolas Hasler (born 1991) a Liechtensteiner professional footballer, played 55 games for the national side]
+    \Item[Sandro Wieser (born 1993) professional footballer, played 47 games for the national side]
+    \Item[Dennis Salanović (born 1996) a Liechtensteiner international footballer, played 29 games for the national side]
+    \Item[Maximilian Göppel (born 1997) a Liechtensteiner footballer who plays for FC Vaduz and the Liechtenstein national team.]
+]   
+\\
+\SubSection[Other athletes]
+\Itemize[
+    \Item[Guido Wolf (born 1924), former sports shooter, competed at the 1960 Summer Olympics]
+    \Item[Franz Biedermann (born 1946) a Liechtenstein decathlete, competed in the 1968 Summer Olympics]
+    \Item[Markus Ganahl (born 1975) retired alpine skier, competed in the 2002 Winter Olympics]
+    \Item[Marina Nigg (born 1984), alpine skier, competed at the 2010 Winter Olympics]
+    \Item[Tina Weirather (born 1989), World Cup alpine ski racer]
+    \Item[Daniel Rinner (born 1990) a Liechtenstein cyclist]
+    \Item[Stephanie Vogt (born 1990), retired professional tennis player]
+    \Item[Nicola Kindle (born 1991) an alpine skier]
+    \Item[Kathinka von Deichmann (born 1994) tennis player.]
+]
+\\
+\Section[References]
+\Bib
+]

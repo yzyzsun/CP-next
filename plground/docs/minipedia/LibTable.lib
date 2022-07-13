@@ -1,0 +1,16 @@
+type TableSig<Element> = {
+  Tbody : Element -> Element;
+  Trow : Element -> Element;
+  Theader : Element -> Element;
+  Tdata : Element -> Element;
+};
+
+type HTML = { html : String };
+
+table = trait implements TableSig<HTML> => {
+  (Tbody e).html = "<style> th, td { border: 1px solid gray; padding: 0.2em 0.4em; } th { background-color: whitesmoke; } </style>" ++
+                   "<table><tbody>" ++ e.html ++ "</table></tbody>";
+  (Trow e).html = "<tr>" ++ e.html ++ "</tr>";
+  (Theader e).html = "<th>" ++ e.html ++ "</th>";
+  (Tdata e).html = "<td>" ++ e.html ++ "</td>";
+};
