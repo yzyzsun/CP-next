@@ -41,9 +41,10 @@ eval = runTrampoline <<< go
       let arg = if coercive then TmAnnoArg else TmArg
       go $ paraApp e1' (arg (TmRef (ref e2)))
     go e@(TmAbs _ _ _ _ _) = pure e
-    go fix@(TmFix x e _) = do
+    go fix@(TmFix e) = do
+      e' <- go e
       let r = ref fix
-      s <- go $ tmSubst x (TmRef r) e
+      s <- go $ paraApp e' (TmArg (TmRef r))
       pure $ write s r
     go anno@(TmAnno e t) = do
       e' <- go' e

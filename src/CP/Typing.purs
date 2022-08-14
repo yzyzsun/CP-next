@@ -189,7 +189,7 @@ infer (S.TmLetrec x Nil Nil t e1 e2) = do
   if t1 <: t' then do
     let e1'' = if t1 === t' then e1' else C.TmAnno e1' t'
     e2' /\ t2 <- addTmBind x t' $ infer e2
-    pure $ letIn x (C.TmFix x e1'' t') t' e2' t2 /\ t2
+    pure $ letIn x (C.TmFix (C.TmAbs x e1'' t' t' false)) t' e2' t2 /\ t2
   else throwTypeError $
     "annotated" <+> show t <+> "is not a supertype of inferred" <+> show t1
 -- TODO: find a more efficient algorithm
@@ -352,8 +352,7 @@ infer (S.TmNew e) = do
   e' /\ t <- infer e
   case t of
     C.TyArrow ti to true ->
-      if to <: ti then
-        pure $ C.TmFix "$self" (C.TmApp e' (C.TmVar "$self") true) to /\ to
+      if to <: ti then pure $ C.TmFix e' /\ to
       else throwTypeError $ "input type is not a supertype of output type in" <+>
                             "Trait<" <+> show ti <+> "=>" <+> show to <+> ">"
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t

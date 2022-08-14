@@ -48,7 +48,9 @@ step (TmApp e1 e2 coercive)
   | isValue e1 = computation "PApp" $>
                   paraApp e1 ((if coercive then TmAnnoArg else TmArg) e2)
   | otherwise  = congruence  "AppL" $> TmApp <*> step e1 <@> e2 <@> coercive
-step fix@(TmFix x e _) = computation "Fix" $> tmSubst x fix e
+step fix@(TmFix e)
+  | isValue e = computation "FixV" $> paraApp e (TmArg fix)
+  | otherwise = congruence  "Fix"  $> TmFix <*> step e
 step (TmAnno (TmAnno e _) t) = computation "AnnoAnno" $> TmAnno e t
 step (TmAnno e t)
   | isValue e = computation "AnnoV" $> unsafeFromJust (cast e t)

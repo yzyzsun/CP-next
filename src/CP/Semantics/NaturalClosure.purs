@@ -50,7 +50,11 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       let arg = if coercive then TmAnnoArg else TmArg
       go $ paraApp e1' (arg (TmRef (ref e2')))
     go e@(TmAbs _ _ _ _ _) = closure e
-    go (TmFix x e _) = local (\env -> insert x (TmBind e) env) (go e)
+    go fix@(TmFix e) = do
+      e' <- go e
+      let r = ref fix
+      s <- go $ paraApp e' (TmArg (TmRef r))
+      pure $ write s r
     go anno@(TmAnno e t) = do
       e' <- go' e
       t' <- expand t

@@ -41,7 +41,9 @@ eval = runTrampoline <<< go <<< tmHoas
       e1' <- go e1
       go $ paraApp e1' ((if coercive then TmAnnoArg else TmArg) e2)
     go e@(TmHAbs _ _ _ _) = pure e
-    go e@(TmHFix fix _) = go $ fix e
+    go fix@(TmFix e) = do
+      e' <- go e
+      go $ paraApp e' (TmArg fix)
     go anno@(TmAnno e t) = do
       e' <- go' e
       case cast e' t of

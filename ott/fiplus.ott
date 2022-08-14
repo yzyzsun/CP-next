@@ -21,7 +21,7 @@ exp, e :: 'e_' ::= {{ com expressions }}
   | {}               ::  :: top    {{ com top value }}
   | b                ::  :: base   {{ com base literal }} {{ tex b }}
   | x                ::  :: var    {{ com variable }}
-  | fix x : A . e    ::  :: fix    {{ com fixpoint }} {{ tex [[fix]]\,[[x]]\!:\![[A]].\;[[e]] }}
+  | fix e            ::  :: fix    {{ com fixpoint }}
   | \ x : A . e : B  ::  :: abs    {{ com abstraction }} {{ tex [[\]][[x]]\!:\![[A]].\;[[e]]\!:\![[B]] }}
   | e1 e2            ::  :: app    {{ com application }}
   | /\ X * A . e : B ::  :: tabs   {{ com type abstraction }} {{ tex [[/\]][[X]]\!*\![[A]].\;[[e]]\!:\![[B]] }}
@@ -350,9 +350,9 @@ x : A in G
 G |- x => A
 
 
-G , x : A |- e <= A
-------------------------------------------- :: Fix
-G |- fix x : A . e => A
+G |- e => A -> A
+---------------- :: Fix
+G |- fix e => A
 
 
 G , x : A |- e <= B
@@ -520,8 +520,8 @@ e --> e' :: :: step :: Step_
 by
 
 
------------------------------------------------------ :: Fix
-fix x : A . e  -->  e [ x ~> fix x : A . e ] : A
+-------------------------------------------- :: FixV
+fix \x:A. e:A  -->  e [ x ~> fix \x:A. e:A ]
 
 
 v1 ; v2  -->  e
@@ -540,8 +540,13 @@ v.l  -->  e
 
 
 v  -->A  v'
----------------- :: Cast
+---------------- :: AnnoV
 v : A  -->  v'
+
+
+e  -->  e'
+------------------ :: Fix
+fix e  -->  fix e'
 
 
 e1  -->   e1'
