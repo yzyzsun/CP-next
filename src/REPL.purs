@@ -4,8 +4,6 @@ import Prelude
 
 import Ansi.Codes (Color(..))
 import Ansi.Output (foreground, withGraphics)
-import Control.Monad.Except (runExcept)
-import Control.Monad.State (runStateT)
 import Data.Array (filter)
 import Data.Array.NonEmpty (NonEmptyArray, foldl1, fromArray)
 import Data.Either (Either(..))
@@ -23,7 +21,7 @@ import Effect.Exception (message, try)
 import Effect.Now (nowTime)
 import Effect.Ref (Ref, modify_, new, read, write)
 import Language.CP (importDefs, inferType, interpret, showTypeError)
-import Language.CP.Context (CompilerState, Mode(..), clearEnv, fromState, initState, ppState, runTyping)
+import Language.CP.Context (CompilerState, Mode(..), clearEnv, fromState, initState, ppState, runChecking, runTyping)
 import Language.CP.Util (unsafeFromJust)
 import Node.Encoding (Encoding(..))
 import Node.FS.Stats (isDirectory)
@@ -91,14 +89,14 @@ importFile :: Cmd
 importFile file ref = do
   code <- readTextFile file
   st <- read ref
-  case runExcept $ runStateT (importDefs code) st of
+  case runChecking (importDefs code) st of
     Left err -> fatal $ showTypeError err
     Right (_ /\ st') -> write st' ref
 
 evalProg :: Cmd
 evalProg code ref = do
   st <- read ref
-  case runExcept $ runStateT (interpret code) st of
+  case runChecking (interpret code) st of
     Left err -> fatal $ showTypeError err
     Right (output /\ st') -> do
       log output

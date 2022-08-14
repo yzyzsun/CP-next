@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.Reader (ReaderT, asks, local, runReaderT)
-import Control.Monad.State (StateT)
+import Control.Monad.State (StateT, runStateT)
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
 import Data.List (List(..))
@@ -107,6 +107,9 @@ initState = { mode       : BigStep
             , tmBindings : Nil
             , tyAliases  : empty
             }
+
+runChecking :: forall a. Checking a -> CompilerState -> Either TypeError (a /\ CompilerState)
+runChecking m st = runExcept $ runStateT m st
 
 toList :: forall k v. Map k v -> List (k /\ v)
 toList = toUnfoldable

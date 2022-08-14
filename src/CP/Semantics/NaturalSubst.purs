@@ -8,7 +8,7 @@ import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop
 import Language.CP.Semantics.Subst (cast, paraApp)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (Tm(..), done, read, ref, tmSubst, unfold, write)
+import Language.CP.Syntax.Core (Tm(..), done, read, ref, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = Trampoline

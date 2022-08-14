@@ -23,60 +23,56 @@ export default class CPVisitor extends CPParserVisitor {
 
   // Visit a parse tree produced by CPParser#program.
   visitProgram(ctx) {
-    const definitions = ctx.definition();
-    const expression = ctx.expression();
-    let program = this.visitExpression(expression);
-    for (const definition of definitions.reverse()) {
-      program = this.visitDefinition(definition, program);
-    }
-    return program;
+    const definitions = this.listify(ctx.definition().map(this.visitDefinition, this));
+    const expression = this.visitExpression(ctx.expression());
+    return new AST.Prog(definitions, expression);
   }
 
 
   // Visit a parse tree produced by CPParser#definition.
-  visitDefinition(ctx, program) {
+  visitDefinition(ctx) {
     const typeDef = ctx.typeDef();
     const termDef = ctx.termDef();
     const interfaceDef = ctx.interfaceDef();
-    if (typeDef) return this.visitTypeDef(typeDef, program);
-    else if (termDef) return this.visitTermDef(termDef, program);
-    else return this.visitInterfaceDef(interfaceDef, program);
+    if (typeDef) return this.visitTypeDef(typeDef);
+    else if (termDef) return this.visitTermDef(termDef);
+    else return this.visitInterfaceDef(interfaceDef);
   }
 
 
   // Visit a parse tree produced by CPParser#interfaceDef.
-  visitInterfaceDef(ctx, p) {
+  visitInterfaceDef(ctx) {
     const typeNameDecls = ctx.typeNameDecl();
     const a = this.visitTypeNameDecl(typeNameDecls[0]);
     const sortCount = ctx.Less().length;
     const sorts = this.listify(typeNameDecls.slice(1, sortCount + 1).map(this.visitTypeNameDecl, this));
-    const parms = this.listify(typeNameDecls.slice(sortCount + 1).map(this.visitTypeNameDecl, this));
+    const params = this.listify(typeNameDecls.slice(sortCount + 1).map(this.visitTypeNameDecl, this));
     const def = ctx.Extends() ? new AST.InterfaceExtends(this.visitBtype(ctx.btype())) : AST.Interface.value;
     const t = this.visitRecordType(ctx.recordType());
-    return new AST.TmType(def, a, sorts, parms, t, p);
+    return new AST.TyDef(def, a, sorts, params, t);
   }
 
 
   // Visit a parse tree produced by CPParser#typeDef.
-  visitTypeDef(ctx, p) {
+  visitTypeDef(ctx) {
     const typeNameDecls = ctx.typeNameDecl();
     const a = this.visitTypeNameDecl(typeNameDecls[0]);
     const sortCount = ctx.Less().length;
     const sorts = this.listify(typeNameDecls.slice(1, sortCount + 1).map(this.visitTypeNameDecl, this));
-    const parms = this.listify(typeNameDecls.slice(sortCount + 1).map(this.visitTypeNameDecl, this));
+    const params = this.listify(typeNameDecls.slice(sortCount + 1).map(this.visitTypeNameDecl, this));
     const t = this.visitType(ctx.type());
-    return new AST.TmType(AST.TypeAlias.value, a, sorts, parms, t, p);
+    return new AST.TyDef(AST.TypeAlias.value, a, sorts, params, t);
   }
 
 
   // Visit a parse tree produced by CPParser#termDef.
-  visitTermDef(ctx, p) {
+  visitTermDef(ctx) {
     const x = this.visitTermNameDecl(ctx.termNameDecl());
     const tys = this.listify(ctx.typeParam().map(this.visitTypeParam, this));
     const tms = this.listify(ctx.termParam().map(this.visitTermParam, this));
     const t = ctx.type() ? new Just(this.visitType(ctx.type())) : Nothing.value;
     const e = this.visitExpression(ctx.expression());
-    return new AST.TmDef(x, tys, tms, t, e, p);
+    return new AST.TmDef(x, tys, tms, t, e);
   }
 
 

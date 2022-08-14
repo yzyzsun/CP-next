@@ -12,7 +12,7 @@ import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Exception (throw)
-import Language.CP.Context (Checking, CompilerState, Mode(..), Pos(..), TypeError(..), Typing, emptyCtx, runTyping, throwCheckError, throwTypeError)
+import Language.CP.Context (Checking, CompilerState, Mode(..), Pos(..), TypeError(..), Typing, initState, runChecking, throwCheckError, throwTypeError)
 import Language.CP.Desugar (desugar, desugarProg)
 import Language.CP.Parser (expr, program, whiteSpace)
 import Language.CP.Semantics.HOAS as HOAS
@@ -41,26 +41,36 @@ importDefs code = case runParser code (whiteSpace *> program <* eof) of
     _ <- checkProg prog'
     pure unit
 
-interpret :: String -> Checking String
-interpret code = case runParser code (whiteSpace *> program <* eof) of
-  Left err -> throwCheckError $ showParseError err code
-  Right prog -> do
-    let prog' = desugarProg prog
-    let e' = case prog' of S.Prog _ e -> e
-    e /\ t <- checkProg prog'
-    e'' <- gets (wrapUp e t)
-    mode <- gets (_.mode)
-    pure $ case mode of
-      SmallStep -> show (SmallStep.eval e'')
-      StepTrace -> let _ /\ s = StepTrace.eval e'' in
-        show e <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s ""
-      BigStep -> show (BigStep.eval e'')
-      HOAS -> show (HOAS.eval e'')
-      Closure -> show (Closure.eval e'')
+evalProg :: S.Prog -> Checking String
+evalProg prog = do
+  let prog' = desugarProg prog
+      S.Prog _ e' = prog'
+  e /\ t <- checkProg prog'
+  e'' <- gets (wrapUp e t)
+  mode <- gets (_.mode)
+  pure $ case mode of
+    SmallStep -> show (SmallStep.eval e'')
+    StepTrace -> let _ /\ s = StepTrace.eval e'' in
+      show e <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s ""
+    BigStep -> show (BigStep.eval e'')
+    HOAS -> show (HOAS.eval e'')
+    Closure -> show (Closure.eval e'')
   where
     wrapUp :: C.Tm -> C.Ty -> CompilerState -> C.Tm
     wrapUp e t st = fst $ foldr (\f -> \acc -> f acc) (e /\ t) $
       map (\(_ /\ _ /\ f) -> \(e1 /\ t1) -> (f (e1 /\ t1) /\ t1)) st.tmBindings
+
+-- Source code interpretation used by REPL
+interpret :: String -> Checking String
+interpret code = case runParser code (whiteSpace *> program <* eof) of
+  Left err -> throwCheckError $ showParseError err code
+  Right prog -> evalProg prog
+
+-- Big-step evaluation used after ANTLR parsing
+evaluate :: S.Prog -> Effect String
+evaluate prog = case runChecking (evalProg prog) initState of
+  Left err -> throw $ showTypeError err
+  Right (output /\ _) -> pure output
 
 showPosition :: Position -> String
 showPosition (Position { line: line, column: column }) =
@@ -83,9 +93,3 @@ showTypeError (TypeError msg UnknownPos) = msg
 showTypeError (TypeError msg (Pos pos expr inDoc)) =
   showPosition pos <> ": " <> msg <> "\nin the expression: " <>
   (if inDoc then S.showDoc else show) expr
-
--- Big-step evaluation used after ANTLR parsing
-evaluate :: S.Tm -> Effect String
-evaluate e = case runTyping (infer $ desugar e) emptyCtx of
-  Left err -> throw $ showTypeError err
-  Right (e' /\ _) -> pure $ show (BigStep.eval e')

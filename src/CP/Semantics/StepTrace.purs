@@ -10,7 +10,7 @@ import Data.Tuple.Nested (type (/\))
 import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Language.CP.Semantics.Subst (cast, isValue, paraApp)
 import Language.CP.Subtyping (isTopLike)
-import Language.CP.Syntax.Core (Tm(..), tmSubst, unfold)
+import Language.CP.Syntax.Core (Tm(..), unfold)
 import Language.CP.Util (unsafeFromJust)
 import Partial.Unsafe (unsafeCrashWith)
 

@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Monad.Reader (ask, local, runReaderT)
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
-import Data.Map (empty, insert, lookup)
+import Data.Map (empty, lookup)
 import Data.Maybe (Maybe(..))
 import Language.CP.Semantics.Closure (EvalT, binop', cast, closure, expand, paraApp, selectLabel, unop')
 import Language.CP.Semantics.Common (Arg(..), toString)
