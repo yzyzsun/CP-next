@@ -4,6 +4,14 @@ const TerserPlugin = require('terser-webpack-plugin');
 module.exports = {
   mode: 'production',
   entry: './app.js',
+  module: {
+    rules: [
+      {
+        test: /\.grammar$/,
+        use: "lezer-loader",
+      },
+    ],
+  },
   resolve: {
     fallback: {
       fs: false,

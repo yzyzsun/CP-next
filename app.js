@@ -1,12 +1,12 @@
 /* CodeMirror & Lezer */
 
-import { basicSetup } from '@codemirror/basic-setup';
+import { basicSetup } from 'codemirror';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { LRLanguage, LanguageSupport, continuedIndent, foldNodeProp, indentNodeProp } from '@codemirror/language';
 import { styleTags, tags as t } from '@lezer/highlight';
-import { parser } from './lezer.js';
+import parser from './lezer.grammar';
 
 export const cp = new LanguageSupport(LRLanguage.define({
   parser: parser.configure({

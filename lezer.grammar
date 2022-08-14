@@ -143,7 +143,7 @@ Label { lowerid | upperid }
 
 @tokens {
 
-  whitespace { std.whitespace+ }
+  whitespace { @whitespace+ }
 
   LineComment { "--" ![\n]* }
 
@@ -152,14 +152,14 @@ Label { lowerid | upperid }
   blockCommentAfterHyphen { "}" | ![}] blockCommentRest }
 
   underscore { "_" }
-  idChar { std.asciiLetter | std.digit | underscore | "'" }
-  lowerid { std.asciiLowercase idChar* }
-  upperid { std.asciiUppercase idChar* }
+  idChar { @asciiLetter | @digit | underscore | "'" }
+  lowerid { @asciiLowercase idChar* }
+  upperid { @asciiUppercase idChar* }
 
   octit { $[0-7] }
-  hexit { std.digit | $[a-fA-F] }
+  hexit { @digit | $[a-fA-F] }
   Number {
-    std.digit+ ("." std.digit+)? (("e" | "E") ("+" | "-")? std.digit+)? |
+    @digit+ ("." @digit+)? (("e" | "E") ("+" | "-")? @digit+)? |
     "0x" hexit+ | "0X" hexit+ |
     "0o" octit+ | "0O" octit+
   }
