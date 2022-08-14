@@ -35,10 +35,10 @@ docker run -it yzyzsun/cp-next spago test
 To start a local server for PLGround, please specify the tag `plground`:
 
 ```
-docker run -it yzyzsun/cp-next:plground -p 3000:3000
+docker run -p 3000:3000 -it yzyzsun/cp-next:plground
 ```
 
-Then you can visit PLGround at <127.0.0.1:3000>  on your browser. The website is preloaded with the code examples and applications mentioned in the paper:
+Then you can visit PLGround at [127.0.0.1:3000](http://127.0.0.1:3000) on your browser. The website is preloaded with the code examples and applications mentioned in the paper:
 
 1. The main example: Region DSL;
 2. Extra demo of transformation: CSE;
