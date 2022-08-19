@@ -20,7 +20,7 @@ import Effect.Console (log)
 import Effect.Exception (message, try)
 import Effect.Now (nowTime)
 import Effect.Ref (Ref, modify_, new, read, write)
-import Language.CP (importDefs, inferType, interpret, showTypeError)
+import Language.CP (compile, importDefs, inferType, interpret, showTypeError)
 import Language.CP.Context (CompilerState, Mode(..), clearEnv, fromState, initState, ppState, runChecking, runTyping)
 import Language.CP.Util (unsafeFromJust)
 import Node.Encoding (Encoding(..))
@@ -29,6 +29,8 @@ import Node.FS.Sync as Sync
 import Node.Path (FilePath, concat, sep)
 import Node.Process (exit)
 import Node.ReadLine (Completer, Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
+
+foreign import eval :: forall a. String -> a
 
 -- commands
 type Cmd = String -> Ref CompilerState -> Effect Unit
@@ -43,8 +45,9 @@ printHelp _ _ = log $ stripMargin
   |  :env
   |  :env clear
   |  :type <expr>
-  |  :load <file>
   |  :import <file>
+  |  :load <file>
+  |  :compile <file>
   """
 
 showOrSetMode :: Cmd
@@ -80,11 +83,6 @@ typeExpr expr ref = do
     Left err -> fatal $ showTypeError err
     Right output -> log output
 
-loadFile :: Cmd
-loadFile file ref = do
-  code <- readTextFile file
-  evalProg code ref
-
 importFile :: Cmd
 importFile file ref = do
   code <- readTextFile file
@@ -92,6 +90,11 @@ importFile file ref = do
   case runChecking (importDefs code) st of
     Left err -> fatal $ showTypeError err
     Right (_ /\ st') -> write st' ref
+
+loadFile :: Cmd
+loadFile file ref = do
+  code <- readTextFile file
+  evalProg code ref
 
 evalProg :: Cmd
 evalProg code ref = do
@@ -101,6 +104,13 @@ evalProg code ref = do
     Right (output /\ st') -> do
       log output
       write st' ref
+
+compileFile :: Cmd
+compileFile file _ = do
+  code <- readTextFile file
+  case compile code of
+    Left err -> fatal $ err
+    Right js -> verb js *> log (eval js)
 
 errorCmd :: Cmd
 errorCmd input ref = do
@@ -125,8 +135,9 @@ dispatch input = ifMatchesAny (":?" : ":h" : ":help" : Nil) printHelp $
   ifMatches ":timing" setTiming $
   ifMatches ":env" showOrClearEnv $
   ifMatches ":type" (mayTime typeExpr) $
-  ifMatches ":load" (mayTime loadFile) $
   ifMatches ":import" (mayTime importFile) $
+  ifMatches ":load" (mayTime loadFile) $
+  ifMatches ":compile" (mayTime compileFile) $
   ifMatches ":" errorCmd $
   mayTime evalProg input
   where
@@ -197,8 +208,10 @@ completer = makeCompleter $ unsafeFromJust $ fromArray
   , ConstSyntax ":env"
   , ConstSyntax ":env clear"
   , ConstSyntax ":type"
+  , FileSyntax ":import"
   , FileSyntax ":load"
-  , FileSyntax ":import" ]
+  , FileSyntax ":compile"
+  ]
 
 repl :: Effect Unit
 repl = do
@@ -216,6 +229,9 @@ fatal msg = error $ withGraphics (foreground Red) msg
 
 info :: String -> Effect Unit
 info msg = log $ withGraphics (foreground Blue) msg
+
+verb :: String -> Effect Unit
+verb msg = log $ withGraphics (foreground BrightBlack) msg
 
 readTextFile :: String -> Effect String
 readTextFile f = do

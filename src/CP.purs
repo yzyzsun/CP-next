@@ -12,6 +12,7 @@ import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Exception (throw)
+import Language.CP.CodeGen (runCodeGen)
 import Language.CP.Context (Checking, CompilerState, Mode(..), Pos(..), TypeError(..), Typing, initState, runChecking, throwCheckError, throwTypeError)
 import Language.CP.Desugar (desugar, desugarProg)
 import Language.CP.Parser (expr, program, whiteSpace)
@@ -23,6 +24,7 @@ import Language.CP.Semantics.Subst as SmallStep
 import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
 import Language.CP.Typing (checkProg, infer)
+import Language.JS.Pretty (print1)
 import Parsing (ParseError(..), Position(..), runParser)
 import Parsing.String (eof)
 
@@ -41,10 +43,13 @@ importDefs code = case runParser code (whiteSpace *> program <* eof) of
     _ <- checkProg prog'
     pure unit
 
+wrapUp :: C.Tm -> C.Ty -> CompilerState -> C.Tm
+wrapUp e t st = fst $ foldr (\f -> \acc -> f acc) (e /\ t) $
+  map (\(_ /\ _ /\ f) -> \(e1 /\ t1) -> (f (e1 /\ t1) /\ t1)) st.tmBindings
+
 evalProg :: S.Prog -> Checking String
 evalProg prog = do
-  let prog' = desugarProg prog
-      S.Prog _ e' = prog'
+  let prog'@(S.Prog _ e') = desugarProg prog
   e /\ t <- checkProg prog'
   e'' <- gets (wrapUp e t)
   mode <- gets (_.mode)
@@ -55,10 +60,6 @@ evalProg prog = do
     BigStep -> show (BigStep.eval e'')
     HOAS -> show (HOAS.eval e'')
     Closure -> show (Closure.eval e'')
-  where
-    wrapUp :: C.Tm -> C.Ty -> CompilerState -> C.Tm
-    wrapUp e t st = fst $ foldr (\f -> \acc -> f acc) (e /\ t) $
-      map (\(_ /\ _ /\ f) -> \(e1 /\ t1) -> (f (e1 /\ t1) /\ t1)) st.tmBindings
 
 -- Source code interpretation used by REPL
 interpret :: String -> Checking String
@@ -71,6 +72,18 @@ evaluate :: S.Prog -> Effect String
 evaluate prog = case runChecking (evalProg prog) initState of
   Left err -> throw $ showTypeError err
   Right (output /\ _) -> pure output
+
+compile :: String -> Either String String
+compile code = case runParser code (whiteSpace *> program <* eof) of
+  Left err -> Left $ showParseError err code
+  Right prog -> case runChecking (check (desugarProg prog)) initState of
+    Left err -> Left $ showTypeError err
+    Right (e /\ _) -> print1 <$> runCodeGen e
+  where
+    check :: S.Prog -> Checking C.Tm
+    check prog = do
+      e /\ t <- checkProg prog
+      gets (wrapUp e t)
 
 showPosition :: Position -> String
 showPosition (Position { line: line, column: column }) =

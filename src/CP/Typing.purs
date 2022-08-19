@@ -461,6 +461,61 @@ inferRec x e t = do
   else throwTypeError $
     "annotated" <+> show t <+> "is not a supertype of inferred" <+> show t1
 
+checkDef :: S.Def -> Checking Unit
+checkDef (S.TyDef def a sorts params t) = case def of
+  S.TypeAlias -> do
+    ctx <- gets fromState
+    case runTyping (addSorts $ addTyBinds $ transformTyDef t) ctx of
+      Left err -> throwError err
+      Right t' -> modify_ \st -> st { tyAliases = insert a (sig t') st.tyAliases }
+  S.Interface -> do
+    ctx <- gets fromState
+    case runTyping (addSorts $ addTyBinds $ addTyBind a C.TyTop $ transformTyDef t) ctx of
+      Left err -> throwError err
+      Right t' -> modify_ \st -> st { tyAliases = insert a (sig (S.TyRec a t')) st.tyAliases }
+                                               -- TODO:    (S.TyRec a (sig t'))
+  S.InterfaceExtends super -> do
+    checkDef $ S.TyDef S.Interface ("$" <> a) sorts params t
+    let self = S.TyVar ("$" <> a) # withSorts # withParams
+    checkDef $ S.TyDef S.TypeAlias a sorts params (S.TyAnd super self)
+  where
+    dualSorts :: List (Name /\ Name)
+    dualSorts = sorts <#> \sort -> sort /\ ("$" <> sort)
+    addSorts :: forall a. Typing a -> Typing a
+    addSorts typing = foldr (uncurry addSort) typing dualSorts
+    addTyBinds :: forall a. Typing a -> Typing a
+    addTyBinds typing = foldr (flip addTyBind C.TyTop) typing params
+    sig :: S.Ty -> S.Ty
+    sig t' = foldr (uncurry S.TySig) (foldr S.TyAbs t' params) dualSorts    
+    withSorts :: S.Ty -> S.Ty
+    withSorts t' = let sort = S.TyVar >>> flip S.TySort Nothing in
+                   foldl (S.TyApp >>> (sort >>> _)) t' sorts
+    withParams :: S.Ty -> S.Ty
+    withParams t' = foldl (S.TyApp >>> (S.TyVar >>> _)) t' params
+checkDef (S.TmDef x Nil Nil Nothing e) = do
+  ctx <- gets fromState
+  case runTyping (infer e) ctx of
+    Left err -> throwError err
+    Right (e' /\ t) ->
+      let f = letIn x e' t in
+      modify_ \st -> st { tmBindings = st.tmBindings <> singleton (x /\ t /\ uncurry f) }
+checkDef (S.TmDef x Nil Nil (Just t) e) = do
+  ctx <- gets fromState
+  case runTyping (inferRec x e t) ctx of
+    Left err -> throwError err
+    Right (e' /\ t') -> 
+      let f = letIn x (C.TmFix (C.TmAbs x e' t' t' false)) t' in
+      modify_ \st -> st { tmBindings = st.tmBindings <> ((x /\ t' /\ uncurry f) : Nil) }
+checkDef d = throwError $ TypeError ("expected a desugared def, but got" <+> show d) UnknownPos
+
+checkProg :: S.Prog -> Checking (C.Tm /\ C.Ty)
+checkProg (S.Prog defs e) = do
+  traverse_ checkDef defs
+  ctx <- gets fromState
+  case runTyping (infer e) ctx of
+    Left err -> throwError err
+    Right p -> pure p
+
 distApp :: C.Ty -> Either C.Ty C.Ty -> Typing C.Ty
 distApp (C.TyArrow targ tret _) (Left t) | t <: targ = pure tret
                                          | otherwise = throwTypeError $
@@ -533,58 +588,3 @@ selectLabel (C.TyAnd t1 t2) l opt =
     Nothing,  Nothing  -> Nothing
 selectLabel (C.TyRcd l' t opt') l opt | l == l' && opt == opt' = Just t
 selectLabel _ _ _ = Nothing
-
-checkDef :: S.Def -> Checking Unit
-checkDef (S.TyDef def a sorts params t) = case def of
-  S.TypeAlias -> do
-    ctx <- gets fromState
-    case runTyping (addSorts $ addTyBinds $ transformTyDef t) ctx of
-      Left err -> throwError err
-      Right t' -> modify_ (\b -> b { tyAliases = insert a (sig t') b.tyAliases })
-  S.Interface -> do
-    ctx <- gets fromState
-    case runTyping (addSorts $ addTyBinds $ addTyBind a C.TyTop $ transformTyDef t) ctx of
-      Left err -> throwError err
-      Right t' -> modify_ (\b -> b { tyAliases = insert a (sig (S.TyRec a t')) b.tyAliases })
-    -- TODO:                                              (S.TyRec a (sig t'))
-  S.InterfaceExtends super -> do
-    checkDef $ S.TyDef S.Interface ("$" <> a) sorts params t
-    let self = S.TyVar ("$" <> a) # withSorts # withParams
-    checkDef $ S.TyDef S.TypeAlias a sorts params (S.TyAnd super self)
-  where
-    dualSorts :: List (Name /\ Name)
-    dualSorts = sorts <#> \sort -> sort /\ ("$" <> sort)
-    addSorts :: forall a. Typing a -> Typing a
-    addSorts typing = foldr (uncurry addSort) typing dualSorts
-    addTyBinds :: forall a. Typing a -> Typing a
-    addTyBinds typing = foldr (flip addTyBind C.TyTop) typing params
-    sig :: S.Ty -> S.Ty
-    sig t' = foldr (uncurry S.TySig) (foldr S.TyAbs t' params) dualSorts    
-    withSorts :: S.Ty -> S.Ty
-    withSorts t' = let sort = S.TyVar >>> flip S.TySort Nothing in
-                   foldl (S.TyApp >>> (sort >>> _)) t' sorts
-    withParams :: S.Ty -> S.Ty
-    withParams t' = foldl (S.TyApp >>> (S.TyVar >>> _)) t' params
-checkDef (S.TmDef x Nil Nil Nothing e) = do
-  ctx <- gets fromState
-  case runTyping (infer e) ctx of
-    Left err -> throwError err
-    Right (e' /\ t) ->
-      let f = letIn x e' t in
-      modify_ (\st -> st { tmBindings = st.tmBindings <> singleton (x /\ t /\ uncurry f) })
-checkDef (S.TmDef x Nil Nil (Just t) e) = do
-  ctx <- gets fromState
-  case runTyping (inferRec x e t) ctx of
-    Left err -> throwError err
-    Right (e' /\ t') -> 
-      let f = letIn x (C.TmFix (C.TmAbs x e' t' t' false)) t' in
-      modify_ (\b -> b { tmBindings = b.tmBindings <> ((x /\ t' /\ uncurry f) : Nil) })
-checkDef d = throwError $ TypeError ("expected a desugared def, but got" <+> show d) UnknownPos
-
-checkProg :: S.Prog -> Checking (C.Tm /\ C.Ty)
-checkProg (S.Prog defs e) = do
-  traverse_ checkDef defs
-  ctx <- gets fromState
-  case runTyping (infer e) ctx of
-    Left err -> throwError err
-    Right p -> pure p
