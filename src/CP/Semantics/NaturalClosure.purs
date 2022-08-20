@@ -6,11 +6,11 @@ import Control.Monad.Reader (ask, local, runReaderT)
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Map (empty, lookup)
 import Data.Maybe (Maybe(..))
-import Language.CP.Semantics.Closure (EvalT, binop', cast, closure, expand, paraApp, selectLabel, unop')
+import Language.CP.Semantics.Closure (EvalT, binop', cast, closure, expand, paraApp, unop')
 import Language.CP.Semantics.Common (Arg(..), toString)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (EvalBind(..), Tm(..), done, read, ref, unfold, write)
+import Language.CP.Syntax.Core (EvalBind(..), Tm(..), Ty(..), done, read, ref, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = EvalT Trampoline
@@ -55,20 +55,27 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       let r = ref fix
       s <- go $ paraApp e' (TmArg (TmRef r))
       pure $ write s r
-    go anno@(TmAnno e t) = do
+    go (TmAnno e t) = do
       e' <- go' e
       t' <- expand t
       s <- cast e' t'
       case s of
         Just e'' -> go e''
         Nothing -> unsafeCrashWith $ "CP.Semantics.NaturalClosure.eval: " <>
-                                     "impossible casting " <> show anno
+                       "impossible casting " <> show e' <> " : " <> show t
       where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go e@(TmRcd _ _ _) = closure e
-    go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
+    go (TmPrj e l) = paraApp <$> go e <@> LabelArg l >>= go
+    go (TmOptPrj e1 l t e2) = do
+      e1' <- go e1
+      t' <- expand t
+      s <- cast e1' (TyRcd l t' false)
+      case s of
+        Just e -> go $ TmPrj e l
+        Nothing -> go e2
     go (TmTApp e t) = do
       e' <- go e
       t' <- expand t

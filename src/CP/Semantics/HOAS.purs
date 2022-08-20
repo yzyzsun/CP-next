@@ -6,7 +6,7 @@ import Control.Alt ((<|>))
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\))
-import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
+import Language.CP.Semantics.Common (Arg(..), binop, toString, unop)
 import Language.CP.Subtyping (isTopLike, split, (<:))
 import Language.CP.Syntax.Common (BinOp(..))
 import Language.CP.Syntax.Core (Tm(..), Ty(..), done, read, ref, tmHoas, tyHoas, unfold, write)
@@ -44,18 +44,23 @@ eval = runTrampoline <<< go <<< tmHoas
     go fix@(TmFix e) = do
       e' <- go e
       go $ paraApp e' (TmArg fix)
-    go anno@(TmAnno e t) = do
+    go (TmAnno e t) = do
       e' <- go' e
       case cast e' t of
         Just e'' -> go e''
-        Nothing -> unsafeCrashWith $
-          "CP.Semantics.HOAS.eval: impossible casting " <> show anno
+        Nothing -> unsafeCrashWith $ "CP.Semantics.HOAS.eval: " <>
+                       "impossible casting " <> show e' <> " : " <> show t
       where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go (TmRcd l t e) = pure $ TmRcd l t (TmRef (ref e))
-    go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
+    go (TmPrj e l) = paraApp <$> go e <@> LabelArg l >>= go
+    go (TmOptPrj e1 l t e2) = do
+      e1' <- go e1
+      case cast e1' (TyRcd l t false) of
+        Just e -> go $ TmPrj e l
+        Nothing -> go e2
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmHTAbs _ _ _ _) = pure e
     go (TmFold t e) = TmFold t <$> go e
@@ -109,6 +114,7 @@ paraApp (TmHAbs abs targ tret _) (TmAnnoArg e) =
   TmAnno (abs $ TmRef $ ref $ TmAnno e targ) tret
 paraApp (TmHTAbs tabs _ _ false) (TyArg ta) = tabs ta
 paraApp (TmHTAbs tabs _ tf true) (TyArg ta) = TmAnno (tabs ta) (tf ta)
+paraApp (TmRcd l t e) (LabelArg l') | l == l' = TmAnno e t
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
 paraApp v arg = unsafeCrashWith $ "CP.Semantics.HOAS.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg

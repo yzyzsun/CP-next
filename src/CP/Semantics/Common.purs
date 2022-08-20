@@ -28,8 +28,6 @@ binop Index (TmArray t arr) (TmInt i) = case arr !! i of
   Just e -> TmAnno e t
   Nothing -> unsafeCrashWith $ "CP.Semantics.Common.binop: the index " <>
     show i <> " is out of bounds for " <> show (TmArray t arr)
-binop Coalesce TmUnit v2 = v2
-binop Coalesce v1 _ = v1
 binop op v1 v2 = unsafeCrashWithBinop op v1 v2
 
 arith :: ArithOp -> Tm -> Tm -> Tm
@@ -90,15 +88,6 @@ toString (TmBool b)   = TmString (show b)
 toString v = unsafeCrashWith $
   "CP.Semantics.Common.toString: impossible from " <> show v <> " to string"
 
-selectLabel :: Tm -> Label -> Tm
-selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUnit, TmUnit -> TmUnit
-  TmUnit, e2' -> e2'
-  e1', TmUnit -> e1'
-  e1', e2' -> TmMerge e1' e2'
-selectLabel (TmRcd l' t e) l | l == l' = TmAnno e t
-selectLabel _ _ = TmUnit
-
 genTopLike :: Ty -> Tm
 genTopLike TyTop = TmUnit
 genTopLike (TyArrow _ t _) = TmAbs "$top" TmUnit TyTop t true
@@ -108,9 +97,10 @@ genTopLike (TyRec _ t) = genTopLike t
 genTopLike t = unsafeCrashWith $ "CP.Semantics.Common.genTopLike: " <>
   "cannot generate a top-like value of type " <> show t
 
-data Arg = TmArg Tm | TmAnnoArg Tm | TyArg Ty
+data Arg = TmArg Tm | TmAnnoArg Tm | TyArg Ty | LabelArg Label
 
 instance Show Arg where
   show (TmArg tm) = show tm
   show (TmAnnoArg tm) = show tm
   show (TyArg ty) = show ty
+  show (LabelArg l) = "{" <> l <> "}"

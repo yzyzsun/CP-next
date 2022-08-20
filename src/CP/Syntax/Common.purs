@@ -30,7 +30,6 @@ data BinOp = Arith ArithOp
            | Logic LogicOp
            | Append
            | Index
-           | Coalesce
 
 data ArithOp = Add | Sub | Mul | Div | Mod
 data CompOp  = Eql | Neq | Lt | Le | Gt | Ge
@@ -42,7 +41,6 @@ instance Show BinOp where
   show (Logic op) = show op
   show Append   = "++"
   show Index    = "!!"
-  show Coalesce = "??"
 
 instance Show ArithOp where
   show Add = "+"

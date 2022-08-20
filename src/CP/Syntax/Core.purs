@@ -72,6 +72,7 @@ data Tm = TmInt Int
         | TmMerge Tm Tm
         | TmRcd Label Ty Tm
         | TmPrj Tm Label
+        | TmOptPrj Tm Label Ty Tm
         | TmTApp Tm Ty
         | TmTAbs Name Ty Tm Ty Boolean
         | TmFold Ty Tm
@@ -106,6 +107,8 @@ instance Show Tm where
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
   show (TmRcd l t e) = braces $ l <+> ":" <+> show t <+> "=" <+> show e
   show (TmPrj e l) = show e <> "." <> l
+  show (TmOptPrj e1 l t e2) =
+    show e1 <> "." <> l <+> ":" <+> show t <+> "??" <+> show e2
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs a td e t _refined) = parens $ "Λ" <> a <> "." <+> show e <+>
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
@@ -161,6 +164,7 @@ tmConvert env (TmAnno e t) = TmAnno (tmConvert env e) (tyConvert env t)
 tmConvert env (TmMerge e1 e2) = TmMerge (tmConvert env e1) (tmConvert env e2)
 tmConvert env (TmRcd l t e) = TmRcd l (tyConvert env t) (tmConvert env e)
 tmConvert env (TmPrj e l) = TmPrj (tmConvert env e) l
+tmConvert env (TmOptPrj e1 l t e2) = TmOptPrj (tmConvert env e1) l t (tmConvert env e2)
 tmConvert env (TmTApp e t) = TmTApp (tmConvert env e) (tyConvert env t)
 tmConvert env (TmTAbs a td e t b) =
   TmHTAbs (\ty -> tmConvert (insert a (Right ty) env) e)
@@ -205,6 +209,8 @@ tmSubst x v (TmAnno e t) = TmAnno (tmSubst x v e) t
 tmSubst x v (TmMerge e1 e2) = TmMerge (tmSubst x v e1) (tmSubst x v e2)
 tmSubst x v (TmRcd l t e) = TmRcd l t (tmSubst x v e)
 tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
+tmSubst x v (TmOptPrj e1 l t e2) =
+  TmOptPrj (tmSubst x v e1) l t (tmSubst x v e2)
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
 tmSubst x v (TmTAbs a td e t b) = TmTAbs a td (tmSubst x v e) t b
 tmSubst x v (TmFold t e) = TmFold t (tmSubst x v e)
@@ -227,6 +233,8 @@ tmTSubst a s (TmAnno e t) = TmAnno (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmMerge e1 e2) = TmMerge (tmTSubst a s e1) (tmTSubst a s e2)
 tmTSubst a s (TmRcd l t e) = TmRcd l (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmPrj e l) = TmPrj (tmTSubst a s e) l
+tmTSubst a s (TmOptPrj e1 l t e2) =
+  TmOptPrj (tmTSubst a s e1) l (tySubst a s t) (tmTSubst a s e2)
 tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmTAbs a' td e t b) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
                                     (if a == a' then t else tySubst a s t) b

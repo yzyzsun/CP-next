@@ -14,7 +14,7 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\))
 import Language.CP.Semantics.Common (Arg(..), binop, genTopLike, toString, unop)
 import Language.CP.Subtyping (isTopLike, split, (<:))
-import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
+import Language.CP.Syntax.Common (BinOp(..), Name, UnOp(..))
 import Language.CP.Syntax.Core (EvalBind(..), EvalEnv, Tm(..), Ty(..), unfold)
 import Language.CP.Util (unsafeFromJust)
 import Partial.Unsafe (unsafeCrashWith)
@@ -53,8 +53,15 @@ step (TmMerge e1 e2) | isValue e1 = TmMerge e1 <$> step e2
                      | isValue e2 = TmMerge <$> step e1 <@> e2
                      | otherwise  = TmMerge <$> step e1 <*> step e2
 step rcd@(TmRcd _ _ _) = closure rcd
-step (TmPrj e l) | isValue e = pure $ selectLabel e l
+step (TmPrj e l) | isValue e = pure $ paraApp e (LabelArg l)
                  | otherwise = TmPrj <$> step e <@> l
+step (TmOptPrj e1 l t e2)
+  | isValue e1 = do
+      t' <- expand t
+      s <- cast e1 (TyRcd l t' false)
+      case s of Just e -> pure $ TmPrj e l
+                Nothing -> pure e2
+  | otherwise = TmOptPrj <$> step e1 <@> l <@> t <@> e2
 step (TmTApp e t) | isValue e = paraApp e <<< TyArg <$> expand t
                   | otherwise = TmTApp <$> step e <@> t
 step tabs@(TmTAbs _ _ _ _ _) = closure tabs
@@ -127,18 +134,11 @@ paraApp (TmClosure env (TmTAbs a _ e _ false)) (TyArg ta) =
   TmClosure (insert a (TyBind (Just ta)) env) e
 paraApp (TmClosure env (TmTAbs a _ e t true)) (TyArg ta) =
   TmClosure (insert a (TyBind (Just ta)) env) (TmAnno e t)
+paraApp (TmClosure env (TmRcd l t e)) (LabelArg l') | l == l' =
+  TmClosure env (TmAnno e t)
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
 paraApp v arg = unsafeCrashWith $ "CP.Semantics.Closure.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
-
-selectLabel :: Tm -> Label -> Tm
-selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUnit, TmUnit -> TmUnit
-  TmUnit, e2' -> e2'
-  e1', TmUnit -> e1'
-  e1', e2' -> TmMerge e1' e2'
-selectLabel (TmClosure env (TmRcd l' t e)) l | l == l' = TmClosure env (TmAnno e t)
-selectLabel _ _ = TmUnit
 
 unop' :: UnOp -> Tm -> Tm
 unop' Len (TmClosure _ (TmArray _ arr)) = TmInt (length arr)

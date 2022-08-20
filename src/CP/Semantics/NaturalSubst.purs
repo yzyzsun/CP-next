@@ -4,11 +4,11 @@ import Prelude
 
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Maybe (Maybe(..))
-import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
+import Language.CP.Semantics.Common (Arg(..), binop, toString, unop)
 import Language.CP.Semantics.Subst (cast, paraApp)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (Tm(..), done, read, ref, unfold, write)
+import Language.CP.Syntax.Core (Tm(..), Ty(..), done, read, ref, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = Trampoline
@@ -46,18 +46,23 @@ eval = runTrampoline <<< go
       let r = ref fix
       s <- go $ paraApp e' (TmArg (TmRef r))
       pure $ write s r
-    go anno@(TmAnno e t) = do
+    go (TmAnno e t) = do
       e' <- go' e
       case cast e' t of
         Just e'' -> go e''
         Nothing -> unsafeCrashWith $ "CP.Semantics.NaturalSubst.eval: " <>
-                                     "impossible casting " <> show anno
+                       "impossible casting " <> show e' <> " : " <> show t
       where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go (TmRcd l t e) = pure $ TmRcd l t (TmRef (ref e))
-    go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
+    go (TmPrj e l) = paraApp <$> go e <@> LabelArg l >>= go
+    go (TmOptPrj e1 l t e2) = do
+      e1' <- go e1
+      case cast e1' (TyRcd l t false) of
+        Just e -> go $ TmPrj e l
+        Nothing -> go e2
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmTAbs _ _ _ _ _) = pure e
     go (TmFold t e) = TmFold t <$> go e

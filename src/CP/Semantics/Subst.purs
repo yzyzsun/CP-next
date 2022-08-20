@@ -5,7 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\))
-import Language.CP.Semantics.Common (Arg(..), binop, genTopLike, selectLabel, toString, unop)
+import Language.CP.Semantics.Common (Arg(..), binop, genTopLike, toString, unop)
 import Language.CP.Subtyping (isTopLike, split, (<:))
 import Language.CP.Syntax.Core (Tm(..), Ty(..), tmSubst, tmTSubst, tySubst, unfold)
 import Language.CP.Util (unsafeFromJust)
@@ -35,8 +35,12 @@ step (TmAnno e t) | isValue e = unsafeFromJust (cast e t)
 step (TmMerge e1 e2) | isValue e1 = TmMerge e1 (step e2)
                      | isValue e2 = TmMerge (step e1) e2
                      | otherwise  = TmMerge (step e1) (step e2)
-step (TmPrj e l) | isValue e = selectLabel e l
+step (TmPrj e l) | isValue e = paraApp e (LabelArg l)
                  | otherwise = TmPrj (step e) l
+step (TmOptPrj e1 l t e2)
+  | isValue e1 = case cast e1 (TyRcd l t false) of Just e -> TmPrj e l
+                                                   Nothing -> e2
+  | otherwise  = TmOptPrj (step e1) l t e2
 step (TmTApp e t) | isValue e = paraApp e (TyArg t)
                   | otherwise = TmTApp (step e) t
 step (TmFold t e) = TmFold t (step e)
@@ -85,6 +89,7 @@ paraApp (TmAbs x e1 targ tret _) (TmAnnoArg e2) =
 paraApp (TmTAbs a _ e _ false) (TyArg ta) = tmTSubst a ta e
 paraApp (TmTAbs a _ e t true) (TyArg ta) =
   TmAnno (tmTSubst a ta e) (tySubst a ta t)
+paraApp (TmRcd l t e) (LabelArg l') | l == l' = TmAnno e t
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)
 paraApp v arg = unsafeCrashWith $ "CP.Semantics.Subst.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
