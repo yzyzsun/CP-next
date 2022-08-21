@@ -23,10 +23,10 @@ import Language.CP (interpret, showTypeError)
 import Language.CP.Context (initState)
 import Language.CP.Util (unsafeFromJust)
 import Node.Encoding (Encoding(..))
+import Node.FS.Aff as Aff
 import Node.FS.Sync (readdir)
 import Node.Path (FilePath, concat, extname)
 import REPL (readTextFile)
-import Node.FS.Aff as Aff
 import Test.Spec (it)
 import Test.Spec.Assertions (expectError, fail, shouldReturn)
 import Test.Spec.Reporter (consoleReporter)

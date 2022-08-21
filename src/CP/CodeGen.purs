@@ -159,7 +159,7 @@ infer (C.TmIf e1 e2 e3) z = do
 infer (C.TmVar x) z = do
   env <- asks (_.tmBindEnv)
   case lookup x env of
-    Just t  -> pure $ [ assignObj z [JSVar x] ] /\ t
+    Just t  -> pure $ [ assignObj z [JSVar $ var x] ] /\ t
     Nothing -> throwError $ "term variable" <+> show x <+> "is undefined"
 infer (C.TmFix e) z = do
   y <- freshVarName
@@ -177,7 +177,7 @@ infer (C.TmAbs x e targ tret _) z
       y <- freshVarName
       j <- addTmBind x targ $ check e tret y
       let typ = C.TyArrow targ tret false
-          fun = JSFunction Nothing [x, y] $ JSBlock $ j
+          fun = JSFunction Nothing [var x, y] $ JSBlock $ j
           ast = [ addProp (JSVar z) (toIndex typ) fun ]
       pure $ ast /\ typ
 infer (C.TmApp e1 e2 _) z = do
@@ -196,7 +196,7 @@ infer (C.TmTAbs a td e t _) z
       y <- freshVarName
       j <- addTyBind a td $ check e t y
       let typ = C.TyForall a td t
-          fun = JSFunction Nothing [a] $ JSBlock $ [initialize y] <> j <> [JSReturn $ JSVar y]
+          fun = JSFunction Nothing [var a] $ JSBlock $ [initialize y] <> j <> [JSReturn $ JSVar y]
           ast = [ addProp (JSVar z) (toIndex typ) fun ]
       pure $ ast /\ typ
 infer (C.TmTApp e t) z = do
@@ -369,10 +369,11 @@ unsplit { x: x1, y: x2, z, tx: r1@(C.TyRcd _ t1 _), ty: r2@(C.TyRcd _ t2 _), tz:
   y2 <- freshVarName
   y <- freshVarName
   j <- unsplit { x: y1, y: y2, z: y, tx: t1, ty: t2, tz: t }
-  let ast = [ JSVariableIntroduction y1 $ Just $ JSApp (JSIndexer (toIndex r1) (JSVar x1)) []
-            , JSVariableIntroduction y2 $ Just $ JSApp (JSIndexer (toIndex r2) (JSVar x2)) []
-            , initialize y ] <> j <> [ addProp (JSVar z) (toIndex r) (JSVar y) ]
-  pure ast
+  let block = [ JSVariableIntroduction y1 $ Just $ JSApp (JSIndexer (toIndex r1) (JSVar x1)) []
+              , JSVariableIntroduction y2 $ Just $ JSApp (JSIndexer (toIndex r2) (JSVar x2)) []
+              , initialize y ] <> j <> [ JSReturn $ JSVar y ]
+      func = JSFunction Nothing [] (JSBlock block)
+  pure [ addProp (JSVar z) (toIndex r) func ]
 unsplit s = unsafeCrashWith $ "cannot unsplit" <+> show s
 
 toIndex :: C.Ty -> JS
@@ -385,8 +386,8 @@ toIndex = JSTemplateLiteral <<< go []
     go as (C.TyRcd l t _) = "rcd_" <> l <> "_" <> go as t
     go as (C.TyAnd t1 t2) =
       "andBegin_" <> joinWith "_" (map (go as) (sortBy typeOrdering (flattenAnd (C.TyAnd t1 t2)))) <> "_andEnd"
-    go as (C.TyVar a) = if a `elem` as then a else "${" <> a <> "}"
-    go t _ = unsafeCrashWith $ "cannot use as an index: " <> show t
+    go as (C.TyVar a) = if a `elem` as then a else "${" <> var a <> "}"
+    go _ t = unsafeCrashWith $ "cannot use as an index: " <> show t
     typeOrdering :: C.Ty -> C.Ty -> Ordering
     typeOrdering ta tb | isBaseType ta && isBaseType tb = compare (show ta) (show tb)
     typeOrdering ta _  | isBaseType ta = LT
@@ -397,7 +398,8 @@ toIndex = JSTemplateLiteral <<< go []
     typeOrdering _ _ = EQ
     flattenAnd :: C.Ty -> Array C.Ty
     flattenAnd (C.TyAnd ta tb) = flattenAnd ta <> flattenAnd tb
-    flattenAnd t = [t]
+    flattenAnd t | isTopLike t = []
+                 | otherwise   = [t]
     isBaseType :: C.Ty -> Boolean
     isBaseType C.TyBool = true
     isBaseType C.TyInt = true
@@ -406,12 +408,12 @@ toIndex = JSTemplateLiteral <<< go []
     isBaseType _ = false
 
 initialVarName :: Name
-initialVarName = "$0"
+initialVarName = var "0"
 
 freshVarName :: CodeGen Name
 freshVarName = do
   count <- modify (_ + 1)
-  pure $ "$" <> show count
+  pure $ var $ show count
 
 addTmBind :: forall a. Name -> C.Ty -> CodeGen a -> CodeGen a
 addTmBind x t = local (\ctx -> ctx { tmBindEnv = insert x t ctx.tmBindEnv })
@@ -430,3 +432,6 @@ assignObj z args = JSApp (JSAccessor "assign" (JSVar "Object")) ([JSVar z] <> ar
 
 addProp :: JS -> JS -> JS -> JS
 addProp o x f = JSAssignment (JSIndexer x o) f
+
+var :: Name -> Name
+var = ("$" <> _)

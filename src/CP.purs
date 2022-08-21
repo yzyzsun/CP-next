@@ -56,7 +56,7 @@ evalProg prog = do
   pure $ case mode of
     SmallStep -> show (SmallStep.eval e'')
     StepTrace -> let _ /\ s = StepTrace.eval e'' in
-      show e <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s ""
+      show prog <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s ""
     BigStep -> show (BigStep.eval e'')
     HOAS -> show (HOAS.eval e'')
     Closure -> show (Closure.eval e'')

@@ -207,13 +207,13 @@ z[t] = X => {
 
 
 /* S24 */
-var y1 = x1[t1]();
-var y2 = x2[t2]();
-var y = {};
-J;
-z[t] = y;
-
-
+z[t] = () => {
+  var y1 = x1[t1]();
+  var y2 = x2[t2]();
+  var y = {};
+  J;
+  return y;
+};
 \end{verbatim}
 \end{multicols}
 
