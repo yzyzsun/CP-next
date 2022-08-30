@@ -131,6 +131,11 @@ infer (S.TmAbs (S.TmParam x Nothing : Nil) _) = throwTypeError $
   "lambda parameter" <+> show x <+> "should be annotated with a type"
 infer (S.TmAbs (S.WildCard _ : Nil) _) = throwTypeError $
   "record wildcards should only occur in traits with interfaces implemented"
+infer (S.TmFix x e t) = do
+  t' <- transform t
+  e' /\ t'' <- addTmBind x t' $ infer e
+  if t'' <: t' then pure $ C.TmFix x e' t'' /\ t'' else throwTypeError $
+    "fix body expected a subtype of the annotated type, but got " <+> show t''
 infer (S.TmAnno e ta) = do
   e' /\ t <- infer e
   ta' <- transform ta

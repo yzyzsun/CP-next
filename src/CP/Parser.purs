@@ -90,7 +90,7 @@ opexpr e = buildExprParser operators $ lexpr e
 lexpr :: SParser Tm -> SParser Tm
 lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|> trait <|> new <|>
           ifThenElse <|> letIn <|> letrec <|> open <|> toString <|>
-          fold <|> unfold
+          fixpoint <|> fold <|> unfold
 
 fexpr :: SParser Tm -> SParser Tm
 fexpr e = do
@@ -215,6 +215,16 @@ toString = do
   reserved "toString"
   e <- dotexpr expr
   pure $ TmToString e
+
+fixpoint :: SParser Tm
+fixpoint = do
+  reserved "fix"
+  x <- lowerIdentifier
+  symbol "."
+  e <- opexpr expr
+  symbol ":"
+  t <- ty
+  pure $ TmFix x e t
 
 fold :: SParser Tm
 fold = do
@@ -439,7 +449,7 @@ selfAnno = optional $ brackets $
 
 langDef :: LanguageDef
 langDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
-  [ "true", "false", "undefined", "if", "then", "else", "toString"
+  [ "true", "false", "undefined", "if", "then", "else", "toString", "fix"
   , "trait", "implements", "inherits", "override", "new", "fold", "unfold"
   , "let", "letrec", "open", "in", "with", "type", "interface", "extends", "forall"
   , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"

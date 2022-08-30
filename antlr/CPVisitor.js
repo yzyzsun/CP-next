@@ -304,6 +304,8 @@ export default class CPVisitor extends CPParserVisitor {
         return this.visitTrait(ctx.trait());
       case CPParser.RULE_newTrait:
         return this.visitNewTrait(ctx.newTrait());
+      case CPParser.RULE_fixpoint:
+        return this.visitFixpoint(ctx.fixpoint());
       case CPParser.RULE_toStr:
         return this.visitToStr(ctx.toStr());
       case CPParser.RULE_fold:
@@ -394,6 +396,16 @@ export default class CPVisitor extends CPParserVisitor {
   visitNewTrait(ctx) {
     return new AST.TmNew(
       this.visitOpexpr(ctx.opexpr())
+    );
+  }
+
+
+  // Visit a parse tree produced by CPParser#fixpoint.
+  visitFixpoint(ctx) {
+    return new AST.TmFix(
+      this.visitTermNameDecl(ctx.termNameDecl()),
+      this.visitOpexpr(ctx.opexpr()),
+      this.visitType(ctx.type())
     );
   }
 

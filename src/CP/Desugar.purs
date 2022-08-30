@@ -44,6 +44,7 @@ desugar (TmUnary op e) = TmUnary op (desugar e)
 desugar (TmBinary op e1 e2) = TmBinary op (desugar e1) (desugar e2)
 desugar (TmIf e1 e2 e3) = TmIf (desugar e1) (desugar e2) (desugar e3)
 desugar (TmApp e1 e2) = TmApp (desugar e1) (desugar e2)
+desugar (TmFix x e t) = TmFix x (desugar e) t
 desugar (TmAnno e t) = TmAnno (desugar e) t
 desugar (TmMerge bias e1 e2) = TmMerge bias (desugar e1) (desugar e2)
 desugar (TmPrj e l) = TmPrj (desugar e) l

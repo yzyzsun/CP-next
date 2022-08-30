@@ -25,7 +25,7 @@
     },
     {
       "name": "keyword.cp",
-      "match": "\\b(forall|type|interface|extends|trait|implements|inherits|new|if|then|else|let|letrec|open|in|with|toString|fold|unfold)\\b"
+      "match": "\\b(forall|type|interface|extends|trait|implements|inherits|new|fix|if|then|else|let|letrec|open|in|with|toString|fold|unfold)\\b"
     },
     {
       "name": "storage.type.cp",

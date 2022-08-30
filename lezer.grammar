@@ -75,6 +75,7 @@ lexpr {
   IfElse { kw<"if"> expression kw<"then"> expression kw<"else"> expression } |
   Trait { kw<"trait"> SelfAnno? (kw<"implements"> type)? (kw<"inherits"> opexpr)? (kw<"implements"> type)? "=>" opexpr } |
   New { kw<"new"> opexpr } | ToString { kw<"toString"> dotexpr } |
+  Fix { kw<"fix"> TermNameDecl "." opexpr ":" type } |
   kw<"fold"> typeArg dotexpr | kw<"unfold"> typeArg dotexpr
 }
 

@@ -89,6 +89,7 @@ lexpr
     |   ifElse
     |   trait
     |   newTrait
+    |   fixpoint
     |   toStr
     |   fold
     |   unfold
@@ -125,6 +126,10 @@ trait
 
 newTrait
     :   New opexpr
+    ;
+
+fixpoint
+    :   Fix termNameDecl Dot opexpr Colon type
     ;
 
 toStr

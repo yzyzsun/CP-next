@@ -95,6 +95,10 @@ New
     :   'new'
     ;
 
+Fix
+    :   'fix'
+    ;
+
 If
     :   'if'
     ;
