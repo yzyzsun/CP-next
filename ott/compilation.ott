@@ -54,10 +54,9 @@ x : A in G
 G |- x => A ~~> z in S2
 
 
-T = ->|A|
-G |- e => A -> A ~~> y in J
---------------------------- :: Fix
-G |- fix e => A ~~> z in S3
+G, x:A |- e <= A ~~> x in J
+-------------------------------- :: Fix
+G |- fix x:A. e => A ~~> z in S3
 
 
 T = ->|B|

@@ -27,8 +27,7 @@ step (TmIf e1 e2 e3) = TmIf (step e1) e2 e3
 step (TmApp e1 e2 coercive)
   | isValue e1 = paraApp e1 ((if coercive then TmAnnoArg else TmArg) e2)
   | otherwise  = TmApp (step e1) e2 coercive
-step fix@(TmFix e) | isValue e = paraApp e (TmArg fix)
-                   | otherwise = TmFix (step e)
+step fix@(TmFix x e _) = tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = TmAnno e t
 step (TmAnno e t) | isValue e = unsafeFromJust (cast e t)
                   | otherwise = TmAnno (step e) t

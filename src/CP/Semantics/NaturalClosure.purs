@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Monad.Reader (ask, local, runReaderT)
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
-import Data.Map (empty, lookup)
+import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Language.CP.Semantics.Closure (EvalT, binop', cast, closure, expand, paraApp, unop')
 import Language.CP.Semantics.Common (Arg(..), toString)
@@ -50,11 +50,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       let arg = if coercive then TmAnnoArg else TmArg
       go $ paraApp e1' (arg (TmRef (ref e2')))
     go e@(TmAbs _ _ _ _ _) = closure e
-    go fix@(TmFix e) = do
-      e' <- go e
-      let r = ref fix
-      s <- go $ paraApp e' (TmArg (TmRef r))
-      pure $ write s r
+    go (TmFix x e _) = local (\env -> insert x (TmBind e) env) (go e)
     go (TmAnno e t) = do
       e' <- go' e
       t' <- expand t

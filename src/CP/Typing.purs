@@ -186,7 +186,7 @@ infer (S.TmLet x Nil Nil e1 e2) = do
 infer (S.TmLetrec x Nil Nil t e1 e2) = do
   e1' /\ t1 <- inferRec x e1 t
   e2' /\ t2 <- addTmBind x t1 $ infer e2
-  pure $ letIn x (C.TmFix (C.TmAbs x e1' t1 t1 false)) t1 e2' t2 /\ t2
+  pure $ letIn x (C.TmFix x e1' t1) t1 e2' t2 /\ t2
 -- TODO: find a more efficient algorithm
 infer (S.TmOpen e1 e2) = do
   e1' /\ t1 <- infer e1
@@ -346,7 +346,8 @@ infer (S.TmNew e) = do
   e' /\ t <- infer e
   case t of
     C.TyArrow ti to true ->
-      if to <: ti then pure $ C.TmFix e' /\ to
+      if to <: ti then
+        pure $ C.TmFix "$self" (C.TmApp e' (C.TmVar "$self") true) to /\ to
       else throwTypeError $ "input type is not a supertype of output type in" <+>
                             "Trait<" <+> show ti <+> "=>" <+> show to <+> ">"
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
@@ -500,7 +501,7 @@ checkDef (S.TmDef x Nil Nil (Just t) e) = do
   case runTyping (inferRec x e t) ctx of
     Left err -> throwError err
     Right (e' /\ t') -> 
-      let f = letIn x (C.TmFix (C.TmAbs x e' t' t' false)) t' in
+      let f = letIn x (C.TmFix x e' t') t' in
       modify_ \st -> st { tmBindings = st.tmBindings <> ((x /\ t' /\ uncurry f) : Nil) }
 checkDef d = throwError $ TypeError ("expected a desugared def, but got" <+> show d) UnknownPos
 

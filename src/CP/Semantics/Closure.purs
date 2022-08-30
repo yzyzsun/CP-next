@@ -44,8 +44,7 @@ step (TmApp e1 e2 coercive) | isValue e1 = paraApp e1 <<< arg <$> closure e2
                             where arg = if coercive then TmAnnoArg else TmArg
                             | otherwise = TmApp <$> step e1 <@> e2 <@> coercive
 step abs@(TmAbs _ _ _ _ _) = closure abs
-step fix@(TmFix e) | isValue e = paraApp e <<< TmArg <$> closure fix
-                   | otherwise = TmFix <$> step e
+step fix@(TmFix x e _) = closureWithTmBind x fix e
 step (TmAnno (TmAnno e _) t) = pure $ TmAnno e t
 step (TmAnno e t) | isValue e = unsafeFromJust <$> (cast e =<< expand t)
                   | otherwise = TmAnno <$> step e <@> t

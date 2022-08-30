@@ -67,7 +67,7 @@ data Tm = TmInt Int
         | TmVar Name
         | TmApp Tm Tm Boolean
         | TmAbs Name Tm Ty Ty Boolean
-        | TmFix Tm
+        | TmFix Name Tm Ty
         | TmAnno Tm Ty
         | TmMerge Tm Tm
         | TmRcd Label Ty Tm
@@ -85,6 +85,7 @@ data Tm = TmInt Int
         | TmClosure EvalEnv Tm
         -- Only used in HOAS-based semantics for variable binding:
         | TmHAbs (Tm -> Tm) Ty Ty Boolean
+        | TmHFix (Tm -> Tm) Ty
         | TmHTAbs (Ty -> Tm) Ty (Ty -> Ty) Boolean
 
 instance Show Tm where
@@ -102,7 +103,7 @@ instance Show Tm where
   show (TmApp e1 e2 _coercive) = parens $ show e1 <+> show e2
   show (TmAbs x e targ tret _refined) = parens $
     "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "→" <+> show tret
-  show (TmFix e) = parens $ "fix" <+> show e
+  show (TmFix x e t) = parens $ "fix" <+> x <> "." <+> show e <+> ":" <+> show t
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
   show (TmRcd l t e) = braces $ l <+> ":" <+> show t <+> "=" <+> show e
@@ -121,6 +122,7 @@ instance Show Tm where
   show (TmClosure _env e) = angles $ "Closure" <+> show e
   show (TmHAbs _abs targ tret _refined) = angles $
     "HOAS" <+> show targ <+> "→" <+> show tret
+  show (TmHFix _fix t) = angles $ "HOAS fix" <+> show t
   show (TmHTAbs _tabs td _tf _refined) = angles $ "HOAS ∀*" <+> show td
 
 -- HOAS --
@@ -159,7 +161,8 @@ tmConvert env (TmApp e1 e2 b) = TmApp (tmConvert env e1) (tmConvert env e2) b
 tmConvert env (TmAbs x e targ tret b) =
   TmHAbs (\tm -> tmConvert (insert x (Left tm) env) e)
          (tyConvert env targ) (tyConvert env tret) b
-tmConvert env (TmFix e) = TmFix (tmConvert env e)
+tmConvert env (TmFix x e t) =
+  TmHFix (\tm -> tmConvert (insert x (Left tm) env) e) (tyConvert env t)
 tmConvert env (TmAnno e t) = TmAnno (tmConvert env e) (tyConvert env t)
 tmConvert env (TmMerge e1 e2) = TmMerge (tmConvert env e1) (tmConvert env e2)
 tmConvert env (TmRcd l t e) = TmRcd l (tyConvert env t) (tmConvert env e)
@@ -204,7 +207,7 @@ tmSubst x v (TmVar x') = if x == x' then v else TmVar x'
 tmSubst x v (TmApp e1 e2 b) = TmApp (tmSubst x v e1) (tmSubst x v e2) b
 tmSubst x v (TmAbs x' e targ tret b) =
   TmAbs x' (if x == x' then e else tmSubst x v e) targ tret b
-tmSubst x v (TmFix e) = TmFix (tmSubst x v e)
+tmSubst x v (TmFix x' e t) = TmFix x' (if x == x' then e else tmSubst x v e) t
 tmSubst x v (TmAnno e t) = TmAnno (tmSubst x v e) t
 tmSubst x v (TmMerge e1 e2) = TmMerge (tmSubst x v e1) (tmSubst x v e2)
 tmSubst x v (TmRcd l t e) = TmRcd l t (tmSubst x v e)
@@ -228,7 +231,7 @@ tmTSubst a s (TmIf e1 e2 e3) =
 tmTSubst a s (TmApp e1 e2 b) = TmApp (tmTSubst a s e1) (tmTSubst a s e2) b
 tmTSubst a s (TmAbs x e targ tret b) =
   TmAbs x (tmTSubst a s e) (tySubst a s targ) (tySubst a s tret) b
-tmTSubst a s (TmFix e) = TmFix (tmTSubst a s e)
+tmTSubst a s (TmFix x e t) = TmFix x (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmAnno e t) = TmAnno (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmMerge e1 e2) = TmMerge (tmTSubst a s e1) (tmTSubst a s e2)
 tmTSubst a s (TmRcd l t e) = TmRcd l (tySubst a s t) (tmTSubst a s e)

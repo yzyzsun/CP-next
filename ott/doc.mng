@@ -22,7 +22,7 @@
 \begin{align*}
   &\text{Types}       &A,B,C ::=&~ [[Top]] ~|~ [[Bot]] ~|~ [[Base]] ~|~ [[X]] ~|~ [[A -> B]] ~|~ [[Forall X*A. B]] ~|~ [[{l : A}]] ~|~ [[A & B]] \\
   &\text{Type indices}&[[T]] ::=&~ [[Base]] ~|~ [[->T]] ~|~ [[\-/T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
-  &\text{Expressions} &    e ::=&~ [[{}]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[/\X*A. e:B]] ~|~ [[e A]] ~|~ [[{l = e}]] ~|~ [[e.l]] \\
+  &\text{Expressions} &    e ::=&~ [[{}]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[/\X*A. e:B]] ~|~ [[e A]] ~|~ [[{l = e}]] ~|~ [[e.l]] \\
   &                   &        |&~ [[e1 ,, e2]] ~|~ [[e : A]] \\
   &\text{Values}      &    v ::=&~ [[{}]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[/\X*A. e:B]] ~|~ [[{l = v}]] ~|~ [[v1 ,, v2]] \\
 \end{align*}
@@ -60,17 +60,23 @@ z[t] = b;
 /* S2 */
 Object.assign(z, x);
 
+
+
 /* S3 */
+var f = x => { J };
 Object.assign(z,
   new function() {
-    var y = {};
-    J;
-    y[t](this, this);
+    f(this)
   }
 );
 
 /* S4 */
-z[t] = (x, y) => { J };
+z[t] = x => {
+  var y = {};
+  J;
+  return y;
+};
+
 
 /* S5 */
 var x = {};
@@ -120,9 +126,7 @@ J2;
 \begin{multicols}{3}
 \begin{verbatim}
 /* S12 */
-x[t](y, z);
-
-
+Object.assign(z, x[t](y));
 
 /* S13 */
 Object.assign(z, x[t1](t2));

@@ -161,23 +161,20 @@ infer (C.TmVar x) z = do
   case lookup x env of
     Just t  -> pure $ [ assignObj z [JSVar $ var x] ] /\ t
     Nothing -> throwError $ "term variable" <+> show x <+> "is undefined"
-infer (C.TmFix e) z = do
-  y <- freshVarName
-  j /\ t <- infer e y
-  case t of
-    C.TyArrow _ typ _ -> do
-      let fun = [ initialize y ] <> j
-             <> [ JSApp (JSIndexer (toIndex t) (JSVar y)) [JSVar "this", JSVar "this"] ]
-          ast = [ assignObj z [JSApp (JSVar "new") [thunk fun]] ]
-      pure $ ast /\ typ
-    _ -> throwError $ "fixpoint expected , but got" <+> show t
+infer (C.TmFix x e t) z = do
+  j <- addTmBind x t $ check e t x
+  f <- freshVarName
+  let ast = [ JSVariableIntroduction f $ Just $ JSFunction Nothing [x] $ JSBlock j
+            , assignObj z [JSApp (JSVar "new") [thunk [JSApp (JSVar f) [JSVar "this"]]]]
+            ]
+  pure $ ast /\ t
 infer (C.TmAbs x e targ tret _) z
   | isTopLike tret = infer C.TmUnit z
   | otherwise = do
       y <- freshVarName
       j <- addTmBind x targ $ check e tret y
       let typ = C.TyArrow targ tret false
-          fun = JSFunction Nothing [var x, y] $ JSBlock $ j
+          fun = JSFunction Nothing [var x] $ JSBlock $ [initialize y] <> j <> [JSReturn $ JSVar y]
           ast = [ addProp (JSVar z) (toIndex typ) fun ]
       pure $ ast /\ typ
 infer (C.TmApp e1 e2 _) z = do
@@ -284,7 +281,7 @@ dist (C.TyAnd ta tb) x arg z = do
   j2 <- dist tb x arg z
   pure $ j1 <> j2
 dist t x (TmArg y) z = do
-  pure [ JSApp (JSIndexer (toIndex t) (JSVar x)) [y, JSVar z] ]
+  pure [ assignObj z [JSApp (JSIndexer (toIndex t) (JSVar x)) [y]] ]
 dist t x (TyArg y) z = do
   pure [ assignObj z [JSApp (JSIndexer (toIndex t) (JSVar x)) [y]] ]
 dist t x Label z = do

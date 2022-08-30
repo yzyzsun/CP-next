@@ -11,7 +11,7 @@ import Data.Tuple.Nested (type (/\))
 import Language.CP.Semantics.Common (Arg(..), binop, toString, unop)
 import Language.CP.Semantics.Subst (cast, isValue, paraApp)
 import Language.CP.Subtyping (isTopLike)
-import Language.CP.Syntax.Core (Tm(..), Ty(..), unfold)
+import Language.CP.Syntax.Core (Tm(..), Ty(..), tmSubst, unfold)
 import Language.CP.Util (unsafeFromJust)
 import Partial.Unsafe (unsafeCrashWith)
 
@@ -49,9 +49,7 @@ step (TmApp e1 e2 coercive)
   | isValue e1 = computation "PApp" $>
                   paraApp e1 ((if coercive then TmAnnoArg else TmArg) e2)
   | otherwise  = congruence  "AppL" $> TmApp <*> step e1 <@> e2 <@> coercive
-step fix@(TmFix e)
-  | isValue e = computation "FixV" $> paraApp e (TmArg fix)
-  | otherwise = congruence  "Fix"  $> TmFix <*> step e
+step fix@(TmFix x e _) = computation "Fix" $> tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = computation "AnnoAnno" $> TmAnno e t
 step (TmAnno e t)
   | isValue e = computation "AnnoV" $> unsafeFromJust (cast e t)

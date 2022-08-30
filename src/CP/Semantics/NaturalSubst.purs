@@ -8,7 +8,7 @@ import Language.CP.Semantics.Common (Arg(..), binop, toString, unop)
 import Language.CP.Semantics.Subst (cast, paraApp)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (Tm(..), Ty(..), done, read, ref, unfold, write)
+import Language.CP.Syntax.Core (Tm(..), Ty(..), done, read, ref, tmSubst, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = Trampoline
@@ -41,10 +41,9 @@ eval = runTrampoline <<< go
       let arg = if coercive then TmAnnoArg else TmArg
       go $ paraApp e1' (arg (TmRef (ref e2)))
     go e@(TmAbs _ _ _ _ _) = pure e
-    go fix@(TmFix e) = do
-      e' <- go e
+    go fix@(TmFix x e _) = do
       let r = ref fix
-      s <- go $ paraApp e' (TmArg (TmRef r))
+      s <- go $ tmSubst x (TmRef r) e
       pure $ write s r
     go (TmAnno e t) = do
       e' <- go' e
