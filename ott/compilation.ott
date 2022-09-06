@@ -1,6 +1,6 @@
 grammar
 
-T {{ tex \tau }} :: 'ti_' ::= {{ com Type indices }}
+T :: 'ti_' ::= {{ com Type indices }}
   | Base      ::  :: base  {{ com base type }} {{ tex \mathbb{B} }}
   | -> T      ::  :: arrow {{ com function type }} {{ tex \overrightarrow{[[T]]} }}
   | \-/ T     ::  :: all   {{ com universal type }} {{ tex [[T]]^\forall }}
@@ -11,6 +11,7 @@ T {{ tex \tau }} :: 'ti_' ::= {{ com Type indices }}
 
 J, S :: 'js_' ::= {{ com JavaScript statements }}
   | nothing ::  :: empty {{ tex \varnothing }}
+  | J1 ; J2 ::  :: concat
 
 
 
@@ -18,237 +19,266 @@ defns
 Compilation :: '' ::=
 
 defn
-G |- e mode A ~~> z in J :: :: compile :: J_
+G |- e mode A ~~> J | varname :: :: compile :: J_
 {{ com Type-directed compilation }}
-{{ tex [[G]][[|-]][[e]][[mode]][[A]]\;\colorbox{lightgray}{$[[~~>]][[z]]\;\textbf{in}\;[[J]]$} }}
+{{ tex [[G]][[|-]][[e]][[mode]][[A]]\;\colorbox{lightgray}{$[[~~>]][[J]]\;|\;[[varname]]$} }}
+
+% G |- e mode A ~~> z in J :: :: compile :: J_
+% {{ com Type-directed compilation }}
+% {{ tex [[G]][[|-]][[e]][[mode]][[A]]\;\colorbox{lightgray}{$[[~~>]][[z]]\;\textbf{in}\;[[J]]$} }}
+
 by
 
+G |- e mode A ~~> J | z-
+------------------------- :: Gen
+G |- e mode A ~~> S0 | z+
 
-------------------------------- :: Top
-G |- {} => Top ~~> z in nothing
+
+-------------------------------- :: Top
+G |- {} => Top ~~> nothing | z-
 
 
 toplike B
 --------------------------------------- :: TopAbs
-G |- \x:A. e:B => A->B ~~> z in nothing
+G |- \x:A. e:B => A->B ~~> nothing | z-
 
 
 toplike B
 -------------------------------------------------------- :: TopTAbs
-G |- /\ X * A. e : B => Forall X * A. B ~~> z in nothing
+G |- /\ X * A. e : B => Forall X * A. B ~~> nothing | z-
 
 
 G |- e => A
 toplike A
 ---------------------------------------- :: TopRcd
-G |- {l = e} => {l : A} ~~> z in nothing
+G |- {l = e} => {l : A} ~~> nothing | z-
 
 
 T = |Base|
 -------------------------- :: Base
-G |- b => Base ~~> z in S1
+G |- b => Base ~~> S1 | z-
 
 
 x : A in G
 ----------------------- :: Var
-G |- x => A ~~> z in S2
+G |- x => A ~~> S2 | z-
 
 
-G, x:A |- e <= A ~~> x in J
--------------------------------- :: Fix
-G |- fix x:A. e => A ~~> z in S3
+x : A in G
+---------------------------- :: VarGen
+G |- x => A ~~> nothing | x+
+
+
+G, this:A |- e <= A ~~> J | this-
+----------------------------------- :: Fix
+G |- fix this:A. e => A ~~> S3 | z-
 
 
 T = ->|B|
-G, x:A |- e <= B ~~> y in J
+G, x:A |- e <= B ~~> J | y+
 ---------------------------------- :: Abs
-G |- \x:A. e:B => A->B ~~> z in S4
+G |- \x:A. e:B => A->B ~~> S4 | z-
 
 
-G |- e1 => A ~~> x in J1
+G |- e1 => A ~~> J1 | x+
 A |> B -> C
-G |- e2 <= B ~~> y in J2
-< A |> x ; y --> z with J3 >
----------------------------- :: App
-G |- e1 e2 => C ~~> z in S5
+G |- e2 <= B ~~> J2 | y+
+x : A ; y ~~> J3 | z
+--------------------------------- :: App
+G |- e1 e2 => C ~~> J1;J2;J3 | z-
 
 
 T = \-/|B|
-G , X * A |- e <= B ~~> y in J
+G , X * A |- e <= B ~~> J | y+
 --------------------------------------------------- :: TAbs
-G |- /\ X * A. e : B => Forall X * A. B ~~> z in S6
+G |- /\ X * A. e : B => Forall X * A. B ~~> S5 | z-
 
 
-G |- e => B ~~> y in J1
+G |- e => B ~~> J1 | y+
 B |> Forall X*C1. C2
 G |- A * C1
-< B |> y ; A --> z with J2 >
---------------------------------- :: TApp
-G |- e A => C2 [X~>A] ~~> z in S7
+y : B ; A ~~> J2 | z
+------------------------------------ :: TApp
+G |- e A => C2 [X~>A] ~~> J1;J2 | z-
 
 
 T = {l : |A|}
-G |- e => A ~~> y in J
+G |- e => A ~~> J | y+
 ----------------------------------- :: Rcd
-G |- {l = e} => {l : A} ~~> z in S8
+G |- {l = e} => {l : A} ~~> S6 | z-
 
 
-G |- e => A ~~> y in J1
+G |- e => A ~~> J1 | y+
 A |> {l : B}
-< A |> y ; l --> z with J2 >
+y : A ; l ~~> J2 | z
 ---------------------------- :: Proj
-G |- e.l => B ~~> z in S9
+G |- e.l => B ~~> J1;J2 | z-
 
 
-G |- e1 => A ~~> z in J1
-G |- e2 => B ~~> z in J2
+G |- e1 => A ~~> J1 | z-
+G |- e2 => B ~~> J2 | z-
 G |- A * B
------------------------------------ :: Merge
-G |- e1 ,, e2 => A & B ~~> z in S10
+------------------------------------- :: Merge
+G |- e1 ,, e2 => A & B ~~> J1;J2 | z-
 
 
-G |- e <= A ~~> z in J
+G |- e <= A ~~> J | z-
 ------------------------ :: Anno
-G |- e:A => A ~~> z in J
+G |- e:A => A ~~> J | z-
 
 
-G |- e => A ~~> x in J1
-A <: B ~~> x ~> y with J2
-------------------------- :: Sub
-G |- e <= B ~~> y in S11
+G |- e <= A ~~> J | z+
+------------------------ :: AnnoGen
+G |- e:A => A ~~> J | z+
+
+
+G |- e => A ~~> J1 | x+
+x : A <: y : B ~~> J2
+-------------------------- :: Sub
+G |- e <= B ~~> J1;J2 | y-
+
+
+G |- e => A ~~> J | z-
+---------------------- :: SubEq
+G |- e <= A ~~> J | z-
+
+
+G |- e => A ~~> J | z+
+---------------------- :: SubEqGen
+G |- e <= A ~~> J | z+
 
 
 
 defn
-A |> x ; arg --> z with J :: :: distapp :: A_
+x : A ; arg ~~> J | z :: :: distapp :: A_
 {{ com Distributive application }}
-{{ tex [[A]]\;\rhd\;[[x]]\,\bullet\,[[arg]]\;[[-->]]\;[[z]]\;\textbf{with}\;[[J]] }}
+{{ tex [[x]]:[[A]]\,\bullet\,[[arg]]\;\colorbox{lightgray}{$[[~~>]]\;[[J]]\;|\;[[z]]$} }}
 by
 
 
 toplike A
-------------------------------- :: Top
-A |> x ; arg --> z with nothing
+---------------------------- :: Top
+x : A ; arg ~~> nothing | z
 
 
 T = ->|B|
------------------------------- :: Arrow
-A -> B |> x ; y --> z with S12
+-------------------------- :: Arrow
+x : A -> B ; y ~~> S7 | z
 
 
 T1 = \-/|B|
 T2 = |C|
-------------------------------------- :: All
-Forall X*A. B |> x ; C --> z with S13
+--------------------------------- :: All
+x : Forall X*A. B ; C ~~> S8 | z
 
 
 T = {l : |A|}
-------------------------------- :: Rcd
-{l : A} |> x ; l --> z with S14
+--------------------------- :: Rcd
+x : {l : A} ; l ~~> S9 | z
 
 
-A |> x ; arg --> z with J1
-B |> x ; arg --> z with J2
-------------------------------- :: And
-A & B |> x ; arg --> z with S15
+x : A ; arg ~~> J1 | z
+x : B ; arg ~~> J2 | z
+------------------------------ :: And
+x : A & B ; arg ~~> J1;J2 | z
 
 
 defn
-A <: B ~~> x ~> y with J :: :: cosub :: S_
+x : A <: y : B ~~> J :: :: cosub :: S_
 {{ com Coercive subtyping }}
-{{ tex [[A]][[<:]][[B]]\;\colorbox{lightgray}{$[[~~>]][[x]][[~>]][[y]]\;\textbf{with}\;[[J]]$} }}
+{{ tex [[x]]:[[A]][[<:]][[y]]:[[B]]\;\colorbox{lightgray}{$[[~~>]][[J]]$} }}
 by
 
 
 ordinary B
 toplike B
------------------------------- :: Top
-A <: B ~~> x ~> y with nothing
+-------------------------- :: Top
+x : A <: y : B ~~> nothing
 
 
 T = |Base|
--------------------------------- :: Base
-Base <: Base ~~> x ~> y with S16
+---------------------------- :: Base
+x : Base <: y : Base ~~> S10
 
 
 T1 = ->|A2|
 T2 = ->|B2|
 ordinary B2
 B1 <: A1
-A2 <: B2 ~~> x2 ~> y2 with J2
----------------------------------------- :: Arrow
-A1 -> A2 <: B1 -> B2 ~~> x ~> y with S17
+x2 : A2 <: y2 : B2 ~~> J2
+------------------------------------ :: Arrow
+x : A1 -> A2 <: y : B1 -> B2 ~~> S11
 
 
 T1 = \-/|A2|
 T2 = \-/|B2|
 ordinary B2
 B1 <: A1
-A2 <: B2 ~~> x2 ~> y2 with J2
------------------------------------------------------- :: All
-Forall X*A1. A2 <: Forall X*B1. B2 ~~> x ~> y with S18
+x2 : A2 <: y2 : B2 ~~> J2
+-------------------------------------------------- :: All
+x : Forall X*A1. A2 <: y : Forall X*B1. B2 ~~> S12
 
 
 T1 = {l : |A|}
 T2 = {l : |B|}
 ordinary B
-A <: B ~~> x0 ~> y0 with J
----------------------------------- :: Rcd
-{l:A} <: {l:B} ~~> x ~> y with S19
+x0 : A <: y0 : B ~~> J
+------------------------------ :: Rcd
+x : {l:A} <: y : {l:B} ~~> S13
 
 
 ordinary C
-A <: C ~~> x ~> y with J
----------------------------- :: AndL
-A & B <: C ~~> x ~> y with J
+x : A <: y : C ~~> J
+------------------------ :: AndL
+x : A & B <: y : C ~~> J
 
 
 ordinary C
-B <: C ~~> x ~> y with J
----------------------------- :: AndR
-A & B <: C ~~> x ~> y with J
+x : B <: y : C ~~> J
+------------------------ :: AndR
+x : A & B <: y : C ~~> J
 
 
 split B B1 B2
-A <: B1 ~~> x ~> y1 with J1
-A <: B2 ~~> x ~> y2 with J2
-< y1 : B1 |> z : B <| y2 : B2 with J3 >
---------------------------------------- :: Split
-A <: B ~~> x ~> z with S20
+x : A <: y1 : B1 ~~> J1
+x : A <: y2 : B2 ~~> J2
+y1 : B1 |> z : B <| y2 : B2 ~~> J3
+---------------------------------- :: Split
+x : A <: z : B ~~> S14
 
 
 
 defn
-x : A |> z : C <| y : B with J :: :: comerge :: M_
+x : A |> z : C <| y : B ~~> J :: :: comerge :: M_
 {{ com Coercive merging }}
-{{ tex [[x]]:[[A]]\;\rhd\;[[z]]:[[C]]\;\lhd\;[[y]]:[[B]]\;\textbf{with}\;[[J]] }}
+{{ tex [[x]]:[[A]]\;\rhd\;[[z]]:[[C]]\;\lhd\;[[y]]:[[B]]\;\colorbox{lightgray}{$[[~~>]]\;[[J]]$} }}
 by
 
 
 T1 = |A|
 T2 = |B|
 ---------------------------------- :: And
-x : A |> z : A&B <| y : B with S21
+x : A |> z : A&B <| y : B ~~> S15
 
 T = ->|B|
 T1 = ->|B1|
 T2 = ->|B2|
-y1 : B1 |> y : B <| y2 : B2 with J
+y1 : B1 |> y : B <| y2 : B2 ~~> J
 --------------------------------------------- :: Arrow
-x1 : A->B1 |> z : A->B <| x2 : A->B2 with S22
+x1 : A->B1 |> z : A->B <| x2 : A->B2 ~~> S16
 
 
 T = \-/|B|
 T1 = \-/|B1|
 T2 = \-/|B2|
-y1 : B1 |> y : B <| y2 : B2 with J
+y1 : B1 |> y : B <| y2 : B2 ~~> J
 ------------------------------------------------------------------------ :: All
-x1 : Forall X*A. B1 |> z : Forall X*A. B <| x2 : Forall X*A. B2 with S23
+x1 : Forall X*A. B1 |> z : Forall X*A. B <| x2 : Forall X*A. B2 ~~> S17
 
 
 T = {l : |A|}
 T1 = {l : |A1|}
 T2 = {l : |A2|}
-y1 : A1 |> y : A <| y2 : A2 with J
+y1 : A1 |> y : A <| y2 : A2 ~~> J
 ------------------------------------------------ :: Rcd
-x1 : {l:A1} |> z : {l:A} <| x2 : {l:A2} with S24
+x1 : {l:A1} |> z : {l:A} <| x2 : {l:A2} ~~> S18

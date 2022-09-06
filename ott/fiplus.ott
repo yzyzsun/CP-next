@@ -1,5 +1,5 @@
 metavar tvar, X, Y, Z ::= {{ com type variable name }}
-metavar var, x, y, z ::= {{ com variable name }}
+metavar var, x, y, z, this ::= {{ com variable name }}
 metavar label, l {{ tex \ell }} ::= {{ com label name }}
 
 grammar
@@ -47,6 +47,10 @@ arg :: 'arg_' ::= {{ com arguments }}
   | v   ::  :: value
   | l   ::  :: label
   | A   ::  :: type
+
+varname {{ tex z^\pm }} :: 'vn_' ::= {{ com variable names }}
+  | z - ::  :: i {{ tex [[z]]^- }}
+  | z + ::  :: o {{ tex [[z]]^+ }}
 
 ctx, G {{ tex \Gamma }} :: 'ctx_' ::= {{ com typing context }}
   | []              ::  :: empty  {{ tex \cdot }}
