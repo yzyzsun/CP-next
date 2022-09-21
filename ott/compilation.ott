@@ -13,6 +13,10 @@ J, S :: 'js_' ::= {{ com JavaScript statements }}
   | nothing ::  :: empty {{ tex \varnothing }}
   | J1 ; J2 ::  :: concat
 
+varname {{ tex z^\pm }} :: 'vn_' ::= {{ com variable names }}
+  | z - ::  :: i {{ tex [[z]]^- }}
+  | z + ::  :: o {{ tex [[z]]^+ }}
+
 
 
 defns
@@ -65,33 +69,33 @@ G |- x => A ~~> S2 | z-
 
 
 x : A in G
----------------------------- :: VarGen
-G |- x => A ~~> nothing | x+
+----------------------- :: VarGen
+G |- x => A ~~> S3 | z+
 
 
-G, this:A |- e <= A ~~> J | this-
------------------------------------ :: Fix
-G |- fix this:A. e => A ~~> S3 | z-
+G, x:A |- e <= A ~~> J | y-
+-------------------------------- :: Fix
+G |- fix x:A. e => A ~~> S4 | z-
 
 
 T = ->|B|
 G, x:A |- e <= B ~~> J | y+
 ---------------------------------- :: Abs
-G |- \x:A. e:B => A->B ~~> S4 | z-
+G |- \x:A. e:B => A->B ~~> S5 | z-
 
 
 G |- e1 => A ~~> J1 | x+
 A |> B -> C
 G |- e2 <= B ~~> J2 | y+
-x : A ; y ~~> J3 | z
---------------------------------- :: App
-G |- e1 e2 => C ~~> J1;J2;J3 | z-
+x : A ; y0 ~~> J3 | z
+--------------------------- :: App
+G |- e1 e2 => C ~~> S6 | z-
 
 
 T = \-/|B|
 G , X * A |- e <= B ~~> J | y+
 --------------------------------------------------- :: TAbs
-G |- /\ X * A. e : B => Forall X * A. B ~~> S5 | z-
+G |- /\ X * A. e : B => Forall X * A. B ~~> S7 | z-
 
 
 G |- e => B ~~> J1 | y+
@@ -105,7 +109,7 @@ G |- e A => C2 [X~>A] ~~> J1;J2 | z-
 T = {l : |A|}
 G |- e => A ~~> J | y+
 ----------------------------------- :: Rcd
-G |- {l = e} => {l : A} ~~> S6 | z-
+G |- {l = e} => {l : A} ~~> S8 | z-
 
 
 G |- e => A ~~> J1 | y+
@@ -163,18 +167,18 @@ x : A ; arg ~~> nothing | z
 
 T = ->|B|
 -------------------------- :: Arrow
-x : A -> B ; y ~~> S7 | z
+x : A -> B ; y ~~> S9 | z
 
 
 T1 = \-/|B|
 T2 = |C|
 --------------------------------- :: All
-x : Forall X*A. B ; C ~~> S8 | z
+x : Forall X*A. B ; C ~~> S9' | z
 
 
 T = {l : |A|}
---------------------------- :: Rcd
-x : {l : A} ; l ~~> S9 | z
+---------------------------- :: Rcd
+x : {l : A} ; l ~~> S9'' | z
 
 
 x : A ; arg ~~> J1 | z

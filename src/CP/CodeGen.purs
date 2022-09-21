@@ -11,7 +11,7 @@ import Data.Int (toNumber)
 import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.String (joinWith)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested ((/\))
 import Language.CP.Subtyping (isTopLike, split, (===))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..)) as Op
 import Language.CP.Syntax.Common (Label, Name)
@@ -22,7 +22,7 @@ import Partial.Unsafe (unsafeCrashWith)
 
 type CodeGen = RWST Ctx Unit Int (Except String)
 
-type Ctx = { tmBindEnv :: Map Name (C.Ty /\ Boolean)
+type Ctx = { tmBindEnv :: Map Name C.Ty
            , tyBindEnv :: Map Name C.Ty
            }
 
@@ -139,11 +139,15 @@ infer (C.TmIf e1 e2 e3) z = do
                    <+> show t2 <+> "and" <+> show t3
   else throwError $ "if-condition expected Bool, but got" <+> show t1
 infer (C.TmVar x) z = do
-  typ /\ var <- lookupBind x
-  pure { ast: [ assignObj z [JSVar var] ], typ }
+  typ <- lookupTmBind x
+  pure { ast: [ assignObj z [JSApp (JSVar (variable x)) []] ], typ }
 infer (C.TmFix x e typ) z = do
-  j <- addFixBind x typ $ check e typ "this"
-  pure { ast: [ assignObj z [JSApp (JSVar "new") [thunk j]] ], typ }
+  j <- addTmBind x typ $ check e typ "$this$"
+  let fun = thunk $ [ JSVariableIntroduction "$this$" $ Just $ JSVar "this"
+                    , JSVariableIntroduction (variable x) $ Just $ thunk [JSReturn $ JSVar "$this$"]
+                    ] <> j
+      ast = [ assignObj z [JSApp (JSVar "new") [fun]] ]
+  pure { ast, typ }
 infer (C.TmAbs x e targ tret _) z
   | isTopLike tret = infer C.TmUnit z
   | otherwise = do
@@ -157,8 +161,10 @@ infer (C.TmApp e1 e2 _) z = do
   case app t1 of
     Just { targ: t2, tret: t3 } -> do
       { ast: j2, var: y } <- check' e2 t2
-      j3 <- dist t1 x (TmArg (JSVar y)) z
-      pure { ast: j1 <> j2 <> j3, typ: t3 }
+      y' <- freshVarName
+      j3 <- dist t1 x (TmArg (JSVar y')) z
+      let j2' = [ JSVariableIntroduction y' $ Just $ thunk $ j2 <> [JSReturn $ JSVar y] ]
+      pure { ast: j1 <> j2' <> j3, typ: t3 }
     Nothing -> throwError $ "expected an applicable type, but got" <+> show t1
 infer (C.TmTAbs a td e t _) z
   | isTopLike t = infer C.TmUnit z
@@ -208,8 +214,9 @@ infer e _ = unsafeCrashWith $ "FIXME: infer" <+> show e
 
 infer' :: C.Tm -> CodeGen { ast :: AST, typ :: C.Ty, var :: Name }
 infer' (C.TmVar x) = do
-  typ /\ var <- lookupBind x
-  pure { ast: [], typ, var }
+  typ <- lookupTmBind x
+  var <- freshVarName
+  pure { ast: [ JSVariableIntroduction var $ Just $ JSApp (JSVar (variable x)) [] ], typ, var }
 infer' (C.TmAnno e typ) = do
   { ast, var } <- check' e typ
   pure { ast, typ, var }
@@ -396,18 +403,15 @@ freshVarName = do
   count <- modify (_ + 1)
   pure $ variable $ show count
 
-lookupBind :: Name -> CodeGen (C.Ty /\ Name)
-lookupBind x = do
+lookupTmBind :: Name -> CodeGen C.Ty
+lookupTmBind x = do
   env <- asks (_.tmBindEnv)
   case lookup x env of
-    Just (typ /\ fixed) -> pure $ typ /\ if fixed then "this" else variable x
-    Nothing -> throwError $ "term variable" <+> show x <+> "is undefined"
+    Just typ -> pure typ
+    Nothing  -> throwError $ "term variable" <+> show x <+> "is undefined"
 
 addTmBind :: forall a. Name -> C.Ty -> CodeGen a -> CodeGen a
-addTmBind x t = local (\ctx -> ctx { tmBindEnv = insert x (t /\ false) ctx.tmBindEnv })
-
-addFixBind :: forall a. Name -> C.Ty -> CodeGen a -> CodeGen a
-addFixBind x t = local (\ctx -> ctx { tmBindEnv = insert x (t /\ true) ctx.tmBindEnv })
+addTmBind x t = local (\ctx -> ctx { tmBindEnv = insert x t ctx.tmBindEnv })
 
 addTyBind :: forall a. Name -> C.Ty -> CodeGen a -> CodeGen a
 addTyBind a t = local (\ctx -> ctx { tyBindEnv = insert a t ctx.tyBindEnv })

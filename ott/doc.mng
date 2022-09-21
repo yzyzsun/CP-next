@@ -57,32 +57,50 @@
 /* S0 */
 var z = {};  J;
 
+
 /* S1 */
 z[T] = b;
 
+
 /* S2 */
-Object.assign(z, x);
+Object.assign(z, x());
 
 
 /* S3 */
-Object.assign(z,
-  new function() { J }
-);
+var z = x();
+
 
 /* S4 */
+Object.assign(z,
+  new function() {
+    var y = this;
+    var x = () => y;
+    J;
+  }
+);
+
+/* S5 */
 z[T] = x => {
   J;  return y;
 };
 
-/* S5 */
+/* S6 */
+J1;
+var y0 = () => {
+  J2; return y;
+};
+J3;
+
+/* S7 */
 z[T] = X => {
   J;  return y;
 };
 
-/* S6 */
+/* S8 */
 z[T] = () => {
   J;  return y;
 };
+
 \end{verbatim}
 \end{multicols}
 
@@ -91,13 +109,13 @@ z[T] = () => {
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* S7 */
+/* S9 */
 Object.assign(z, x[T](y));
 
-/* S8 */
+/* S9' */
 Object.assign(z, x[T1](T2));
 
-/* S9 */
+/* S9'' */
 Object.assign(z, x[T]());
 \end{verbatim}
 \end{multicols}
