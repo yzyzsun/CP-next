@@ -57,27 +57,17 @@
 /* S0 */
 var z = {};  J;
 
-
 /* S1 */
 z[T] = b;
-
 
 /* S2 */
 Object.assign(z, x());
 
-
 /* S3 */
 var z = x();
 
-
 /* S4 */
-Object.assign(z,
-  new function() {
-    var y = this;
-    var x = () => y;
-    J;
-  }
-);
+var x = () => z;  J;
 
 /* S5 */
 z[T] = x => {
@@ -100,7 +90,6 @@ z[T] = X => {
 z[T] = () => {
   J;  return y;
 };
-
 \end{verbatim}
 \end{multicols}
 

@@ -142,11 +142,8 @@ infer (C.TmVar x) z = do
   typ <- lookupTmBind x
   pure { ast: [ assignObj z [JSApp (JSVar (variable x)) []] ], typ }
 infer (C.TmFix x e typ) z = do
-  j <- addTmBind x typ $ check e typ "$this$"
-  let fun = thunk $ [ JSVariableIntroduction "$this$" $ Just $ JSVar "this"
-                    , JSVariableIntroduction (variable x) $ Just $ thunk [JSReturn $ JSVar "$this$"]
-                    ] <> j
-      ast = [ assignObj z [JSApp (JSVar "new") [fun]] ]
+  j <- addTmBind x typ $ check e typ z
+  let ast = [ JSVariableIntroduction (variable x) $ Just $ thunk [JSReturn (JSVar z)] ] <> j
   pure { ast, typ }
 infer (C.TmAbs x e targ tret _) z
   | isTopLike tret = infer C.TmUnit z
