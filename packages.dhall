@@ -117,8 +117,8 @@ let additions =
 -------------------------------
 -}
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.15.4-20220808/packages.dhall
-        sha256:60eee64b04ca0013fae3e02a69fc3b176105c6baa2f31865c67cd5f881a412fd
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.4-20221010/packages.dhall
+        sha256:adaff055458c5dd3568903f9e54b5cd8bed23085d5b344482fd804050c5e1849
 
 let overrides = {=}
 
@@ -132,7 +132,7 @@ let additions =
         { dependencies =
           [ "arrays", "pattern-arrows", "prelude", "transformers", "strings" ]
         , repo = "https://github.com/yzyzsun/purescript-js-ast.git"
-        , version = "f55abea"
+        , version = "d1a027d"
         }
       }
 
