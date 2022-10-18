@@ -1,0 +1,175 @@
+\documentclass{article}
+
+\usepackage{amsmath,amssymb}
+\usepackage[margin=1in]{geometry}
+\usepackage{multicol}
+\usepackage{ottalt}
+\usepackage{xcolor}
+\usepackage{xspace}
+
+\inputott[ott]{record}
+
+\newcommand\calculus{$\mathsf{F}_i^+$\xspace}
+\newcommand\reccal{$\lambda^{\text{rec}}$\xspace}
+
+\title{Elaborating \calculus to record calculus \reccal}
+\author{Snow}
+
+\begin{document}
+
+\maketitle
+
+
+\section{Syntax of \reccal}
+
+\begin{align*}
+  &\text{Type indices (labels)}&[[T]], [[K]] ::=&~ [[Base]] ~|~ [[->T]] ~|~ [[\-/T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
+  &\text{Target expressions} &[[t]] ::=& [[b]] ~|~ [[x]] ~|~ [[fix x. t]] ~|~ [[\x. t]] ~|~ [[t1 t2]] ~|~ [[/\X. t]] ~|~ [[t T]] ~|~ [[{ T1 => tp1 ,  .. , Tn => tpn }]] ~|~ [[t.T]] ~|~ [[t1 ; t2]] \\
+  %% &\text{Target pre-values}  &[[tp]] ::=&~ [[b]] ~|~ [[\x. t]] ~|~ [[/\X. t]] ~|~ [[tv]]\\
+  &\text{Target values}      &[[tv]], [[tu]] ::=& [[b]] ~|~ [[\x. t]] ~|~ [[\_. t]] ~|~ [[/\X. t]] ~|~ [[{ T1 => tv1 ,  .. , Tn => tvn }]] \\
+\end{align*}
+
+\paragraph{Notes}
+0) Multi-field records are nullable. $[[\x.t]]$ has a special case $[[\_.t]]$.\\
+1) We need functions that take a type index for big lambda expressions and type applications. \\
+2) The whole program has a record form.
+%% 2) As any expression can be concatenated, all values should have a record form.
+%% For example, we cannot evaluates $[[{ ->Base => \x.b }.->Base]]$ in $[[ [-];{Base=>b} ]] $.
+%% It is hard to express lazy evaluation then.
+%% Our evaluation strategy is eager but when constructing records, each field is
+%% in a thunk so they will not be evaluated until projection.
+
+%% \paragraph{Questions}
+%% (/\ X * Top . \ x : X . x : X)
+
+\ottgrammartabular{
+  \ottE
+}
+
+\ottdefnsTargetStep
+
+\paragraph{Problems}
+0) To achieve a safe language, we need to check the projected label is unique in TS-proj. \\
+1) The side-condition in rule TS-concat does not guarantee the original types are
+disjoint. E.g. $[[ {Int=>b1,Bool=>b2} ; {Int&Bool=>b3 } ]]$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Syntax of \calculus}
+\begin{align*}
+  &\text{Types}       &A,B,C ::=&~ [[Top]] ~|~ [[Bot]] ~|~ [[Base]] ~|~ [[X]] ~|~ [[A -> B]] ~|~ [[Forall X*A. B]] ~|~ [[{l : A}]] ~|~ [[A & B]] \\
+  &\text{Type indices}&[[T]] ::=&~ [[Base]] ~|~ [[->T]] ~|~ [[\-/T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
+  &\text{Expressions} &    e ::=&~ [[{}]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[/\X*A. e:B]] ~|~ [[e A]] ~|~ [[{l = e}]] ~|~ [[e.l]] \\
+  &                   &        |&~ [[e1 ,, e2]] ~|~ [[e : A]] \\
+  &\text{Values}      &    v ::=&~ [[{}]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[/\X*A. e:B]] ~|~ [[{l = v}]] ~|~ [[v1 ,, v2]] \\
+\end{align*}
+
+\subsection{Mapping between source types and target values}
+\begin{align*}
+  & [[A&B]] && [[ { |A|&|B| => t } ]] ~\text{or}~ [[ { |A| => t1 , |B| => t2 } ]] \\
+  & [[Top]] && [[ { } ]] \\
+  & [[Bot]] && \\
+  & [[Base]] && [[ { Base => b } ]] \\
+  & [[X]]   && [[ { X => t } ]] ~\text{(not a value)} \\
+  & [[A->B]] && [[ { ->|B| => \x.t } ]] \\
+  & [[Forall X*A.B]] && [[ { \-/|B| => /\X.t } ]] \\
+  & [[{l:A}]] && [[ { {l:|A|} => \_.t } ]]
+\end{align*}
+
+\subsection{Elaboration rules}
+1) All top-like values are translated into empty lists.
+
+\begin{mathpar}
+  \ottdruleElaXXTop{} \and
+  \ottdruleElaXXTopAbs{} \and
+  \ottdruleElaXXTopTAbs{} \and
+  \ottdruleElaXXTopRcd{}
+\end{mathpar}
+
+2) All basic values (that are not merges) are translated into single-field records.
+
+\begin{mathpar}
+  \ottdruleElaXXBase{} \and
+  \ottdruleElaXXAbs{} \and
+  \ottdruleElaXXTAbs{} \and
+  \ottdruleElaXXRcd{}
+\end{mathpar}
+
+3) Variables are directly used (unwrap the thunk) and merged terms are simply concatenated,
+with the expectation that $[[ []|-e=>A ~~> t ]]$ implies $[[ t >->* {|A|=>t'} ]]$
+(or a multi-field record) (i.e. the variable will be substituted
+by a term of this exact type).
+
+\begin{mathpar}
+  \ottdruleElaXXVar{} \and
+  \ottdruleElaXXMerge{}
+\end{mathpar}
+
+4) Projection, application, and type application make use of the property
+that every translated subterms are records. Application is lazy.
+
+\begin{mathpar}
+  \ottdruleElaXXProj{} \and
+  \ottdruleElaXXApp{} \and
+  \ottdruleElaXXTApp{}
+\end{mathpar}
+
+In CBN style:
+
+\begin{mathpar}
+  \ottdruleElaXXProjAlt{} \and
+  \ottdruleElaXXAppAlt{} \and
+  \ottdruleElaXXTAppAlt{}
+\end{mathpar}
+
+5) Annotated expressions, like fixpoints, rely on the subsumption rule to
+insert coercions. The coerced expression always evaluates to a record.
+
+\begin{mathpar}
+  \ottdruleElaXXAnno{} \and
+  \ottdruleElaXXFix{} \and
+  \ottdruleElaXXSub{}
+\end{mathpar}
+
+\subsection{Coercion }
+\begin{align*}
+  & [[ Int & Bool <: Int ~~> \ x . { Int => x . Int } ]] \\
+  & [[ Int & Bool <: Bool&Int ~~> \ x . { Bool => x . Bool } ; {Int => x . Int } ]]  \\
+  %% && [[ {Int&Bool=>x{}} ]] \\
+  & [[ Base->Int&Bool <: Base->Int&Bool ~~> \ x . { ->(Int&Bool) => \ y . (x.->Int)y; (x.->Bool)y } ]]
+\end{align*}
+
+\paragraph{Problems}
+1) Derivation of subtyping is not unique. No type well-formedness, no coherence. \\
+2) The algorithm is against the effort we put in typing application. As types
+are split whenever possible, functions are duplicated (and merged afterwards). \\
+3) It is strange that he domain of arrow types has no effect to coercion generation.
+
+\ottdefnsCoSubtyping
+
+\ottdefnsCoMerge
+
+\subsection{Auxiliary definitions}
+
+\boxed{[[|A|]] = [[T]]} \hfill \textit{(Type translation)}
+\begin{mathpar}
+\inferrule{}{ [[|Base|]] = [[Base]] }
+\and
+\inferrule{}{ [[|X|]] = X }
+\and
+\inferrule{}{ [[|Forall X*A. B|]] = [[\-/|B|]] }
+\and
+\inferrule{}{ [[|A->B|]] = [[->|B|]] }
+\and
+\inferrule{}{ [[|{l:A}|]] = [[{l:|A|}]] }
+\and
+\inferrule{}{ [[|A&B|]] = [[|A|&|B|]] }
+\end{mathpar}
+
+\bigskip\bigskip
+
+\ottdefntoplike
+
+\ottdefnordinary
+
+\end{document}

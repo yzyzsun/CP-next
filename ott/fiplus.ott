@@ -1,6 +1,7 @@
 metavar tvar, X, Y, Z ::= {{ com type variable name }}
 metavar var, x, y, z ::= {{ com variable name }}
 metavar label, l {{ tex \ell }} ::= {{ com label name }}
+metavar b ::= {{ com base values }}
 
 grammar
 
@@ -16,9 +17,11 @@ typ, A, B, C :: 't_' ::= {{ com types }}
   | A & B            ::  :: and    {{ com intersection type }}
   | A [ X ~> B ]     :: M:: subst
   | ( A )            :: S:: paren
+  | Int       :: M:: int     {{ com int }} {{ tex \mathsf{Int}  }}
+  | Bool      :: M:: bool    {{ com bool}} {{ tex \mathsf{Bool} }}
 
 exp, e :: 'e_' ::= {{ com expressions }}
-  | {}               ::  :: top    {{ com top value }}
+  | top               ::  :: top    {{ com top value }}
   | b                ::  :: base   {{ com base literal }} {{ tex b }}
   | x                ::  :: var    {{ com variable }}
   | fix x : A . e    ::  :: fix    {{ com fixpoint }} {{ tex [[fix]]\,[[x]]\!:\![[A]].\;[[e]] }}
@@ -35,7 +38,7 @@ exp, e :: 'e_' ::= {{ com expressions }}
   | ( e )            :: S:: paren
 
 val, v :: 'v_' ::= {{ com values }}
-  | {}               ::  :: top
+  | top               ::  :: top
   | b                ::  :: base
   | \ x : A . e : B  ::  :: abs
   | /\ X * A . e : B ::  :: tabs
@@ -62,6 +65,8 @@ terminals :: 'terminals_' ::=
   | /\           ::  :: biglambda  {{ tex \Lambda }}
   | ~>           ::  :: subst      {{ tex \mapsto }}
   | ->           ::  :: arrow      {{ tex \rightarrow }}
+  | >->          ::  :: stepalt    {{ tex \rightarrow }}
+  | >->*         ::  :: stepmul    {{ tex \rightarrow^{*} }}
   | -->          ::  :: longarrow  {{ tex \hookrightarrow }}
   | ==>          ::  :: darrow     {{ tex \Downarrow }}
   | ~~>          ::  :: sarrow     {{ tex \rightsquigarrow }}
@@ -76,6 +81,8 @@ terminals :: 'terminals_' ::=
   | ~            ::  :: consistent {{ tex \approx }}
   | &            ::  :: intersect  {{ tex \, \& \, }}
   | ,,           ::  :: merge      {{ tex \, ,\!, \, }}
+  | |>           ::  :: rhd        {{ tex \rhd }}
+  | <|           ::  :: lhd        {{ tex \lhd }}
 
 formula :: 'formula_' ::=
   | judgement             ::  :: judgement
@@ -91,7 +98,10 @@ formula :: 'formula_' ::=
   | x notin dom G         ::  :: notInGx   {{ tex [[x]] \notin [[G]] }}
   | l1 <> l2              ::  :: labelNeq  {{ tex [[l1]] \neq [[l2]] }}
   | T1 = T2               ::  :: typEq
+  | t1 = t2               ::  :: target_exp_eq
+  | ST1 = ST2             ::  :: set_eq
   | e1 --> i e2           :: M:: multistep {{ tex [[e1]]~[[-->]][[i]]~[[e2]] }}
+  | t >->* t'             ::  :: steps
   | G |- A * B            :: M:: disjointSpec
   | v1 ~ v2               :: M:: consistentSpec
 
@@ -336,7 +346,7 @@ by
 
 uniq G
 ----------------- :: Top
-G |- {} => Top
+G |- top => Top
 
 
 uniq G
@@ -432,7 +442,7 @@ by
 ordinary A
 toplike A
 --------------------- :: Top
-v  -->A  {}
+v  -->A  top
 
 
 --------------------- :: Base
@@ -490,7 +500,7 @@ by
 
 
 ----------------- :: Top
-{} ; arg  -->  {}
+top ; arg  -->  top
 
 
 v  -->A  v'
