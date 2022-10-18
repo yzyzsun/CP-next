@@ -5,12 +5,12 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.RWS (RWST, asks, evalRWST, local, modify)
-import Data.Array (elem, sortBy, (:))
+import Data.Array (elem, sort, (:))
 import Data.Either (Either)
 import Data.Int (toNumber)
 import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
-import Data.String (joinWith)
+import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
 import Data.Tuple.Nested ((/\))
 import Language.CP.Subtyping (isTopLike, split, (===))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..)) as Op
@@ -26,11 +26,20 @@ type Ctx = { tmBindEnv :: Map Name C.Ty
            , tyBindEnv :: Map Name C.Ty
            }
 
-runCodeGen :: C.Tm -> Either String JS
+runCodeGen :: C.Tm -> Either String (Array JS)
 runCodeGen e = do
   { ast, var } /\ _ <- runExcept $
     evalRWST (infer' e) { tmBindEnv: empty, tyBindEnv: empty } 0
-  pure $ JSFunction (Just "main") [] $ JSBlock $ ast <> [ JSReturn $ JSVar var ]
+  pure [ JSFunction (Just "toIndex") ["t"] $ JSBlock
+          [JSIfElse (JSBinary EqualTo (JSAccessor "length" (JSVar "t")) (JSNumericLiteral 1.0))
+                    (JSBlock [JSReturn $ JSIndexer (JSNumericLiteral 0.0) (JSVar "t")])
+                    (Just $ JSBlock [JSReturn $ JSBinary Add
+                      (JSBinary Add
+                        (JSStringLiteral "(&")
+                        (JSApp (JSAccessor "join" (JSApp (JSAccessor "sort" (JSVar "t")) [])) [JSStringLiteral "&"]))
+                      (JSStringLiteral "&)")])]
+       , JSFunction (Just "main") [] $ JSBlock $ ast <> [ JSReturn $ JSVar var ]
+       ]
 
 type AST = Array JS
 
@@ -174,9 +183,8 @@ infer (C.TmTAbs a td e t _) z
 infer (C.TmTApp e t) z = do
   { ast: j1, typ: tf, var: y } <- infer' e
   case tapp tf of
-    Just { param, tdis, tbody } -> do
-      disjoint t tdis
-      j2 <- dist tf y (TyArg (toIndex t)) z
+    Just { param, tbody } -> do
+      j2 <- dist tf y (TyArg (toIndices t)) z
       pure { ast: j1 <> j2, typ: C.tySubst param t tbody }
     Nothing -> throwError $ "expected an type-applicable type, but got" <+> show tf
 infer (C.TmRcd l t e) z
@@ -197,7 +205,6 @@ infer (C.TmPrj e l) z = do
 infer (C.TmMerge e1 e2) z = do
   { ast: j1, typ: t1 } <- infer e1 z
   { ast: j2, typ: t2 } <- infer e2 z
-  disjoint t1 t2
   pure { ast: j1 <> j2, typ: C.TyAnd t1 t2 }
 infer (C.TmAnno e typ) z = do
   ast <- check e typ z
@@ -278,9 +285,6 @@ dist t x (TyArg y) z = do
 dist t x Label z = do
   pure [ assignObj z [JSApp (JSIndexer (toIndex t) (JSVar x)) []] ]
 
-disjoint :: C.Ty -> C.Ty -> CodeGen Unit
-disjoint _ _ = pure unit -- FIXME!
-
 subtype :: C.Ty -> C.Ty -> Name -> Name -> CodeGen AST
 subtype _ tb _ _ | isTopLike tb = pure []
 subtype ta tb x z | Just (tb1 /\ tb2) <- split tb = do
@@ -320,6 +324,9 @@ subtype r1@(C.TyRcd l1 t1 _) r2@(C.TyRcd l2 t2 _) x y | l1 == l2 = do
            <> j <> [ JSReturn $ JSVar y0 ]
   pure [ addProp (JSVar y) (toIndex r2) (thunk block) ]
 subtype (C.TyAnd ta tb) tc x y = subtype ta tc x y <|> subtype tb tc x y
+subtype (C.TyVar a) (C.TyVar a') x y | a == a' = let index = "$$index" in
+  pure [ JSForOf index (JSVar (variable a)) $ JSAssignment (JSIndexer (JSVar index) (JSVar y))
+                                                           (JSIndexer (JSVar index) (JSVar x)) ]
 subtype ta tb x y
   | ta == tb = pure [ JSAssignment (JSIndexer (toIndex tb) (JSVar y))
                                    (JSIndexer (toIndex ta) (JSVar x)) ]
@@ -364,6 +371,11 @@ unsplit { x: x1, y: x2, z, tx: r1@(C.TyRcd _ t1 _), ty: r2@(C.TyRcd _ t2 _), tz:
   pure [ addProp (JSVar z) (toIndex r) func ]
 unsplit s = unsafeCrashWith $ "cannot unsplit" <+> show s
 
+toIndices :: C.Ty -> JS
+toIndices (C.TyVar a) = JSVar $ variable a
+toIndices t@(C.TyAnd _ _) = JSArrayLiteral $ map toIndex $ flatten t
+toIndices t = JSArrayLiteral [toIndex t]
+
 toIndex :: C.Ty -> JS
 toIndex = JSTemplateLiteral <<< go []
   where
@@ -371,29 +383,21 @@ toIndex = JSTemplateLiteral <<< go []
     go _ t | isBaseType t = show t
     go as (C.TyArrow _ t _) = "fun_" <> go as t
     go as (C.TyForall a _ t) = "forall_" <> go (a:as) t
-    go as (C.TyRcd l t _) = "rcd_" <> l <> "_" <> go as t
-    go as (C.TyAnd t1 t2) =
-      "andBegin_" <> joinWith "_" (map (go as) (sortBy typeOrdering (flattenAnd (C.TyAnd t1 t2)))) <> "_andEnd"
-    go as (C.TyVar a) = if a `elem` as then a else "${" <> variable a <> "}"
+    go as (C.TyRcd l t _) = "rcd_" <> l <> ":" <> go as t
+    go as t@(C.TyAnd _ _) = "(&" <> joinWith "&" (sort (map (go as) (flatten t))) <> "&)"
+    go as (C.TyVar a) = if a `elem` as then a else "${toIndex(" <> variable a <> ")}"
     go _ t = unsafeCrashWith $ "cannot use as an index: " <> show t
-    typeOrdering :: C.Ty -> C.Ty -> Ordering
-    typeOrdering ta tb | isBaseType ta && isBaseType tb = compare (show ta) (show tb)
-    typeOrdering ta _  | isBaseType ta = LT
-    typeOrdering _ tb  | isBaseType tb = GT
-    typeOrdering (C.TyArrow _ ta _)  (C.TyArrow _ tb _) = typeOrdering ta tb
-    typeOrdering (C.TyArrow _ _ _) _ = GT
-    typeOrdering _ (C.TyArrow _ _ _ ) = LT
-    typeOrdering _ _ = EQ
-    flattenAnd :: C.Ty -> Array C.Ty
-    flattenAnd (C.TyAnd ta tb) = flattenAnd ta <> flattenAnd tb
-    flattenAnd t | isTopLike t = []
-                 | otherwise   = [t]
     isBaseType :: C.Ty -> Boolean
     isBaseType C.TyBool = true
     isBaseType C.TyInt = true
     isBaseType C.TyDouble = true
     isBaseType C.TyString = true
     isBaseType _ = false
+
+flatten :: C.Ty -> Array C.Ty
+flatten (C.TyAnd t1 t2) = flatten t1 <> flatten t2
+flatten t | isTopLike t = []
+          | otherwise   = [t]
 
 freshVarName :: CodeGen Name
 freshVarName = do
@@ -426,4 +430,4 @@ addProp :: JS -> JS -> JS -> JS
 addProp o x f = JSAssignment (JSIndexer x o) f
 
 variable :: Name -> Name
-variable = ("$" <> _)
+variable = ("$" <> _) <<< replaceAll (Pattern "'") (Replacement "$prime")

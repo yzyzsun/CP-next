@@ -24,7 +24,7 @@ import Language.CP.Semantics.Subst as SmallStep
 import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
 import Language.CP.Typing (checkProg, infer)
-import Language.JS.Pretty (print1)
+import Language.JS.Pretty (print)
 import Parsing (ParseError(..), Position(..), runParser)
 import Parsing.String (eof)
 
@@ -78,7 +78,7 @@ compile code = case runParser code (whiteSpace *> program <* eof) of
   Left err -> Left $ showParseError err code
   Right prog -> case runChecking (check (desugarProg prog)) initState of
     Left err -> Left $ showTypeError err
-    Right (e /\ _) -> print1 <$> runCodeGen e
+    Right (e /\ _) -> print <$> runCodeGen e
   where
     check :: S.Prog -> Checking C.Tm
     check prog = do

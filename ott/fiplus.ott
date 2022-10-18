@@ -4,7 +4,7 @@ metavar label, l {{ tex \ell }} ::= {{ com label name }}
 
 grammar
 
-typ, A, B, C :: 't_' ::= {{ com types }}
+typ, A, B, C, Ts :: 't_' ::= {{ com types }}
   | Top              ::  :: top    {{ com top type }} {{ tex \top }}
   | Bot              ::  :: bot    {{ com bottom type }} {{ tex \bot }}
   | Base             ::  :: base   {{ com base type }} {{ tex \mathbb{B} }}
@@ -91,6 +91,7 @@ formula :: 'formula_' ::=
   | x notin dom G         ::  :: notInGx   {{ tex [[x]] \notin [[G]] }}
   | l1 <> l2              ::  :: labelNeq  {{ tex [[l1]] \neq [[l2]] }}
   | T1 = T2               ::  :: typEq
+  | Ts = itoa | A |       ::  :: itoa
   | e1 --> i e2           :: M:: multistep {{ tex [[e1]]~[[-->]][[i]]~[[e2]] }}
   | G |- A * B            :: M:: disjointSpec
   | v1 ~ v2               :: M:: consistentSpec
