@@ -125,15 +125,19 @@ for (var T of X) {
 
 /* S11 */
 y[T2] = p => {
-  var x2 = x[T1](p);
+  var x2 = x[T1](() => {
+    var x1 = p();
+    var y1 = {};  J1;
+    return y1;
+  });
   var y2 = {};  J2;
   return y2;
 };
 
 /* S12 */
 y[T2] = X => {
-  var x2 = x[T1](X);
-  var y2 = {};  J2;
+  var x0 = x[T1](X);
+  var y0 = {};  J;
   return y2;
 };
 
