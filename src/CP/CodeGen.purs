@@ -45,6 +45,7 @@ type AST = Array JS
 
 infer :: C.Tm -> Name -> CodeGen { ast :: AST, typ :: C.Ty }
 infer C.TmUnit _ = pure { ast: [], typ: C.TyTop }
+infer C.TmUndefined _ = pure { ast: [], typ: C.TyBot }
 infer (C.TmInt i) z = pure
   { ast: [ addProp (JSVar z) (toIndex C.TyInt) (JSNumericLiteral (toNumber i)) ]
   , typ: C.TyInt
@@ -287,6 +288,7 @@ dist t x Label z = do
 
 subtype :: C.Ty -> C.Ty -> Name -> Name -> CodeGen AST
 subtype _ tb _ _ | isTopLike tb = pure []
+subtype C.TyBot _ _ _ = pure []
 subtype ta tb x z | Just (tb1 /\ tb2) <- split tb = do
   y1 <- freshVarName
   y2 <- freshVarName
@@ -379,6 +381,7 @@ unsplit s = unsafeCrashWith $ "cannot unsplit" <+> show s
 toIndices :: C.Ty -> JS
 toIndices (C.TyVar a) = JSVar $ variable a
 toIndices t@(C.TyAnd _ _) = JSArrayLiteral $ map toIndex $ flatten t
+toIndices C.TyTop = JSArrayLiteral []
 toIndices t = JSArrayLiteral [toIndex t]
 
 toIndex :: C.Ty -> JS
