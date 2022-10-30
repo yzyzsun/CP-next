@@ -30,13 +30,13 @@
   , "parsing"
   , "partial"
   , "prelude"
+  , "refs"
   , "spec"
   , "strings"
+  , "stringutils"
   , "transformers"
   , "tuples"
   , "unicode"
-  , "stringutils"
-  , "refs"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]

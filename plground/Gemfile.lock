@@ -108,11 +108,11 @@ GEM
     minitest (5.16.3)
     msgpack (1.6.0)
     nio4r (2.5.8)
-    nokogiri (1.13.8-arm64-darwin)
+    nokogiri (1.13.9-arm64-darwin)
       racc (~> 1.4)
-    nokogiri (1.13.8-x86_64-darwin)
+    nokogiri (1.13.9-x86_64-darwin)
       racc (~> 1.4)
-    nokogiri (1.13.8-x86_64-linux)
+    nokogiri (1.13.9-x86_64-linux)
       racc (~> 1.4)
     orm_adapter (0.5.0)
     pg (1.4.4)
@@ -221,4 +221,4 @@ DEPENDENCIES
   web-console (>= 4.1.0)
 
 BUNDLED WITH
-   2.3.23
+   2.3.24
