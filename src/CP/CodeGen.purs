@@ -5,19 +5,23 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.RWS (RWST, asks, evalRWST, local, modify)
-import Data.Array (elem, sort, (:))
+import Data.Array (elem, foldl, length, (:), (!!))
+import Data.Array as A
+import Data.Bifunctor (bimap, lmap)
 import Data.Either (Either)
 import Data.Int (toNumber)
 import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
-import Data.Tuple.Nested ((/\))
+import Data.Tuple (fst)
+import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Subtyping (isTopLike, split, (===))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..)) as Op
 import Language.CP.Syntax.Common (Label, Name)
 import Language.CP.Syntax.Core as C
-import Language.CP.Util ((<+>))
+import Language.CP.Util (unsafeFromJust, (<+>))
 import Language.JS.AST (BinaryOperator(..), JS(..), UnaryOperator(..))
+import Language.JS.Pretty (print1)
 import Partial.Unsafe (unsafeCrashWith)
 
 type CodeGen = RWST Ctx Unit Int (Except String)
@@ -385,16 +389,25 @@ toIndices C.TyTop = JSArrayLiteral []
 toIndices t = JSArrayLiteral [toIndex t]
 
 toIndex :: C.Ty -> JS
-toIndex = JSTemplateLiteral <<< go []
+toIndex = JSTemplateLiteral <<< fst <<< go []
   where
-    go :: Array Name -> C.Ty -> String
-    go _ t | isBaseType t = show t
-    go as (C.TyArrow _ t _) = "fun_" <> go as t
-    go as (C.TyForall a _ t) = "forall_" <> go (a:as) t
-    go as (C.TyRcd l t _) = "rcd_" <> l <> ":" <> go as t
-    go as t@(C.TyAnd _ _) = "(&" <> joinWith "&" (sort (map (go as) (flatten t))) <> "&)"
-    go as (C.TyVar a) = if a `elem` as then a else "${toIndex(" <> variable a <> ")}"
+    go :: Array Name -> C.Ty -> String /\ Boolean
+    go _ t | isBaseType t    = show t /\ false
+    go as (C.TyArrow _ t _)  = lmap ("fun_" <> _) (go as t)
+    go as (C.TyForall a _ t) = lmap ("forall_" <> _) (go (a:as) t)
+    go as (C.TyRcd l t _)    = lmap (("rcd_" <> l <> ":") <> _) (go as t)
+    go as (C.TyVar a)        = if a `elem` as then a /\ false
+                               else ("${toIndex(" <> variable a <> ")}") /\ true
+    go as t@(C.TyAnd _ _)    = let flattened = flatten t in
+      if length flattened == 1 then go as (unsafeFromJust (flattened !! 0))
+      else let ts /\ b = foldl (\(ts /\ b) t -> bimap (flip A.insert ts) (b || _) (go as t))
+                               ([] /\ false) flattened in
+           if not b then ("(&" <> joinWith "&" ts <> "&)") /\ false
+           else ("${toIndex(" <> print1 (JSArrayLiteral (go' as <$> flattened)) <> ")}") /\ true
     go _ t = unsafeCrashWith $ "cannot use as an index: " <> show t
+    go' :: Array Name -> C.Ty -> JS
+    go' as (C.TyVar a) | not (a `elem` as) = JSUnary Spread (JSVar (variable a))
+    go' as t = JSTemplateLiteral $ fst $ go as t
     isBaseType :: C.Ty -> Boolean
     isBaseType C.TyBool = true
     isBaseType C.TyInt = true
