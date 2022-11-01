@@ -1,5 +1,6 @@
 \documentclass{article}
 
+\usepackage[normalem]{ulem}
 \usepackage{amsmath,amssymb}
 \usepackage[margin=1in]{geometry}
 \usepackage{multicol}
@@ -19,20 +20,41 @@
 
 \maketitle
 
+\section{Notes}
+\paragraph{Problems}
+0) Duplicated labels in records are unsafe in the target calculus.
+How to compile $1:Int\&Int$? \\
+1) Subtyping does not produce unique coercion so coherence is a problem.
+
+
+\paragraph{Changes in \reccal}
+0) Use first-class labels\\
+1) Unify the abstractions in expressions
+2) Refine the syntax and related rules of records and projections as the label
+could be an expression
+
+
+\paragraph{Changes in elaboration}
+0) Add distributive application and revise the related typing rules\\
+1) Pass terms to coercive subtyping instead of generating coercions \\
+2) Update coercion rules for arrows
+
+\newpage
 
 \section{Syntax of \reccal}
 
+
 \begin{align*}
-  &\text{Type indices (labels)}&[[T]], [[K]] ::=&~ [[Base]] ~|~ [[->T]] ~|~ [[\-/T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
-  &\text{Target expressions} &[[t]] ::=& [[b]] ~|~ [[x]] ~|~ [[fix x. t]] ~|~ [[\x. t]] ~|~ [[t1 t2]] ~|~ [[/\X. t]] ~|~ [[t T]] ~|~ [[{ T1 => tp1 ,  .. , Tn => tpn }]] ~|~ [[t.T]] ~|~ [[t1 ; t2]] \\
-  %% &\text{Target pre-values}  &[[tp]] ::=&~ [[b]] ~|~ [[\x. t]] ~|~ [[/\X. t]] ~|~ [[tv]]\\
-  &\text{Target values}      &[[tv]], [[tu]] ::=& [[b]] ~|~ [[\x. t]] ~|~ [[\_. t]] ~|~ [[/\X. t]] ~|~ [[{ T1 => tv1 ,  .. , Tn => tvn }]] \\
+  %% &\text{Type indices (labels)}&[[T]], [[K]] ::=&~ [[Base]] ~|~ [[->T]] ~|~ [[\-/T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
+  &\text{Target expressions} &[[t]] ::=& [[l]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x. t]] ~|~ [[\x. t]] ~|~ [[t1 t2]] ~|~ [[{ t1 => t1' ,  .. , tn => tn' }]] ~|~ [[t1.t2]] ~|~ [[t1 ; t2]] \\
+  &\text{Target values}      &[[tv]], [[tu]] ::=& [[b]] ~|~ [[\x. t]] ~|~ [[{ l1 => tv1 ,  .. , ln => tvn }]] \\
 \end{align*}
 
 \paragraph{Notes}
-0) Multi-field records are nullable. $[[\x.t]]$ has a special case $[[\_.t]]$.\\
-1) We need functions that take a type index for big lambda expressions and type applications. \\
+0) Multi-field records are nullable. $[[\_.t]]$ denotes $[[\x.t]]$ where $x$ does not appear in $t$.\\
+\sout{1) We need functions that take a type index for big lambda expressions and type applications.} \\
 2) The whole program has a record form.
+3) $l$ stands for a string.
 %% 2) As any expression can be concatenated, all values should have a record form.
 %% For example, we cannot evaluates $[[{ ->Base => \x.b }.->Base]]$ in $[[ [-];{Base=>b} ]] $.
 %% It is hard to express lazy evaluation then.
@@ -49,9 +71,10 @@
 \ottdefnsTargetStep
 
 \paragraph{Problems}
-0) To achieve a safe language, we need to check the projected label is unique in TS-proj. \\
+\sout{0) To achieve a safe language, we need to check the projected label is unique in TS-proj.} \\
 1) The side-condition in rule TS-concat does not guarantee the original types are
-disjoint. E.g. $[[ {Int=>b1,Bool=>b2} ; {Int&Bool=>b3 } ]]$
+disjoint. E.g. $[[ {Int=>b1,Bool=>b2} ; {Int&Bool=>b3 } ]]$\\
+2) Regarding efficiency, the time cost of concatenation is high.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
@@ -66,13 +89,13 @@ disjoint. E.g. $[[ {Int=>b1,Bool=>b2} ; {Int&Bool=>b3 } ]]$
 
 \subsection{Mapping between source types and target values}
 \begin{align*}
-  & [[A&B]] && [[ { |A|&|B| => t } ]] ~\text{or}~ [[ { |A| => t1 , |B| => t2 } ]] \\
+  & [[A&B]] && [[ { |A| => t1 , |B| => t2 } ]] \\
   & [[Top]] && [[ { } ]] \\
   & [[Bot]] && \\
   & [[Base]] && [[ { Base => b } ]] \\
   & [[X]]   && [[ { X => t } ]] ~\text{(not a value)} \\
   & [[A->B]] && [[ { ->|B| => \x.t } ]] \\
-  & [[Forall X*A.B]] && [[ { \-/|B| => /\X.t } ]] \\
+  & [[Forall X*A.B]] && [[ { \-/|B| => \X.t } ]] \\
   & [[{l:A}]] && [[ { {l:|A|} => \_.t } ]]
 \end{align*}
 
@@ -114,14 +137,6 @@ that every translated subterms are records. Application is lazy.
   \ottdruleElaXXTApp{}
 \end{mathpar}
 
-In CBN style:
-
-\begin{mathpar}
-  \ottdruleElaXXProjAlt{} \and
-  \ottdruleElaXXAppAlt{} \and
-  \ottdruleElaXXTAppAlt{}
-\end{mathpar}
-
 5) Annotated expressions, like fixpoints, rely on the subsumption rule to
 insert coercions. The coerced expression always evaluates to a record.
 
@@ -131,19 +146,19 @@ insert coercions. The coerced expression always evaluates to a record.
   \ottdruleElaXXSub{}
 \end{mathpar}
 
-\subsection{Coercion }
+\subsection{Coercions}
 \begin{align*}
-  & [[ Int & Bool <: Int ~~> \ x . { Int => x . Int } ]] \\
-  & [[ Int & Bool <: Bool&Int ~~> \ x . { Bool => x . Bool } ; {Int => x . Int } ]]  \\
+  & [[ x : Int & Bool <: Int ~~> { Int => x . Int } ]] \\
+  & [[ x : Int & Bool <: Bool&Int ~~> { Bool => x . Bool } ; {Int => x . Int } ]]  \\
   %% && [[ {Int&Bool=>x{}} ]] \\
-  & [[ Base->Int&Bool <: Base->Int&Bool ~~> \ x . { ->(Int&Bool) => \ y . (x.->Int)y; (x.->Bool)y } ]]
+  & [[ x : Base->Int&Bool <: Base->Int&Bool ~~> { ->(Int&Bool) => \ y . (x.->Int)y; (x.->Bool)y } ]]
 \end{align*}
 
 \paragraph{Problems}
 1) Derivation of subtyping is not unique. No type well-formedness, no coherence. \\
 2) The algorithm is against the effort we put in typing application. As types
 are split whenever possible, functions are duplicated (and merged afterwards). \\
-3) It is strange that he domain of arrow types has no effect to coercion generation.
+\sout{3) It is strange that the domain of arrow types has no effect to coercion generation.}
 
 \ottdefnsCoSubtyping
 
@@ -155,7 +170,7 @@ are split whenever possible, functions are duplicated (and merged afterwards). \
 \begin{mathpar}
 \inferrule{}{ [[|Base|]] = [[Base]] }
 \and
-\inferrule{}{ [[|X|]] = X }
+\inferrule{}{ [[|X|]] = \mathbf{atoi}(X) }
 \and
 \inferrule{}{ [[|Forall X*A. B|]] = [[\-/|B|]] }
 \and
@@ -163,7 +178,9 @@ are split whenever possible, functions are duplicated (and merged afterwards). \
 \and
 \inferrule{}{ [[|{l:A}|]] = [[{l:|A|}]] }
 \and
-\inferrule{}{ [[|A&B|]] = [[|A|&|B|]] }
+\inferrule
+{ A_{k_1} < A_{k_2} < \cdots < A_{k_m} \\ \neg \rceil A_k \lceil }
+{ |A_1\&A_2\&\cdots\&A_n| = |A_{k_1}|\&|A_{k_2}|\&\cdots\&|A_{k_m}| }
 \end{mathpar}
 
 \bigskip\bigskip

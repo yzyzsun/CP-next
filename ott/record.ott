@@ -19,17 +19,25 @@ J, S :: 'js_' ::= {{ com JavaScript statements }}
   | nothing ::  :: empty {{ tex \varnothing }}
   | J1 ; J2 ::  :: concat
 
+xx :: 'var_' ::=
+  | x                                     :: :: evar     {{ com term variable }}
+  | X                                     :: :: tvar     {{ com type variable }}
+
+ll :: 'label_' ::=
+  | l                                     :: :: label
+  | itoa ( A )                            :: :: itoa     {{ tex \mathbf{itoa}([[A]]) }}
 
 target_exp, t, te, tp, tv, tu :: 'tt_' ::=                  {{ com target term  }}
-  | x                                     :: :: var     {{ com variable }}
+  | xx                                     :: :: var     {{ com variable }}
   % | null                                  :: :: empty   {{ com empty record }} {{ tex \varnothing }}
+  | ll                                     :: :: label   {{ com first-class label }}
   | b                                     :: :: base    {{ com base value }} {{ tex \mathsf{[[b]]}  }}
   | \ _ . t                               :: :: thunk   
                                                         {{ com variable is not used }}
-  | \ x . t                               :: :: abs     (+ bind x in t +)
+  | \ xx . t                               :: :: abs     (+ bind xx in t +)
                                                         {{ com abstractions }}
-  | /\ X . t                              :: :: tabs    (+ bind X in t +)
-                                                        {{ com abstractions that take a type index }}
+  % | /\ X . t                              :: :: tabs    (+ bind X in t +)
+  %                                                       {{ com abstractions that take a type index }}
   | fix x . t                             :: :: fixpoint
                                                         (+ bind x in t +)
                                                         {{ com fixpoint }}
@@ -37,34 +45,38 @@ target_exp, t, te, tp, tv, tu :: 'tt_' ::=                  {{ com target term  
   | t T                                   :: :: tapp    {{ com applications on type indices }}
   | t1 ; ... ; tn                         :: :: concat  {{ com concatenation }}
   % | { T1 => t1 ,  .. , Tn => tn }         :: :: merge
-  | { T1 => t1 ,  .. , Tn => tn }         :: :: record
+  | { t1 => t1' ,  .. , tn => tn' }        :: :: record
  % | { </ li = ti // i /> }                :: :: Rec_comp_none   {{ com record --- comp }}
  % | { </ li = ti // , // i /> }           :: :: Rec_comp_some   {{ com record --- comp with terminal }}
  % | { </ li = ti // i IN n /> }           :: :: Rec_comp_u_none {{ com record --- compu }} 
  % | { </ li = ti // , // i IN n /> }      :: :: Rec_comp_u_some {{ com record --- compu with terminal }} 
  % | { </ li = ti // i IN 1 .. n /> }      :: :: Rec_comp_lu_none{{ com record --- complu }}  
   % | { </ li = ti // , // i IN 1 .. n /> } :: :: Rec_comp_lu_some {{ com record --- complu with terminal }}  
-  | t . T                                 :: :: proj     {{ com projection }}
+  | t1 . t2                                 :: :: proj     {{ com projection }}
   | ( t )                                 :: S:: paren
-  | t1 [ x ~> t2 ]                        :: M:: subst   {{ com subst }}
-  | t [ X ~> T ]                          :: M:: tsubst  {{ com subst type index }}
+  | t1 [ xx ~> t2 ]                        :: M:: subst   {{ com subst }}
+  % | t [ X ~> T ]                          :: M:: tsubst  {{ com subst type index }}  
   | E [ t ]                               :: S:: FillEctx
+  | T                                     :: M:: int     {{ com type index as a label }}
 
 E :: 'ectx_' ::= {{ com evaluation context }}
   | [-]      ::  :: Hole
-  | E . T    ::  :: Proj
+  | E . t    ::  :: ProjL   {{ com projection }}
+  | tv . E   ::  :: ProjR   {{ com projection }}
   | E t      ::  :: AppL
   | tv E     ::  :: AppR
   | E T      ::  :: Tapp
   | E ; t    ::  :: ConcatL {{ com concatenation }}
   | tv ; E   ::  :: ConcatR {{ com concatenation }}
-  | { T => E ,  T1 => t1 , .. , Tn => tn }         :: :: record1 {{ com eager evaluation }} 
-  | { T1 => tv1 ,  .. , Tm => tvm , T => E , T'1 => t1 , .. , T'n => tn }         :: :: record2  {{ com eager evaluation }} 
+  % | { E => t , t1 => t1', .. , tn => tn' }  :: :: record1 {{ com eval the first label }}
+  % | { l => E , t1 => t1', .. , tn => tn' }  :: :: record2 {{ com eval the first field }} 
+  | { l1 => tv1 ,  .. , lm => tvm , E => t , t1 => t1' , .. , tn => tn' }    :: :: record1 {{ com eval a label }}
+  | { l1 => tv1 ,  .. , lm => tvm , l => E , t1 => t1' ,  .. , tn => tn' }   :: :: record2 {{ com eval a field }}
 
 ST :: 'set_' ::= {{ com set of type indices }}
   | null              :: M:: empty {{ tex \varnothing }}
   | ST1 /\ ST2        :: M:: intersect {{ tex [[ST1]]\cap[[ST2]] }}
-  | { T1 , .. , Tn }  ::  :: nonemptyset
+  | { l1 , .. , ln }  ::  :: nonemptyset
   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 defns
@@ -80,12 +92,14 @@ TargetStep   :: '' ::=
   -------------------- :: ctx
   E [ t ] >-> E [ t' ]
 
+  { l1 , .. , lm } /\ { l } = null
+  { l1' , .. , ln' }  /\ { l } = null
   --------------------------------------------------------------------------------- :: proj
-  { T1 => tv1 ,  .. , Tn => tvn, T => tv , T1'=>tv1' , .. , Tn' => tvn' } . T >-> tv
+  { l1 => tv1 ,  .. , lm => tvm, l => tv , l1'=>tv1' , .. , ln' => tvn' } . l >-> tv
 
-  { T1 , .. , Tn } /\ { T1' , .. , Tn' } = null
+  { l1 , .. , lm } /\ { l1' , .. , ln' } = null
   --------------------------------------------------------------------------------- :: concat
-  { T1 => tv1 ,  .. , Tn => tvn } ; { T1' => t1' ,  .. , Tn' => tn' } >-> { T1 => tv1 ,  .. , Tn => tvn , T1' => t1' ,  .. , Tn' => tn'}
+  { l1 => tv1 ,  .. , lm => tvm } ; { l1' => t1' ,  .. , ln' => tn' } >-> { l1 => tv1 ,  .. , lm => tvm , l1' => t1' ,  .. , ln' => tn'}
 
   % --------------------------------------------------------------------------------- :: concat2
   % {}; { T1 => t1 ,  .. , Tn => tn } >-> { T1 => t1 ,  .. , Tn => tn }
@@ -94,14 +108,45 @@ TargetStep   :: '' ::=
   % ---------------------------------------------------------------------------------------- :: beta
   % { T1 => tv1 ,  ... , Tn => tvn }.Ti  { K1 => tu1 ,  ... , Km => tum }.Kj  >-> t [ x ~> tuj ]
 
-  ----------------------------- :: beta1
+  ----------------------------- :: beta
   \ x . t  tv  >-> t [x~>tv]
   
-  ----------------------------- :: beta2
-  /\ X . t  T  >-> t [X~>T]
+  % ----------------------------- :: beta2
+  % /\ X . t  T  >-> t [X~>T]
   
-  --------------------- :: beta3
-  \ _ . t  tv  >-> t
+  % --------------------- :: beta3
+  % \ _ . t  tv  >-> t
+
+  ----------------------------- :: fix
+  fix x . t >-> t [x~>fix x.t]
+
+
+defns
+DistributiveApplication :: '' ::=
+
+  defn
+  t1 : A ; t2 ~~> t3 :: :: distapp :: A_
+  {{ com Distributive application }}
+  by
+
+  toplike A
+  ---------------------------- :: Top
+  t1 : A ; t2 ~~> { }
+
+  ---------------------------------- :: Arrow
+  t1 : A -> B ; t2 ~~> t1.->|B| t2
+
+  ----------------------------------------- :: All
+  t1 : Forall X*A. B ; t2 ~~> t1.\-/|B| t2
+
+  ----------------------------------- :: Rcd
+  t : {l : A} ; l ~~> t.{l : |A|} {}
+
+  t : A ; t2 ~~> t1
+  t : B ; t2 ~~> t2
+  ------------------------------ :: And
+  t : A & B ; t2 ~~> t1; t2
+
 
   
 defns
@@ -159,54 +204,36 @@ Elaboration :: '' ::=
   G |- \x:A. e:B => A->B ~~> {->|B| =>\x.t}
 
 
-  G |- e1 => A ~~> { T1 => t1 , ... , Tn => tn }
+  G |- e1 => A ~~> t1
   A |> B -> C
   G |- e2 <= B ~~> t2
+  t1 : A ; t2 ~~> t3
   --------------------------------------------------------- :: App
-  G |- e1 e2 => C ~~> (t1 \_.t2) ; ... ; (tn \_.t2)
-
-
-  G |- e1 => A ~~> { ->T1 => \x.t1 , ... , ->Tn => \x.tn }
-  A |> B -> C
-  G |- e2 <= B ~~> t2
-  --------------------------------------------------------- :: AppAlt
-  G |- e1 e2 => C ~~> t1[x~>t2] ; ... ; tn[x~>t2]
+  G |- e1 e2 => C ~~> t3
 
 
   G , X * A |- e <= B ~~> t
   ----------------------------------------------------------------- :: TAbs
-  G |- /\ X * A. e : B => Forall X * A. B ~~> {\-/|B| => /\ X . t}
+  G |- /\ X * A. e : B => Forall X * A. B ~~> {\-/|B| => \ X . t}
 
 
-  G |- e => B ~~> { T1 => t1 , ... , Tn => tn }
+  G |- e => B ~~> t1
   B |> Forall X*C1. C2
   G |- A * C1
+  t1 : B ; itoa(A) ~~> t3
   --------------------------------------------------------------------- :: TApp
-  G |- e A => C2 [X~>A] ~~> (t1 |A|) ; ... ; (tn |A|)
-
-
-  G |- e => B ~~> {\-/T1 => /\ X . t1 , ... , \-/Tn => /\ X . tn }
-  B |> Forall X*C1. C2
-  G |- A * C1
-  --------------------------------------------------------------------- :: TAppAlt
-  G |- e A => C2 [X~>A] ~~> t1[X~>|A|]; ... ; tn[X~>|A|]
-
+  G |- e A => C2 [X~>A] ~~> t3
 
   G |- e => A ~~> t
   ------------------------------------------------- :: Rcd
   G |- {l = e} => {l : A} ~~> { {l : |A|} => \_.t }
 
 
-  G |- e => A ~~> { T1 => t1 , ... , Tn => tn }
+  G |- e => A ~~> t1
   A |> {l : B}
+  t1 : A ; {} ~~> t2
   -------------------------------------------------------------------- :: Proj
-  G |- e.l => B ~~> (t1 {}) ; ... ; (tn {})
-
-
-  G |- e => A ~~> { {l : T1} => \_.t1 , ... , {l : Tn} => \_.tn }
-  A |> {l : B}
-  -------------------------------------------------------------------- :: ProjAlt
-  G |- e.l => B ~~> t1 ; ... ; tn
+  G |- e.l => B ~~> t1
 
 
   G |- e1 => A ~~> t1
@@ -227,7 +254,7 @@ Elaboration :: '' ::=
 
 
   G |- e => A ~~> t1
-  A <: B ~~> t2
+  t1 : A <: B ~~> t2
   -------------------------- :: Sub
   G |- e <= B ~~> t2 t1
 
@@ -243,126 +270,77 @@ Elaboration :: '' ::=
 
 
 
-% defn
-% x : A ; arg ~~> t | z :: :: distapp :: A_
-% {{ com Distributive application }}
-% {{ tex [[x]]:[[A]]\,\bullet\,[[arg]]\;\colorbox{lightgray}{$[[~~>]]\;[[t]]\;|\;[[z]]$} }}
-% by
-
-
-% toplike A
-% ---------------------------- :: Top
-% x : A ; arg ~~> nothing | z
-
-
-% T = ->|B|
-% -------------------------- :: Arrow
-% x : A -> B ; y ~~> S9 | z
-
-
-% T1 = \-/|B|
-% T2 = |C|
-% --------------------------------- :: All
-% x : Forall X*A. B ; C ~~> S9' | z
-
-
-% T = {l : |A|}
-% ---------------------------- :: Rcd
-% x : {l : A} ; l ~~> S9'' | z
-
-
-% x : A ; arg ~~> t1 | z
-% x : B ; arg ~~> t2 | z
-% ------------------------------ :: And
-% x : A & B ; arg ~~> t1;t2 | z
-
-
 defns
 CoSubtyping :: '' ::=
 
   defn
-  A <: B ~~> t :: :: cosub :: S_
+  t1 : A <: B ~~> t2 :: :: cosub :: S_
   {{ com Coercive subtyping }}
   by
 
   ordinary B
   toplike B
   -------------------------- :: Top
-  A <: B ~~> {}
+  t : A <: B ~~> {}
 
   ------------------------------------ :: Base
-  Base <: Base ~~> \x.{Base=> x.Base}
+  t : Base <: Base ~~> {Base=> t.Base}
 
+  % fresh x 
+  ordinary B2
+  x {} : B1 <: A1 ~~> t1
+  (t.->|A2|) (\_.t1) : A2 <: B2 ~~> t2
+  -------------------------------------------------------------------- :: Arrow
+  t : A1 -> A2 <: B1 -> B2 ~~> { ->|B2| => \x. t2 }
 
+  % fresh X
   ordinary B2
   B1 <: A1
-  A2 <: B2 ~~> t
-  -------------------------------------------------------------------- :: Arrow
-  A1 -> A2 <: B1 -> B2 ~~> \ x . { ->|B2| => \ y . t (x.->|A2| y) }
+  (t.\-/|A2|) X : A2 <: B2 ~~> t2
+  -------------------------------------------------------------------- :: All
+  t : Forall X*A1. A2 <: Forall X*B1. B2 ~~> { \-/|B2| => \X. t2 }
 
-
-  % T1 = \-/|A2|
-  % T2 = \-/|B2|
-  % ordinary B2
-  % B1 <: A1
-  % x2 : A2 <: y2 : B2 ~~> J2
-  % -------------------------------------------------- :: All
-  % Forall X*A1. A2 <: Forall X*B1. B2 ~~> S12
-
-
-  % T1 = {l : |A|}
-  % T2 = {l : |B|}
-  % ordinary B
-  % x0 : A <: y0 : B ~~> J
-  % ------------------------------ :: Rcd
-  % {l:A} <: {l:B} ~~> S13
+  ordinary B
+  t.{l : |A|} {} : A <: B ~~> t2
+  ---------------------------------------------- :: Rcd
+  t : {l:A} <: {l:B} ~~> {{l : |B|} => t2 }
 
   ordinary C
-  A <: C ~~> t
+  t : A <: C ~~> t'
   ------------------------ :: AndL
-  A & B <: C ~~> t
+  t : A & B <: C ~~> t'
 
   ordinary C
-  B <: C ~~> t
+  t : B <: C ~~> t'
   ------------------------ :: AndR
-  A & B <: C ~~> t
+  t : A & B <: C ~~> t'
 
   split B B1 B2
-  A <: B1 ~~> t1
-  A <: B2 ~~> t2
-  B1 |> B <| B2 ~~> t3
-  ------------------------ :: Split
-  A <: B ~~> t3 t1 t2
+  t : A <: B1 ~~> t1
+  t : A <: B2 ~~> t2
+  t1 : B1 |> B <| t2 : B2 ~~> t3
+  -------------------------------- :: Split
+  t : A <: B ~~> t3
 
 
 defns
 CoMerge :: '' ::=
 
   defn
-  A |> C <| B ~~> t :: :: comerge :: M_
+  t1 : A |> C <| t2 : B ~~> t :: :: comerge :: M_
   {{ com Coercive merging }}
   by
-
   ---------------------------------------- :: And
-  A |> A&B <| B ~~> \ x . \ y . x ; y 
+  t1 : A |> A&B <| t2 : B ~~> x ; y 
 
+  (t1.->|B1|) x : B1 |> B <| (t2.->|B2|) x : B2 ~~> t
+  ------------------------------------------------------------- :: Arrow
+  t1 : A->B1 |> A->B <| t2 : A->B2 ~~> { ->|B| => \ x . t }
 
-  B1 |> B <| B2 ~~> t
-  -------------------------------------------------------------------------------------- :: Arrow
-  A->B1 |> A->B <| A->B2 ~~> \ x . \ y . { ->|B| => \ z . t ((x.->|B1|)z) ((y.->|B2|)z) }
+  (t1.\-/|B1|) x : B1 |> B <| (t2.\-/|B2|) x : B2 ~~> t
+  -------------------------------------------------------------------------------------- :: All
+  t1 : Forall X*A. B1 |> Forall X*A. B <| t2 : Forall X*A. B2 ~~> { \-/|B| => \ x . t }
 
-
-  % T = \-/|B|
-  % T1 = \-/|B1|
-  % T2 = \-/|B2|
-  % y1 : B1 |> y : B <| y2 : B2 ~~> J
-  % ------------------------------------------------------------------------ :: All
-  % x1 : Forall X*A. B1 |> z : Forall X*A. B <| x2 : Forall X*A. B2 ~~> S17
-
-
-  % T = {l : |A|}
-  % T1 = {l : |A1|}
-  % T2 = {l : |A2|}
-  % y1 : A1 |> y : A <| y2 : A2 ~~> J
-  % ------------------------------------------------ :: Rcd
-  % x1 : {l:A1} |> z : {l:A} <| x2 : {l:A2} ~~> S18
+  (t1.{l:|A1|}) {} : A1 |> A <| (t2.{l:|A2|}) {} : A2 ~~> t
+  --------------------------------------------------------------- :: Rcd
+  t1 : {l:A1} |> {l:A} <| t2 : {l:A2} ~~> {{l:|A|} => \ x . t }

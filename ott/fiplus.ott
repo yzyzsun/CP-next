@@ -104,6 +104,8 @@ formula :: 'formula_' ::=
   | t >->* t'             ::  :: steps
   | G |- A * B            :: M:: disjointSpec
   | v1 ~ v2               :: M:: consistentSpec
+  | fresh x               :: M:: fresh_evar {{ tex \mathsf{fresh} [[x]] }}
+  | fresh X               :: M:: fresh_tvar {{ tex \mathsf{fresh} [[X]] }}
 
 parsing
   t_arrow <= t_and
