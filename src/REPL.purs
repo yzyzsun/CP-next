@@ -5,11 +5,14 @@ import Prelude
 import Ansi.Codes (Color(..))
 import Ansi.Output (foreground, withGraphics)
 import Data.Array (filter)
-import Data.Array.NonEmpty (NonEmptyArray, foldl1, fromArray)
+import Data.Array.NonEmpty (NonEmptyArray, foldl1, fromArray, (!!))
 import Data.Either (Either(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Data.String (Pattern(..), drop, lastIndexOf, length, splitAt, stripPrefix, trim)
+import Data.String (Pattern(..), drop, lastIndexOf, length, splitAt, stripPrefix, take, trim)
+import Data.String.Regex (match, replace)
+import Data.String.Regex.Flags (global, noFlags)
+import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.String.Utils (startsWith, stripMargin)
 import Data.Time (diff)
 import Data.Time.Duration (Milliseconds(..))
@@ -85,7 +88,7 @@ typeExpr expr ref = do
 
 importFile :: Cmd
 importFile file ref = do
-  code <- readTextFile file
+  code <- readPreCode file
   st <- read ref
   case runChecking (importDefs code) st of
     Left err -> fatal $ showTypeError err
@@ -93,7 +96,7 @@ importFile file ref = do
 
 loadFile :: Cmd
 loadFile file ref = do
-  code <- readTextFile file
+  code <- readPreCode file
   evalProg code ref
 
 evalProg :: Cmd
@@ -107,7 +110,7 @@ evalProg code ref = do
 
 compileFile :: Cmd
 compileFile file _ = do
-  code <- readTextFile file
+  code <- readPreCode file
   case compile code of
     Left err -> fatal $ err
     Right js -> verb js *> log (eval js)
@@ -233,11 +236,30 @@ info msg = log $ withGraphics (foreground Blue) msg
 verb :: String -> Effect Unit
 verb msg = log $ withGraphics (foreground BrightBlack) msg
 
+showSeconds :: Milliseconds -> String
+showSeconds (Milliseconds n) = show (n / 1000.0) <> "s"
+
 readTextFile :: String -> Effect String
 readTextFile f = do
   result <- try $ Sync.readTextFile UTF8 f
   case result of Right text -> pure text
                  Left err -> fatal (message err) $> ""
 
-showSeconds :: Milliseconds -> String
-showSeconds (Milliseconds n) = show (n / 1000.0) <> "s"
+preprocess :: String -> String -> Effect String
+preprocess path program = case match openRegex program of
+  Just arr -> do
+    let name = unsafeFromJust $ unsafeFromJust $ arr !! 1
+    text <- readTextFile $ filepath name
+    preprocess path $ replace openRegex (replace lineRegex " " text) program
+  Nothing -> pure program
+  where openRegex = unsafeRegex """open\s+(\w+)\s*;""" noFlags
+        lineRegex = unsafeRegex """(--.*)?[\r\n]+""" global
+        filepath name = concat [path, name <> ".lib"]
+
+readPreCode :: String -> Effect String
+readPreCode f = do
+  code <- readTextFile f
+  preprocess path code
+  where path = case lastIndexOf (Pattern "/") f of
+                Just index -> take index f
+                Nothing -> ""
