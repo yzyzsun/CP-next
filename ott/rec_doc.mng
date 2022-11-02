@@ -21,6 +21,9 @@
 \maketitle
 
 \section{Notes}
+\paragraph{Questions}
+0) Why $[[Top]]$ and $[[Bot]]$ corresponds to no type index?
+
 \paragraph{Problems}
 0) Duplicated labels in records are unsafe in the target calculus.
 How to compile $1:Int\&Int$? \\

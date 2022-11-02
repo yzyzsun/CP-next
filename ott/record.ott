@@ -15,10 +15,6 @@ T, K :: 'ti_' ::= {{ com Type indices }}
   | Int       :: M:: int     {{ com int }} {{ tex \mathsf{Int}  }}
   | Bool      :: M:: bool    {{ com bool}} {{ tex \mathsf{Bool} }}
 
-J, S :: 'js_' ::= {{ com JavaScript statements }}
-  | nothing ::  :: empty {{ tex \varnothing }}
-  | J1 ; J2 ::  :: concat
-
 xx :: 'var_' ::=
   | x                                     :: :: evar     {{ com term variable }}
   | X                                     :: :: tvar     {{ com type variable }}
@@ -42,7 +38,6 @@ target_exp, t, te, tp, tv, tu :: 'tt_' ::=                  {{ com target term  
                                                         (+ bind x in t +)
                                                         {{ com fixpoint }}
   | t1 t2                                 :: :: app     {{ com applications }}
-  | t T                                   :: :: tapp    {{ com applications on type indices }}
   | t1 ; ... ; tn                         :: :: concat  {{ com concatenation }}
   % | { T1 => t1 ,  .. , Tn => tn }         :: :: merge
   | { t1 => t1' ,  .. , tn => tn' }        :: :: record
@@ -57,7 +52,7 @@ target_exp, t, te, tp, tv, tu :: 'tt_' ::=                  {{ com target term  
   | t1 [ xx ~> t2 ]                        :: M:: subst   {{ com subst }}
   % | t [ X ~> T ]                          :: M:: tsubst  {{ com subst type index }}  
   | E [ t ]                               :: S:: FillEctx
-  | T                                     :: M:: int     {{ com type index as a label }}
+  | T                                     :: M:: index     {{ com type index as a label }}
 
 E :: 'ectx_' ::= {{ com evaluation context }}
   | [-]      ::  :: Hole
@@ -65,7 +60,6 @@ E :: 'ectx_' ::= {{ com evaluation context }}
   | tv . E   ::  :: ProjR   {{ com projection }}
   | E t      ::  :: AppL
   | tv E     ::  :: AppR
-  | E T      ::  :: Tapp
   | E ; t    ::  :: ConcatL {{ com concatenation }}
   | tv ; E   ::  :: ConcatR {{ com concatenation }}
   % | { E => t , t1 => t1', .. , tn => tn' }  :: :: record1 {{ com eval the first label }}
@@ -173,15 +167,14 @@ Elaboration :: '' ::=
   G |- /\ X * A. e : B => Forall X * A. B ~~> {}
 
 
-  G |- e => A
+  G |- e => A ~~> t
   toplike A
   ---------------------------------------- :: TopRcd
   G |- {l = e} => {l : A} ~~> {}
 
 
-  T = |Base|
   ------------------------------ :: Base
-  G |- b => Base ~~> { T => b } 
+  G |- b => Base ~~> {|Base| => b }
 
 
   x : A in G
