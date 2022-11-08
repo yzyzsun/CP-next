@@ -30,6 +30,7 @@
   , "parsing"
   , "partial"
   , "prelude"
+  , "record"
   , "refs"
   , "spec"
   , "strings"

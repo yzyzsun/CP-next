@@ -24,6 +24,8 @@ import Language.CP.Util (unsafeFromJust, (<+>))
 import Language.JS.AST (BinaryOperator(..), JS(..), UnaryOperator(..))
 import Language.JS.Pretty (print1)
 import Partial.Unsafe (unsafeCrashWith)
+import Record (delete)
+import Type.Proxy (Proxy(..))
 
 type CodeGen = RWST Ctx Unit Int (Except String)
 
@@ -197,11 +199,12 @@ infer (C.TmAbs x e targ tret _) z
           fun = JSFunction Nothing [variable x] $ JSBlock $ j <> [JSReturn $ JSVar y]
           ast = [ addProp (JSVar z) (toIndex typ) fun ]
       pure { ast, typ }
-infer (C.TmApp e1 e2 _) z = do
+infer (C.TmApp e1 e2 coercive) z = do
   { ast: j1, typ: t1, var: x } <- infer' e1
   case app t1 of
     Just { targ: t2, tret: t3 } -> do
-      { ast: j2, var: y } <- check' e2 t2
+      { ast: j2, var: y } <- if coercive then check' e2 t2
+                             else delete (Proxy :: Proxy "typ") <$> infer' e2
       y' <- freshVarName
       j3 <- dist t1 x (TmArg (JSVar y')) z
       let j2' = [ JSVariableIntroduction y' $ Just $ thunk $ j2 <> [JSReturn $ JSVar y] ]
@@ -242,8 +245,11 @@ infer (C.TmMerge e1 e2) z = do
   { ast: j2, typ: t2 } <- infer e2 z
   pure { ast: j1 <> j2, typ: C.TyAnd t1 t2 }
 infer (C.TmAnno e typ) z = do
-  ast <- check e typ z
+  ast <- check (skipAnno e) typ z
   pure { ast, typ }
+  where skipAnno :: C.Tm -> C.Tm
+        skipAnno (C.TmAnno e' _) = e'
+        skipAnno e' = e'
 infer (C.TmToString e) z = do
   { ast: j, typ: t, var: y } <- infer' e
   let ast = j <> [ addProp (JSVar z) (toIndex C.TyString)
