@@ -220,10 +220,10 @@ fixpoint :: SParser Tm
 fixpoint = do
   reserved "fix"
   x <- lowerIdentifier
-  symbol "."
-  e <- opexpr expr
   symbol ":"
   t <- ty
+  symbol "."
+  e <- opexpr expr
   pure $ TmFix x e t
 
 fold :: SParser Tm

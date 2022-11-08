@@ -129,7 +129,7 @@ newTrait
     ;
 
 fixpoint
-    :   Fix termNameDecl Dot opexpr Colon type
+    :   Fix termNameDecl Colon type Dot opexpr
     ;
 
 toStr
