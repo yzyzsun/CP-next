@@ -5,7 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.RWS (RWST, asks, evalRWST, local, modify)
-import Data.Array (elem, foldl, length, (:), (!!))
+import Data.Array (concat, elem, foldl, length, (!!), (:))
 import Data.Array as A
 import Data.Bifunctor (bimap, lmap)
 import Data.Either (Either)
@@ -13,6 +13,7 @@ import Data.Int (toNumber)
 import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
+import Data.Traversable (traverse)
 import Data.Tuple (fst)
 import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Subtyping (isTopLike, split, (===))
@@ -66,6 +67,12 @@ infer (C.TmBool b) z = pure
   { ast: [ addProp (JSVar z) (toIndex C.TyBool) (JSBooleanLiteral b) ]
   , typ: C.TyBool
   }
+infer (C.TmArray t arr) z = do
+  arr' <- traverse infer' arr
+  let js = arr' <#> (_.ast)
+      vs = arr' <#> (_.var) >>> JSVar
+      ast = concat js <> [ addProp (JSVar z) (toIndex (C.TyArray t)) (JSArrayLiteral vs) ]
+  pure { ast, typ: C.TyArray t }
 infer (C.TmUnary Op.Neg e) z = do
   { ast: j, typ: t, var: y } <- infer' e
   let ast typ = j <> [ addProp (JSVar z) (toIndex typ)
@@ -79,6 +86,11 @@ infer (C.TmUnary Op.Not e) z = do
                            (JSUnary Not (JSIndexer (toIndex C.TyBool) (JSVar y))) ]
   case t of C.TyBool -> pure { ast, typ: C.TyBool }
             _ -> throwError $ "Not is not defined for" <+> show t
+infer (C.TmUnary Op.Len e) z = do
+  { ast: j, typ: t, var: y } <- infer' e
+  let ast = j <> [ addProp (JSVar z) (toIndex C.TyInt)
+                           (JSAccessor "length" (JSIndexer (toIndex t) (JSVar y))) ]
+  pure { ast, typ: C.TyInt }
 infer (C.TmBinary (Op.Arith op) e1 e2) z = do
   { ast: j1, typ: t1, var: x } <- infer' e1
   { ast: j2, typ: t2, var: y } <- infer' e2
@@ -126,15 +138,33 @@ infer (C.TmBinary (Op.Logic op) e1 e2) z = do
   where map :: Op.LogicOp -> BinaryOperator
         map Op.And = And
         map Op.Or  = Or
-infer (C.TmBinary (Op.Append) e1 e2) z = do
+infer (C.TmBinary Op.Append e1 e2) z = do
   { ast: j1, typ: t1, var: x } <- infer' e1
   { ast: j2, typ: t2, var: y } <- infer' e2
-  let ast = j1 <> j2 <> [ addProp (JSVar z) (toIndex C.TyString)
-    (JSBinary Add (JSIndexer (toIndex C.TyString) (JSVar x))
-                  (JSIndexer (toIndex C.TyString) (JSVar y))) ]
-  case t1, t2 of C.TyString, C.TyString -> pure { ast, typ: C.TyString }
-                 _, _ -> throwError $
-                   "Append is not defined between" <+> show t1 <+> "and" <+> show t2
+  case t1, t2 of
+    C.TyString, C.TyString ->
+      let ast = j1 <> j2 <> [ addProp (JSVar z) (toIndex C.TyString)
+            (JSBinary Add (JSIndexer (toIndex C.TyString) (JSVar x))
+                          (JSIndexer (toIndex C.TyString) (JSVar y))) ] in
+      pure { ast, typ: C.TyString }
+    typ@(C.TyArray t), C.TyArray t' | t === t' ->
+      let ast = j1 <> j2 <> [ addProp (JSVar z) (toIndex typ)
+            (JSApp (JSAccessor "concat" (JSIndexer (toIndex typ) (JSVar x)))
+                                        [JSIndexer (toIndex typ) (JSVar y)]) ] in
+      pure { ast, typ }
+    _, _ -> throwError $
+      "Append is not defined between" <+> show t1 <+> "and" <+> show t2
+infer (C.TmBinary Op.Index e1 e2) z = do
+  { ast: j1, typ: t1, var: x } <- infer' e1
+  { ast: j2, typ: t2, var: y } <- infer' e2
+  case t1, t2 of
+    t@(C.TyArray typ), C.TyInt ->
+      let ast = j1 <> j2 <> [ assignObj z
+            [JSIndexer (JSIndexer (toIndex C.TyInt) (JSVar y))
+                       (JSIndexer (toIndex t) (JSVar x))] ] in
+      pure { ast, typ }
+    _, _ -> throwError $
+      "Index is not defined between" <+> show t1 <+> "and" <+> show t2
 infer (C.TmIf e1 e2 e3) z = do
   { ast: j1, typ: t1, var: x1 } <- infer' e1
   if t1 == C.TyBool then do
@@ -396,6 +426,7 @@ toIndex = JSTemplateLiteral <<< fst <<< go []
     go as (C.TyArrow _ t _)  = lmap ("fun_" <> _) (go as t)
     go as (C.TyForall a _ t) = lmap ("forall_" <> _) (go (a:as) t)
     go as (C.TyRcd l t _)    = lmap (("rcd_" <> l <> ":") <> _) (go as t)
+    go as (C.TyArray t)      = lmap ("array_" <> _) (go as t)
     go as (C.TyVar a)        = if a `elem` as then a /\ false
                                else ("${toIndex(" <> variable a <> ")}") /\ true
     go as t@(C.TyAnd _ _)    = let flattened = flatten t in
