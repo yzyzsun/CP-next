@@ -20,9 +20,9 @@
     "lezer-loader": "^0.3.0",
     "purescript": "^0.15.0",
     "spago": "^0.20.8",
-    "vsce": "^2.7.0",
-    "webpack": "^5.72.0",
-    "webpack-cli": "^4.9.2"
+    "@vscode/vsce": "^2.16.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^5.0.0"
   },
   "dependencies": {
     "antlr4": "^4.10.1"
