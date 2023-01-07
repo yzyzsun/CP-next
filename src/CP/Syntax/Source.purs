@@ -127,7 +127,7 @@ instance Show Tm where
   show (TmVar x) = if isCapitalized x then "$" <> x else x
   show (TmApp e1 e2) = parens $ show e1 <+> show e2
   show (TmAbs xs e) = parens $ "\\" <> showTmParams xs <> "->" <+> show e
-  show (TmFix x e t) = parens $ "fix" <+> x <> "." <+> show e <+> ":" <+> show t
+  show (TmFix x e t) = parens $ "fix" <+> x <+> ":" <+> show t <> "." <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge bias e1 e2) = parens $ show e1 <+> show bias <+> show e2
   show (TmRcd xs) = braces $ showRcdTm xs

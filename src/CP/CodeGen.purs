@@ -356,10 +356,10 @@ subtype ta@(C.TyForall a _ ta2) tb@(C.TyForall b _ tb2) x y = do
   y0 <- freshVarName
   j <- subtype ta2 (C.tySubst b (C.TyVar a) tb2) x0 y0
   let block = [ JSVariableIntroduction x0 $ Just $
-                  JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar a]
+                  JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar (variable a)]
               , initialize y0 ]
            <> j <> [ JSReturn $ JSVar y0 ]
-      func = JSFunction Nothing [a] (JSBlock block) 
+      func = JSFunction Nothing [variable a] (JSBlock block) 
   pure [ addProp (JSVar y) (toIndex tb) func ]
 subtype r1@(C.TyRcd l1 t1 _) r2@(C.TyRcd l2 t2 _) x y | l1 == l2 = do
   x0 <- freshVarName
@@ -401,10 +401,10 @@ unsplit { x: x1, y: x2, z, tx: f1@(C.TyForall _ _ t1), ty: f2@(C.TyForall _ _ t2
   y2 <- freshVarName
   y <- freshVarName
   j <- unsplit { x: y1, y: y2, z: y, tx: t1, ty: t2, tz: t }
-  let block = [ JSVariableIntroduction y1 $ Just $ JSApp (JSIndexer (toIndex f1) (JSVar x1)) [JSVar a]
-              , JSVariableIntroduction y2 $ Just $ JSApp (JSIndexer (toIndex f2) (JSVar x2)) [JSVar a]
+  let block = [ JSVariableIntroduction y1 $ Just $ JSApp (JSIndexer (toIndex f1) (JSVar x1)) [JSVar (variable a)]
+              , JSVariableIntroduction y2 $ Just $ JSApp (JSIndexer (toIndex f2) (JSVar x2)) [JSVar (variable a)]
               , initialize y ] <> j <> [ JSReturn $ JSVar y ]
-      func = JSFunction Nothing [a] (JSBlock block)
+      func = JSFunction Nothing [variable a] (JSBlock block)
   pure [ addProp (JSVar z) (toIndex f) func ]
 unsplit { x: x1, y: x2, z, tx: r1@(C.TyRcd _ t1 _), ty: r2@(C.TyRcd _ t2 _), tz: r@(C.TyRcd _ t _) } = do
   y1 <- freshVarName

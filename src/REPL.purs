@@ -109,11 +109,23 @@ evalProg code ref = do
       write st' ref
 
 compileFile :: Cmd
-compileFile file _ = do
+compileFile file ref = do
+  beginTime <- nowTime
   code <- readPreCode file
   case compile code of
-    Left err -> fatal $ err
-    Right js -> verb js *> log (eval js)
+    Left err -> fatal err
+    Right js -> do
+      verb js
+      compileTime <- nowTime
+      st <- read ref
+      if st.timing then let seconds = showSeconds $ diff compileTime beginTime in
+        info $ "Compile time: " <> seconds
+      else pure unit
+      log $ eval js
+      endTime <- nowTime
+      if st.timing then let seconds = showSeconds $ diff endTime compileTime in
+        info $ "Run time: " <> seconds
+      else pure unit
 
 errorCmd :: Cmd
 errorCmd input ref = do
@@ -140,7 +152,7 @@ dispatch input = ifMatchesAny (":?" : ":h" : ":help" : Nil) printHelp $
   ifMatches ":type" (mayTime typeExpr) $
   ifMatches ":import" (mayTime importFile) $
   ifMatches ":load" (mayTime loadFile) $
-  ifMatches ":compile" (mayTime compileFile) $
+  ifMatches ":compile" compileFile $
   ifMatches ":" errorCmd $
   mayTime evalProg input
   where

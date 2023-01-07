@@ -103,7 +103,7 @@ instance Show Tm where
   show (TmApp e1 e2 _coercive) = parens $ show e1 <+> show e2
   show (TmAbs x e targ tret _refined) = parens $
     "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "→" <+> show tret
-  show (TmFix x e t) = parens $ "fix" <+> x <> "." <+> show e <+> ":" <+> show t
+  show (TmFix x e t) = parens $ "fix" <+> x <+> ":" <+> show t <> "." <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
   show (TmRcd l t e) = braces $ l <+> ":" <+> show t <+> "=" <+> show e
