@@ -5,9 +5,10 @@ CP is a *compositional* programming language, founded on a core calculus named *
 ## Language Features
 
 - A typed lambda calculus with six base types (`Int` `Double` `String` `Bool` `Top` `Bot`), built-in arrays (`[1; 2; 3] : [Int]`), and some built-in operations over them;
-- A merge operator[^Merge], disjoint intersection types[^λi] and disjoint polymorphism[^Fi];
+- The merge operator[^Merge], disjoint intersection types[^λi] and disjoint polymorphism[^Fi];
+- Generalized record operations with type difference[^TypeDiff];
 - Nested composition and distributive subtyping[^NeColus];
-- Compositional Programming[^CP] with first-class traits[^SEDEL];
+- *Compositional Programming*[^CP] with first-class traits[^SEDEL];
 - Type-directed operational semantics for *Fi+*[^Fi+] with {substitution,closure,HOAS}-based {big,small}-step variants;
 - An embedded DSL for document authoring called ExT[^ExT].
 
@@ -19,6 +20,7 @@ CP is a *compositional* programming language, founded on a core calculus named *
 [^CP]: Weixin Zhang, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Compositional Programming](https://i.cs.hku.hk/~bruno/papers/toplas2021.pdf). In *TOPLAS 2021*.  
 [^Fi+]: Andong Fan, Xuejing Huang, Han Xu, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Direct Foundations for Compositional Programming](https://i.cs.hku.hk/~bruno/papers/ecoop22direct_extended.pdf). In *ECOOP 2022*.  
 [^ExT]: Yaozhu Sun, Utkarsh Dhandhania, and Bruno C. d. S. Oliveira. [Compositional Embeddings of Domain-Specific Languages](https://i.cs.hku.hk/~bruno/papers/oopsla22extended.pdf). In *OOPSLA 2022*.  
+[^TypeDiff]: Han Xu, Xuejing Huang, and Bruno C. d. S. Oliveira. [Making a Type Difference](https://i.cs.hku.hk/~bruno/papers/popl23making.pdf). In *POPL 2023*.  
 
 ## Online Demo
 
