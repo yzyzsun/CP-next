@@ -97,6 +97,9 @@ Proof with eauto.
   all: pick fresh x...
 Qed.
 
+#[local] Hint Immediate target_typing_lc_texp : core.
+
+
 Lemma lookup_field_in_value : forall v T i Ti,
   value v ->
   target_typing [] v T ->
@@ -125,8 +128,7 @@ Proof with try solve_by_invert.
     right. exists*. eauto using target_typing_lc_texp.
   - (* application *)
     forwards~ [?|(?&?)]: IHTyp1.
-    2: { right; exists*.
-         applys TS_AppL; eauto using target_typing_lc_texp. }
+    2: { right; exists*. }
     forwards~ [?|(?&?)]: IHTyp2.
     2: { right; exists; eauto using target_typing_lc_texp. }
     inverts Typ1...
@@ -165,6 +167,17 @@ Proof.
       solve_uniq.
 Qed.
 
+Lemma weakening_simpl : forall E F e T,
+    target_typing E e T ->
+    uniq (F ++ E) ->
+    target_typing (F ++ E) e T.
+Proof.
+  intros.
+  rewrite_env ( [] ++  (F ++ E)).
+  applys* weakening.
+Qed.
+
+
 Lemma weakening_empty : forall G t T,
     uniq G -> target_typing [] t T -> target_typing G t T.
 Proof.
@@ -180,18 +193,61 @@ Lemma substitution_preserves_typing : forall (E F : tctx) t u S T (z : atom),
     target_typing (F ++ [(z,S)] ++ E) t T ->
     target_typing E u S ->
     target_typing (F ++ E) ([z ~>> u] t) T.
-Proof.
+Proof with eauto.
   introv Typ1 Typ2.
-  induction t; inverts* Typ1.
-  - simpl. case_if; subst.
-    forwards* : binds_mid_eq H3.
-    (* solve_uniq. *)
-    (* binds_remove_mid *)
-    (* destruct (Atom.eq_dec z x). *)
-    (* + subst. simpl. Print binds_remove_eq. *)
-Abort.
+  inductions Typ1.
+  all: simpl...
+  - (* var *)
+    simpl. case_if; subst.
+    + forwards* : binds_mid_eq H1.
+      subst. applys* weakening_simpl.
+    + forwards* : binds_remove_mid H1.
+  - (* abs *)
+    pick fresh x and apply TTyping_Abs...
+    rewrite_env (((x, At) :: F) ++ E).
+    rewrite subst_texp_open_texp_wrt_texp_var...
+    applys* H1.
+    eauto.
+  - (* fixpoint *)
+    pick fresh x and apply TTyping_Fix...
+    rewrite_env (((x, At) :: F) ++ E).
+    rewrite subst_texp_open_texp_wrt_texp_var...
+    applys* H0.
+    eauto.
+Qed.
 
 Theorem preservation : forall t t' T,
     target_typing [] t T ->
     t >-> t' ->
     target_typing [] t' T.
+Proof with eauto using rcd_typ_concat.
+  introv Typ Red. gen t'.
+  inductions Typ; intros;
+    try solve [inverts* Red].
+  - inverts Red.
+    pick fresh x. forwards*: H x.
+    rewrite* (subst_texp_intro x).
+    assert (Heq: [] = @app (atom * ttyp) [] []) by eauto.
+    rewrite Heq.
+    applys* substitution_preserves_typing.
+  - (* app *)
+    inverts* Red.
+    + inverts* Typ1.
+      pick fresh x. forwards*: H6 x.
+      rewrite* (subst_texp_intro x).
+      assert (Heq: [] = @app (atom * ttyp) [] []) by eauto.
+      rewrite Heq.
+      applys* substitution_preserves_typing.
+  - (* proj *)
+    inverts* Red.
+    forwards* (?&?&?): lookup_field_in_value H.
+    assert (x=t'). {
+      rewrite H0 in H4. inverts~ H4.
+    }
+    subst~.
+  - (* concat *)
+    inverts* Red.
+    + inverts Typ1. inverts~ H1.
+    + inverts Typ1. inverts~ H1.
+      applys* TTyping_RcdCons...
+Qed.
