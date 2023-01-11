@@ -20,6 +20,7 @@ import Language.CP.Subtyping (isTopLike, split, (===))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..)) as Op
 import Language.CP.Syntax.Common (Label, Name)
 import Language.CP.Syntax.Core as C
+import Language.CP.Typing (selectLabel)
 import Language.CP.Util (unsafeFromJust, (<+>))
 import Language.JS.AST (BinaryOperator(..), JS(..), UnaryOperator(..))
 import Language.JS.Pretty (print1)
@@ -206,8 +207,8 @@ infer (C.TmApp e1 e2 coercive) z = do
       { ast: j2, var: y } <- if coercive then check' e2 t2
                              else delete (Proxy :: Proxy "typ") <$> infer' e2
       y' <- freshVarName
-      j3 <- dist t1 x (TmArg (JSVar y')) z
-      let j2' = [ JSVariableIntroduction y' $ Just $ thunk $ j2 <> [JSReturn $ JSVar y] ]
+      let j3 = dist t1 x (TmArg (JSVar y')) z
+          j2' = [ JSVariableIntroduction y' $ Just $ thunk $ j2 <> [JSReturn $ JSVar y] ]
       pure { ast: j1 <> j2' <> j3, typ: t3 }
     Nothing -> throwError $ "expected an applicable type, but got" <+> show t1
 infer (C.TmTAbs a td e t _) z
@@ -222,7 +223,7 @@ infer (C.TmTApp e t) z = do
   { ast: j1, typ: tf, var: y } <- infer' e
   case tapp tf of
     Just { param, tbody } -> do
-      j2 <- dist tf y (TyArg (toIndices t)) z
+      let j2 = dist tf y (TyArg (toIndices t)) z
       pure { ast: j1 <> j2, typ: C.tySubst param t tbody }
     Nothing -> throwError $ "expected an type-applicable type, but got" <+> show tf
 infer (C.TmRcd l t e) z
@@ -235,9 +236,9 @@ infer (C.TmRcd l t e) z
       pure { ast, typ }
 infer (C.TmPrj e l) z = do
   { ast: j1, typ: t1, var: y } <- infer' e
-  case prj t1 of
-    Just { label, typ } | label == l -> do
-      j2 <- dist t1 y Label z
+  case selectLabel t1 l false of
+    Just typ -> do
+      let j2 = proj t1 y l z
       pure $ { ast: j1 <> j2, typ }
     _ -> throwError $ "label" <+> show l <+> "is absent in" <+> show t1
 infer (C.TmMerge e1 e2) z = do
@@ -303,28 +304,26 @@ tapp (C.TyAnd t1 t2) | Just { param: param1, tdis: tdis1, tbody: tbody1 } <- tap
                        Just { param: param1, tdis: C.TyAnd tdis1 tdis2, tbody: C.TyAnd tbody1 tbody2' }
 tapp _ = Nothing
 
-prj :: C.Ty -> Maybe { label :: Label, typ :: C.Ty }
-prj (C.TyRcd label typ _) = Just { label, typ }
-prj C.TyTop = Just { label: "$top", typ: C.TyTop }
-prj (C.TyAnd t1 t2) | Just { label: l1, typ: t1' } <- prj t1
-                    , Just { label: l2, typ: t2' } <- prj t2
-                    , l1 == l2 = Just { label: l1, typ: C.TyAnd t1' t2' }
-prj _ = Nothing
+data Arg = TmArg JS | TyArg JS
 
-data Arg = TmArg JS | TyArg JS | Label
+dist :: C.Ty -> Name -> Arg -> Name -> AST
+dist t _ _ _ | isTopLike t = []
+dist (C.TyAnd ta tb) x arg z = dist ta x arg z <> dist tb x arg z
+dist t x (TmArg y) z = [ assignObj z [JSApp (JSIndexer (toIndex t) (JSVar x)) [y]] ]
+dist t x (TyArg y) z = [ assignObj z [JSApp (JSIndexer (toIndex t) (JSVar x)) [y]] ]
 
-dist :: C.Ty -> Name -> Arg -> Name -> CodeGen AST
-dist t _ _ _ | isTopLike t = pure []
-dist (C.TyAnd ta tb) x arg z = do
-  j1 <- dist ta x arg z
-  j2 <- dist tb x arg z
-  pure $ j1 <> j2
-dist t x (TmArg y) z = do
-  pure [ assignObj z [JSApp (JSIndexer (toIndex t) (JSVar x)) [y]] ]
-dist t x (TyArg y) z = do
-  pure [ assignObj z [JSApp (JSIndexer (toIndex t) (JSVar x)) [y]] ]
-dist t x Label z = do
-  pure [ assignObj z [JSApp (JSIndexer (toIndex t) (JSVar x)) []] ]
+proj :: C.Ty -> Name -> Label -> Name -> AST
+proj t x l z = unsafeFromJust $ go t
+  where go :: C.Ty -> Maybe AST
+        go t' | isTopLike t' = Nothing
+        go (C.TyAnd ta tb) =
+          case go ta, go tb of Nothing, Nothing -> Nothing
+                               Nothing, Just j2 -> Just j2
+                               Just j1, Nothing -> Just j1
+                               Just j1, Just j2 -> Just $ j1 <> j2
+        go t'@(C.TyRcd l' _ _) | l == l' =
+          Just [ assignObj z [JSApp (JSIndexer (toIndex t') (JSVar x)) []] ]
+        go _  = Nothing
 
 subtype :: C.Ty -> C.Ty -> Name -> Name -> CodeGen AST
 subtype _ tb _ _ | isTopLike tb = pure []
@@ -452,6 +451,7 @@ toIndex = JSTemplateLiteral <<< fst <<< go []
     isBaseType C.TyInt = true
     isBaseType C.TyDouble = true
     isBaseType C.TyString = true
+    isBaseType C.TyBot = true
     isBaseType _ = false
 
 flatten :: C.Ty -> Array C.Ty

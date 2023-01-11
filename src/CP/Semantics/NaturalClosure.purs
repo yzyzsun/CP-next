@@ -6,7 +6,7 @@ import Control.Monad.Reader (ask, local, runReaderT)
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Map (empty, insert, lookup)
 import Data.Maybe (Maybe(..))
-import Language.CP.Semantics.Closure (EvalT, binop', cast, closure, expand, paraApp, unop')
+import Language.CP.Semantics.Closure (EvalT, binop', cast, closure, expand, paraApp, selectLabel, unop')
 import Language.CP.Semantics.Common (Arg(..), toString)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
@@ -64,7 +64,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go e@(TmRcd _ _ _) = closure e
-    go (TmPrj e l) = paraApp <$> go e <@> LabelArg l >>= go
+    go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmOptPrj e1 l t e2) = do
       e1' <- go e1
       t' <- expand t

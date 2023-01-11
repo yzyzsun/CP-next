@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Maybe (Maybe(..))
-import Language.CP.Semantics.Common (Arg(..), binop, toString, unop)
+import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Language.CP.Semantics.Subst (cast, paraApp)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
@@ -56,7 +56,7 @@ eval = runTrampoline <<< go
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go (TmRcd l t e) = pure $ TmRcd l t (TmRef (ref e))
-    go (TmPrj e l) = paraApp <$> go e <@> LabelArg l >>= go
+    go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmOptPrj e1 l t e2) = do
       e1' <- go e1
       case cast e1' (TyRcd l t false) of

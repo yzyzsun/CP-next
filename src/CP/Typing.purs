@@ -167,13 +167,13 @@ infer (S.TmPrj e l) = do
   let r /\ tr = case t of C.TyRec _ _ -> C.TmUnfold t e' /\ C.unfold t
                           _ -> e' /\ t
   case selectLabel tr l false of
-    Just t' -> pure $ proj r l t' /\ t'
+    Just t' -> pure $ C.TmPrj r l /\ t'
     _ -> throwTypeError $ "label" <+> show l <+> "is absent in" <+> show t
 infer (S.TmOptPrj e1 l e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- infer e2
   case selectLabel t1 l true of
-    Just t | t2 <: t -> pure $ C.TmOptPrj e1' l t (C.TmAnno e2' t) /\ t
+    Just t | t2 <: t -> pure $ C.TmOptPrj e1' l t e2' /\ t
     _ -> throwTypeError $ l <> "'s default value does not match its interface"
 infer (S.TmTApp e ta) = do
   e' /\ tf <- infer e
@@ -200,7 +200,7 @@ infer (S.TmOpen e1 e2) = do
       b = foldr (\l s -> (l /\ unsafeFromJust (selectLabel tr l false)) : s)
                 Nil (collectLabels tr)
   e2' /\ t2 <- foldr (uncurry addTmBind) (infer e2) b
-  let open (l /\ t) e = letIn l (proj (C.TmVar opened) l t) t e t2
+  let open (l /\ t) e = letIn l (C.TmPrj (C.TmVar opened) l) t e t2
   pure $ letIn opened r tr (foldr open e2' b) t2 /\ t2
   where opened = "$open"
 infer (S.TmUpdate rcd fields) = do
@@ -568,9 +568,6 @@ letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false) e1 false
 
 trait :: Name -> C.Tm -> C.Ty -> C.Ty -> C.Tm /\ C.Ty
 trait x e targ tret = C.TmAbs x e targ tret false /\ C.TyArrow targ tret true
-
-proj :: C.Tm -> Label -> C.Ty -> C.Tm
-proj r l t = C.TmPrj (C.TmAnno r (C.TyRcd l t false)) l
 
 transformTyRec :: S.Ty -> Typing C.Ty
 transformTyRec t = do

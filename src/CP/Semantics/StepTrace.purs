@@ -8,7 +8,7 @@ import Data.Maybe (Maybe(..))
 import Data.Monoid.Endo (Endo(..))
 import Data.Newtype (unwrap)
 import Data.Tuple.Nested (type (/\))
-import Language.CP.Semantics.Common (Arg(..), binop, toString, unop)
+import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Language.CP.Semantics.Subst (cast, isValue, paraApp)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Core (Tm(..), Ty(..), tmSubst, unfold)
@@ -59,7 +59,7 @@ step (TmMerge e1 e2)
   | isValue e2 = congruence "MergeL" $> TmMerge <*> step e1 <@> e2
   | otherwise  = congruence "Merge"  $> TmMerge <*> step e1 <*> step e2
 step (TmPrj e l)
-  | isValue e = computation "PProj" $> paraApp e (LabelArg l)
+  | isValue e = computation "PProj" $> selectLabel e l
   | otherwise = congruence  "Proj"  $> TmPrj <*> step e <@> l
 step (TmOptPrj e1 l t e2)
   | isValue e1 = case cast e1 (TyRcd l t false) of
