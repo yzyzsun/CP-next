@@ -329,13 +329,15 @@ dist t x Label z = do
 subtype :: C.Ty -> C.Ty -> Name -> Name -> CodeGen AST
 subtype _ tb _ _ | isTopLike tb = pure []
 subtype C.TyBot _ _ _ = pure []
-subtype ta tb x z | Just (tb1 /\ tb2) <- split tb = do
-  y1 <- freshVarName
-  y2 <- freshVarName
-  j1 <- subtype ta tb1 x y1
-  j2 <- subtype ta tb2 x y2
-  j3 <- unsplit { x: y1, y: y2, z, tx: tb1, ty: tb2, tz: tb }
-  pure $ [ initialize y1, initialize y2 ] <> j1 <> j2 <> j3
+subtype ta tb x z | Just (tb1 /\ tb2) <- split tb =
+  if isTopLike tb1 then subtype ta tb2 x z
+  else if isTopLike tb2 then subtype ta tb1 x z
+  else do y1 <- freshVarName
+          y2 <- freshVarName
+          j1 <- subtype ta tb1 x y1
+          j2 <- subtype ta tb2 x y2
+          j3 <- unsplit { x: y1, y: y2, z, tx: tb1, ty: tb2, tz: tb }
+          pure $ [ initialize y1, initialize y2 ] <> j1 <> j2 <> j3
 subtype ta@(C.TyArrow ta1 ta2 _) tb@(C.TyArrow tb1 tb2 _) x y = do
   x1 <- freshVarName
   y1 <- freshVarName

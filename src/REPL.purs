@@ -9,7 +9,7 @@ import Data.Array.NonEmpty (NonEmptyArray, foldl1, fromArray, (!!))
 import Data.Either (Either(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Data.String (Pattern(..), drop, lastIndexOf, length, splitAt, stripPrefix, take, trim)
+import Data.String (Pattern(..), drop, lastIndexOf, length, splitAt, stripPrefix, trim)
 import Data.String.Regex (match, replace)
 import Data.String.Regex.Flags (global, noFlags)
 import Data.String.Regex.Unsafe (unsafeRegex)
@@ -29,7 +29,7 @@ import Language.CP.Util (unsafeFromJust)
 import Node.Encoding (Encoding(..))
 import Node.FS.Stats (isDirectory)
 import Node.FS.Sync as Sync
-import Node.Path (FilePath, concat, sep)
+import Node.Path (FilePath, concat, dirname, sep)
 import Node.Process (exit)
 import Node.ReadLine (Completer, Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
 
@@ -115,7 +115,7 @@ compileFile file ref = do
   case compile code of
     Left err -> fatal err
     Right js -> do
-      verb js
+      writeTextFile (file <> ".js") js
       compileTime <- nowTime
       st <- read ref
       if st.timing then let seconds = showSeconds $ diff compileTime beginTime in
@@ -251,11 +251,17 @@ verb msg = log $ withGraphics (foreground BrightBlack) msg
 showSeconds :: Milliseconds -> String
 showSeconds (Milliseconds n) = show (n / 1000.0) <> "s"
 
-readTextFile :: String -> Effect String
+readTextFile :: FilePath -> Effect String
 readTextFile f = do
   result <- try $ Sync.readTextFile UTF8 f
   case result of Right text -> pure text
                  Left err -> fatal (message err) $> ""
+
+writeTextFile :: FilePath -> String -> Effect Unit
+writeTextFile f t = do
+  result <- try $ Sync.writeTextFile UTF8 f t
+  case result of Right _ -> pure unit
+                 Left err -> fatal (message err)
 
 preprocess :: String -> String -> Effect String
 preprocess path program = case match openRegex program of
@@ -271,7 +277,4 @@ preprocess path program = case match openRegex program of
 readPreCode :: String -> Effect String
 readPreCode f = do
   code <- readTextFile f
-  preprocess path code
-  where path = case lastIndexOf (Pattern "/") f of
-                Just index -> take index f
-                Nothing -> ""
+  preprocess (dirname f) code
