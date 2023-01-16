@@ -61,6 +61,8 @@ instance Show LogicOp where
   show And = "&&"
   show Or  = "||"
 
+derive instance Eq ArithOp
+
 -- Helpers --
 
 parens :: String -> String

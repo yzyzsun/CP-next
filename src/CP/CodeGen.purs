@@ -97,11 +97,12 @@ infer (C.TmUnary Op.Len e) z = do
 infer (C.TmBinary (Op.Arith op) e1 e2) z = do
   { ast: j1, typ: t1, var: x } <- infer' e1
   { ast: j2, typ: t2, var: y } <- infer' e2
-  let ast typ = j1 <> j2 <> [ addProp (JSVar z) (toIndex typ)
-    (JSBinary (map op) (JSIndexer (toIndex typ) (JSVar x))
-                       (JSIndexer (toIndex typ) (JSVar y))) ]
-  case t1, t2 of C.TyInt,    C.TyInt    -> pure { ast: ast C.TyInt,    typ: C.TyInt    }
-                 C.TyDouble, C.TyDouble -> pure { ast: ast C.TyDouble, typ: C.TyDouble }
+  let ast typ flg = j1 <> j2 <> [ addProp (JSVar z) (toIndex typ)
+        (fun (JSBinary (map op) (JSIndexer (toIndex typ) (JSVar x))
+                                (JSIndexer (toIndex typ) (JSVar y)))) ]
+        where fun = if flg then trunc else identity
+  case t1, t2 of C.TyInt,    C.TyInt    -> pure { ast: ast C.TyInt (op == Op.Div), typ: C.TyInt    }
+                 C.TyDouble, C.TyDouble -> pure { ast: ast C.TyDouble false,       typ: C.TyDouble }
                  _, _ -> throwError $
                    "ArithOp is not defined between" <+> show t1 <+> "and" <+> show t2
   where map :: Op.ArithOp -> BinaryOperator
@@ -110,6 +111,8 @@ infer (C.TmBinary (Op.Arith op) e1 e2) z = do
         map Op.Mul = Multiply
         map Op.Div = Divide
         map Op.Mod = Modulus
+        trunc :: JS -> JS
+        trunc n = JSApp (JSAccessor "trunc" (JSVar "Math")) [n]
 infer (C.TmBinary (Op.Comp op) e1 e2) z = do
   { ast: j1, typ: t1, var: x } <- infer' e1
   { ast: j2, typ: t2, var: y } <- infer' e2
