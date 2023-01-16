@@ -62,13 +62,14 @@ var z = {};  J;
 z[T] = b;
 
 /* S2 */
-Object.assign(z, x());
+Object.assign(z, x.get);
 
 /* S3 */
-var z = x();
+var z = x.get;
 
 /* S4 */
-var x = () => z;  J;
+var x = { get: z };
+J;
 
 /* S5 */
 z[T] = x => {
@@ -77,10 +78,15 @@ z[T] = x => {
 
 /* S6 */
 J1;
-var y0 = () => {
-  J2; return y;
-};
-J3;
+var y0 = {
+  get get() {
+    J2;
+    Object.defineProperty(
+      this, "get",
+      {value: y}
+    );  return y;
+  }
+};  J3;
 
 /* S7 */
 z[T] = X => {
@@ -88,8 +94,14 @@ z[T] = X => {
 };
 
 /* S8 */
-z[T] = () => {
-  J;  return y;
+z[T] = {
+  get get() {
+    J;
+    Object.defineProperty(
+      this, "get",
+      {value: y}
+    );  return y;
+  }
 };
 \end{verbatim}
 \end{multicols}
@@ -106,7 +118,7 @@ Object.assign(z, x[T](y));
 Object.assign(z, x[T](Ts));
 
 /* S9'' */
-Object.assign(z, x[T]());
+Object.assign(z, x[T].get);
 \end{verbatim}
 \end{multicols}
 
@@ -123,16 +135,6 @@ for (var T of X) {
   y[T] = x[T];
 }
 
-/* S11 */
-y[T2] = p => {
-  var x2 = x[T1](() => {
-    var x1 = p();
-    var y1 = {};  J1;
-    return y1;
-  });
-  var y2 = {};  J2;
-  return y2;
-};
 
 /* S12 */
 y[T2] = X => {
@@ -141,11 +143,32 @@ y[T2] = X => {
   return y2;
 };
 
+/* S11 */
+y[T2] = p => {
+  var x2 = x[T1]({
+    get get() {
+      var x1 = p.get;
+      var y1 = {};  J1;
+      Object.defineProperty(
+        this, "get",
+        {value: y1}
+      );  return y1;
+    }
+  });
+  var y2 = {};  J2;
+  return y2;
+};
+
 /* S13 */
-y[T2] = () => {
-  var x0 = x[T1]();
-  var y0 = {};  J;
-  return y0;
+y[T2] = {
+  get get() {
+    var x0 = x[T1].get;
+    var y0 = {};  J;
+    Object.defineProperty(
+      this, "get",
+      {value: y0}
+    );  return y0;
+  }
 }
 
 /* S14 */
@@ -182,12 +205,19 @@ z[T] = X => {
 
 
 
+
+
 /* S18 */
-z[T] = () => {
-  var y1 = x1[T1]();
-  var y2 = x2[T2]();
-  var y = {};  J;
-  return y;
+z[T] = {
+  get get() {
+    var y1 = x1[T1].get;
+    var y2 = x2[T2].get;
+    var y = {};  J;
+    Object.defineProperty(
+      this, "get",
+      {value: y}
+    );  return y;
+  }
 };
 \end{verbatim}
 \end{multicols}
