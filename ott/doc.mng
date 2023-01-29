@@ -34,9 +34,9 @@
 \and
 \inferrule{}{ [[|X|]] = \mathbf{atoi}(X) }
 \and
-\inferrule{}{ [[|Forall X*A. B|]] = [[\-/|B|]] }
-\and
 \inferrule{}{ [[|A->B|]] = [[->|B|]] }
+\and
+\inferrule{}{ [[|Forall X*A. B|]] = [[\-/|B|]] }
 \and
 \inferrule{}{ [[|{l:A}|]] = [[{l:|A|}]] }
 \and
@@ -55,28 +55,26 @@
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* S0 */
+/* J-Gen */
 var z = {};  J;
 
-/* S1 */
+/* J-Base */
 z[T] = b;
 
-/* S2 */
+/* J-Var */
 Object.assign(z, x.get);
 
-/* S3 */
+/* J-VarGen */
 var z = x.get;
 
-/* S4 */
+/* J-Fix */
 var x = { get: z };
 J;
 
-/* S5 */
-z[T] = x => {
-  J;  return y;
-};
+/* J-Abs */
+z[T] = (x, y) => { J };
 
-/* S6 */
+/* J-App */
 J1;
 var y0 = {
   get get() {
@@ -88,12 +86,10 @@ var y0 = {
   }
 };  J3;
 
-/* S7 */
-z[T] = X => {
-  J;  return y;
-};
+/* J-TAbs */
+z[T] = (X, y) => { J };
 
-/* S8 */
+/* J-Rcd */
 z[T] = {
   get get() {
     J;
@@ -111,13 +107,13 @@ z[T] = {
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* S9 */
-Object.assign(z, x[T](y));
+/* A-Arrow */
+x[T](y, z);
 
-/* S9' */
-Object.assign(z, x[T](Ts));
+/* A-All */
+x[T](Ts, z);
 
-/* S9'' */
+/* A-Rcd */
 Object.assign(z, x[T].get);
 \end{verbatim}
 \end{multicols}
@@ -127,25 +123,24 @@ Object.assign(z, x[T].get);
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* S10 */
+/* S-Bot */
+y[T] = null;
+
+/* S-Eq */
+Object.assign(y, x);
+
+/* S-Base */
 y[T] = x[T];
 
-/* S10' */
+/* S-Var */
 for (var T of X) {
   y[T] = x[T];
 }
 
-
-/* S12 */
-y[T2] = X => {
-  var x0 = x[T1](X);
-  var y0 = {};  J;
-  return y2;
-};
-
-/* S11 */
-y[T2] = p => {
-  var x2 = x[T1]({
+/* S-Arrow */
+y[T2] = (p, y2) => {
+  var x2 = {};
+  x[T1]({
     get get() {
       var x1 = p.get;
       var y1 = {};  J1;
@@ -154,12 +149,18 @@ y[T2] = p => {
         {value: y1}
       );  return y1;
     }
-  });
-  var y2 = {};  J2;
-  return y2;
+  }, x2);
+  J2;
 };
 
-/* S13 */
+/* S-All */
+y[T2] = (X, y0) => {
+  var x0 = {};
+  x[T1](X, x0);
+  J;
+};
+
+/* S-Rcd */
 y[T2] = {
   get get() {
     var x0 = x[T1].get;
@@ -171,10 +172,10 @@ y[T2] = {
   }
 }
 
-/* S14 */
-var y1 = {};  J1;
-var y2 = {};  J2;
-J3;
+/* S-Split */
+var y1 = {}; // if y1 != z
+var y2 = {}; // if y2 != z
+J1;  J2;  J3;
 \end{verbatim}
 \end{multicols}
 
@@ -183,36 +184,45 @@ J3;
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* S15 */
-Object.assign(z, x, y);
-
-/* S16 */
-z[T] = p => {
-  var y1 = x1[T1](p);
-  var y2 = x2[T2](p);
-  var y = {};  J;
-  return y;
-};
-
-
-/* S17 */
-z[T] = X => {
-  var y1 = x1[T1](X);
-  var y2 = x2[T2](X);
-  var y = {};  J;
-  return y;
+/* M-Arrow */
+z[T] = (p, y) => {
+  var y1 = {}; // if y1 != y
+  var y2 = {}; // if y2 != y
+  x1[T1](p, y1);
+  x2[T2](p, y2);
+  J;
 };
 
 
 
 
 
-/* S18 */
+
+
+/* M-All */
+z[T] = (X, y) => {
+  var y1 = {}; // if y1 != y
+  var y2 = {}; // if y2 != y
+  x1[T1](X, y1);
+  x2[T2](X, y2);
+  J;
+};
+
+
+
+
+
+
+
+/* M-Rcd */
 z[T] = {
   get get() {
-    var y1 = x1[T1].get;
-    var y2 = x2[T2].get;
-    var y = {};  J;
+    var y = {};
+    var y1 = {}; // if y1 != y
+    var y2 = {}; // if y2 != y
+    Object.assign(y1, x1[T1].get);
+    Object.assign(y2, x2[T2].get);
+    J;
     Object.defineProperty(
       this, "get",
       {value: y}
