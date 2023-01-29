@@ -276,12 +276,11 @@ infer' e = do
   { ast, typ } <- infer e var
   pure { ast: [ initialize var ] <> ast, typ, var }
 
--- TODO: eliminate infer' if t === typ
+-- TODO: change (infer' e) to (infer e y) if t === typ
 check :: C.Tm -> C.Ty -> Name -> CodeGen AST
 check e t y = do
   { ast, typ, var: x } <- infer' e
-  if t === typ then (_.ast) <$> infer e y
-  else (ast <> _) <$> subtype typ t x y
+  (ast <> _) <$> subtype typ t x y
 
 check' :: C.Tm -> C.Ty -> CodeGen { ast :: AST, var :: Name }
 check' e t = do
