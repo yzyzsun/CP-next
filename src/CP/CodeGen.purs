@@ -5,11 +5,12 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.RWS (RWST, asks, evalRWST, local, modify)
-import Data.Array (concat, elem, foldl, length, (!!), (:))
+import Data.Array (concat, foldl, length, (!!))
 import Data.Array as A
 import Data.Bifunctor (bimap, lmap)
 import Data.Either (Either)
 import Data.Int (toNumber)
+import Data.List (List(..), elem, (:))
 import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
@@ -424,9 +425,9 @@ toIndices C.TyTop = JSArrayLiteral []
 toIndices t = JSArrayLiteral [toIndex t]
 
 toIndex :: C.Ty -> JS
-toIndex = JSTemplateLiteral <<< fst <<< go []
+toIndex = JSTemplateLiteral <<< fst <<< go Nil
   where
-    go :: Array Name -> C.Ty -> String /\ Boolean
+    go :: List Name -> C.Ty -> String /\ Boolean
     go _ t | isBaseType t    = show t /\ false
     go as (C.TyArrow _ t _)  = lmap ("fun_" <> _) (go as t)
     go as (C.TyForall a _ t) = lmap ("forall_" <> _) (go (a:as) t)
@@ -441,7 +442,7 @@ toIndex = JSTemplateLiteral <<< fst <<< go []
            if not b then ("(&" <> joinWith "&" ts <> "&)") /\ false
            else ("${toIndex(" <> print1 (JSArrayLiteral (go' as <$> flattened)) <> ")}") /\ true
     go _ t = unsafeCrashWith $ "cannot use as an index: " <> show t
-    go' :: Array Name -> C.Ty -> JS
+    go' :: List Name -> C.Ty -> JS
     go' as (C.TyVar a) | not (a `elem` as) = JSUnary Spread (JSVar (variable a))
     go' as t = JSTemplateLiteral $ fst $ go as t
     isBaseType :: C.Ty -> Boolean
