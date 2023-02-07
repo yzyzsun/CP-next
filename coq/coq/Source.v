@@ -14,7 +14,7 @@ Inductive tlist : Set :=
  | tl_base : tlist
  | tl_arrow (T:tlist)
  | tl_rcd (l:label) (T:tlist)
-| tl_list (l:list tlist).
+ | tl_list (l:list tlist).
 
 (* (* convert type to a list of string is infeasible because there will be nested list *) *)
 (* Fixpoint type2stringlist (A: typ) : list string := *)
@@ -84,6 +84,7 @@ Fixpoint tlist_filter (T: tlist) :=
   end.
 
 (* sort strings *)
+(* TODO add deduplication *)
 Check ("A" <=? "C").
 Fixpoint insert (i : string) (l : list string) :=
   match l with
@@ -133,13 +134,78 @@ Fixpoint tlist2string (T: tlist) : string :=
   | tl_base => "Base"
   end.
 
+Definition stype2string (A: typ) : string :=
+  tlist2string (tlist_filter (type2tlist A)).
+
+Notation "| A |" := (stype2string A) (at level 40).
+
 (* Properties of type translation *)
+(** filter toplike, sort, deduplicate *)
+Lemma eqIndTyp_sound_complete : forall A B,
+    eqIndTyp A B <-> |A| = |B|.
+Abort.
+
 Definition equivalent A B := exists t1 t2 t3 t4, cosub t1 A B t2 /\ cosub t3 B A t4.
 
+(** NOT TRUE **)
+Lemma eqIndTyp_equivalent : forall A B,
+    eqIndTyp A B -> equivalent A B.
+Abort.
+(** A1->B VS A2->B **)
 
-(* Notation "| A |" := (translate_type A) (at level 40). *)
+(** NOT TRUE **)
+Lemma equivalent_eqIndTyp : forall A B,
+    equivalent A B -> eqIndTyp A B.
+Abort.
+(** A->B&C VS (A->B)&(A->C) **)
+
+Definition eq_disjoint A B := forall C, disjoint A C <-> disjoint B C.
+
+(** NOT TRUE **)
+Lemma eqIndTyp_eq_disjoint : forall A B,
+    eqIndTyp A B -> eq_disjoint A B.
+Abort.
+(** with the same example above *)
+
+Lemma disjoint_type_no_eqInd : forall A B,
+    eqIndTyp A B -> disjoint A B -> False.
+Abort.
+
+(* Translate source type to target type *)
+Inductive ttyp2 : Set :=
+(* | tt_top : ttyp2 (* tt_rcd [] *) *)
+| tt_bot : ttyp2
+| tt_base : ttyp2
+| tt_arrow (T1:ttyp2) (T2:ttyp2)
+| tt_list (l:list (string * ttyp2))
+.
+
+Reserved Notation " [[ A ]]" (at level 80).
+
+Fixpoint styp2ttyplist (A: typ) : list (string * ttyp2) :=
+  match A with
+  | typ_top => []
+  | typ_bot => [ (|A|, tt_bot) ]
+  | typ_base => [ (|A|, tt_base) ]
+  | typ_arrow B1 B2 => [ (|A|, tt_arrow (tt_list ([[ B1 ]]))
+                                            (tt_list ([[ B2 ]]))) ]
+  | typ_rcd l A' => [ (|A|, tt_arrow (tt_list []) (tt_list ([[ A' ]]))) ]
+  | typ_and A1 A2 => [[ A1 ]] ++ [[ A2 ]]
+  end
+where "[[ A ]]" := (styp2ttyplist A).
+
+(* Type safety *)
+(** The key is to prove the lookup label does exists in the record *)
+(** To prove type safety, we need to translate typing contexts / types
+ \ x : A . e : B  => A->B ~> \ x . |e| ??? **)
+
+Lemma cosub_well_typed : forall E t1 A B t2,
+    cosub t1 A B t2 -> target_typing E t1 [[A]] -> target_typing E t2 [[B]] .
+Abort.
+(* t1 is not always well-typed *)
 
 
+(** via styp2ttyp to convert type *)
 Theorem elaboration_well_typed : forall G e dirflag A t,
     elaboration G e dirflag A t -> exists E T, target_typing E t T.
 Abort.
