@@ -22,8 +22,8 @@ typ, A, B, C :: 'typ_' ::= {{ com types }}
   | A & B          ::  :: and     {{ com intersection }}
   | { l : A }      ::  :: rcd     {{ com record }}
   | ( A )          :: S:: paren   {{ coq [[A]] }}
-  | Int       :: M:: int     {{ com int }} {{ tex \mathsf{Int}  }}
-  | Bool      :: M:: bool    {{ com bool}} {{ tex \mathsf{Bool} }}
+  % | Int       :: M:: int     {{ com int }} {{ tex \mathsf{Int}  }}
+  % | Bool      :: M:: bool    {{ com bool}} {{ tex \mathsf{Bool} }}
 
 
 exp, e :: 'exp_' ::= {{ com expressions }}

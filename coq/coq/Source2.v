@@ -7,92 +7,44 @@ Require Import Sorting.Permutation.
 Require Import Sorting.Sorted.
 Require Export Infrastructure.
 
-(* convert type to type list which allows list of types inside *)
-Inductive tlist : Set :=
- | tl_top : tlist
- | tl_bot : tlist
- | tl_base : tlist
- | tl_arrow (T:tlist)
- | tl_rcd (l:label) (T:tlist)
- | tl_list (l:list tlist).
+Inductive stype : Set :=
+ | st_bot : stype
+ | st_base : stype
+ | st_arrow (T U:stype)
+ | st_rcd (l:label) (T:stype)
+ | st_list (l:list stype).
 
-(* (* convert type to a list of string is infeasible because there will be nested list *) *)
-(* Fixpoint type2stringlist (A: typ) : list string := *)
-(*   match A with *)
-(*   | typ_top => ["Top"] *)
-(*   | typ_bot => ["Bot"] *)
-(*   | typ_base => ["Base"] *)
-(*   | typ_arrow _ A' =>  ["->" ++ type2stringlist A'] *)
-(*   | typ_rcd l A' => ["{" ++  l ++ ":" ++  type2string A' ++ "}"] *)
-(*   | typ_and A1 A2 => (type2stringlist A1) ++ (type2stringlist A2) *)
-(*   end. *)
 
-Definition tlist2list (T: tlist) : list tlist :=
-  match T with
-  | tl_list l => l
-  | _ => [T]
-  end.
+Definition stype2string (A: typ) : string :=
+  tlist2string (tlist_filter (type2tlist A)).
 
-Fixpoint type2tlist (A: typ) : tlist :=
+Notation "| A |" := (stype2string A) (at level 40).
+
+Fixpoint stype2ttyplist (A: stype) : list (string * ttyp2) :=
   match A with
-  | typ_top => tl_top
-  | typ_bot => tl_bot
-  | typ_base => tl_base
-  | typ_arrow _ A' => tl_arrow (type2tlist A')
-  | typ_rcd l A' => tl_rcd l (type2tlist A')
-  | typ_and A1 A2 => tl_list (tlist2list (type2tlist A1) ++ tlist2list (type2tlist A2))
-  end.
-
-(* (* flatten nested intersection types *) *)
-(* Fixpoint flatten (A : typ) := *)
-(*   match A with *)
-(*   | typ_and A1 A2 => flatten A1 ++ flatten A2 *)
-(*   | _ => [A] *)
-(*   end. *)
-
-(* (* filter toplike type out *) *)
-(* Fixpoint check_non_toplike (A : typ) := true. *)
-(* Lemma check_non_toplike_sound_complete : forall A, *)
-(*     toplike A <-> check_non_toplike A = false. *)
-(* Admitted. *)
-(* Check (filter check_non_toplike). *)
-
-(* (* FAILED TO COMPILE *) *)
-(* (* convert type to string *) *)
-(* Fixpoint type2string (A: typ) : string := *)
-(*   match A with *)
-(*   | typ_top => "Top" *)
-(*   | typ_bot => "Bot" *)
-(*   | typ_base => "Base" *)
-(*   | typ_arrow _ A' =>  "->" ++ type2string A' *)
-(*   | typ_rcd l A' => "{" ++  l ++ ":" ++  type2string A' ++ "}" *)
-(*   | typ_and _ _ => fold_left append (sort (List.map type2string (filter check_non_toplike (flatten A)))) "" *)
-(*   end. *)
+  | st_bot => [ (|A|, tt_bot) ]
+  | st_base => [ (|A|, tt_base) ]
+  | st_arrow B1 B2 => [ (|A|, tt_arrow (tt_list ([[ B1 ]]))
+                                            (tt_list ([[ B2 ]]))) ]
+  | st_rcd l A' => [ (|A|, tt_arrow (tt_list []) (tt_list ([[ A' ]]))) ]
+  | st_list A1 A2 => [[ A1 ]] ++ [[ A2 ]]
+  end
+where "[[ A ]]" := (styp2ttyplist A).
 
 (* filter toplike type out *)
-Fixpoint check_toplike (T : tlist) :=
+Fixpoint check_toplike (T : stype) :=
   match T with
-  | tl_top => true
-  | tl_bot => false
-  | tl_base => false
-  | tl_arrow B => check_toplike B
-  | tl_rcd l B => check_toplike B
-  | tl_list li => fold_left andb (List.map check_toplike li) true
+  | st_bot => false
+  | st_base => false
+  | st_arrow A B => check_toplike B
+  | st_rcd l B => check_toplike B
+  | st_list li => fold_left andb (List.map check_toplike li) true
   end.
 
-Lemma check_toplike_sound_complete : forall A,
-    toplike A <-> check_toplike (type2tlist A) = true.
-Admitted.
+(* Lemma check_non_toplike_sound_complete : forall A, *)
+(*     toplike A <-> check_toplike A = true. *)
+(* Admitted. *)
 
-Fixpoint check_non_toplike (T : tlist) := negb (check_toplike T).
-
-Fixpoint tlist_filter (T: tlist) :=
-  match T with
-  | tl_list l => tl_list (filter check_non_toplike (List.map tlist_filter l))
-  | tl_arrow T => tl_arrow (tlist_filter T)
-  | tl_rcd l T => tl_rcd l (tlist_filter T)
-  | _ => T
-  end.
 
 (* sort strings *)
 (* TODO add deduplication *)
@@ -131,19 +83,51 @@ Check Permutation.
 Definition is_a_sorting_algorithm (f: list string -> list string) := forall al,
     Permutation al (f al) /\ sorted (f al).
 
-(* convert tlist to string *)
+(* convert type to string *)
 Check concat.
 Check fold_left append ["A";"B"] "".
 
-Fixpoint tlist2string (T: tlist) : string :=
+Definition check_non_toplike T := negb (check_toplike T).
+
+(* Definition filter_toplike_list (l: list stype) := *)
+(*   match (filter check_non_toplike l) with *)
+(*   | nil => "Top" *)
+(*   | st_list l => st_list (filter check_non_toplike (List.map toplike_filter l)) *)
+(*   | st_arrow T => tl_arrow (tlist_filter T) *)
+(*   | st_rcd l T => tl_rcd l (tlist_filter T) *)
+(*   | _ => T *)
+(*   end. *)
+
+Fixpoint stype2string (T: stype) : string :=
   match T with
-  | tl_list l => fold_left append (sort (List.map tlist2string l)) ""
-  | tl_arrow T => "->" ++ tlist2string T
-  | tl_rcd l T => "{" ++  l ++ ":" ++ tlist2string T ++ "}"
-  | tl_top => "Top"
-  | tl_bot => "Bot"
-  | tl_base => "Base"
+  | st_list l => fold_left append (sort (List.map stype2string (filter check_non_toplike l))) ""
+  | st_arrow U T => "->" ++ stype2string T
+  | st_rcd l T => "{" ++  l ++ ":" ++ stype2string T ++ "}"
+  | st_bot => "Bot"
+  | st_base => "Base"
   end.
+
+(* Error: *)
+(* Recursive definition of stype2string is ill-formed. *)
+(* In environment *)
+(* stype2string : stype -> string *)
+(* T : stype *)
+(* l : list stype *)
+(* map : list stype -> list string *)
+(* l0 : list stype *)
+(* a : stype *)
+(* t : list stype *)
+(* Recursive call to stype2string has principal argument equal to "a" instead of *)
+(* "l". *)
+
+Fixpoint toplike_filter (T: stype) :=
+  match T with
+  | st_list l => st_list (filter check_non_toplike (List.map toplike_filter l))
+  | st_arrow T => tl_arrow (tlist_filter T)
+  | st_rcd l T => tl_rcd l (tlist_filter T)
+  | _ => T
+  end.
+
 
 Definition stype2string (A: typ) : string :=
   tlist2string (tlist_filter (type2tlist A)).
