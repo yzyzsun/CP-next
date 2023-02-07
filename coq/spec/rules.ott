@@ -22,12 +22,12 @@ typ, A, B, C :: 'typ_' ::= {{ com types }}
   | A & B          ::  :: and     {{ com intersection }}
   | { l : A }      ::  :: rcd     {{ com record }}
   | ( A )          :: S:: paren   {{ coq [[A]] }}
-  % | Int       :: M:: int     {{ com int }} {{ tex \mathsf{Int}  }}
-  % | Bool      :: M:: bool    {{ com bool}} {{ tex \mathsf{Bool} }}
+  | Int       :: M:: int     {{ com int }} {{ tex \mathsf{Int}  }}
+  | Bool      :: M:: bool    {{ com bool}} {{ tex \mathsf{Bool} }}
 
 
 exp, e :: 'exp_' ::= {{ com expressions }}
-  | top              ::  :: top    {{ com top value }}
+  | top              ::  :: top    {{ com top value }} {{ tex \top }}
   | b                ::  :: base   {{ com base literal }} {{ tex b }}
   | x                ::  :: var     {{ com variables }}
   | \ x : A . e : B
@@ -76,9 +76,9 @@ dirflag :: '' ::= {{ com checking direction }}
 terminals :: 'terminals_' ::=
   | \            ::  :: lambda     {{ tex \lambda }}
   | ~>           ::  :: subst      {{ tex \mapsto }}
+  | ~>>          ::  :: subst2     {{ tex \mapsto }}
   | ->           ::  :: arrow      {{ tex \rightarrow }}
   | -->          ::  :: longarrow  {{ tex \rightrightarrows }}
-  | ~->          ::  :: sarrow     {{ tex \rightsquigarrow }}
   | |->          ::  :: red        {{ tex \longmapsto }}
   | <=           ::  :: check      {{ tex \Leftarrow }}
   | =>           ::  :: infer      {{ tex \Rightarrow }}
@@ -105,6 +105,12 @@ terminals :: 'terminals_' ::=
   | topl         ::  :: topl       {{ tex \rceil }}
   | topr         ::  :: topr       {{ tex \lceil }}
   | fix          ::  :: fixpoint   {{ tex \mathsf{fix} }}
+  | >->          ::  :: stepalt    {{ tex \rightarrow }}
+  | >->*         ::  :: stepmul    {{ tex \rightarrow^{*} }}
+  | ~~>          ::  :: sarrow     {{ tex \rightsquigarrow }}
+  | |>           ::  :: rhd        {{ tex \rhd }}
+  | <|           ::  :: lhd        {{ tex \lhd }}
+  | ~=           ::  :: equ        {{ tex \approx }}
 
 formula :: 'formula_' ::=
   | judgement                ::   :: judgement
@@ -150,6 +156,7 @@ formula :: 'formula_' ::=
   | uniq Gt                   ::   :: uniqGt
     {{ coq uniq [[Gt]] }}
     {{ tex }}
+  | t >->* t'             ::  :: steps
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -203,6 +210,45 @@ TopLikeType :: '' ::=
   toplike {l:B}
 
 
+defns
+EqIndexType :: '' ::=
+
+  defn
+  A ~= B :: :: eqIndTyp :: EI_
+  {{ com Types with the same index }}
+  by
+
+  A ~= B
+  B ~= C
+  --------------- :: trans
+  A ~= C
+
+  B ~= A
+  --------------- :: symm
+  A ~= B
+  
+  ---------------- :: arrow
+  A1->B ~= A2->B
+
+  A ~= B
+  --------------- :: rcd
+  {l:A} ~= {l:B}
+
+  --------------- :: comm
+  A&B ~= B&A
+
+  -------------------- :: assoc
+  A&(B&C) ~= (A&B)&C
+
+  toplike A
+  --------------- :: top
+  A&B ~= B
+
+  A1 ~= A2
+  -------------------- :: dup
+  (A1&A2)&B ~= A1&B
+  
+  
 defns
 SplitType :: '' ::=
 
@@ -479,8 +525,8 @@ Elaboration :: '' ::=
 
 
   G, x:A |- e <= A ~~> t
-  ----------------------------------- :: Fix
-  G |- fix x:A. e => A ~~> fix x . t
+  ----------------------------------------------------- :: Fix
+  G |- fix x:A. e => A ~~> { |A| => \y. (fix x . t) }
 
 
   G, x:A |- e <= B ~~> t

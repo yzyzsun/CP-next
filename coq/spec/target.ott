@@ -19,7 +19,8 @@ ttyp, At, Bt, Ct :: 'ttyp_' ::= {{ com types }}
   | Bot              ::  :: bot    {{ com bottom type }} {{ tex \bot }}
   | Base             ::  :: base   {{ com base type }} {{ tex \mathbb{B} }}
   | At -> Bt         ::  :: arrow   {{ com function types }}
-  | ll : At , Bt     ::  :: rcd     {{ com record }}
+  | ll : At , Bt     ::  :: rcd     {{ com record }} {{ tex \{ [[ll]] [[:]] [[At]] [[,]] [[Bt]]  \} }}
+  | { ll : At }      :: M:: single_rcd {{ coq (ttyp_rcd [[ll]] [[At]] ttyp_top) }}
   | ( At )           :: S:: paren   {{ coq [[At]] }}
   
 tindex, ll, T, K :: 'ti_' ::= {{ com Type indices }}
@@ -51,7 +52,7 @@ texp, t, te, tp, tv, tu :: 'texp_' ::=              {{ com target term  }}
                                                         {{ com fixpoint }}
   | t1 t2                               :: :: app     {{ com applications }}
   | { }                                 ::  :: nil    {{ com empty record }} {{ tex \{ \} }}
-  | ll => t1' , t2                      ::  :: cons
+  | ll => t1' , t2                      ::  :: cons   {{ tex \{ [[ll]] [[=>]] [[t1']] [[,]] [[t2]]  \} }}
   | { ll => t1' }                       :: S:: single_rec {{ coq (texp_cons [[ll]] [[t1']] texp_nil) }}
   | t1 . ll                             ::  :: proj     {{ com projection }}
   | t1 ; t2                             ::  :: concat  {{ com concatenation }}
@@ -108,7 +109,7 @@ defns
 Values :: '' ::=
 
   defn
-  value tv ::  :: value :: value_ {{ com Values }} {{ tex }}
+  value tv ::  :: value :: value_ {{ com Values }}
   by
 
   ---------------------- :: unit
@@ -211,6 +212,7 @@ RecordTypes   :: '' ::=
   defn
   recTyp At
   :: :: rec_typ :: 'RT_'
+  {{ com Valid record types }}
   by
 
   -------------------- :: Nil
@@ -305,3 +307,42 @@ TargetTyping :: '' ::=
   At & Bt => Ct
   ---------------------------- :: RcdMerge
   Gt |- t1 ; t2 : Ct
+
+
+defns
+ConvertSource2Target :: '' ::=
+
+  defn
+  A => At :: :: styp2ttyp :: ST_
+  {{ com Try convert source types to target types }}
+  by
+
+
+  ----------------------- :: Top
+  Top => Top
+
+
+  ----------------------- :: Bot
+  Bot => Bot
+
+ 
+  ----------------------------------- :: Base
+  Base => { |Base| : Base }
+
+
+  A => At
+  B => Bt
+  ----------------------------------- :: Arrow
+  A->B => { ->|B| : At->Bt }
+
+
+  A => At
+  ----------------------------------- :: Rcd
+  {l : A} => { {l : |A|} : Top->At } 
+
+
+  A => At
+  B => Bt
+  At & Bt => Ct
+  ----------------------- :: And
+  A & B => Ct
