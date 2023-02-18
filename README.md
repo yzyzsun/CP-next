@@ -9,7 +9,7 @@ CP is a *compositional* programming language, founded on a core calculus named *
 - Generalized record operations with type difference[^TypeDiff];
 - Nested composition and distributive subtyping[^NeColus];
 - *Compositional Programming*[^CP] with first-class traits[^SEDEL];
-- Type-directed operational semantics for *Fi+*[^Fi+] with {substitution,closure,HOAS}-based {big,small}-step variants;
+- Type-directed operational semantics for *Fi+*[^Fi+] with {HOAS,substitution,closure}-based {big,small}-step variants;
 - An embedded DSL for document authoring called ExT[^ExT].
 
 [^Merge]: Jana Dunfield. [Elaborating Intersection and Union Types](https://research.cs.queensu.ca/home/jana/papers/intcomp-jfp/Dunfield14_elaboration.pdf). In *JFP 2014*.  
@@ -50,21 +50,23 @@ If you want to start a PLGround server locally, take the first two steps above a
 ```
 $ npm start
 ......
-Next-Gen CP REPL, version x.x.x
-
-> :load examples/bench.cp
-7773
-<BigStep mode: 1.024s>
+Next-Gen CP REPL, dev version (default mode: HOAS)
 
 > :mode StepTrace
-
 > 1+2*3
+
 (1 + (2 * 3))
 ......
 (1 + 6)
 ↓ Step-BinaryV
 7
-<StepTrace mode: 0.021s>
+
+> :timing
+> :mode HOAS
+> :load examples/bench.cp
+
+125000
+Time: 1.024s
 ```
 
 ## Grammar Maintenance

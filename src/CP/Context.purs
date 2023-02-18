@@ -102,7 +102,7 @@ type CompilerState =  { mode        :: Mode
                       }
 
 initState :: CompilerState
-initState = { mode       : BigStep
+initState = { mode       : HOAS
             , timing     : false
             , tmBindings : Nil
             , tyAliases  : empty
