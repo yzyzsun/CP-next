@@ -5,10 +5,10 @@ import Prelude
 import Control.Monad.State (gets)
 import Data.Array ((!!))
 import Data.Either (Either(..))
-import Data.List (foldr)
+import Data.List (foldl)
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), split)
-import Data.Tuple (fst)
+import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Exception (throw)
@@ -43,23 +43,24 @@ importDefs code = case runParser code (whiteSpace *> program <* eof) of
     _ <- checkProg prog'
     pure unit
 
-wrapUp :: C.Tm -> C.Ty -> CompilerState -> C.Tm
-wrapUp e t st = fst $ foldr (\f -> \acc -> f acc) (e /\ t) $
-  map (\(_ /\ _ /\ f) -> \(e1 /\ t1) -> (f (e1 /\ t1) /\ t1)) st.tmBindings
+elaborateProg :: S.Prog -> Checking C.Tm
+elaborateProg p = gets =<< wrapUp <<< fst <$> checkProg p
+  where
+    wrapUp :: C.Tm -> CompilerState -> C.Tm
+    wrapUp e st = foldl (#) e $ snd <$> st.tmBindings
 
 evalProg :: S.Prog -> Checking String
 evalProg prog = do
   let prog'@(S.Prog _ e') = desugarProg prog
-  e /\ t <- checkProg prog'
-  e'' <- gets (wrapUp e t)
+  e <- elaborateProg prog'
   mode <- gets (_.mode)
   pure $ case mode of
-    SmallStep -> show (SmallStep.eval e'')
-    StepTrace -> let _ /\ s = StepTrace.eval e'' in
+    SmallStep -> show (SmallStep.eval e)
+    StepTrace -> let _ /\ s = StepTrace.eval e in
       show prog <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s ""
-    BigStep -> show (BigStep.eval e'')
-    HOAS -> show (HOAS.eval e'')
-    Closure -> show (Closure.eval e'')
+    BigStep -> show (BigStep.eval e)
+    HOAS -> show (HOAS.eval e)
+    Closure -> show (Closure.eval e)
 
 -- Source code interpretation used by REPL
 interpret :: String -> Checking String
@@ -76,14 +77,9 @@ evaluate prog = case runChecking (evalProg prog) initState of
 compile :: String -> Either String String
 compile code = case runParser code (whiteSpace *> program <* eof) of
   Left err -> Left $ showParseError err code
-  Right prog -> case runChecking (check (desugarProg prog)) initState of
+  Right prog -> case runChecking (elaborateProg (desugarProg prog)) initState of
     Left err -> Left $ showTypeError err
     Right (e /\ _) -> print <$> runCodeGen e
-  where
-    check :: S.Prog -> Checking C.Tm
-    check prog = do
-      e /\ t <- checkProg prog
-      gets (wrapUp e t)
 
 showPosition :: Position -> String
 showPosition (Position { line: line, column: column }) =

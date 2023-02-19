@@ -75,6 +75,7 @@ data Tm = TmInt Int
         | TmOptPrj Tm Label Ty Tm
         | TmTApp Tm Ty
         | TmTAbs Name Ty Tm Ty Boolean
+        | TmLet Name Tm Tm Boolean
         | TmFold Ty Tm
         | TmUnfold Ty Tm
         | TmToString Tm
@@ -113,6 +114,9 @@ instance Show Tm where
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs a td e t _refined) = parens $ "Λ" <> a <> "." <+> show e <+>
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
+  show (TmLet x e1 e2 true) = x <+> "=" <+> show e1 <> ";\n" <> show e2
+  show (TmLet x e1 e2 false) = parens $
+    "let" <+> x <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmFold t e) = parens $ "fold @" <> show t <+> show e
   show (TmUnfold t e) = parens $ "unfold @" <> show t <+> show e
   show (TmToString e) = parens $ "toString" <+> show e
@@ -172,6 +176,8 @@ tmConvert env (TmTApp e t) = TmTApp (tmConvert env e) (tyConvert env t)
 tmConvert env (TmTAbs a td e t b) =
   TmHTAbs (\ty -> tmConvert (insert a (Right ty) env) e)
           (tyConvert env td) (tyHoas' env a t) b
+tmConvert env (TmLet x e1 e2 _) = tmConvert (insert x (Left tm) env) e2
+  where tm = TmRef $ ref $ tmConvert env e1
 tmConvert env (TmFold t e) = TmFold (tyConvert env t) (tmConvert env e)
 tmConvert env (TmUnfold t e) = TmUnfold (tyConvert env t) (tmConvert env e)
 tmConvert env (TmToString e) = TmToString (tmConvert env e)
@@ -187,10 +193,10 @@ tySubst :: Name -> Ty -> Ty -> Ty
 tySubst a s (TyArrow t1 t2 b) = TyArrow (tySubst a s t1) (tySubst a s t2) b
 tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyRcd l t opt) = TyRcd l (tySubst a s t) opt
-tySubst a s (TyVar a') = if a == a' then s else TyVar a'
+tySubst a s (TyVar a') | a == a' = s
 tySubst a s (TyForall a' td t) =
   TyForall a' (tySubst a s td) (if a == a' then t else tySubst a s t)
-tySubst a s (TyRec a' t) = TyRec a' (if a == a' then t else tySubst a s t)
+tySubst a s (TyRec a' t) | a /= a' = TyRec a' (tySubst a s t)
 tySubst a s (TyArray t) = TyArray (tySubst a s t)
 tySubst _ _ t = t
 
@@ -203,11 +209,11 @@ tmSubst x v (TmUnary op e) = TmUnary op (tmSubst x v e)
 tmSubst x v (TmBinary op e1 e2) = TmBinary op (tmSubst x v e1) (tmSubst x v e2)
 tmSubst x v (TmIf e1 e2 e3) =
   TmIf (tmSubst x v e1) (tmSubst x v e2) (tmSubst x v e3)
-tmSubst x v (TmVar x') = if x == x' then v else TmVar x'
+tmSubst x v (TmVar x') | x == x' = v
 tmSubst x v (TmApp e1 e2 b) = TmApp (tmSubst x v e1) (tmSubst x v e2) b
-tmSubst x v (TmAbs x' e targ tret b) =
-  TmAbs x' (if x == x' then e else tmSubst x v e) targ tret b
-tmSubst x v (TmFix x' e t) = TmFix x' (if x == x' then e else tmSubst x v e) t
+tmSubst x v (TmAbs x' e targ tret b) | x /= x' =
+  TmAbs x' (tmSubst x v e) targ tret b
+tmSubst x v (TmFix x' e t) | x /= x' = TmFix x' (tmSubst x v e) t
 tmSubst x v (TmAnno e t) = TmAnno (tmSubst x v e) t
 tmSubst x v (TmMerge e1 e2) = TmMerge (tmSubst x v e1) (tmSubst x v e2)
 tmSubst x v (TmRcd l t e) = TmRcd l t (tmSubst x v e)
@@ -216,6 +222,8 @@ tmSubst x v (TmOptPrj e1 l t e2) =
   TmOptPrj (tmSubst x v e1) l t (tmSubst x v e2)
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
 tmSubst x v (TmTAbs a td e t b) = TmTAbs a td (tmSubst x v e) t b
+tmSubst x v (TmLet x' e1 e2 b) =
+  TmLet x' (tmSubst x v e1) (if x == x' then e2 else tmSubst x v e2) b
 tmSubst x v (TmFold t e) = TmFold t (tmSubst x v e)
 tmSubst x v (TmUnfold t e) = TmUnfold t (tmSubst x v e)
 tmSubst x v (TmToString e) = TmToString (tmSubst x v e)
@@ -239,8 +247,10 @@ tmTSubst a s (TmPrj e l) = TmPrj (tmTSubst a s e) l
 tmTSubst a s (TmOptPrj e1 l t e2) =
   TmOptPrj (tmTSubst a s e1) l (tySubst a s t) (tmTSubst a s e2)
 tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
-tmTSubst a s (TmTAbs a' td e t b) = TmTAbs a' (tySubst a s td) (tmTSubst a s e)
-                                    (if a == a' then t else tySubst a s t) b
+tmTSubst a s (TmTAbs a' td e t b) =
+  if a == a' then tabs e t b else tabs (tmTSubst a s e) (tySubst a s t) b
+  where tabs = TmTAbs a' (tySubst a s td)
+tmTSubst a s (TmLet x e1 e2 b) = TmLet x (tmTSubst a s e1) (tmTSubst a s e2) b
 tmTSubst a s (TmFold t e) = TmFold (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmUnfold t e) = TmUnfold (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmToString e) = TmToString (tmTSubst a s e)

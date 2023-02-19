@@ -77,6 +77,9 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       t' <- expand t
       go $ paraApp e' (TyArg t')
     go e@(TmTAbs _ _ _ _ _) = closure e
+    go (TmLet x e1 e2 _) = do
+      e1' <- closure e1
+      local (\env -> insert x (TmBind (TmRef (ref e1'))) env) (go e2)
     go (TmFold t e) = TmFold t <$> go e
     go (TmUnfold t e) =  if isTopLike t then pure TmUnit else go e >>= go'
       where go' :: Tm -> Eval Tm

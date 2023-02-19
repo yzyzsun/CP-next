@@ -187,11 +187,11 @@ infer (S.TmTAbs ((a /\ Just td) : Nil) e) = do
 infer (S.TmLet x Nil Nil e1 e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- addTmBind x t1 $ infer e2
-  pure $ letIn x e1' t1 e2' t2 /\ t2
+  pure $ C.TmLet x e1' e2' false /\ t2
 infer (S.TmLetrec x Nil Nil t e1 e2) = do
   e1' /\ t1 <- inferRec x e1 t
   e2' /\ t2 <- addTmBind x t1 $ infer e2
-  pure $ letIn x (C.TmFix x e1' t1) t1 e2' t2 /\ t2
+  pure $ C.TmLet x (C.TmFix x e1' t1) e2' false /\ t2
 -- TODO: find a more efficient algorithm
 infer (S.TmOpen e1 e2) = do
   e1' /\ t1 <- infer e1
@@ -200,8 +200,8 @@ infer (S.TmOpen e1 e2) = do
       b = foldr (\l s -> (l /\ unsafeFromJust (selectLabel tr l false)) : s)
                 Nil (collectLabels tr)
   e2' /\ t2 <- foldr (uncurry addTmBind) (infer e2) b
-  let open (l /\ t) e = letIn l (C.TmPrj (C.TmVar opened) l) t e t2
-  pure $ letIn opened r tr (foldr open e2' b) t2 /\ t2
+  let open (l /\ _) e = C.TmLet l (C.TmPrj (C.TmVar opened) l) e false
+  pure $ C.TmLet opened r (foldr open e2' b) false /\ t2
   where opened = "$open"
 infer (S.TmUpdate rcd fields) = do
   rcd' /\ t <- infer rcd
@@ -235,8 +235,8 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
             let to' = override to e2
             disjoint to' t2
             let tret = C.TyAnd to' t2
-                ret = letIn "super" (C.TmApp e1' (C.TmVar self) true) to
-                      (C.TmMerge (C.TmAnno (C.TmVar "super") to') e2') tret
+                ret = C.TmLet "super" (C.TmApp e1' (C.TmVar self) true)
+                      (C.TmMerge (C.TmAnno (C.TmVar "super") to') e2') false
             pure $ ret /\ tret
           else throwTypeError $ "self-type" <+> show t <+>
             "is not a subtype of inherited self-type" <+> show ti
@@ -499,15 +499,15 @@ checkDef (S.TmDef x Nil Nil Nothing e) = do
   case runTyping (infer e) ctx of
     Left err -> throwError err
     Right (e' /\ t) ->
-      let f = letIn x e' t in
-      modify_ \st -> st { tmBindings = st.tmBindings <> singleton (x /\ t /\ uncurry f) }
+      let f tm = C.TmLet x e' tm true in
+      modify_ \st -> st { tmBindings = ((x /\ t) /\ f) : st.tmBindings }
 checkDef (S.TmDef x Nil Nil (Just t) e) = do
   ctx <- gets fromState
   case runTyping (inferRec x e t) ctx of
     Left err -> throwError err
-    Right (e' /\ t') -> 
-      let f = letIn x (C.TmFix x e' t') t' in
-      modify_ \st -> st { tmBindings = st.tmBindings <> ((x /\ t' /\ uncurry f) : Nil) }
+    Right (e' /\ t') ->
+      let f tm = C.TmLet x (C.TmFix x e' t') tm true in
+      modify_ \st -> st { tmBindings = ((x /\ t') /\ f) : st.tmBindings }
 checkDef d = throwError $ TypeError ("expected a desugared def, but got" <+> show d) UnknownPos
 
 checkProg :: S.Prog -> Checking (C.Tm /\ C.Ty)
@@ -562,9 +562,6 @@ disjointTyBind a1 t1 a2 t2 td = addTyBind freshName td $
   disjoint (C.tySubst a1 freshVar t1) (C.tySubst a2 freshVar t2)
   where freshName = a1 <> " or " <> a2
         freshVar = C.TyVar freshName
-
-letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
-letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false) e1 false
 
 trait :: Name -> C.Tm -> C.Ty -> C.Ty -> C.Tm /\ C.Ty
 trait x e targ tret = C.TmAbs x e targ tret false /\ C.TyArrow targ tret true

@@ -11,6 +11,7 @@ import Data.List (List(..))
 import Data.Map (Map, empty, fromFoldable, insert, lookup, toUnfoldable)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
+import Data.Tuple (fst)
 import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Syntax.Common (Name)
 import Language.CP.Syntax.Core as C
@@ -97,7 +98,7 @@ instance Show Mode where show = genericShow
 
 type CompilerState =  { mode        :: Mode
                       , timing      :: Boolean
-                      , tmBindings  :: List (Name /\ C.Ty /\ (C.Tm /\ C.Ty -> C.Tm))
+                      , tmBindings  :: List ((Name /\ C.Ty) /\ (C.Tm -> C.Tm))
                       , tyAliases   :: Map Name S.Ty
                       }
 
@@ -118,14 +119,14 @@ ppState :: CompilerState -> String
 ppState st = S.intercalate' "\n" (map ppTmBinding st.tmBindings) <>
   S.intercalate' "\n" (map ppTyAlias $ toList st.tyAliases)
   where
-    ppTmBinding (x /\ t /\ _) = "term " <> x <> " : " <> show t
+    ppTmBinding ((x /\ t) /\ _) = "term " <> x <> " : " <> show t
     ppTyAlias (x /\ t) = "type " <> x <> " = " <> show t
 
 clearEnv :: CompilerState -> CompilerState
 clearEnv st = st { tmBindings = Nil, tyAliases = empty }
 
 fromState :: CompilerState -> Ctx
-fromState b = { tmBindEnv : fromFoldable $ map (\(x /\ t /\ _) -> x /\ t) b.tmBindings
+fromState b = { tmBindEnv : fromFoldable $ map fst b.tmBindings
               , tyAliasEnv : b.tyAliases
               , tyBindEnv : empty
               , sortEnv : empty
