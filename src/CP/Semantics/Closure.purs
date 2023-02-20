@@ -73,6 +73,7 @@ step (TmUnfold t e) | isTopLike t = pure TmUnit
 step (TmToString e) | isValue e = pure $ toString e
                     | otherwise = TmToString <$> step e
 step arr@(TmArray _ _) = closure arr
+step (TmMain e) = step e
 step (TmClosure env e) | isValue e = pure e
                        | otherwise = TmClosure env <$> local (const env) (step e)
 step e = unsafeCrashWith $ "CP.Semantics.Closure.step: " <>

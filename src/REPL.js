@@ -1,5 +1,7 @@
-function jseval(js) {
-  return eval(js + "\n main()")
-} 
-
-export { jseval as eval }
+export function require(file) {
+  return function (callback) {
+      return function () {
+        return import(file).then(module => callback(module.main())());
+      };
+  };
+}

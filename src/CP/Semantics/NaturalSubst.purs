@@ -74,6 +74,7 @@ eval = runTrampoline <<< go
                                        "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
     go (TmArray t arr) = pure $ TmArray t (TmRef <<< ref <$> arr)
+    go (TmMain e) = go e
     go (TmRef ref) = if done ref then pure e else do
       e' <- go e
       pure $ write e' ref

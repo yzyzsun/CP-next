@@ -132,7 +132,7 @@ let additions =
         { dependencies =
           [ "arrays", "pattern-arrows", "prelude", "transformers", "strings" ]
         , repo = "https://github.com/yzyzsun/purescript-js-ast.git"
-        , version = "289d336"
+        , version = "ce949b8"
         }
       }
 

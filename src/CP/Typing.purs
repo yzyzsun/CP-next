@@ -149,8 +149,10 @@ infer (S.TmMerge S.Neutral e1 e2) = do
     _, C.TyTop -> pure $ e1' /\ t1
     C.TyArrow ti1 to1 true, C.TyArrow ti2 to2 true -> do
       disjoint to1 to2
-      pure $ trait "$self" (C.TmMerge (appToSelf e1') (appToSelf e2'))
-                           (C.TyAnd ti1 ti2) (C.TyAnd to1 to2)
+      let ti = case ti1, ti2 of C.TyTop, _ -> ti2
+                                _, C.TyTop -> ti1
+                                _, _ -> C.TyAnd ti1 ti2
+      pure $ trait "$self" (C.TmMerge (appToSelf e1') (appToSelf e2')) ti (C.TyAnd to1 to2)
     _, _ -> do
       disjoint t1 t2
       pure $ C.TmMerge e1' e2' /\ C.TyAnd t1 t2
@@ -200,9 +202,11 @@ infer (S.TmOpen e1 e2) = do
       b = foldr (\l s -> (l /\ unsafeFromJust (selectLabel tr l false)) : s)
                 Nil (collectLabels tr)
   e2' /\ t2 <- foldr (uncurry addTmBind) (infer e2) b
-  let open (l /\ _) e = C.TmLet l (C.TmPrj (C.TmVar opened) l) e false
-  pure $ C.TmLet opened r (foldr open e2' b) false /\ t2
+  let open (l /\ t) e = letIn l (C.TmPrj (C.TmVar opened) l) t e t2
+  pure $ letIn opened r tr (foldr open e2' b) t2 /\ t2
   where opened = "$open"
+        letIn x tm1 ty1 tm2 ty2 = C.TmApp (C.TmAbs x tm2 ty1 ty2 false) tm1 false
+        -- Do not use C.TmLet here to lazily open self when compiling a trait
 infer (S.TmUpdate rcd fields) = do
   rcd' /\ t <- infer rcd
   fields' <- for fields \(l /\ e) -> do
@@ -516,7 +520,7 @@ checkProg (S.Prog defs e) = do
   ctx <- gets fromState
   case runTyping (infer e) ctx of
     Left err -> throwError err
-    Right p -> pure p
+    Right (e' /\ t) -> pure $ C.TmMain e' /\ t
 
 distApp :: C.Ty -> Either C.Ty C.Ty -> Typing C.Ty
 distApp (C.TyArrow targ tret _) (Left t) | t <: targ = pure tret

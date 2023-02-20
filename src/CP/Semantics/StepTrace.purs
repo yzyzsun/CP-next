@@ -79,5 +79,6 @@ step (TmUnfold t e)
 step (TmToString e)
   | isValue e = computation "ToStringV" $> toString e
   | otherwise = congruence  "ToString"  $> TmToString <*> step e
+step (TmMain e) = step e
 step e = unsafeCrashWith $ "CP.Semantics.StepTrace.step: " <>
   "well-typed programs don't get stuck, but got " <> show e

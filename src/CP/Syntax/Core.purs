@@ -80,6 +80,7 @@ data Tm = TmInt Int
         | TmUnfold Ty Tm
         | TmToString Tm
         | TmArray Ty (Array Tm)
+        | TmMain Tm
         -- Only used in big-step semantics for call-by-need:
         | TmRef TmRef
         -- Only used in closure-based semantics for variable capturing:
@@ -122,6 +123,7 @@ instance Show Tm where
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray t arr) = parens $
     brackets (intercalate "; " (show <$> arr)) <+> ":" <+> brackets (show t)
+  show (TmMain e) = show e
   show (TmRef _ref) = angles $ "Ref"
   show (TmClosure _env e) = angles $ "Closure" <+> show e
   show (TmHAbs _abs targ tret _refined) = angles $
@@ -182,6 +184,7 @@ tmConvert env (TmFold t e) = TmFold (tyConvert env t) (tmConvert env e)
 tmConvert env (TmUnfold t e) = TmUnfold (tyConvert env t) (tmConvert env e)
 tmConvert env (TmToString e) = TmToString (tmConvert env e)
 tmConvert env (TmArray t arr) = TmArray (tyConvert env t) (tmConvert env <$> arr)
+tmConvert env (TmMain e) = tmConvert env e
 tmConvert _ e = e
 
 type HoasEnv = Map Name (Either Tm Ty)
@@ -228,6 +231,7 @@ tmSubst x v (TmFold t e) = TmFold t (tmSubst x v e)
 tmSubst x v (TmUnfold t e) = TmUnfold t (tmSubst x v e)
 tmSubst x v (TmToString e) = TmToString (tmSubst x v e)
 tmSubst x v (TmArray t arr) = TmArray t (tmSubst x v <$> arr)
+tmSubst x v (TmMain e) = TmMain (tmSubst x v e)
 tmSubst _ _ e = e
 
 tmTSubst :: Name -> Ty -> Tm -> Tm
@@ -255,6 +259,7 @@ tmTSubst a s (TmFold t e) = TmFold (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmUnfold t e) = TmUnfold (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmToString e) = TmToString (tmTSubst a s e)
 tmTSubst a s (TmArray t arr) = TmArray (tySubst a s t) (tmTSubst a s <$> arr)
+tmTSubst a s (TmMain e) = TmMain (tmTSubst a s e)
 tmTSubst _ _ e = e
 
 -- Environment --

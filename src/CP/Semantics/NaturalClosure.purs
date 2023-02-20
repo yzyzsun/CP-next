@@ -89,6 +89,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
                                        "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
     go e@(TmArray _ _) = closure e
+    go (TmMain e) = go e
     go (TmRef ref) = if done ref then pure e else do
       e' <- go e
       pure $ write e' ref

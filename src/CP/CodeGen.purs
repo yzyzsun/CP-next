@@ -37,18 +37,17 @@ type Ctx = { tmBindEnv :: Map Name C.Ty
 
 runCodeGen :: C.Tm -> Either String (Array JS)
 runCodeGen e = do
-  { ast, var } /\ _ <- runExcept $
-    evalRWST (infer' e) { tmBindEnv: empty, tyBindEnv: empty } 0
-  pure [ JSFunction (Just "toIndex") ["t"] $ JSBlock
-          [JSIfElse (JSBinary EqualTo (JSAccessor "length" (JSVar "t")) (JSNumericLiteral 1.0))
-                    (JSBlock [JSReturn $ JSIndexer (JSNumericLiteral 0.0) (JSVar "t")])
-                    (Just $ JSBlock [JSReturn $ JSBinary Add
-                      (JSBinary Add
-                        (JSStringLiteral "(&")
-                        (JSApp (JSAccessor "join" (JSApp (JSAccessor "sort" (JSVar "t")) [])) [JSStringLiteral "&"]))
-                      (JSStringLiteral "&)")])]
-       , JSFunction (Just "main") [] $ JSBlock $ ast <> [ JSReturn $ JSVar var ]
-       ]
+  { ast } /\ _ <- runExcept $
+    evalRWST (infer e "$0") { tmBindEnv: empty, tyBindEnv: empty } 0
+  pure $ [ JSFunction (Just "toIndex") ["t"] $ JSBlock
+            [JSIfElse (JSBinary EqualTo (JSAccessor "length" (JSVar "t")) (JSNumericLiteral 1.0))
+                      (JSBlock [JSReturn $ JSIndexer (JSNumericLiteral 0.0) (JSVar "t")])
+                      (Just $ JSBlock [JSReturn $ JSBinary Add
+                        (JSBinary Add
+                          (JSStringLiteral "(&")
+                          (JSApp (JSAccessor "join" (JSApp (JSAccessor "sort" (JSVar "t")) [])) [JSStringLiteral "&"]))
+                        (JSStringLiteral "&)")])]
+         ] <> ast
 
 type AST = Array JS
 
@@ -262,6 +261,18 @@ infer (C.TmToString e) z = do
   let ast = j <> [ addProp (JSVar z) (toIndex C.TyString)
     (JSApp (JSAccessor "toString" (JSIndexer (toIndex t) (JSVar y))) []) ]
   pure { ast, typ: C.TyString }
+infer (C.TmLet x e1 e2 global) z = do
+  { ast: j1, typ: t1, var: y } <- infer' e1
+  { ast: j2, typ: t2 } <- addTmBind x t1 $ infer e2 z
+  let def = JSVariableIntroduction (variable x) $ Just $
+              JSObjectLiteral [LiteralName "get" (JSVar y)]
+  pure { ast: j1 <> [if global then JSExport def else def] <> j2, typ: t2 }
+infer (C.TmMain e) _ = do
+  z <- freshVarName
+  { ast: j , typ } <- infer e z
+  let block = [initialize z] <> j <> [JSReturn $ JSVar z]
+      ast = [ JSExport $ JSFunction (Just "main") [] $ JSBlock block ]
+  pure { ast, typ }
 infer e _ = unsafeCrashWith $ "FIXME: infer" <+> show e
 
 infer' :: C.Tm -> CodeGen { ast :: AST, typ :: C.Ty, var :: Name }

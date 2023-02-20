@@ -50,6 +50,7 @@ step (TmUnfold t e) | isTopLike t = TmUnit
                     | otherwise = TmUnfold t (step e)
 step (TmToString e) | isValue e = toString e
                     | otherwise = TmToString (step e)
+step (TmMain e) = step e
 step e = unsafeCrashWith $ "CP.Semantics.Subst.step: " <>
   "well-typed programs don't get stuck, but got " <> show e
 

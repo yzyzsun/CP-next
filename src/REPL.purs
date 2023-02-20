@@ -30,10 +30,10 @@ import Node.Encoding (Encoding(..))
 import Node.FS.Stats (isDirectory)
 import Node.FS.Sync as Sync
 import Node.Path (FilePath, concat, dirname, sep)
-import Node.Process (exit)
+import Node.Process (cwd, exit)
 import Node.ReadLine (Completer, Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
 
-foreign import eval :: forall a. String -> a
+foreign import require :: forall a. String -> (a -> Effect Unit) -> Effect Unit
 
 -- commands
 type Cmd = String -> Ref CompilerState -> Effect Unit
@@ -115,17 +115,19 @@ compileFile file ref = do
   case compile code of
     Left err -> fatal err
     Right js -> do
-      writeTextFile (file <> ".js") js
+      writeTextFile jsfile js
       compileTime <- nowTime
       st <- read ref
       if st.timing then let seconds = showSeconds $ diff compileTime beginTime in
         info $ "Compile time: " <> seconds
       else pure unit
-      log $ eval js
-      endTime <- nowTime
-      if st.timing then let seconds = showSeconds $ diff endTime compileTime in
-        info $ "Run time: " <> seconds
-      else pure unit
+      workDir <- cwd
+      require (concat [workDir, jsfile]) \_ -> do
+        endTime <- nowTime
+        if st.timing then let seconds = showSeconds $ diff endTime compileTime in
+          info $ "Run time: " <> seconds
+        else pure unit
+  where jsfile = file <> ".mjs"
 
 errorCmd :: Cmd
 errorCmd input ref = do
