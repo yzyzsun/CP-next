@@ -22,7 +22,7 @@ ttyp, At, Bt, Ct :: 'ttyp_' ::= {{ com types }}
   | ll : At , Bt     ::  :: rcd     {{ com record }} {{ tex \{ [[ll]] [[:]] [[At]] [[,]] [[Bt]]  \} }}
   | { ll : At }      :: M:: single_rcd {{ coq (ttyp_rcd [[ll]] [[At]] ttyp_top) }}
   | ( At )           :: S:: paren   {{ coq [[At]] }}
-  | || A ||          :: M:: stype_trans {{ tex ||[[A]]|| }} 
+  % | || A ||          :: M:: stype_trans {{ tex ||[[A]]|| }} 
   
 tindex, ll, T, K :: 'ti_' ::= {{ com Type indices }}
   | Base      ::  :: base  {{ com base type }} {{ tex \mathbb{B} }}
