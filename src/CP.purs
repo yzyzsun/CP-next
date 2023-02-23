@@ -4,16 +4,20 @@ import Prelude
 
 import Control.Monad.State (gets)
 import Data.Array ((!!))
+import Data.Array.NonEmpty as NEA
 import Data.Either (Either(..))
 import Data.List (foldl)
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), split)
+import Data.String.Regex (match, replace)
+import Data.String.Regex.Flags (dotAll)
+import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Tuple (fst, snd)
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Exception (throw)
-import Language.CP.CodeGen (runCodeGen)
-import Language.CP.Context (Checking, CompilerState, Mode(..), Pos(..), TypeError(..), Typing, initState, runChecking, throwCheckError, throwTypeError)
+import Language.CP.CodeGen (fromState, runCodeGen)
+import Language.CP.Context (Checking, Mode(..), Typing, REPLState, initState, runChecking, throwCheckError, throwTypeError)
 import Language.CP.Desugar (desugar, desugarProg)
 import Language.CP.Parser (expr, program, whiteSpace)
 import Language.CP.Semantics.HOAS as HOAS
@@ -24,6 +28,7 @@ import Language.CP.Semantics.Subst as SmallStep
 import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
 import Language.CP.Typing (checkProg, infer)
+import Language.CP.Util (unsafeFromJust)
 import Language.JS.Pretty (print)
 import Parsing (ParseError(..), Position(..), runParser)
 import Parsing.String (eof)
@@ -46,7 +51,7 @@ importDefs code = case runParser code (whiteSpace *> program <* eof) of
 elaborateProg :: S.Prog -> Checking C.Tm
 elaborateProg p = gets =<< wrapUp <<< fst <$> checkProg p
   where
-    wrapUp :: C.Tm -> CompilerState -> C.Tm
+    wrapUp :: C.Tm -> REPLState -> C.Tm
     wrapUp e st = foldl (#) e $ snd <$> st.tmBindings
 
 evalProg :: S.Prog -> Checking String
@@ -71,23 +76,25 @@ interpret code = case runParser code (whiteSpace *> program <* eof) of
 -- Big-step evaluation used after ANTLR parsing
 evaluate :: S.Prog -> Effect String
 evaluate prog = case runChecking (evalProg prog) initState of
-  Left err -> throw $ showTypeError err
+  Left err -> throw $ show err
   Right (output /\ _) -> pure output
 
-compile :: String -> Either String String
-compile code = case runParser code (whiteSpace *> program <* eof) of
+compile :: String -> REPLState -> Either String (String /\ REPLState)
+compile code st = case runParser code (whiteSpace *> program <* eof) of
   Left err -> Left $ showParseError err code
-  Right prog -> case runChecking (elaborateProg (desugarProg prog)) initState of
-    Left err -> Left $ showTypeError err
-    Right (e /\ _) -> print <$> runCodeGen e
-
-showPosition :: Position -> String
-showPosition (Position { line: line, column: column }) =
-  show line <> ":" <> show column
+  Right prog -> case runChecking (elaborateProg (desugarProg prog)) st of
+    Left err -> Left $ show err
+    Right (e /\ st') -> runCodeGen e (fromState st') <#> \s -> (prelude code <> print s) /\ st'
+  where
+    prelude s = case match preludeRegex s of
+      Just arr -> (unsafeFromJust $ unsafeFromJust $ arr NEA.!! 1)
+               <> prelude (replace preludeRegex "" s)
+      Nothing -> ""
+    preludeRegex = unsafeRegex """\{-#\s*PRELUDE\s+(.*?)\s*#-\}""" dotAll
 
 showParseError :: ParseError -> String -> String
 showParseError (ParseError _ pos@(Position { line: l, column: c })) source =
-  showPosition pos <> ": parse error:\n" <>
+  show pos <> ": parse error:\n" <>
   case seek l of Just line -> line <> "\n" <> rep (c-1) " " <> "^"
                  Nothing -> ""
   where
@@ -96,9 +103,3 @@ showParseError (ParseError _ pos@(Position { line: l, column: c })) source =
     rep :: Int -> String -> String
     rep n s | n <= 0 = ""
             | otherwise = s <> rep (n-1) s
-
-showTypeError :: TypeError -> String
-showTypeError (TypeError msg UnknownPos) = msg
-showTypeError (TypeError msg (Pos pos expr inDoc)) =
-  showPosition pos <> ": " <> msg <> "\nin the expression: " <>
-  (if inDoc then S.showDoc else show) expr

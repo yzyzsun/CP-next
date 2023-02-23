@@ -9,8 +9,8 @@ import Data.Array.NonEmpty (NonEmptyArray, foldl1, fromArray, (!!))
 import Data.Either (Either(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Data.String (Pattern(..), drop, lastIndexOf, length, splitAt, stripPrefix, trim)
-import Data.String.Regex (match, replace)
+import Data.String (Pattern(..), drop, lastIndexOf, length, null, splitAt, stripPrefix, trim)
+import Data.String.Regex (Regex, match, replace)
 import Data.String.Regex.Flags (global, noFlags)
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.String.Utils (startsWith, stripMargin)
@@ -23,8 +23,8 @@ import Effect.Console (log)
 import Effect.Exception (message, try)
 import Effect.Now (nowTime)
 import Effect.Ref (Ref, modify_, new, read, write)
-import Language.CP (compile, importDefs, inferType, interpret, showTypeError)
-import Language.CP.Context (CompilerState, Mode(..), clearEnv, fromState, initState, ppState, runChecking, runTyping)
+import Language.CP (compile, importDefs, inferType, interpret)
+import Language.CP.Context (Mode(..), REPLState, clearEnv, fromState, initState, mergeStates, ppState, runChecking, runTyping)
 import Language.CP.Util (unsafeFromJust)
 import Node.Encoding (Encoding(..))
 import Node.FS.Stats (isDirectory)
@@ -36,7 +36,7 @@ import Node.ReadLine (Completer, Interface, createConsoleInterface, noCompletion
 foreign import require :: forall a. String -> (a -> Effect Unit) -> Effect Unit
 
 -- commands
-type Cmd = String -> Ref CompilerState -> Effect Unit
+type Cmd = String -> Ref REPLState -> Effect Unit
 
 printHelp :: Cmd
 printHelp _ _ = log $ stripMargin
@@ -83,7 +83,7 @@ typeExpr :: Cmd
 typeExpr expr ref = do
   st <- read ref
   case runTyping (inferType expr) (fromState st) of
-    Left err -> fatal $ showTypeError err
+    Left err -> fatal $ show err
     Right output -> log output
 
 importFile :: Cmd
@@ -91,7 +91,7 @@ importFile file ref = do
   code <- readPreCode file
   st <- read ref
   case runChecking (importDefs code) st of
-    Left err -> fatal $ showTypeError err
+    Left err -> fatal $ show err
     Right (_ /\ st') -> write st' ref
 
 loadFile :: Cmd
@@ -103,7 +103,7 @@ evalProg :: Cmd
 evalProg code ref = do
   st <- read ref
   case runChecking (interpret code) st of
-    Left err -> fatal $ showTypeError err
+    Left err -> fatal $ show err
     Right (output /\ st') -> do
       log output
       write st' ref
@@ -111,23 +111,49 @@ evalProg code ref = do
 compileFile :: Cmd
 compileFile file ref = do
   beginTime <- nowTime
-  code <- readPreCode file
-  case compile code of
-    Left err -> fatal err
-    Right js -> do
-      writeTextFile jsfile js
-      compileTime <- nowTime
-      st <- read ref
-      if st.timing then let seconds = showSeconds $ diff compileTime beginTime in
-        info $ "Compile time: " <> seconds
+  code <- readTextFile file
+  void $ compileJS file code \_ -> do
+    compileTime <- nowTime
+    st <- read ref
+    if st.timing then let seconds = showSeconds $ diff compileTime beginTime in
+      info $ "Compile time: " <> seconds
+    else pure unit
+    f <- jsfile file
+    require f \_ -> do
+      endTime <- nowTime
+      if st.timing then let seconds = showSeconds $ diff endTime compileTime in
+        info $ "Run time: " <> seconds
       else pure unit
+    pure $ "" /\ initState
+  where
+    compileLibs :: FilePath -> String -> Effect (String /\ REPLState)
+    compileLibs path program = matchOpen path program
+      (\libName libFile libCode -> compileJS libFile libCode \st -> do
+        f <- jsfile file
+        s /\ st' <- compileLibs path $ replace openRegex (importAll libName f) program
+        pure $ s /\ mergeStates st st')
+      (\s -> pure $ s /\ initState)
+    importAll :: String -> FilePath -> String
+    importAll n f = "{-# PRELUDE\n"
+                 <> "import * as " <> n <> " from " <> show f <> ";\n"
+                 <> "for (var [key, value] of Object.entries(" <> n <> ")) "
+                 <> "{ global[key] = value; }\n"
+                 <> "#-}\n"
+    -- TODO: check if the file is already compiled and up to date
+    compileJS :: FilePath -> String -> (REPLState -> Effect (String /\ REPLState)) -> Effect (String /\ REPLState)
+    compileJS filepath code callback = do
+      program /\ st <- compileLibs (dirname file) code
+      if null program then pure $ "" /\ initState
+      else case compile program st of
+        Left err -> fatal err $> "" /\ initState
+        Right (js /\ st') -> do
+          f <- jsfile filepath
+          writeTextFile f js
+          callback st'
+    jsfile :: FilePath -> Effect FilePath
+    jsfile filepath = do
       workDir <- cwd
-      require (concat [workDir, jsfile]) \_ -> do
-        endTime <- nowTime
-        if st.timing then let seconds = showSeconds $ diff endTime compileTime in
-          info $ "Run time: " <> seconds
-        else pure unit
-  where jsfile = file <> ".mjs"
+      pure $ concat [workDir, filepath <> ".mjs"]
 
 errorCmd :: Cmd
 errorCmd input ref = do
@@ -163,11 +189,10 @@ dispatch input = ifMatchesAny (":?" : ":h" : ":help" : Nil) printHelp $
     ifMatchesAny (p : ps) f d = case stripPrefix (Pattern p) input of
       Just rest -> f (trim rest)
       Nothing -> ifMatchesAny ps f d
-
     ifMatches :: forall a. String -> (String -> a) -> a -> a
     ifMatches p f d = ifMatchesAny (p : Nil) f d
 
-handler :: Interface -> Ref CompilerState -> String -> Effect Unit
+handler :: Interface -> Ref REPLState -> String -> Effect Unit
 handler interface ref input = do
   dispatch (trim input) ref
   prompt interface
@@ -219,8 +244,11 @@ completer = makeCompleter $ unsafeFromJust $ fromArray
   [ ConstSyntax ":help"
   , ConstSyntax ":quit", ConstSyntax ":exit"
   , ConstSyntax ":mode"
-  , ConstSyntax ":mode SmallStep", ConstSyntax ":mode StepTrace", ConstSyntax ":mode BigStep"
-  , ConstSyntax ":mode HOAS", ConstSyntax ":mode Closure"
+  , ConstSyntax ":mode SmallStep"
+  , ConstSyntax ":mode StepTrace"
+  , ConstSyntax ":mode BigStep"
+  , ConstSyntax ":mode HOAS"
+  , ConstSyntax ":mode Closure"
   , ConstSyntax ":timing"
   , ConstSyntax ":env"
   , ConstSyntax ":env clear"
@@ -265,18 +293,29 @@ writeTextFile f t = do
   case result of Right _ -> pure unit
                  Left err -> fatal (message err)
 
-preprocess :: String -> String -> Effect String
-preprocess path program = case match openRegex program of
+preprocess :: FilePath -> String -> Effect String
+preprocess path program = matchOpen path program resolve pure
+  where resolve _ _ code = preprocess path $
+          replace openRegex (replace lineRegex " " code) program
+        lineRegex = unsafeRegex """(--.*)?[\r\n]+""" global
+
+matchOpen :: forall a. FilePath -> String
+          -> (String -> String -> String -> Effect a)
+          -> (String -> Effect a)
+          -> Effect a
+matchOpen path program hit miss = case match openRegex program of
   Just arr -> do
     let name = unsafeFromJust $ unsafeFromJust $ arr !! 1
-    text <- readTextFile $ filepath name
-    preprocess path $ replace openRegex (replace lineRegex " " text) program
-  Nothing -> pure program
-  where openRegex = unsafeRegex """open\s+(\w+)\s*;""" noFlags
-        lineRegex = unsafeRegex """(--.*)?[\r\n]+""" global
-        filepath name = concat [path, name <> ".lib"]
+        file = filepath name
+    text <- readTextFile file
+    hit name file text
+  Nothing -> miss program
+  where filepath name = concat [path, name <> ".lib"]
 
-readPreCode :: String -> Effect String
+openRegex :: Regex
+openRegex = unsafeRegex """open\s+(\w+)\s*;""" noFlags
+
+readPreCode :: FilePath -> Effect String
 readPreCode f = do
   code <- readTextFile f
   preprocess (dirname f) code

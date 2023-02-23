@@ -11,12 +11,13 @@ import Data.Bifunctor (bimap, lmap)
 import Data.Either (Either)
 import Data.Int (toNumber)
 import Data.List (List(..), elem, (:))
-import Data.Map (Map, empty, insert, lookup)
+import Data.Map (Map, empty, fromFoldable, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
 import Data.Traversable (traverse)
 import Data.Tuple (fst)
 import Data.Tuple.Nested (type (/\), (/\))
+import Language.CP.Context (REPLState)
 import Language.CP.Subtyping (isTopLike, split, (===))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..)) as Op
 import Language.CP.Syntax.Common (Label, Name)
@@ -35,10 +36,14 @@ type Ctx = { tmBindEnv :: Map Name C.Ty
            , tyBindEnv :: Map Name C.Ty
            }
 
-runCodeGen :: C.Tm -> Either String (Array JS)
-runCodeGen e = do
-  { ast } /\ _ <- runExcept $
-    evalRWST (infer e "$0") { tmBindEnv: empty, tyBindEnv: empty } 0
+fromState :: REPLState -> Ctx
+fromState st = { tmBindEnv: fromFoldable $ map fst st.tmBindings
+               , tyBindEnv: empty
+               }
+
+runCodeGen :: C.Tm -> Ctx -> Either String (Array JS)
+runCodeGen e ctx = do
+  { ast } /\ _ <- runExcept $ evalRWST (infer e "$0") ctx 0
   pure $ [ JSFunction (Just "toIndex") ["t"] $ JSBlock
             [JSIfElse (JSBinary EqualTo (JSAccessor "length" (JSVar "t")) (JSNumericLiteral 1.0))
                       (JSBlock [JSReturn $ JSIndexer (JSNumericLiteral 0.0) (JSVar "t")])

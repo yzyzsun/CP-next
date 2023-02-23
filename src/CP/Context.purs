@@ -8,7 +8,7 @@ import Control.Monad.State (StateT, runStateT)
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
 import Data.List (List(..))
-import Data.Map (Map, empty, fromFoldable, insert, lookup, toUnfoldable)
+import Data.Map (Map, empty, fromFoldable, insert, lookup, toUnfoldable, union)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.Tuple (fst)
@@ -16,7 +16,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Syntax.Common (Name)
 import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
-import Parsing (Position)
+import Parsing (Position(..))
 
 type Typing = ReaderT Ctx (Except TypeError)
 
@@ -31,11 +31,11 @@ data Pos = UnknownPos
          | Pos Position S.Tm Boolean
 
 emptyCtx :: Ctx
-emptyCtx =  { tmBindEnv : empty
-            , tyBindEnv : empty
+emptyCtx =  { tmBindEnv  : empty
+            , tyBindEnv  : empty
             , tyAliasEnv : empty
-            , sortEnv : empty
-            , pos : UnknownPos
+            , sortEnv    : empty
+            , pos        : UnknownPos
             }
 
 runTyping :: forall a. Typing a -> Ctx -> Either TypeError a
@@ -60,7 +60,7 @@ lookupSort name = lookup name <$> asks (_.sortEnv)
 addToEnv :: forall a b. ((Map Name b -> Map Name b) -> Ctx -> Ctx) ->
                         Name -> b -> Typing a -> Typing a
 addToEnv map name ty = if name == "_" then identity
-                       else local (map \env -> insert name ty env)
+                       else local (map (insert name ty))
 
 addTmBind :: forall a. Name -> C.Ty -> Typing a -> Typing a
 addTmBind = addToEnv \f r -> r { tmBindEnv = f r.tmBindEnv }
@@ -82,6 +82,16 @@ askPos = asks (_.pos)
 
 data TypeError = TypeError String Pos
 
+instance Show TypeError where
+  show (TypeError msg UnknownPos) = msg
+  show (TypeError msg (Pos pos expr inDoc)) =
+    showPosition pos <> ": " <> msg <> "\nin the expression: " <>
+    (if inDoc then S.showDoc else show) expr
+    where
+      showPosition :: Position -> String
+      showPosition (Position { line: line, column: column }) =
+        show line <> ":" <> show column
+
 -- TODO: combine two type errors
 instance Semigroup TypeError where
   append = const
@@ -89,48 +99,54 @@ instance Semigroup TypeError where
 throwTypeError :: forall a. String -> Typing a
 throwTypeError msg = TypeError msg <$> askPos >>= throwError
 
-type Checking = StateT CompilerState (Except TypeError)
+type Checking = StateT REPLState (Except TypeError)
 
 data Mode = SmallStep | StepTrace | BigStep | HOAS | Closure
 
 derive instance Generic Mode _
 instance Show Mode where show = genericShow
 
-type CompilerState =  { mode        :: Mode
-                      , timing      :: Boolean
-                      , tmBindings  :: List ((Name /\ C.Ty) /\ (C.Tm -> C.Tm))
-                      , tyAliases   :: Map Name S.Ty
-                      }
+type REPLState =  { mode        :: Mode
+                  , timing      :: Boolean
+                  , tmBindings  :: List ((Name /\ C.Ty) /\ (C.Tm -> C.Tm))
+                  , tyAliases   :: Map Name S.Ty
+                  }
 
-initState :: CompilerState
+initState :: REPLState
 initState = { mode       : HOAS
             , timing     : false
             , tmBindings : Nil
             , tyAliases  : empty
             }
 
-runChecking :: forall a. Checking a -> CompilerState -> Either TypeError (a /\ CompilerState)
+-- preferring bindings from `st2` in the case of duplicate variables
+mergeStates :: REPLState -> REPLState -> REPLState
+mergeStates st1 st2 = initState { tmBindings = st2.tmBindings <> st1.tmBindings
+                                , tyAliases = union st2.tyAliases st1.tyAliases
+                                }
+
+runChecking :: forall a. Checking a -> REPLState -> Either TypeError (a /\ REPLState)
 runChecking m st = runExcept $ runStateT m st
 
 toList :: forall k v. Map k v -> List (k /\ v)
 toList = toUnfoldable
 
-ppState :: CompilerState -> String
+ppState :: REPLState -> String
 ppState st = S.intercalate' "\n" (map ppTmBinding st.tmBindings) <>
   S.intercalate' "\n" (map ppTyAlias $ toList st.tyAliases)
   where
     ppTmBinding ((x /\ t) /\ _) = "term " <> x <> " : " <> show t
     ppTyAlias (x /\ t) = "type " <> x <> " = " <> show t
 
-clearEnv :: CompilerState -> CompilerState
+clearEnv :: REPLState -> REPLState
 clearEnv st = st { tmBindings = Nil, tyAliases = empty }
 
-fromState :: CompilerState -> Ctx
-fromState b = { tmBindEnv : fromFoldable $ map fst b.tmBindings
+fromState :: REPLState -> Ctx
+fromState b = { tmBindEnv  : fromFoldable $ map fst b.tmBindings
               , tyAliasEnv : b.tyAliases
-              , tyBindEnv : empty
-              , sortEnv : empty
-              , pos : UnknownPos
+              , tyBindEnv  : empty
+              , sortEnv    : empty
+              , pos        : UnknownPos
               }
 
 throwCheckError :: forall a. String -> Checking a

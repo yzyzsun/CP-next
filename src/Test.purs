@@ -15,7 +15,7 @@ import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Console (log, time, timeEnd)
 import Effect.Exception (throw)
-import Language.CP (interpret, showTypeError)
+import Language.CP (interpret)
 import Language.CP.Context (initState)
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff as Aff
@@ -47,7 +47,7 @@ check code = case mexpected of
                     takeWhile (_ /= codePointFromChar '\n') $ code
         mpassed = trim <$> stripPrefix (Pattern "--|") code
         interpreted = case runExcept $ runStateT (interpret code) initState of
-          Left err -> throw $ showTypeError err
+          Left err -> throw $ show err
           Right (o /\ _) -> pure o
 
 main :: Effect Unit
