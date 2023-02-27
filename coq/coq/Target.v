@@ -75,6 +75,37 @@ Proof with try solve_by_invert.
       inverts~ Val.
 Qed.
 
+
+Lemma lookup_concat_typ : forall i A B C T,
+    Tlookup i A = Some T ->
+    concat_typ A B C ->
+    Tlookup i C = Tlookup i A.
+Proof.
+  introv LK CC. gen i T B C.
+  induction A; intros; simpl in LK; inverts LK.
+  case_if*.
+  - inverts* H0. inverts* CC.
+    subst. unfolds. case_if*.
+  - inverts* CC.
+    forwards~ : IHA2 H0 H6.
+    unfolds. case_if*.
+Qed.
+
+
+Lemma lookup_concat_typ_none : forall i A B C,
+    Tlookup i A = None ->
+    concat_typ A B C ->
+    Tlookup i C = Tlookup i B.
+Proof.
+  introv LK CC. gen i B C.
+  induction A; intros; inverts* CC.
+  - inverts* LK; case_if.
+    forwards* Heq: IHA2 H0 H5.
+    rewrite <- Heq.
+    unfolds. case_if*.
+Qed.
+
+
 Theorem progress : forall t T,
      target_typing [] t T ->
      value t \/ exists t', t >-> t'.
@@ -177,6 +208,13 @@ Proof with eauto.
     eauto.
 Qed.
 
+
+Notation "G |- t : At" := (target_typing G t At) (at level 50).
+Notation "At > Ct < Bt" := (concat_typ At Bt Ct) (at level 40).
+Notation "( t1 ,, t2 )" := (texp_concat t1 t2) (at level 40).
+Notation "{ ll => t1 ; t2 }" := (texp_cons ll t1 t2) (at level 40).
+Notation "{ ll : At ; Bt }" := (ttyp_rcd ll At Bt) (at level 40).
+
 Theorem preservation : forall t t' T,
     target_typing [] t T ->
     t >-> t' ->
@@ -206,9 +244,14 @@ Proof with eauto using rcd_typ_concat.
       rewrite H0 in H4. inverts~ H4.
     }
     subst~.
-  - (* concat *)
+  - (* cons *)
     inverts* Red.
     + inverts Typ1. inverts~ H1.
     + inverts Typ1. inverts~ H1.
-      applys* TTyping_RcdCons...
+      destruct H10.
+      * applys* TTyping_RcdCons...
+        forwards*: lookup_concat_typ. left. rewrite* H2.
+      * applys* TTyping_RcdCons...
+        forwards*: lookup_concat_typ_none.
+        destruct H14 as [Heq|Heq]; rewrite <- Heq; eauto.
 Qed.
