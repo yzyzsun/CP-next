@@ -17,7 +17,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Exception (throw)
 import Language.CP.CodeGen (fromState, runCodeGen)
-import Language.CP.Context (Checking, Mode(..), REPLState, Typing, TmBindings, initState, runChecking, throwCheckError, throwTypeError)
+import Language.CP.Context (Checking, Mode(..), TmBindings, Typing, REPLState, initState, runChecking, throwCheckError, throwTypeError)
 import Language.CP.Desugar (desugar, desugarProg)
 import Language.CP.Parser (expr, program, whiteSpace)
 import Language.CP.Semantics.HOAS as HOAS
@@ -49,7 +49,7 @@ importDefs code = case runParser code (whiteSpace *> program <* eof) of
     pure unit
 
 wrapUp :: C.Tm -> TmBindings -> C.Tm
-wrapUp e b = foldl (#) e $ snd <$> b
+wrapUp e b = foldl (#) e $ snd <<< snd <$> b
 
 evalProg :: S.Prog -> Checking String
 evalProg prog = do
@@ -97,8 +97,8 @@ compile code st = case runParser code (whiteSpace *> program <* eof) of
       e /\ _ <- checkProg p
       b <- gets (_.tmBindings)
       let diff = if null st.tmBindings then b
-                 else let hd = fst <<< fst <<< unsafeFromJust $ head st.tmBindings in
-                      takeWhile (\((x /\ _) /\ _) -> x /= hd) b
+                 else let hd = fst <<< unsafeFromJust $ head st.tmBindings in
+                      takeWhile (\(x /\ _ /\ _) -> x /= hd) b
       pure $ wrapUp e diff
 
 showParseError :: ParseError -> String -> String

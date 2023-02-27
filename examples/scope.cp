@@ -2,5 +2,5 @@
 
 x = 1;
 f Dummy (y:Int) = x + y;
-x = 2;
-f @Top 0
+g (_:Top) = let x = 2 in f @Top 0;
+g ()

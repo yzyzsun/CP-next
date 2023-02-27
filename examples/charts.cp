@@ -179,13 +179,13 @@ chart = trait implements ChartSig<HTML> => {
 
 doc = trait [self : DocSig<HTML> & GraphicSig<HTML><Hex> & ColorSig<Hex> & ChartSig<HTML>] => {
   body =
-    let chart = baseChart [apple; tsmc] in
-    let chart = chart , if config.line then lineStrategy else barStrategy in
-    let chart = if config.legend then legendDecorator chart else chart in
-    let chart = if config.border then borderDecorator chart else chart in
-    let chart = if config.label.data then dataLabelDecorator chart else chart in
-    let chart = if #config.label.axes == 2 then axisLabelDecorator config.label.axes chart else chart in `
-      \Graph{ width = config.width; height = config.height }[\Chart(new chart)]
+    let chart1 = baseChart [apple; tsmc] in
+    let chart2 = chart1 , if config.line then lineStrategy else barStrategy in
+    let chart3 = if config.legend then legendDecorator chart2 else chart2 in
+    let chart4 = if config.border then borderDecorator chart3 else chart3 in
+    let chart5 = if config.label.data then dataLabelDecorator chart4 else chart4 in
+    let chart6 = if #config.label.axes == 2 then axisLabelDecorator config.label.axes chart5 else chart5 in `
+      \Graph{ width = config.width; height = config.height }[\Chart(new chart6)]
     `
 };
 

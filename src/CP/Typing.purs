@@ -7,16 +7,15 @@ import Control.Monad.Error.Class (throwError)
 import Control.Monad.State (gets, modify_)
 import Data.Array (all, elem, head, notElem, null, unzip)
 import Data.Either (Either(..))
-import Data.Foldable (foldl, foldr, traverse_)
+import Data.Foldable (foldl, foldr, lookup, traverse_)
 import Data.List (List(..), filter, last, singleton, sort, (:))
 import Data.Map (insert)
-import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Set (Set)
+import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Set as Set
 import Data.Traversable (for, traverse)
 import Data.Tuple (fst, uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
-import Language.CP.Context (Checking, Pos(..), TypeError(..), Typing, addSort, addTmBind, addTyBind, fromState, localPos, lookupTmBind, lookupTyBind, runTyping, throwTypeError)
+import Language.CP.Context (Checking, Pos(..), TypeError(..), Typing, addLetVar, addSort, addTmBind, addTyBind, clearLetVars, fromState, localPos, lookupTmBind, lookupTyBind, memberLetVars, runTyping, throwTypeError)
 import Language.CP.Desugar (deMP, desugar)
 import Language.CP.Subtyping (isTopLike, (<:), (===))
 import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
@@ -125,7 +124,7 @@ infer (S.TmApp e1 e2) = do
         app _ _ = Nothing
 infer (S.TmAbs (S.TmParam x (Just targ) : Nil) e) = do
   targ' <- transform targ
-  e' /\ tret <- addTmBind x targ' $ infer e
+  e' /\ tret <- addTmBind x targ' $ clearLetVars $ infer e
   pure $ C.TmAbs x e' targ' tret false /\ C.TyArrow targ' tret false
 infer (S.TmAbs (S.TmParam x Nothing : Nil) _) = throwTypeError $
   "lambda parameter" <+> show x <+> "should be annotated with a type"
@@ -162,7 +161,7 @@ infer (S.TmMerge S.Leftist e1 e2) =
 infer (S.TmMerge S.Rightist e1 e2) =
   infer $ S.TmMerge S.Neutral (S.TmDiff e1 e2) e2
 infer (S.TmRcd (S.RcdField _ l Nil (Left e) : Nil)) = do
-  e' /\ t <- infer e
+  e' /\ t <- clearLetVars $ infer e
   pure $ C.TmRcd l t e' /\ C.TyRcd l t false
 infer (S.TmPrj e l) = do
   e' /\ t <- infer e
@@ -184,16 +183,20 @@ infer (S.TmTApp e ta) = do
   pure $ C.TmTApp e' ta' /\ t 
 infer (S.TmTAbs ((a /\ Just td) : Nil) e) = do
   td' <- transform td
-  e' /\ t <- addTyBind a td' $ infer e
+  e' /\ t <- addTyBind a td' $ clearLetVars $ infer e
   pure $ C.TmTAbs a td' e' t false /\ C.TyForall a td' t
 infer (S.TmLet x Nil Nil e1 e2) = do
-  e1' /\ t1 <- infer e1
-  e2' /\ t2 <- addTmBind x t1 $ infer e2
-  pure $ C.TmLet x e1' e2' false /\ t2
+  b <- memberLetVars x
+  if b then throwTypeError $ show x <+> "has already been defined"
+  else do e1' /\ t1 <- infer e1
+          e2' /\ t2 <- addTmBind x t1 $ addLetVar x $ infer e2
+          pure $ C.TmLet x e1' e2' false /\ t2
 infer (S.TmLetrec x Nil Nil t e1 e2) = do
-  e1' /\ t1 <- inferRec x e1 t
-  e2' /\ t2 <- addTmBind x t1 $ infer e2
-  pure $ C.TmLet x (C.TmFix x e1' t1) e2' false /\ t2
+  b <- memberLetVars x
+  if b then throwTypeError $ show x <+> "has already been defined"
+  else do e1' /\ t1 <- inferRec x e1 t
+          e2' /\ t2 <- addTmBind x t1 $ addLetVar x $ infer e2
+          pure $ C.TmLet x (C.TmFix x e1' t1) e2' false /\ t2
 -- TODO: find a more efficient algorithm
 infer (S.TmOpen e1 e2) = do
   e1' /\ t1 <- infer e1
@@ -498,20 +501,20 @@ checkDef (S.TyDef def a sorts params t) = case def of
                    foldl (S.TyApp >>> (sort >>> _)) t' sorts
     withParams :: S.Ty -> S.Ty
     withParams t' = foldl (S.TyApp >>> (S.TyVar >>> _)) t' params
-checkDef (S.TmDef x Nil Nil Nothing e) = do
-  ctx <- gets fromState
-  case runTyping (infer e) ctx of
-    Left err -> throwError err
-    Right (e' /\ t) ->
-      let f tm = C.TmLet x e' tm true in
-      modify_ \st -> st { tmBindings = ((x /\ t) /\ f) : st.tmBindings }
-checkDef (S.TmDef x Nil Nil (Just t) e) = do
-  ctx <- gets fromState
-  case runTyping (inferRec x e t) ctx of
-    Left err -> throwError err
-    Right (e' /\ t') ->
-      let f tm = C.TmLet x (C.TmFix x e' t') tm true in
-      modify_ \st -> st { tmBindings = ((x /\ t') /\ f) : st.tmBindings }
+checkDef (S.TmDef x Nil Nil mt e) = do
+  bindings <- gets (_.tmBindings)
+  if isJust $ lookup x bindings then
+    throwError $ TypeError (show x <+> "has already been defined") UnknownPos
+  else do
+    ctx <- gets fromState
+    let typing = case mt of Just t -> inferRec x e t
+                            Nothing -> infer e
+    case runTyping typing ctx of
+      Left err -> throwError err
+      Right (e' /\ t') ->
+        let e1 = if isJust mt then C.TmFix x e' t' else e'
+            f e2 = C.TmLet x e1 e2 true in
+        modify_ \st -> st { tmBindings = (x /\ t' /\ f) : st.tmBindings }
 checkDef d = throwError $ TypeError ("expected a desugared def, but got" <+> show d) UnknownPos
 
 checkProg :: S.Prog -> Checking (C.Tm /\ C.Ty)
@@ -577,7 +580,7 @@ transformTyRec t = do
              _ -> throwTypeError $
                "fold/unfold expected a recursive type, but got" <+> show t
 
-collectLabels :: C.Ty -> Set Label
+collectLabels :: C.Ty -> Set.Set Label
 collectLabels (C.TyAnd t1 t2) = Set.union (collectLabels t1) (collectLabels t2)
 collectLabels (C.TyRcd l _ false) = Set.singleton l
 collectLabels _ = Set.empty

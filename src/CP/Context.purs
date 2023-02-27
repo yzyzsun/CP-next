@@ -5,11 +5,13 @@ import Prelude
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.Reader (ReaderT, asks, local, runReaderT)
 import Control.Monad.State (StateT, runStateT)
-import Data.Either (Either)
+import Data.Bifunctor (rmap)
+import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
-import Data.List (List(..))
+import Data.List (List(..), null, singleton)
 import Data.Map (Map, empty, fromFoldable, insert, lookup, toUnfoldable, union)
 import Data.Maybe (Maybe(..))
+import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.Tuple (fst)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -24,6 +26,7 @@ type Ctx = { tmBindEnv  :: Map Name C.Ty -- typing
            , tyBindEnv  :: Map Name C.Ty -- disjointness
            , tyAliasEnv :: Map Name S.Ty -- synonym
            , sortEnv    :: Map Name Name -- distinguishing
+           , letVars :: Set.Set Name
            , pos :: Pos
            }
 
@@ -35,6 +38,7 @@ emptyCtx =  { tmBindEnv  : empty
             , tyBindEnv  : empty
             , tyAliasEnv : empty
             , sortEnv    : empty
+            , letVars    : Set.empty
             , pos        : UnknownPos
             }
 
@@ -74,6 +78,15 @@ addTyAlias = addToEnv \f r -> r { tyAliasEnv = f r.tyAliasEnv }
 addSort :: forall a. Name -> Name -> Typing a -> Typing a
 addSort = addToEnv \f r -> r { sortEnv = f r.sortEnv }
 
+memberLetVars :: Name -> Typing Boolean
+memberLetVars name = Set.member name <$> asks (_.letVars)
+
+addLetVar :: forall a. Name -> Typing a -> Typing a
+addLetVar name = local \r -> r { letVars = Set.insert name r.letVars }
+
+clearLetVars :: forall a. Typing a -> Typing a
+clearLetVars = local \r -> r { letVars = Set.empty :: Set.Set Name }
+
 localPos :: forall a. (Pos -> Pos) -> Typing a -> Typing a
 localPos f = local \r -> r { pos = f r.pos }
 
@@ -106,7 +119,7 @@ data Mode = SmallStep | StepTrace | BigStep | HOAS | Closure
 derive instance Generic Mode _
 instance Show Mode where show = genericShow
 
-type TmBindings = List ((Name /\ C.Ty) /\ (C.Tm -> C.Tm))
+type TmBindings = List (Name /\ C.Ty /\ (C.Tm -> C.Tm))
 
 type REPLState =  { mode       :: Mode
                   , timing     :: Boolean
@@ -121,11 +134,17 @@ initState = { mode       : HOAS
             , tyAliases  : empty
             }
 
--- preferring bindings from `st2` in the case of duplicate variables
-mergeStates :: REPLState -> REPLState -> REPLState
-mergeStates st1 st2 = initState { tmBindings = st2.tmBindings <> st1.tmBindings
-                                , tyAliases = union st2.tyAliases st1.tyAliases
-                                }
+mergeStates :: REPLState -> REPLState -> Either (List Name) REPLState
+mergeStates st1 st2 =
+  let dupNames = st1.tmBindings >>= \(x /\ _ /\ _) ->
+                  st2.tmBindings >>= \(y /\ _ /\ _) ->
+                   if x == y then singleton x else Nil in
+  if null dupNames
+  then Right $ initState { tmBindings = st2.tmBindings <> st1.tmBindings
+                         -- prefer `st2` in the case of duplicate type aliases
+                         , tyAliases = union st2.tyAliases st1.tyAliases
+                         }
+  else Left dupNames
 
 runChecking :: forall a. Checking a -> REPLState -> Either TypeError (a /\ REPLState)
 runChecking m st = runExcept $ runStateT m st
@@ -137,17 +156,18 @@ ppState :: REPLState -> String
 ppState st = S.intercalate' "\n" (map ppTmBinding st.tmBindings) <>
   S.intercalate' "\n" (map ppTyAlias $ toList st.tyAliases)
   where
-    ppTmBinding ((x /\ t) /\ _) = "term " <> x <> " : " <> show t
+    ppTmBinding (x /\ t /\ _) = "term " <> x <> " : " <> show t
     ppTyAlias (x /\ t) = "type " <> x <> " = " <> show t
 
 clearEnv :: REPLState -> REPLState
 clearEnv st = st { tmBindings = Nil, tyAliases = empty }
 
 fromState :: REPLState -> Ctx
-fromState b = { tmBindEnv  : fromFoldable $ map fst b.tmBindings
+fromState b = { tmBindEnv  : fromFoldable $ rmap fst <$> b.tmBindings
               , tyAliasEnv : b.tyAliases
               , tyBindEnv  : empty
               , sortEnv    : empty
+              , letVars    : Set.fromFoldable $ fst <$> b.tmBindings
               , pos        : UnknownPos
               }
 

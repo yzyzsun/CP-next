@@ -131,7 +131,9 @@ compileFile file ref = do
       (\libName libFile libCode -> compileJS libFile libCode \st -> do
         f <- jsfile libFile
         s /\ st' <- compileLibs path $ replace openRegex (importAll libName f) program
-        pure $ s /\ mergeStates st st')
+        case mergeStates st st' of
+          Right st'' -> pure $ s /\ st''
+          Left names -> fatal (show names <> " in " <> show libName <> " have been defined") $> "" /\ initState)
       (\s -> pure $ s /\ initState)
     importAll :: String -> FilePath -> String
     importAll n f = "{-# PRELUDE\n"

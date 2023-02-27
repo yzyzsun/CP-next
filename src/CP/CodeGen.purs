@@ -7,7 +7,7 @@ import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.RWS (RWST, asks, evalRWST, local, modify)
 import Data.Array (concat, foldl, length, (!!))
 import Data.Array as A
-import Data.Bifunctor (bimap, lmap)
+import Data.Bifunctor (bimap, lmap, rmap)
 import Data.Either (Either)
 import Data.Int (toNumber)
 import Data.List (List(..), elem, (:))
@@ -37,7 +37,7 @@ type Ctx = { tmBindEnv :: Map Name C.Ty
            }
 
 fromState :: REPLState -> Ctx
-fromState st = { tmBindEnv: fromFoldable $ map fst st.tmBindings
+fromState st = { tmBindEnv: fromFoldable $ rmap fst <$> st.tmBindings
                , tyBindEnv: empty
                }
 
