@@ -106,10 +106,12 @@ data Mode = SmallStep | StepTrace | BigStep | HOAS | Closure
 derive instance Generic Mode _
 instance Show Mode where show = genericShow
 
-type REPLState =  { mode        :: Mode
-                  , timing      :: Boolean
-                  , tmBindings  :: List ((Name /\ C.Ty) /\ (C.Tm -> C.Tm))
-                  , tyAliases   :: Map Name S.Ty
+type TmBindings = List ((Name /\ C.Ty) /\ (C.Tm -> C.Tm))
+
+type REPLState =  { mode       :: Mode
+                  , timing     :: Boolean
+                  , tmBindings :: TmBindings
+                  , tyAliases  :: Map Name S.Ty
                   }
 
 initState :: REPLState

@@ -6,7 +6,7 @@ import Control.Monad.State (gets)
 import Data.Array ((!!))
 import Data.Array.NonEmpty as NEA
 import Data.Either (Either(..))
-import Data.List (foldl)
+import Data.List (foldl, head, null, takeWhile)
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), split)
 import Data.String.Regex (match, replace)
@@ -17,7 +17,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Exception (throw)
 import Language.CP.CodeGen (fromState, runCodeGen)
-import Language.CP.Context (Checking, Mode(..), Typing, REPLState, initState, runChecking, throwCheckError, throwTypeError)
+import Language.CP.Context (Checking, Mode(..), REPLState, Typing, TmBindings, initState, runChecking, throwCheckError, throwTypeError)
 import Language.CP.Desugar (desugar, desugarProg)
 import Language.CP.Parser (expr, program, whiteSpace)
 import Language.CP.Semantics.HOAS as HOAS
@@ -48,11 +48,8 @@ importDefs code = case runParser code (whiteSpace *> program <* eof) of
     _ <- checkProg prog'
     pure unit
 
-elaborateProg :: S.Prog -> Checking C.Tm
-elaborateProg p = gets =<< wrapUp <<< fst <$> checkProg p
-  where
-    wrapUp :: C.Tm -> REPLState -> C.Tm
-    wrapUp e st = foldl (#) e $ snd <$> st.tmBindings
+wrapUp :: C.Tm -> TmBindings -> C.Tm
+wrapUp e b = foldl (#) e $ snd <$> b
 
 evalProg :: S.Prog -> Checking String
 evalProg prog = do
@@ -66,6 +63,11 @@ evalProg prog = do
     BigStep -> show (BigStep.eval e)
     HOAS -> show (HOAS.eval e)
     Closure -> show (Closure.eval e)
+  where
+    elaborateProg p = do
+      e /\ _ <- checkProg p
+      b <- gets (_.tmBindings)
+      pure $ wrapUp e b
 
 -- Source code interpretation used by REPL
 interpret :: String -> Checking String
@@ -84,13 +86,20 @@ compile code st = case runParser code (whiteSpace *> program <* eof) of
   Left err -> Left $ showParseError err code
   Right prog -> case runChecking (elaborateProg (desugarProg prog)) st of
     Left err -> Left $ show err
-    Right (e /\ st') -> runCodeGen e (fromState st') <#> \s -> (prelude code <> print s) /\ st'
+    Right (e /\ st') -> runCodeGen e (fromState st) <#> \s -> (prelude code <> print s) /\ st'
   where
     prelude s = case match preludeRegex s of
       Just arr -> (unsafeFromJust $ unsafeFromJust $ arr NEA.!! 1)
-               <> prelude (replace preludeRegex "" s)
+               <> "\n" <> prelude (replace preludeRegex "" s)
       Nothing -> ""
     preludeRegex = unsafeRegex """\{-#\s*PRELUDE\s+(.*?)\s*#-\}""" dotAll
+    elaborateProg p = do
+      e /\ _ <- checkProg p
+      b <- gets (_.tmBindings)
+      let diff = if null st.tmBindings then b
+                 else let hd = fst <<< fst <<< unsafeFromJust $ head st.tmBindings in
+                      takeWhile (\((x /\ _) /\ _) -> x /= hd) b
+      pure $ wrapUp e diff
 
 showParseError :: ParseError -> String -> String
 showParseError (ParseError _ pos@(Position { line: l, column: c })) source =

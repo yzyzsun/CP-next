@@ -129,7 +129,7 @@ compileFile file ref = do
     compileLibs :: FilePath -> String -> Effect (String /\ REPLState)
     compileLibs path program = matchOpen path program
       (\libName libFile libCode -> compileJS libFile libCode \st -> do
-        f <- jsfile file
+        f <- jsfile libFile
         s /\ st' <- compileLibs path $ replace openRegex (importAll libName f) program
         pure $ s /\ mergeStates st st')
       (\s -> pure $ s /\ initState)
