@@ -147,12 +147,33 @@ Admitted.
 (* | tb_ => exists E C, target_typing E t C /\ C <: A *)
 (*   end. *)
 
-Definition texp_behave_like_styp t A :=
+Definition texp_behave_like_styp E t A :=
   forall ll Bt, contained_by_rec_typ |[A]| ll Bt
-  -> exists E At, target_typing E t At /\ Tlookup ll At = Some Bt.
+  -> exists At, target_typing E t At /\ Tlookup ll At = Some Bt.
+(* return a type that is equivalent to Bt *)
 
-Lemma texp_behave_like_styp_intersection : forall t A B,
-    texp_behave_like_styp t (typ_and A B) -> texp_behave_like_styp t A /\ texp_behave_like_styp t B.
+Lemma texp_behave_like_styp_intersection : forall E t A B,
+    texp_behave_like_styp E t (typ_and A B) ->
+    texp_behave_like_styp E t A /\ texp_behave_like_styp E t B.
+Admitted.
+
+Lemma texp_behave_like_base : forall E t,
+    texp_behave_like_styp E t (typ_base) ->
+    exists At, target_typing E t At /\ Tlookup ||typ_base|| At = Some ttyp_base.
+Admitted.
+
+Lemma texp_behave_like_arrow : forall E t A B,
+    texp_behave_like_styp E t (typ_arrow A B) ->
+    exists At, target_typing E t At /\ Tlookup ||(typ_arrow A B)|| At = Some |[typ_arrow A B]|.
+Admitted.
+
+Lemma texp_behave_like_proj : forall E t A Bt l,
+    texp_behave_like_styp E t A -> Tlookup l |[A]| = Some Bt ->
+    target_typing E (texp_proj t l) Bt.
+Admitted.
+
+Lemma texp_behave_like_typing_exact : forall E t At,
+    target_typing E t |[At]| -> texp_behave_like_styp E t At.
 Admitted.
 
 (* Axiom source_trans_intersection_expose_both : forall G e dirflag A B t, *)
@@ -160,11 +181,47 @@ Admitted.
 (*     exists E A' B', target_typing E t A' /\ A' <: |[A]| /\ *)
 (*                   target_typing E t B' /\ B' <: |[B]|. *)
 
-Lemma cosub_well_typed : forall E t1 A A' B t2,
-    cosub t1 A B t2 -> target_typing E t1 A' -> A' <: |[A]| -> target_typing E t2 |[B]|.
+Lemma cosub_well_typed : forall E t1 A B t2,
+    cosub t1 A B t2 -> texp_behave_like_styp E t1 A ->
+    target_typing E t2 |[B]| /\ texp_behave_like_styp E t2 B.
 Proof with elia; eauto.
-  introv HS HT. gen t1 t2 E A'.
+  introv HS HT. gen t1 t2 E.
   indTypSize (size_typ A + size_typ B). inverts HS.
+  6: { (* and *)
+    forwards (?&?): texp_behave_like_styp_intersection HT.
+    forwards: IH H0...
+  }
+  3: { (* base *)
+    forwards* (?&?&?): texp_behave_like_base HT.
+    split~.
+    rewrite ttyp_trans_base...
+    admit. (* trivial *)
+  }
+  3: { (* arrow *)
+    forwards* (?&?&?): texp_behave_like_arrow HT.
+    split~.
+    rewrite ttyp_trans_ord_ntop_arrow...
+    applys* TTyping_RcdCons...
+    pick fresh y and apply TTyping_Abs. applys* ttyp_trans_wf.
+    forwards* (HS1 & HS2): H1 y.
+    assert (texp_behave_like_styp ((y, |[ B1 ]|) :: E) (texp_var_f y) B1) by admit.
+    forwards (?&?): IH HS1 ((y, |[ B1 ]|) :: E)...
+    forwards (?&?): IH HS2...
+    {
+      rewrite_env ([ (y, |[ B1 ]|) ] ++ E).
+      applys texp_behave_like_typing_exact.
+      applys* TTyping_App.
+      forwards*: texp_behave_like_proj  (ti_arrow || A2 ||) HT.
+      rewrite ttyp_trans_ord_ntop_arrow...
+      unfold Tlookup... case_if...
+      eauto using target_weakening_simpl. }
+    (* behave like an arrow can be concluded from typed by the arrow *)
+    admit.
+    (* forwards*: subtype_wrt_lookup_same H... *)
+    (* rewrite ttyp_trans_ord_ntop_arrow... *)
+    (* unfold Tlookup... case_if... *)
+
+  }
   - (* top *)
     forwards* EQ: ttyp_trans_ord_top B. rewrite EQ...
   - (* bot *)
