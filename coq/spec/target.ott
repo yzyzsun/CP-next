@@ -223,7 +223,22 @@ RecordTypes   :: '' ::=
   -------------------- :: Rcd
   recTyp ll : At , Bt
 
+defns
+ContainedByRecTyp   :: '' ::=
 
+  defn
+  At |> ll : Bt
+  :: :: contained_by_rec_typ :: 'CRT_'
+  {{ com non-deterministic lookup }}
+  by
+
+  ------------------------------- :: Head
+  (ll1 : At , Bt) |> ll1 : At
+
+  Bt |> ll2 : Ct
+  ------------------------------- :: Tail
+  (ll1 : At , Bt) |> ll2 : Ct
+  
 defns
 WellformedTypes   :: '' ::=
 
