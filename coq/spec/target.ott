@@ -365,3 +365,28 @@ ConvertSource2Target :: '' ::=
   At & Bt => Ct
   ----------------------- :: And
   A & B => Ct
+
+defns
+TargetFlexTyping :: '' ::=
+
+  defn
+  Gt |- t <= At
+  :: :: target_flex_typing :: 'TFTyping_'
+  {{ com Target typing }}
+  by
+
+  Gt |- t : At
+  lookup ll At => Bt
+  --------------------------- :: Part
+  Gt |- t <= { ll : Bt }
+
+  recTyp Bt
+  Gt |- t <= { ll : At }
+  Gt |- t <= Bt
+  --------------------------- :: Inter
+  Gt |- t <= ll : At , Bt
+
+  Gt |- t <= At
+  lookup ll At => Bt
+  --------------------------- :: Proj
+  Gt |- t.ll <= Bt
