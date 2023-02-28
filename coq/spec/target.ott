@@ -261,7 +261,8 @@ WellformedTypes   :: '' ::=
   |- At
   |- Bt
   recTyp Bt
-  -------------------- :: Rcd
+  lookup ll Bt => At or lookup ll Bt =/>
+  ----------------------------------------- :: Rcd
   |- ll : At , Bt
 
   |- At
