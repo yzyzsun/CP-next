@@ -160,6 +160,118 @@ Admitted.
 (*     exists E A' B', target_typing E t A' /\ A' <: |[A]| /\ *)
 (*                   target_typing E t B' /\ B' <: |[B]|. *)
 
+(* properties of  flex_typing *)
+
+Lemma target_flex_typing_wf : forall E t A,
+    target_flex_typing E t A -> uniq E.
+Admitted.
+
+#[local] Hint Resolve target_flex_typing_wf : core.
+
+Lemma flex_typing_property0 : forall E t A,
+    target_typing E t |[A]| ->
+    target_flex_typing E t |[A]|.
+Admitted.
+
+Lemma flex_typing_property1 : forall E t A B,
+    target_flex_typing E t |[typ_and A B]| ->
+    target_flex_typing E t |[A]| /\ target_flex_typing E t |[B]|.
+Admitted.
+
+(* non-deterministic lookup works *)
+Lemma flex_typing_property2 : forall E t At Bt ll,
+    target_flex_typing E t At -> contained_by_rec_typ At ll Bt ->
+    target_typing E (texp_proj t ll) Bt.
+Admitted.
+
+(* every lookup can be separately typed *)
+Lemma flex_typing_property3 : forall E t At ll Ct,
+    target_flex_typing E t At -> Tlookup ll At = Some Ct ->
+    exists Bt, target_typing E t Bt /\ Tlookup ll Bt = Some Ct.
+Admitted.
+
+(* every non-deterministic lookup can be separately typed *)
+Lemma flex_typing_property3_alter : forall E t At ll Ct,
+    target_flex_typing E t At -> contained_by_rec_typ At ll Ct ->
+    exists Bt, target_typing E t Bt /\ Tlookup ll Bt = Some Ct.
+Admitted.
+
+Lemma comerge_split : forall t1 A1 t B t2 A2,
+    comerge t1 A1 B t2 A2 t -> spl B A1 A2.
+Proof.
+  introv H.
+  induction* H.
+  - apply Sp_arrow.
+    pick fresh x. applys* H0.
+  - apply Sp_rcd.
+    pick fresh x. applys* H0.
+Qed.
+
+Lemma comerge_well_typed : forall E t1 A1 t B t2 A2,
+    comerge t1 A1 B t2 A2 t -> target_typing E t1 |[A1]| -> target_typing E t2 |[A2]|
+  -> target_typing E t |[B]|.
+Proof.
+  introv HC HTa HTb.
+  indTypSize (size_typ A1 + size_typ A2). inverts HC.
+  - applys TTyping_RcdMerge.
+    (* need relax on typing so x,,y can have different types for the same label *)
+    Abort.
+
+Lemma cosub_well_typed : forall E t1 A B t2,
+    cosub t1 A B t2 -> target_flex_typing E t1 |[A]| -> target_typing E t2 |[B]|.
+Proof with elia; eauto.
+  introv HS HT. gen t1 t2 E.
+  indTypSize (size_typ A + size_typ B). inverts HS.
+  - (* top *)
+    forwards* EQ: ttyp_trans_ord_top B. rewrite EQ...
+  - (* bot *)
+    forwards* (?&EQ&WF): ttyp_trans_ord_ntop B. rewrite EQ...
+    applys* TTyping_RcdCons...
+    pick fresh y and apply TTyping_Fix...
+    unfold open_texp_wrt_texp. simpl. applys TTyping_Var...
+  - (* base *)
+    rewrite ttyp_trans_base...
+    applys* TTyping_RcdCons...
+    forwards* (?&?&?): flex_typing_property3 (|| typ_base ||) HT. rewrite ttyp_trans_base.
+    simpl...
+  - (* arrow *)
+    rewrite ttyp_trans_ord_ntop_arrow...
+    applys* TTyping_RcdCons...
+    pick fresh y and apply TTyping_Abs. applys* ttyp_trans_wf.
+    forwards* (HS1 & HS2): H1 y.
+    forwards: IH HS1 ((y, |[ B1 ]|) :: E)...
+    { applys* flex_typing_property0. }
+    forwards: IH HS2...
+    { applys flex_typing_property0.
+      applys TTyping_App...
+      rewrite_env ([ (y, |[ B1 ]|) ] ++ E).
+      applys target_weakening_simpl.
+      forwards* (?&?&?): flex_typing_property3 (|| (typ_arrow A1 A2) ||) HT.
+      rewrite ttyp_trans_ord_ntop_arrow...
+      unfold Tlookup... case_if...
+      destruct_uniq...
+    }
+  - (* rcd *)
+    rewrite ttyp_trans_rcd... applys* TTyping_RcdCons...
+    forwards: IH H1 E...
+    applys* flex_typing_property0.
+    forwards* (?&?&?): flex_typing_property3 (|| (typ_rcd l0 A0) ||) HT.
+    rewrite ttyp_trans_rcd.
+    unfold Tlookup. case_if...
+  - (* and *)
+    forwards* (?&?): flex_typing_property1 HT.
+    applys* IH H0. elia.
+  - (* and *)
+    forwards* (?&?): flex_typing_property1 HT.
+    applys* IH H0. elia.
+  - (* comerge *)
+    forwards*: IH H0. elia.
+    forwards*: IH H1. elia.
+    applys* comerge_well_typed H2.
+Qed.
+
+
+(* previous aborted proof with the def of texp_behave_like_styp *)
 Lemma cosub_well_typed : forall E t1 A A' B t2,
     cosub t1 A B t2 -> target_typing E t1 A' -> A' <: |[A]| -> target_typing E t2 |[B]|.
 Proof with elia; eauto.

@@ -400,6 +400,10 @@ TargetFlexTyping :: '' ::=
   by
 
   Gt |- t : At
+  --------------------------- :: Orig
+  Gt |- t <= At
+
+  Gt |- t : At
   --------------------------- :: Top
   Gt |- t <= Top
   
