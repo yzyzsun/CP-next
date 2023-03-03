@@ -203,19 +203,51 @@ Proof.
   induction* H.
   - apply Sp_arrow.
     pick fresh x. applys* H0.
-  - apply Sp_rcd.
-    pick fresh x. applys* H0.
 Qed.
 
+
+(* Properties about type translation *)
+Lemma concat_source_intersection : forall A B,
+    concat_typ |[ A ]| |[ B ]| |[ (typ_and A B) ]|.
+Admitted.
+
+Lemma translate_to_record_types : forall A,
+    rec_typ |[ A ]|.
+Admitted.
+
+(* new property: same label means same type *)
 Lemma comerge_well_typed : forall E t1 A1 t B t2 A2,
     comerge t1 A1 B t2 A2 t -> target_typing E t1 |[A1]| -> target_typing E t2 |[A2]|
   -> target_typing E t |[B]|.
-Proof.
-  introv HC HTa HTb.
+Proof with elia; eauto.
+  introv HC HTa HTb. gen E t1 t2 t B.
   indTypSize (size_typ A1 + size_typ A2). inverts HC.
-  - applys TTyping_RcdMerge.
-    (* need relax on typing so x,,y can have different types for the same label *)
-    Abort.
+  - applys* TTyping_RcdMerge HTa HTb.
+    1,2: applys* translate_to_record_types.
+    applys* concat_source_intersection.
+  - (* abs *)
+    rewrite ttyp_trans_ord_ntop_arrow...
+    applys* TTyping_RcdCons.
+    pick fresh x and apply TTyping_Abs...
+    forwards* Hc: H x.
+    forwards: IH ((x, |[ A ]|) :: E) Hc...
+    1-2: applys TTyping_App...
+    1-2: applys TTyping_RcdProj...
+    1,3: rewrite_env ( [ (x, |[ A ]|) ] ++  E); applys target_weakening_simpl.
+    1,3: eassumption.
+    1,2: simpl...
+    all: rewrite ttyp_trans_ord_ntop_arrow...
+    all: unfold Tlookup...
+    all: case_if...
+  - (* rcd *)
+    rewrite ttyp_trans_rcd... applys* TTyping_RcdCons...
+    forwards: IH E H...
+    all: applys TTyping_RcdProj...
+    all: rewrite ttyp_trans_rcd...
+    all: unfold Tlookup...
+    all: case_if...
+Qed.
+
 
 Lemma cosub_well_typed : forall E t1 A B t2,
     cosub t1 A B t2 -> target_flex_typing E t1 |[A]| -> target_typing E t2 |[B]|.
