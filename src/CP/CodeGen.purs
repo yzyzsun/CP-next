@@ -34,12 +34,20 @@ type CodeGen = RWST Ctx Unit Int (Except String)
 
 type Ctx = { tmBindEnv :: Map Name C.Ty
            , tyBindEnv :: Map Name C.Ty
+           , evalOrder :: EvalOrder
+           }
+
+data EvalOrder = CBV -- call by value
+               | CBN -- call by need
+
+emptyCtx :: Ctx
+emptyCtx = { tmBindEnv: empty
+           , tyBindEnv: empty
+           , evalOrder: CBN
            }
 
 fromState :: REPLState -> Ctx
-fromState st = { tmBindEnv: fromFoldable $ rmap fst <$> st.tmBindings
-               , tyBindEnv: empty
-               }
+fromState st = emptyCtx { tmBindEnv = fromFoldable $ rmap fst <$> st.tmBindings }
 
 runCodeGen :: C.Tm -> Ctx -> Either String (Array JS)
 runCodeGen e ctx = do
@@ -177,18 +185,13 @@ infer (C.TmBinary Op.Index e1 e2) z = do
     _, _ -> throwError $
       "Index is not defined between" <+> show t1 <+> "and" <+> show t2
 infer (C.TmIf e1 e2 e3) z = do
-  { ast: j1, typ: t1, var: x1 } <- infer' e1
+  { ast: j1, typ: t1, var } <- infer' e1
   if t1 == C.TyBool then do
-    { ast: j2, typ: t2, var: x2 } <- infer' e2
-    { ast: j3, typ: t3, var: x3 } <- infer' e3
+    { ast: j2, typ: t2 } <- infer e2 z
+    { ast: j3, typ: t3 } <- infer e3 z
     if t2 === t3 then do
-      y2 <- freshVarName
-      y3 <- freshVarName
-      let ast = j1 <> [ JSVariableIntroduction y2 $ Just $ thunk $ j2 <> [JSReturn (JSVar x2)]
-                      , JSVariableIntroduction y3 $ Just $ thunk $ j3 <> [JSReturn (JSVar x3)]
-                      , assignObj z [JSConditional (JSIndexer (toIndex C.TyBool) (JSVar x1))
-                                                   (JSApp (JSVar y2) []) (JSApp (JSVar y3) [])]
-                      ]
+      let ast = j1 <> [ JSIfElse (JSIndexer (toIndex C.TyBool) (JSVar var))
+                                 (JSBlock j2) (Just (JSBlock j3)) ]
       pure { ast, typ: t2 }
     else throwError $ "if-branches expected two equivalent types, but got"
                    <+> show t2 <+> "and" <+> show t3
@@ -198,8 +201,11 @@ infer (C.TmVar x) z = do
   pure { ast: [ assignObj z [getVar x] ], typ }
 infer (C.TmFix x e typ) z = do
   j <- addTmBind x typ $ check e typ z
-  let get = JSObjectLiteral [LiteralName "get" (JSVar z)]
-      ast = [ JSVariableIntroduction (variable x) $ Just get ] <> j
+  order <- asks (_.evalOrder)
+  let rvalue = case order of
+        CBV -> JSVar z
+        CBN -> JSObjectLiteral [LiteralName "get" (JSVar z)]
+      ast = [ JSVariableIntroduction (variable x) $ Just rvalue ] <> j
   pure { ast, typ }
 infer (C.TmAbs x e targ tret _) z
   | isTopLike tret = infer C.TmUnit z
@@ -216,10 +222,14 @@ infer (C.TmApp e1 e2 coercive) z = do
     Just { targ: t2, tret: t3 } -> do
       { ast: j2, var: y } <- if coercive then check' e2 t2
                              else delete (Proxy :: Proxy "typ") <$> infer' e2
-      y' <- freshVarName
-      let j3 = dist t1 x (TmArg (JSVar y')) z
-          j2' = [ JSVariableIntroduction y' $ Just $ lazyObj y j2 ]
-      pure { ast: j1 <> j2' <> j3, typ: t3 }
+      order <- asks (_.evalOrder)
+      case order of
+        CBV -> let j3 = dist t1 x (TmArg (JSVar y)) z in
+               pure { ast: j1 <> j2 <> j3, typ: t3 }
+        CBN -> do y' <- freshVarName
+                  let j3 = dist t1 x (TmArg (JSVar y')) z
+                      j2' = [ JSVariableIntroduction y' $ Just $ lazyObj y j2 ]
+                  pure { ast: j1 <> j2' <> j3, typ: t3 }
     Nothing -> throwError $ "expected an applicable type, but got" <+> show t1
 infer (C.TmTAbs a td e t _) z
   | isTopLike t = infer C.TmUnit z
@@ -241,14 +251,18 @@ infer (C.TmRcd l t e) z
   | isTopLike t = infer C.TmUnit z
   | otherwise = do
       { ast: j, var: y } <- check' e t
-      let typ = C.TyRcd l t false
-          ast = [ addProp (JSVar z) (toIndex typ) (lazyObj y j) ]
+      order <- asks (_.evalOrder)
+      let ast = case order of
+            CBV -> j <> [ addProp (JSVar z) (toIndex typ) (JSVar y) ]
+            CBN -> [ addProp (JSVar z) (toIndex typ) (lazyObj y j) ]
+          typ = C.TyRcd l t false
       pure { ast, typ }
 infer (C.TmPrj e l) z = do
   { ast: j1, typ: t1, var: y } <- infer' e
   case selectLabel t1 l false of
     Just typ -> do
-      let j2 = proj t1 y l z
+      order <- asks (_.evalOrder)
+      let j2 = proj t1 y l z order
       pure $ { ast: j1 <> j2, typ }
     _ -> throwError $ "label" <+> show l <+> "is absent in" <+> show t1
 infer (C.TmMerge e1 e2) z = do
@@ -267,11 +281,17 @@ infer (C.TmToString e) z = do
     (JSApp (JSAccessor "toString" (JSIndexer (toIndex t) (JSVar y))) []) ]
   pure { ast, typ: C.TyString }
 infer (C.TmLet x e1 e2 global) z = do
-  { ast: j1, typ: t1, var: y } <- infer' e1
-  { ast: j2, typ: t2 } <- addTmBind x t1 $ infer e2 z
-  let def = JSVariableIntroduction (variable x) $ Just $
-              JSObjectLiteral [LiteralName "get" (JSVar y)]
-  pure { ast: j1 <> [if global then JSExport def else def] <> j2, typ: t2 }
+  order <- asks (_.evalOrder)
+  case order of
+    CBV -> do { ast: j1, typ: t1 } <- infer e1 (variable x)
+              { ast: j2, typ: t2 } <- addTmBind x t1 $ infer e2 z
+              pure { ast: [export $ initialize $ variable x] <> j1 <> j2, typ: t2 }
+    CBN -> do { ast: j1, typ: t1, var: y } <- infer' e1
+              { ast: j2, typ: t2 } <- addTmBind x t1 $ infer e2 z
+              let def = JSVariableIntroduction (variable x) $ Just $
+                          JSObjectLiteral [LiteralName "get" (JSVar y)]
+              pure { ast: j1 <> [export def] <> j2, typ: t2 }
+  where export = if global then JSExport else identity
 infer (C.TmMain e) _ = do
   z <- freshVarName
   { ast: j , typ } <- infer e z
@@ -283,8 +303,11 @@ infer e _ = unsafeCrashWith $ "FIXME: infer" <+> show e
 infer' :: C.Tm -> CodeGen { ast :: AST, typ :: C.Ty, var :: Name }
 infer' (C.TmVar x) = do
   typ <- lookupTmBind x
-  var <- freshVarName
-  pure { ast: [ JSVariableIntroduction var $ Just $ getVar x ], typ, var }
+  order <- asks (_.evalOrder)
+  case order of
+    CBV -> pure { ast: [], typ, var: variable x }
+    CBN -> do var <- freshVarName
+              pure { ast: [ JSVariableIntroduction var $ Just $ getVar x ], typ, var }
 infer' (C.TmAnno e typ) = do
   { ast, var } <- check' e typ
   pure { ast, typ, var }
@@ -333,8 +356,8 @@ dist (C.TyAnd ta tb) x arg z = dist ta x arg z <> dist tb x arg z
 dist t x (TmArg y) z = [ JSApp (JSIndexer (toIndex t) (JSVar x)) [y, JSVar z] ]
 dist t x (TyArg y) z = [ JSApp (JSIndexer (toIndex t) (JSVar x)) [y, JSVar z] ]
 
-proj :: C.Ty -> Name -> Label -> Name -> AST
-proj t x l z = unsafeFromJust $ go t
+proj :: C.Ty -> Name -> Label -> Name -> EvalOrder -> AST
+proj t x l z o = unsafeFromJust $ go t
   where go :: C.Ty -> Maybe AST
         go t' | isTopLike t' = Nothing
         go (C.TyAnd ta tb) =
@@ -343,8 +366,11 @@ proj t x l z = unsafeFromJust $ go t
                                Just j1, Nothing -> Just j1
                                Just j1, Just j2 -> Just $ j1 <> j2
         go t'@(C.TyRcd l' _ _) | l == l' =
-          Just [ assignObj z [JSAccessor "get" (JSIndexer (toIndex t') (JSVar x))] ]
+          Just [ assignObj z [access (JSIndexer (toIndex t') (JSVar x))] ]
         go _  = Nothing
+        access :: JS -> JS
+        access = case o of CBV -> identity
+                           CBN -> JSAccessor "get"
 
 subtype :: C.Ty -> C.Ty -> Name -> Name -> CodeGen AST
 subtype _ t _ _ | isTopLike t = pure []
@@ -366,10 +392,15 @@ subtype ta@(C.TyArrow ta1 ta2 _) tb@(C.TyArrow tb1 tb2 _) x y = do
   x2 <- freshVarName
   y2 <- freshVarName
   j2 <- subtype ta2 tb2 x2 y2
-  let arg = lazyObj y1 ([ JSVariableIntroduction x1 $ Just $ JSAccessor "get" (JSVar "p")
-                        , initialize y1 ] <> j1)
-      block = [ initialize x2, JSApp (JSIndexer (toIndex ta) (JSVar x)) [arg, JSVar x2] ] <> j2
-      func = JSFunction Nothing ["p", y2] (JSBlock block)
+  order <- asks (_.evalOrder)
+  let func = case order of
+        CBV -> let block = [ initialize y1 ] <> j1
+                        <> [ initialize x2, JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar y1, JSVar x2] ] <> j2 in
+              JSFunction Nothing [x1, y2] (JSBlock block)
+        CBN -> let arg = lazyObj y1 ([ JSVariableIntroduction x1 $ Just $ JSAccessor "get" (JSVar "p")
+                                     , initialize y1 ] <> j1)
+                   block = [ initialize x2, JSApp (JSIndexer (toIndex ta) (JSVar x)) [arg, JSVar x2] ] <> j2 in
+                JSFunction Nothing ["p", y2] (JSBlock block)
   pure [ addProp (JSVar y) (toIndex tb) func ]
 subtype ta@(C.TyForall a _ ta2) tb@(C.TyForall b _ tb2) x y = do
   x0 <- freshVarName
@@ -382,9 +413,14 @@ subtype r1@(C.TyRcd l1 t1 _) r2@(C.TyRcd l2 t2 _) x y | l1 == l2 = do
   x0 <- freshVarName
   y0 <- freshVarName
   j <- subtype t1 t2 x0 y0
-  let get = lazyObj y0 ([ JSVariableIntroduction x0 $ Just $ JSAccessor "get" (JSIndexer (toIndex r1) (JSVar x))
-                        , initialize y0 ] <> j)
-  pure [ addProp (JSVar y) (toIndex r2) get ]
+  order <- asks (_.evalOrder)
+  case order of
+    CBV -> pure $ [ JSVariableIntroduction x0 $ Just $ JSIndexer (toIndex r1) (JSVar x)
+                  , initialize y0 ] <> j <> [ addProp (JSVar y) (toIndex r2) (JSVar y0) ]
+    CBN -> let rvalue = lazyObj y0 ([ JSVariableIntroduction x0 $ Just $
+                                        JSAccessor "get" (JSIndexer (toIndex r1) (JSVar x))
+                                    , initialize y0 ] <> j) in
+           pure [ addProp (JSVar y) (toIndex r2) rvalue ]
 subtype (C.TyAnd ta tb) tc x y = subtype ta tc x y <|> subtype tb tc x y
 subtype (C.TyVar a) (C.TyVar a') x y | a == a' = let index = "$$index" in
   pure [ JSForOf index (JSVar (variable a)) $ JSAssignment (JSIndexer (JSVar index) (JSVar y))
@@ -425,13 +461,19 @@ unsplit { z, tx: r1@(C.TyRcd _ t1 _), ty: r2@(C.TyRcd _ t2 _), tz: r@(C.TyRcd _ 
   x2 <- freshVarName
   y <- freshVarName
   { ast: j, x: y1, y: y2 } <- unsplit { z: y, tx: t1, ty: t2, tz: t }
-  let block = [ initialize y ]
-           <> (if y1 == y then [] else [initialize y1])
-           <> (if y2 == y then [] else [initialize y2])
-           <> [ assignObj y1 [JSAccessor "get" (JSIndexer (toIndex r1) (JSVar x1))]
-              , assignObj y2 [JSAccessor "get" (JSIndexer (toIndex r2) (JSVar x2))]]
-           <> j
-  pure { ast: [ addProp (JSVar z) (toIndex r) (lazyObj y block) ], x: x1, y: x2 }
+  order <- asks (_.evalOrder)
+  let init = [ initialize y ]
+          <> (if y1 == y then [] else [initialize y1])
+          <> (if y2 == y then [] else [initialize y2])
+      ast = case order of
+        CBV -> init <> [ assignObj y1 [JSIndexer (toIndex r1) (JSVar x1)]
+                       , assignObj y2 [JSIndexer (toIndex r2) (JSVar x2)]]
+                    <> j <> [ addProp (JSVar z) (toIndex r) (JSVar y) ]
+        CBN -> let block = init <> [ assignObj y1 [JSAccessor "get" (JSIndexer (toIndex r1) (JSVar x1))]
+                                   , assignObj y2 [JSAccessor "get" (JSIndexer (toIndex r2) (JSVar x2))]]
+                                <> j in
+               [ addProp (JSVar z) (toIndex r) (lazyObj y block) ]
+  pure { ast, x: x1, y: x2 }
 unsplit s = unsafeCrashWith $ "cannot unsplit" <+> show s
 
 toIndices :: C.Ty -> JS

@@ -30,6 +30,7 @@ exp, e :: 'e_' ::= {{ com expressions }}
   | e . l            ::  :: proj   {{ com projection }}
   | e1 ,, e2         ::  :: merge  {{ com merging }}
   | e : A            ::  :: anno   {{ com casting }}
+  | x = e1; e2       ::  :: def
   | e1 [ x ~> e2 ]   :: M:: subst
   | e  [ X ~> A ]    :: M:: tsubst
   | ( e )            :: S:: paren
