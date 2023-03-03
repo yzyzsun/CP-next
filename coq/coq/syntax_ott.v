@@ -410,10 +410,10 @@ Inductive disjoint : typ -> typ -> Prop :=    (* defn disjoint *)
 
 (* defns CoMerge *)
 Inductive comerge : texp -> typ -> typ -> texp -> typ -> texp -> Prop :=    (* defn comerge *)
- | M_And : forall (t1:texp) (A B:typ) (t2:texp) (x y:var),
+ | M_And : forall (t1:texp) (A B:typ) (t2:texp),
      lc_texp t1 ->
      lc_texp t2 ->
-     comerge t1 A (typ_and A B) t2 B (texp_concat (texp_var_f x) (texp_var_f y))
+     comerge t1 A (typ_and A B) t2 B (texp_concat t1 t2)
  | M_Arrow : forall (L:vars) (t1:texp) (A B1 B:typ) (t2:texp) (B2:typ) (t:texp),
       ( forall x , x \notin  L  -> comerge (texp_app  (texp_proj t1 (ti_arrow  (type2index  B1 ) ))  (texp_var_f x)) B1 B (texp_app  (texp_proj t2 (ti_arrow  (type2index  B2 ) ))  (texp_var_f x)) B2  ( open_texp_wrt_texp t (texp_var_f x) )  )  ->
      comerge t1 (typ_arrow A B1) (typ_arrow A B) t2 (typ_arrow A B2)  (texp_cons  (ti_arrow  (type2index  B ) )   (texp_abs t)  texp_nil)
@@ -734,6 +734,9 @@ Inductive target_subtyping : ttyp -> ttyp -> Prop :=    (* defn target_subtyping
 
 (* defns TargetFlexTyping *)
 Inductive target_flex_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target_flex_typing *)
+ | TFTyping_Orig : forall (Gt:tctx) (t:texp) (At:ttyp),
+     target_typing Gt t At ->
+     target_flex_typing Gt t At
  | TFTyping_Top : forall (Gt:tctx) (t:texp) (At:ttyp),
      target_typing Gt t At ->
      target_flex_typing Gt t ttyp_top
