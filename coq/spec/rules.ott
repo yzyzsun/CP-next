@@ -15,9 +15,9 @@ metavar label, i, l ::= {{ coq string }}
 grammar
 
 typ, A, B, C :: 'typ_' ::= {{ com types }}
-  | Top              ::  :: top    {{ com top type }} {{ tex \top }}
-  | Bot              ::  :: bot    {{ com bottom type }} {{ tex \bot }}
-  | Base             ::  :: base   {{ com base type }} {{ tex \mathbb{B} }}
+  | Top            ::  :: top     {{ com top type }} {{ tex \top }}
+  | Bot            ::  :: bot     {{ com bottom type }} {{ tex \bot }}
+  | Base           ::  :: base    {{ com base type }} {{ tex \mathbb{B} }}
   | A -> B         ::  :: arrow   {{ com function types }}
   | A & B          ::  :: and     {{ com intersection }}
   | { l : A }      ::  :: rcd     {{ com record }}

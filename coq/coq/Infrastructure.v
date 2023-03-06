@@ -16,6 +16,14 @@ Notation " ||- T" := (wf_typ T) (at level 40, T custom stlc_ty at level 0).
 Notation "t '>->' t'" := (target_step t t') (at level 40).
 
 
+Notation "[ z ~>> u ] e" := (subst_texp u z e) (at level 0).
+Notation "G |- t : At" := (target_typing G t At) (at level 200). (* >= 200 or Ltac will be affected*)
+Notation "At > Ct < Bt" := (concat_typ At Bt Ct) (at level 40).
+Notation "( t1 ,, t2 )" := (texp_concat t1 t2) (at level 201).  (* > 200 or Proof commands will be affected*)
+Notation "{ ll => t1 ; t2 }" := (texp_cons ll t1 t2) (at level 40).
+Notation "{ ll : At ; Bt }" := (ttyp_rcd ll At Bt) (at level 40).
+
+
 (*********************** Locally nameless related defns ***********************)
 
 (* redefine gather_atoms for pick fresh *)
@@ -42,3 +50,31 @@ Ltac solve_by_inverts n :=
 
 Ltac solve_by_invert :=
   solve_by_inverts 1.
+
+
+(* Auxiliary tactics *)
+
+Lemma spl_decrease_size: forall A B C,
+    spl A B C -> size_typ B < size_typ A /\ size_typ C < size_typ A.
+Proof with (pose proof (size_typ_min_mutual); simpl in *; try lia).
+  introv H.
+  induction H; simpl in *; eauto...
+Qed.
+
+Ltac spl_size :=
+  try repeat match goal with
+         | [ H: spl _ _ _ |- _ ] =>
+           ( lets (?&?): spl_decrease_size H; clear H)
+    end.
+
+Ltac elia :=
+  try solve [pose proof (size_typ_min_mutual);
+             spl_size; simpl in *; try lia].
+
+Ltac indTypSize s :=
+  assert (SizeInd: exists i, s < i) by eauto;
+  destruct SizeInd as [i SizeInd];
+  repeat match goal with | [ h : typ |- _ ] => (gen h) end;
+  induction i as [|i IH]; [
+    intros; match goal with | [ H : _ < 0 |- _ ] => inverts H end
+  | intros ].

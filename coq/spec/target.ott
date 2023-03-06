@@ -21,7 +21,7 @@ ttyp, At, Bt, Ct :: 'ttyp_' ::= {{ com types }}
   | At -> Bt         ::  :: arrow   {{ com function types }}
   | ll : At , Bt     ::  :: rcd     {{ com record }} {{ tex \{ [[ll]] [[:]] [[At]] [[,]] [[Bt]]  \} }}
   | { ll : At }      :: M:: single_rcd {{ coq (ttyp_rcd [[ll]] [[At]] ttyp_top) }}
-  | At & Bt          ::  :: and     {{ com intersection }}
+  % | At & Bt          ::  :: and     {{ com intersection }}
   | ( At )           :: S:: paren   {{ coq [[At]] }}
   % | || A ||          :: M:: stype_trans {{ tex ||[[A]]|| }} 
   
@@ -328,10 +328,10 @@ TargetTyping :: '' ::=
   ---------------------------- :: RcdMerge
   Gt |- t1 ; t2 : Ct
 
-  Gt |- t : At
-  Gt |- t : Bt
-  ---------------------------- :: Inter
-  Gt |- t : At & Bt
+  % Gt |- t : At
+  % Gt |- t : Bt
+  % ---------------------------- :: Inter
+  % Gt |- t : At & Bt
   
   
 defns
@@ -366,28 +366,28 @@ ConvertSource2Target :: '' ::=
   {l : A} => { {l : |A|} : Top->At } 
 
 
-  A => At
-  B => Bt
-  At & Bt => Ct
-  ----------------------- :: And
-  A & B => Ct
+%   A => At
+%   B => Bt
+%   At & Bt => Ct
+%   ----------------------- :: And
+%   A & B => Ct
 
-defns
-TargetSubtype :: '' ::=
+% defns
+% TargetSubtype :: '' ::=
 
-  defn
-  At <<: Bt
-  :: :: target_subtyping :: 'TSubtyping_'
-  {{ com Target subtyping (incomplete) }}
-  by
+%   defn
+%   At <<: Bt
+%   :: :: target_subtyping :: 'TSubtyping_'
+%   {{ com Target subtyping (incomplete) }}
+%   by
 
-  At <<: Ct
-  --------------------------- :: InterL
-  At & Bt <<: Ct
+%   At <<: Ct
+%   --------------------------- :: InterL
+%   At & Bt <<: Ct
 
-  Bt <<: Ct
-  --------------------------- :: InterR
-  At & Bt <<: Ct
+%   Bt <<: Ct
+%   --------------------------- :: InterR
+%   At & Bt <<: Ct
 
 
 defns
@@ -409,9 +409,9 @@ TargetFlexTyping :: '' ::=
   
   Gt |- t : At
   lookup ll At => Bt
-  Bt <<: Ct
+  % Bt <<: Ct
   --------------------------- :: Part
-  Gt |- t <= { ll : Ct }
+  Gt |- t <= { ll : Bt }
 
   Gt |- t <= { ll : At }
   Gt |- t <= Bt
