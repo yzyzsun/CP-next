@@ -417,9 +417,9 @@ Inductive comerge : texp -> typ -> typ -> texp -> typ -> texp -> Prop :=    (* d
  | M_Arrow : forall (L:vars) (t1:texp) (A B1 B:typ) (t2:texp) (B2:typ) (t:texp),
       ( forall x , x \notin  L  -> comerge (texp_app  (texp_proj t1 (ti_arrow  (type2index  B1 ) ))  (texp_var_f x)) B1 B (texp_app  (texp_proj t2 (ti_arrow  (type2index  B2 ) ))  (texp_var_f x)) B2  ( open_texp_wrt_texp t (texp_var_f x) )  )  ->
      comerge t1 (typ_arrow A B1) (typ_arrow A B) t2 (typ_arrow A B2)  (texp_cons  (ti_arrow  (type2index  B ) )   (texp_abs t)  texp_nil)
- | M_Rcd : forall (L:vars) (t1:texp) (l:label) (A1 A:typ) (t2:texp) (A2:typ) (t:texp),
-      ( forall x , x \notin  L  -> comerge (texp_app  (texp_proj t1 (ti_rcd l  (type2index  A1 ) ))  texp_nil) A1 A (texp_app  (texp_proj t2 (ti_rcd l  (type2index  A2 ) ))  texp_nil) A2  ( open_texp_wrt_texp t (texp_var_f x) )  )  ->
-     comerge t1 (typ_rcd l A1) (typ_rcd l A) t2 (typ_rcd l A2)  (texp_cons  (ti_rcd l  (type2index  A ) )   (texp_abs t)  texp_nil) .
+ | M_Rcd : forall (t1:texp) (l:label) (A1 A:typ) (t2:texp) (A2:typ) (t:texp),
+     comerge (texp_proj t1 (ti_rcd l  (type2index  A1 ) )) A1 A (texp_proj t2 (ti_rcd l  (type2index  A2 ) )) A2 t ->
+     comerge t1 (typ_rcd l A1) (typ_rcd l A) t2 (typ_rcd l A2)  (texp_cons  (ti_rcd l  (type2index  A ) )   t  texp_nil) .
 
 (* defns CoSubtyping *)
 Inductive cosub : texp -> typ -> typ -> texp -> Prop :=    (* defn cosub *)
@@ -490,10 +490,10 @@ Inductive distapp : texp -> typ -> tvl -> texp -> Prop :=    (* defn distapp *)
  | A_Arrow : forall (t1:texp) (A B:typ) (t2:texp),
      lc_texp t1 ->
      lc_texp t2 ->
-     distapp t1 (typ_arrow A B) (tvl_exp t2) (texp_app  (texp_proj t1 (ti_arrow  (type2index  B ) ))  t2)
+     distapp t1 (typ_arrow A B) (tvl_exp t2) (texp_app  (texp_proj t1  (type2index  (typ_arrow A B) ) )  t2)
  | A_Rcd : forall (t:texp) (l:label) (A:typ),
      lc_texp t ->
-     distapp t (typ_rcd l A) (tvl_la l) (texp_app  (texp_proj t (ti_rcd l  (type2index  A ) ))  texp_nil)
+     distapp t (typ_rcd l A) (tvl_la l) (texp_proj t (ti_rcd l  (type2index  A ) ))
  | A_And : forall (t:texp) (A B:typ) (t2 t1:texp),
      distapp t A (tvl_exp t2) t1 ->
      distapp t B (tvl_exp t2) t2 ->
@@ -502,9 +502,11 @@ Inductive distapp : texp -> typ -> tvl -> texp -> Prop :=    (* defn distapp *)
 (* defns Elaboration *)
 Inductive elaboration : ctx -> exp -> dirflag -> typ -> texp -> Prop :=    (* defn elaboration *)
  | Ela_Top : forall (G:ctx),
+      uniq  G  ->
      elaboration G exp_top Inf typ_top texp_nil
  | Ela_TopAbs : forall (G:ctx) (A:typ) (e:exp) (B:typ),
      lc_exp (exp_abs A e B) ->
+      uniq  G  ->
      toplike B ->
      elaboration G (exp_abs A e B) Inf (typ_arrow A B) texp_nil
  | Ela_TopRcd : forall (G:ctx) (l:label) (e:exp) (A:typ) (t:texp),
@@ -512,8 +514,10 @@ Inductive elaboration : ctx -> exp -> dirflag -> typ -> texp -> Prop :=    (* de
      toplike A ->
      elaboration G (exp_rcd l e) Inf (typ_rcd l A) texp_nil
  | Ela_Base : forall (G:ctx) (b:lit),
+      uniq  G  ->
      elaboration G (exp_base b) Inf typ_base  (texp_cons   (type2index  typ_base )    (texp_base b)  texp_nil)
  | Ela_Var : forall (G:ctx) (x:var) (A:typ),
+      uniq  G  ->
       binds  x A G  ->
      elaboration G (exp_var_f x) Inf A (texp_var_f x)
  | Ela_Fix : forall (L:vars) (G:ctx) (A:typ) (e:exp) (t:texp),
@@ -522,11 +526,11 @@ Inductive elaboration : ctx -> exp -> dirflag -> typ -> texp -> Prop :=    (* de
  | Ela_Abs : forall (L:vars) (G:ctx) (A:typ) (e:exp) (B:typ) (t:texp),
       ( forall x , x \notin  L  -> elaboration  (cons ( x , A )  G )   ( open_exp_wrt_exp e (exp_var_f x) )  Chk B  ( open_texp_wrt_texp t (texp_var_f x) )  )  ->
      elaboration G (exp_abs A e B) Inf (typ_arrow A B)  (texp_cons  (ti_arrow  (type2index  B ) )   (texp_abs t)  texp_nil)
- | Ela_App : forall (G:ctx) (e1 e2:exp) (C:typ) (t3:texp) (A:typ) (t1:texp) (B:typ) (t2:texp) (tvl5:tvl),
+ | Ela_App : forall (G:ctx) (e1 e2:exp) (C:typ) (t3:texp) (A:typ) (t1:texp) (B:typ) (t2:texp),
      elaboration G e1 Inf A t1 ->
      appdist A (typ_arrow B C) ->
      elaboration G e2 Chk B t2 ->
-     distapp t1 A tvl5 t3 ->
+     distapp t1 A (tvl_exp t2) t3 ->
      elaboration G (exp_app e1 e2) Inf C t3
  | Ela_Rcd : forall (G:ctx) (l:label) (e:exp) (A:typ) (t:texp),
      elaboration G e Inf A t ->
@@ -534,7 +538,7 @@ Inductive elaboration : ctx -> exp -> dirflag -> typ -> texp -> Prop :=    (* de
  | Ela_Proj : forall (G:ctx) (e:exp) (l:label) (B:typ) (t2:texp) (A:typ) (t1:texp),
      elaboration G e Inf A t1 ->
      appdist A (typ_rcd l B) ->
-     distapp t1 A (tvl_exp texp_nil) t2 ->
+     distapp t1 A (tvl_la l) t2 ->
      elaboration G (exp_proj e l) Inf B t2
  | Ela_Merge : forall (G:ctx) (e1 e2:exp) (A B:typ) (t1 t2:texp),
      elaboration G e1 Inf A t1 ->
