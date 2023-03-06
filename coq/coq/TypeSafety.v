@@ -113,8 +113,7 @@ Proof.
     + forwards (?&?&?): IHHT2 H0.
       exists* x. rewrite* H0.
   - exists* At.
-    forwards (?&?&?): IHHT l At. case_if*.
-    eauto.
+    forwards* (?&?&?): IHHT ll At. case_if*.
 Qed.
 
 (** flex_typing on well-typed terms only **)
@@ -122,7 +121,7 @@ Lemma flex_typing_wt : forall E t A,
     target_flex_typing E t A -> exists B, target_typing E t B.
 Proof.
   introv HT. induction* HT.
-  - forwards* (?&?&?): flex_typing_property3 l At HT.
+  - forwards* (?&?&?): flex_typing_property3 ll At HT.
     simpl. case_if*.
 Qed.
 
@@ -339,14 +338,17 @@ Qed.
 
 Lemma toplike_appdist_inv : forall A B C,
     appdist A (typ_arrow B C) -> toplike A -> toplike C.
-Admitted.
+Proof.
+  introv HA HT. inductions HA.
+  all: inverts* HT.
+Qed.
 
-Lemma distapp_well_typed_app : forall A B C G t1 t2 t3,
+Lemma distapp_well_typed_app : forall A B C G t1 t2 B' t3,
     appdist A (typ_arrow B C) -> target_flex_typing ||[ G ]|| t1 |[A]| ->
-    target_flex_typing ||[ G ]|| t2 |[B]| -> distapp t1 A (tvl_exp t2) t3 ->
+    target_flex_typing ||[ G ]|| t2 |[B']| -> distapp t1 A (tvl_exp t2) B' t3 ->
     target_typing ||[ G ]|| t3 |[C]|.
 Proof with eauto using target_typing_wf_1.
-  introv HA HTa HTb HD. gen t1 t2.
+  introv HA HTa HTb HD. gen t1 t2 t3 B'.
   inductions HA; intros; inverts HD...
   - rewrite* ttyp_trans_ord_top.
     inverts* H4.
@@ -354,18 +356,20 @@ Proof with eauto using target_typing_wf_1.
     forwards* (?&?&?): flex_typing_property3 (|| (typ_arrow B C) ||) HTa.
     rewrite ttyp_trans_ord_ntop_arrow.
     simpl. case_if...
-    Admitted.
-  (* - rewrite* ttyp_trans_ord_top... *)
-  (* - rewrite* ttyp_trans_ord_top. *)
-  (*   inverts H4. eauto using toplike_appdist_inv. *)
-  (* - forwards* (HTa1 & HTa2): flex_typing_property1 HTa. *)
-  (*   forwards* (HTb1 & HTb2): flex_typing_property1 HTb. *)
-  (*   forwards: IHHA2 HTa2 HTb2; try reflexivity. *)
+    applys * cosub_well_typed.
+  - rewrite* ttyp_trans_ord_top.
+  - rewrite* ttyp_trans_ord_top.
+    inverts H4. constructor; applys* toplike_appdist_inv.
+  - forwards* (?&?): flex_typing_property1 HTa.
+    forwards*: IHHA1 HTb. forwards*: IHHA2 HTb.
+    applys* TTyping_RcdMerge H1 H2.
+    all: eauto using concat_source_intersection, translate_to_record_types.
+Qed.
 
 
-Lemma distapp_well_typed_proj : forall A l B G t1 t3,
+Lemma distapp_well_typed_proj : forall A l B G t1 t3 C,
     appdist A (typ_rcd l B) -> target_typing ||[ G ]|| t1 |[A]| ->
-    distapp t1 A (tvl_la l) t3 ->
+    distapp t1 A (tvl_la l) C t3 ->
     target_typing ||[ G ]|| t3 |[B]|.
 Proof with eauto using target_typing_wf_1.
   introv HA HT HD.

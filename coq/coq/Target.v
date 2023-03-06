@@ -2,7 +2,8 @@ Require Import LibTactics.
 Require Import Metalib.Metatheory.
 Require Import List. Import ListNotations.
 Require Import Arith Lia.
-Require Export Infrastructure.
+Require Import Infrastructure.
+
 
 Lemma wf_rcd_lookup : forall i T Ti,
   wf_typ T ->
@@ -13,7 +14,7 @@ Proof.
   gen i Ti.
   induction WF; intros; simpl in LK; inverts LK.
   case_if*.
-  - inverts* H1.
+  - inverts* H2.
 Qed.
 
 Lemma rcd_typ_concat : forall T1 T2 T3,
@@ -26,6 +27,35 @@ Proof.
   - inverts* WF1.
 Qed.
 
+Lemma lookup_concat_typ : forall i A B C T,
+    Tlookup i A = Some T ->
+    concat_typ A B C ->
+    Tlookup i C = Tlookup i A.
+Proof.
+  introv LK CC. gen i T B C.
+  induction A; intros; simpl in LK; inverts LK.
+  case_if*.
+  - inverts* H0. inverts* CC.
+    subst. unfolds. case_if*.
+  - inverts* CC.
+    forwards~ : IHA2 H0 H6.
+    unfolds. case_if*.
+Qed.
+
+
+Lemma lookup_concat_typ_none : forall i A B C,
+    Tlookup i A = None ->
+    concat_typ A B C ->
+    Tlookup i C = Tlookup i B.
+Proof.
+  introv LK CC. gen i B C.
+  induction A; intros; inverts* CC.
+  - inverts* LK; case_if.
+    forwards* Heq: IHA2 H0 H5.
+    rewrite <- Heq.
+    unfolds. case_if*.
+Qed.
+
 Lemma wf_rcd_concat : forall T1 T2 T3,
     wf_typ T1 -> wf_typ T2 ->
     rec_typ T1 -> rec_typ T2 ->
@@ -35,9 +65,26 @@ Proof with eauto using rcd_typ_concat.
   introv WF1 WF2 RT1 RT2 CT.
   induction* CT.
   - inverts* WF1. inverts* RT1...
+    destruct H6.
+    + forwards* Heq: lookup_concat_typ H0 CT.
+      rewrite H0 in Heq...
+    + forwards* Heq: lookup_concat_typ_none H0 CT.
+      destruct H as [H' | H']; rewrite H' in Heq...
 Qed.
 
-Lemma target_typing_wf : forall G t T,
+
+(* Standard properties of typing *)
+
+Lemma target_typing_wf_1 : forall E t A,
+    target_typing E t A -> uniq E.
+Proof with eauto; destruct_uniq; solve_uniq.
+  introv H.
+  induction* H.
+  - pick_fresh x. forwards*: H1 x...
+  - pick_fresh x. forwards*: H0 x...
+Qed.
+
+Lemma target_typing_wf_2 : forall G t T,
    target_typing G t T -> wf_typ T.
 Proof with eauto.
   intros Ga t T Htyp.
@@ -76,35 +123,6 @@ Proof with try solve_by_invert.
 Qed.
 
 
-Lemma lookup_concat_typ : forall i A B C T,
-    Tlookup i A = Some T ->
-    concat_typ A B C ->
-    Tlookup i C = Tlookup i A.
-Proof.
-  introv LK CC. gen i T B C.
-  induction A; intros; simpl in LK; inverts LK.
-  case_if*.
-  - inverts* H0. inverts* CC.
-    subst. unfolds. case_if*.
-  - inverts* CC.
-    forwards~ : IHA2 H0 H6.
-    unfolds. case_if*.
-Qed.
-
-
-Lemma lookup_concat_typ_none : forall i A B C,
-    Tlookup i A = None ->
-    concat_typ A B C ->
-    Tlookup i C = Tlookup i B.
-Proof.
-  introv LK CC. gen i B C.
-  induction A; intros; inverts* CC.
-  - inverts* LK; case_if.
-    forwards* Heq: IHA2 H0 H5.
-    rewrite <- Heq.
-    unfolds. case_if*.
-Qed.
-
 
 Theorem progress : forall t T,
      target_typing [] t T ->
@@ -140,7 +158,7 @@ Proof with try solve_by_invert.
     all: right; exists; eauto using target_typing_lc_texp.
 Qed.
 
-Lemma weakening : forall G E F t T,
+Lemma target_weakening : forall G E F t T,
     target_typing (E ++ G) t T ->
     uniq (E ++ F ++ G) ->
     target_typing (E ++ F ++ G) t T.
@@ -159,27 +177,26 @@ Proof.
       solve_uniq.
 Qed.
 
-Lemma weakening_simpl : forall E F e T,
+Lemma target_weakening_simpl : forall E F e T,
     target_typing E e T ->
     uniq (F ++ E) ->
     target_typing (F ++ E) e T.
 Proof.
   intros.
   rewrite_env ( [] ++  (F ++ E)).
-  applys* weakening.
+  applys* target_weakening.
 Qed.
 
 
-Lemma weakening_empty : forall G t T,
+Lemma target_weakening_empty : forall G t T,
     uniq G -> target_typing [] t T -> target_typing G t T.
 Proof.
   introv Uni Typ.
   rewrite_env ([]++G++[]).
-  applys* weakening.
+  applys* target_weakening.
 Qed.
 
 
-Notation "[ z ~>> u ] e" := (subst_texp u z e) (at level 0).
 
 Lemma substitution_preserves_typing : forall (E F : tctx) t u S T (z : atom),
     target_typing (F ++ [(z,S)] ++ E) t T ->
@@ -192,7 +209,7 @@ Proof with eauto.
   - (* var *)
     simpl. case_if; subst.
     + forwards* : binds_mid_eq H1.
-      subst. applys* weakening_simpl.
+      subst. applys* target_weakening_simpl.
     + forwards* : binds_remove_mid H1.
   - (* abs *)
     pick fresh x and apply TTyping_Abs...
@@ -208,12 +225,6 @@ Proof with eauto.
     eauto.
 Qed.
 
-
-Notation "G |- t : At" := (target_typing G t At) (at level 50).
-Notation "At > Ct < Bt" := (concat_typ At Bt Ct) (at level 40).
-Notation "( t1 ,, t2 )" := (texp_concat t1 t2) (at level 40).
-Notation "{ ll => t1 ; t2 }" := (texp_cons ll t1 t2) (at level 40).
-Notation "{ ll : At ; Bt }" := (ttyp_rcd ll At Bt) (at level 40).
 
 Theorem preservation : forall t t' T,
     target_typing [] t T ->
