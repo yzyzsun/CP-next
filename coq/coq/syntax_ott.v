@@ -414,11 +414,11 @@ Inductive comerge : texp -> typ -> typ -> texp -> typ -> texp -> Prop :=    (* d
      lc_texp t2 ->
      comerge t1 A (typ_and A B) t2 B (texp_concat t1 t2)
  | M_Arrow : forall (L:vars) (t1:texp) (A B1 B:typ) (t2:texp) (B2:typ) (t:texp),
-      ( forall x , x \notin  L  -> comerge (texp_app  (texp_proj t1 (ti_arrow  (type2index  B1 ) ))  (texp_var_f x)) B1 B (texp_app  (texp_proj t2 (ti_arrow  (type2index  B2 ) ))  (texp_var_f x)) B2  ( open_texp_wrt_texp t (texp_var_f x) )  )  ->
-     comerge t1 (typ_arrow A B1) (typ_arrow A B) t2 (typ_arrow A B2)  (texp_cons  (ti_arrow  (type2index  B ) )   (texp_abs t)  texp_nil)
+      ( forall x , x \notin  L  -> comerge (texp_app  (texp_proj t1  (type2index  (typ_arrow A B1) ) )  (texp_var_f x)) B1 B (texp_app  (texp_proj t2  (type2index  (typ_arrow A B2) ) )  (texp_var_f x)) B2  ( open_texp_wrt_texp t (texp_var_f x) )  )  ->
+     comerge t1 (typ_arrow A B1) (typ_arrow A B) t2 (typ_arrow A B2)  (texp_cons   (type2index  (typ_arrow A B) )    (texp_abs t)  texp_nil)
  | M_Rcd : forall (t1:texp) (l:label) (A1 A:typ) (t2:texp) (A2:typ) (t:texp),
-     comerge (texp_proj t1 (ti_rcd l  (type2index  A1 ) )) A1 A (texp_proj t2 (ti_rcd l  (type2index  A2 ) )) A2 t ->
-     comerge t1 (typ_rcd l A1) (typ_rcd l A) t2 (typ_rcd l A2)  (texp_cons  (ti_rcd l  (type2index  A ) )   t  texp_nil) .
+     comerge (texp_proj t1  (type2index  (typ_rcd l A1) ) ) A1 A (texp_proj t2  (type2index  (typ_rcd l A2) ) ) A2 t ->
+     comerge t1 (typ_rcd l A1) (typ_rcd l A) t2 (typ_rcd l A2)  (texp_cons   (type2index  (typ_rcd l A) )    t  texp_nil) .
 
 (* defns CoSubtyping *)
 Inductive cosub : texp -> typ -> typ -> texp -> Prop :=    (* defn cosub *)
@@ -438,13 +438,13 @@ Inductive cosub : texp -> typ -> typ -> texp -> Prop :=    (* defn cosub *)
  | S_Arrow : forall (L:vars) (t:texp) (A1 A2 B1 B2:typ) (t2 t1:texp),
      ord B2 ->
       not ( toplike B2 )  ->
-      ( forall x , x \notin  L  ->  ( cosub (texp_var_f x) B1 A1 t1  /\  cosub (texp_app  (texp_proj t (ti_arrow  (type2index  A2 ) ))  t1) A2 B2  ( open_texp_wrt_texp t2 (texp_var_f x) )  )  )  ->
-     cosub t (typ_arrow A1 A2) (typ_arrow B1 B2)  (texp_cons  (ti_arrow  (type2index  B2 ) )   (texp_abs t2)  texp_nil)
+      ( forall x , x \notin  L  ->  ( cosub (texp_var_f x) B1 A1 t1  /\  cosub (texp_app  (texp_proj t  (type2index  (typ_arrow A1 A2) ) )  t1) A2 B2  ( open_texp_wrt_texp t2 (texp_var_f x) )  )  )  ->
+     cosub t (typ_arrow A1 A2) (typ_arrow B1 B2)  (texp_cons   (type2index  (typ_arrow B1 B2) )    (texp_abs t2)  texp_nil)
  | S_Rcd : forall (t:texp) (l:label) (A B:typ) (t2:texp),
      ord B ->
       not ( toplike B )  ->
-     cosub (texp_proj t (ti_rcd l  (type2index  A ) )) A B t2 ->
-     cosub t (typ_rcd l A) (typ_rcd l B)  (texp_cons  (ti_rcd l  (type2index  B ) )   t2  texp_nil)
+     cosub (texp_proj t  (type2index  (typ_rcd l A) ) ) A B t2 ->
+     cosub t (typ_rcd l A) (typ_rcd l B)  (texp_cons   (type2index  (typ_rcd l B) )    t2  texp_nil)
  | S_AndL : forall (t:texp) (A B C:typ) (t':texp),
      ord C ->
      cosub t A C t' ->
