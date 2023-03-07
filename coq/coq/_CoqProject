@@ -3,6 +3,7 @@ Infrastructure.v
 LibTactics.v
 rules_inf2.v
 rules_inf.v
-Source.v
 syntax_ott.v
 Target.v
+Translation.v
+TypeSafety.v

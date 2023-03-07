@@ -272,6 +272,46 @@ WellformedTypes   :: '' ::=
   |- At -> Bt
 
 defns
+TargetEqIndexType :: '' ::=
+
+  defn
+  At ~= Bt :: :: eqIndTypTarget :: TEI_
+  {{ com Types with the same index }}
+  by
+
+  At ~= Bt
+  Bt ~= Ct
+  --------------- :: trans
+  At ~= Ct
+
+  Bt ~= At
+  --------------- :: symm
+  At ~= Bt
+
+  At1 ~= At2
+  Bt1 ~= Bt2
+  ---------------- :: arrow
+  At1->Bt1 ~= At2->Bt2
+
+  At ~= Bt
+  --------------- :: rcd
+  {l:At} ~= {l:Bt}
+
+  % --------------- :: comm
+  % At&Bt ~= Bt&At
+
+  % -------------------- :: assoc
+  % At&(Bt&Ct) ~= (At&Bt)&Ct
+
+  % toplike A
+  % --------------- :: top
+  % A&B ~= B
+
+  % A1 ~= A2
+  % -------------------- :: dup
+  % (A1&A2)&B ~= A1&B
+  
+defns
 TargetTyping :: '' ::=
 
   defn
@@ -309,7 +349,8 @@ TargetTyping :: '' ::=
   Gt |- { } : Top
 
   recTyp Bt
-  lookup ll Bt => At or lookup ll Bt =/>
+  lookup ll Bt => At' or lookup ll Bt =/>
+  At ~= At'
   Gt |- t1 : At
   Gt |- t2 : Bt
   ----------------------------------------- :: RcdCons
@@ -421,4 +462,3 @@ TargetFlexTyping :: '' ::=
   Gt |- t <= { ll : At }
   --------------------------- :: Proj
   Gt |- t.ll <= At
-

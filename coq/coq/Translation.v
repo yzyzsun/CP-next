@@ -55,26 +55,15 @@ Qed.
 
 (* Source types to target types *)
 
-Reserved Notation "[[ A ]]" (at level 5, A at next level).
-
-Fixpoint styp2ttyp_raw (A: typ) : ttyp :=
-  match A with
-  | typ_top => ttyp_top
-  | typ_bot => ttyp_bot
-  | typ_base =>  ttyp_base
-  | typ_arrow B1 B2 => ttyp_arrow ([[ B1 ]]) ([[ B2 ]])
-  | _ => ttyp_top (* for rcd and intersections *)
-  end
-where "[[ A ]]" := (styp2ttyp_raw A).
 
 Reserved Notation "|[ A ]|" (at level 5, A at next level).
 
 Fixpoint styp2ttyp (A: typ) : ttyp :=
   match A with
   | typ_top => ttyp_top
-  | typ_bot => ttyp_rcd (|| A ||) [[ A ]] ttyp_top
-  | typ_base => ttyp_rcd (|| A ||) [[ A ]] ttyp_top
-  | typ_arrow B1 B2 => ttyp_rcd (|| A ||) [[ A ]] ttyp_top
+  | typ_bot => ttyp_rcd (|| A ||) ttyp_bot ttyp_top
+  | typ_base => ttyp_rcd (|| A ||) ttyp_base ttyp_top
+  | typ_arrow B1 B2 => ttyp_rcd (|| A ||) ( ttyp_arrow (|[ B1 ]|) (|[ B2 ]|)) ttyp_top
   | typ_rcd l A' => ttyp_rcd (|| A ||) (|[ A' ]|) ttyp_top
   | typ_and A1 A2 => ttyp_concat_simpl (|[ A1 ]|) (|[ A2 ]|)
   end
@@ -101,6 +90,22 @@ where "|[ A ]|" := (styp2ttyp A).
 (* Admitted. *)
 
 (* Properties of translation (to target type) functions *)
+
+Definition styp2ttyp_raw (A: typ) : ttyp :=
+  match A with
+  | typ_top => ttyp_top
+  | typ_bot => ttyp_bot
+  | typ_base =>  ttyp_base
+  | typ_arrow B1 B2 => ttyp_arrow (|[ B1 ]|) (|[ B2 ]|)
+  | typ_rcd l A' => |[ A' ]|
+  | _ => ttyp_top (* for intersections *)
+  end.
+
+Notation "[[ A ]]" := (styp2ttyp_raw A) (at level 5, A at next level).
+
+Lemma translate_eqv : forall A B,
+    || A || = || B || -> eqIndTypTarget [[ A ]] [[ B ]].
+
 
 #[local] Hint Constructors wf_typ : core.
 
