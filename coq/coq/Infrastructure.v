@@ -17,7 +17,7 @@ Notation "t '>->' t'" := (target_step t t') (at level 40).
 
 
 Notation "[ z ~>> u ] e" := (subst_texp u z e) (at level 0).
-Notation "G |- t : At" := (target_typing G t At) (at level 200). (* >= 200 or Ltac will be affected*)
+Notation "G |- t : At" := (target_typing G t At)  (at level 201, t custom stlc, At custom stlc_ty at level 200). (* > 200 or Ltac will be affected*)
 Notation "At > Ct < Bt" := (concat_typ At Bt Ct) (at level 40).
 Notation "( t1 ,, t2 )" := (texp_concat t1 t2) (at level 201).  (* > 200 or Proof commands will be affected*)
 Notation "{ ll => t1 ; t2 }" := (texp_cons ll t1 t2) (at level 40).
@@ -32,12 +32,12 @@ Ltac gather_atoms ::= (* for type var *)
   let B := gather_atoms_with (fun x : atom => singleton x) in
   let C:= gather_atoms_with (fun x : exp => fv_exp x) in
   let D := gather_atoms_with (fun x : texp => fv_texp x) in
-  let E := gather_atoms_with (fun x : tvl => fv_tvl x) in
+  (* let E := gather_atoms_with (fun x : label => fv_label x) in *)
   let F := gather_atoms_with (fun x : list (var * typ) => dom x) in
   let G := gather_atoms_with (fun x : list (var * ttyp) => dom x) in
   let H := gather_atoms_with (fun x : ctx => dom x) in
   let H' := gather_atoms_with (fun x : tctx => dom x) in
-  constr:(A `union` B `union` C `union` D `union` E `union` F `union` G  `union` H `union` H').
+  constr:(A `union` B `union` C `union` D `union` F `union` G  `union` H `union` H').
 
 
 Ltac solve_by_inverts n :=
@@ -78,3 +78,60 @@ Ltac indTypSize s :=
   induction i as [|i IH]; [
     intros; match goal with | [ H : _ < 0 |- _ ] => inverts H end
   | intros ].
+
+
+(* try any assumption *)
+Ltac tassumption := match goal with | H : _ |-_=> apply H end.
+
+(* try solve the goal by contradiction *)
+Create HintDb FalseHd.
+Ltac solve_false := try intro; try solve [false; eauto 3 with FalseHd].
+
+(* destrcut conjunctions *)
+Ltac destruct_conj :=
+  repeat match goal with H: ?T |- _ =>
+    match T with
+    | _ /\ _ => destruct H
+    | exists _, _ => destruct H
+    end
+         end.
+
+(* Ltac from Alvin *)
+Ltac detect_fresh_var_and_do t :=
+  match goal with
+  | Fr : ?x `notin` ?L1 |- _ => t x
+  | _ =>
+    let x := fresh "x" in
+    pick fresh x; t x
+  end.
+
+Ltac instantiate_cofinite_with H X :=
+  match type of H with
+  | forall x, x `notin` ?L -> _ =>
+    let H1 := fresh "H" in
+    assert (H1 : X `notin` L) by solve_notin;
+    specialize (H X H1); clear H1
+  end.
+
+Ltac instantiate_cofinites_with x :=
+  repeat match goal with
+  | H : forall x, x `notin` ?L -> _ |- _ =>
+    instantiate_cofinite_with H x
+  | H : forall X : var , _ |- _ =>
+    specialize (H X)
+         end;
+  destruct_conj.
+
+Ltac instantiate_cofinites :=
+  detect_fresh_var_and_do instantiate_cofinites_with.
+
+Ltac applys_and_instantiate_cofinites_with H x :=
+  applys H x; try solve_notin; instantiate_cofinites_with x.
+
+Ltac pick_fresh_applys_and_instantiate_cofinites H :=
+  let X:= fresh in
+  pick fresh X; applys_and_instantiate_cofinites_with H X.
+
+Ltac detect_fresh_var_and_apply H :=
+  let f x := applys_and_instantiate_cofinites_with H x in
+  detect_fresh_var_and_do f.

@@ -21,6 +21,14 @@ Inductive ttyp : Set :=  (*r types *)
  | ttyp_arrow (At:ttyp) (Bt:ttyp) (*r function types *)
  | ttyp_rcd (ll:tindex) (At:ttyp) (Bt:ttyp) (*r record *).
 
+Inductive typ : Set :=  (*r types *)
+ | typ_top : typ (*r top type *)
+ | typ_bot : typ (*r bottom type *)
+ | typ_base : typ (*r base type *)
+ | typ_arrow (A:typ) (B:typ) (*r function types *)
+ | typ_and (A:typ) (B:typ) (*r intersection *)
+ | typ_rcd (l:label) (A:typ) (*r record *).
+
 Inductive texp : Set :=  (*r target term *)
  | texp_var_b (_:nat) (*r variable *)
  | texp_var_f (x:var) (*r variable *)
@@ -33,19 +41,7 @@ Inductive texp : Set :=  (*r target term *)
  | texp_proj (t1:texp) (ll:tindex) (*r projection *)
  | texp_concat (t1:texp) (t2:texp) (*r concatenation *).
 
-Inductive typ : Set :=  (*r types *)
- | typ_top : typ (*r top type *)
- | typ_bot : typ (*r bottom type *)
- | typ_base : typ (*r base type *)
- | typ_arrow (A:typ) (B:typ) (*r function types *)
- | typ_and (A:typ) (B:typ) (*r intersection *)
- | typ_rcd (l:label) (A:typ) (*r record *).
-
 Definition tctx : Set := list ( atom * ttyp ).
-
-Inductive tvl : Set :=  (*r target value or projection label *)
- | tvl_exp (tv:texp)
- | tvl_la (l:label).
 
 Inductive exp : Set :=  (*r expressions *)
  | exp_top : exp (*r top value *)
@@ -74,7 +70,7 @@ Definition ctx : Set := list ( atom * typ ).
 (** opening up abstractions *)
 Fixpoint open_texp_wrt_texp_rec (k:nat) (t_5:texp) (t__6:texp) {struct t__6}: texp :=
   match t__6 with
-  | (texp_var_b nat) =>
+  | (texp_var_b nat) => 
       match lt_eq_lt_dec nat k with
         | inleft (left _) => texp_var_b nat
         | inleft (right _) => t_5
@@ -85,23 +81,17 @@ Fixpoint open_texp_wrt_texp_rec (k:nat) (t_5:texp) (t__6:texp) {struct t__6}: te
   | (texp_abs t) => texp_abs (open_texp_wrt_texp_rec (S k) t_5 t)
   | (texp_fixpoint t) => texp_fixpoint (open_texp_wrt_texp_rec (S k) t_5 t)
   | (texp_app t1 t2) => texp_app (open_texp_wrt_texp_rec k t_5 t1) (open_texp_wrt_texp_rec k t_5 t2)
-  | texp_nil => texp_nil
+  | texp_nil => texp_nil 
   | (texp_cons ll t1' t2) => texp_cons ll (open_texp_wrt_texp_rec k t_5 t1') (open_texp_wrt_texp_rec k t_5 t2)
   | (texp_proj t1 ll) => texp_proj (open_texp_wrt_texp_rec k t_5 t1) ll
   | (texp_concat t1 t2) => texp_concat (open_texp_wrt_texp_rec k t_5 t1) (open_texp_wrt_texp_rec k t_5 t2)
 end.
 
-Definition open_tvl_wrt_texp_rec (k:nat) (t5:texp) (tvl5:tvl) : tvl :=
-  match tvl5 with
-  | (tvl_exp tv) => tvl_exp (open_texp_wrt_texp_rec k t5 tv)
-  | (tvl_la l) => tvl_la l
-end.
-
 Fixpoint open_exp_wrt_exp_rec (k:nat) (e_5:exp) (e__6:exp) {struct e__6}: exp :=
   match e__6 with
-  | exp_top => exp_top
+  | exp_top => exp_top 
   | (exp_base b) => exp_base b
-  | (exp_var_b nat) =>
+  | (exp_var_b nat) => 
       match lt_eq_lt_dec nat k with
         | inleft (left _) => exp_var_b nat
         | inleft (right _) => e_5
@@ -116,8 +106,6 @@ Fixpoint open_exp_wrt_exp_rec (k:nat) (e_5:exp) (e__6:exp) {struct e__6}: exp :=
   | (exp_rcd l e) => exp_rcd l (open_exp_wrt_exp_rec k e_5 e)
   | (exp_proj e l) => exp_proj (open_exp_wrt_exp_rec k e_5 e) l
 end.
-
-Definition open_tvl_wrt_texp t5 tvl5 := open_tvl_wrt_texp_rec 0 tvl5 t5.
 
 Definition open_texp_wrt_texp t_5 t__6 := open_texp_wrt_texp_rec 0 t__6 t_5.
 
@@ -142,7 +130,7 @@ Inductive lc_texp : texp -> Prop :=    (* defn lc_texp *)
      (lc_texp t1) ->
      (lc_texp t2) ->
      (lc_texp (texp_app t1 t2))
- | lc_texp_nil :
+ | lc_texp_nil : 
      (lc_texp texp_nil)
  | lc_texp_cons : forall (ll:tindex) (t1' t2:texp),
      (lc_texp t1') ->
@@ -156,17 +144,9 @@ Inductive lc_texp : texp -> Prop :=    (* defn lc_texp *)
      (lc_texp t2) ->
      (lc_texp (texp_concat t1 t2)).
 
-(* defns LC_tvl *)
-Inductive lc_tvl : tvl -> Prop :=    (* defn lc_tvl *)
- | lc_tvl_exp : forall (tv:texp),
-     (lc_texp tv) ->
-     (lc_tvl (tvl_exp tv))
- | lc_tvl_la : forall (l:label),
-     (lc_tvl (tvl_la l)).
-
 (* defns LC_exp *)
 Inductive lc_exp : exp -> Prop :=    (* defn lc_exp *)
- | lc_exp_top :
+ | lc_exp_top : 
      (lc_exp exp_top)
  | lc_exp_base : forall (b:lit),
      (lc_exp (exp_base b))
@@ -196,26 +176,6 @@ Inductive lc_exp : exp -> Prop :=    (* defn lc_exp *)
      (lc_exp e) ->
      (lc_exp (exp_proj e l)).
 (** free variables *)
-Fixpoint fv_texp (t_5:texp) : vars :=
-  match t_5 with
-  | (texp_var_b nat) => {}
-  | (texp_var_f x) => {{x}}
-  | (texp_base b) => {}
-  | (texp_abs t) => (fv_texp t)
-  | (texp_fixpoint t) => (fv_texp t)
-  | (texp_app t1 t2) => (fv_texp t1) \u (fv_texp t2)
-  | texp_nil => {}
-  | (texp_cons ll t1' t2) => (fv_texp t1') \u (fv_texp t2)
-  | (texp_proj t1 ll) => (fv_texp t1)
-  | (texp_concat t1 t2) => (fv_texp t1) \u (fv_texp t2)
-end.
-
-Definition fv_tvl (tvl5:tvl) : vars :=
-  match tvl5 with
-  | (tvl_exp tv) => (fv_texp tv)
-  | (tvl_la l) => {}
-end.
-
 Fixpoint fv_exp (e_5:exp) : vars :=
   match e_5 with
   | exp_top => {}
@@ -231,30 +191,24 @@ Fixpoint fv_exp (e_5:exp) : vars :=
   | (exp_proj e l) => (fv_exp e)
 end.
 
+Fixpoint fv_texp (t_5:texp) : vars :=
+  match t_5 with
+  | (texp_var_b nat) => {}
+  | (texp_var_f x) => {{x}}
+  | (texp_base b) => {}
+  | (texp_abs t) => (fv_texp t)
+  | (texp_fixpoint t) => (fv_texp t)
+  | (texp_app t1 t2) => (fv_texp t1) \u (fv_texp t2)
+  | texp_nil => {}
+  | (texp_cons ll t1' t2) => (fv_texp t1') \u (fv_texp t2)
+  | (texp_proj t1 ll) => (fv_texp t1)
+  | (texp_concat t1 t2) => (fv_texp t1) \u (fv_texp t2)
+end.
+
 (** substitutions *)
-Fixpoint subst_texp (t_5:texp) (x5:var) (t__6:texp) {struct t__6} : texp :=
-  match t__6 with
-  | (texp_var_b nat) => texp_var_b nat
-  | (texp_var_f x) => (if eq_var x x5 then t_5 else (texp_var_f x))
-  | (texp_base b) => texp_base b
-  | (texp_abs t) => texp_abs (subst_texp t_5 x5 t)
-  | (texp_fixpoint t) => texp_fixpoint (subst_texp t_5 x5 t)
-  | (texp_app t1 t2) => texp_app (subst_texp t_5 x5 t1) (subst_texp t_5 x5 t2)
-  | texp_nil => texp_nil
-  | (texp_cons ll t1' t2) => texp_cons ll (subst_texp t_5 x5 t1') (subst_texp t_5 x5 t2)
-  | (texp_proj t1 ll) => texp_proj (subst_texp t_5 x5 t1) ll
-  | (texp_concat t1 t2) => texp_concat (subst_texp t_5 x5 t1) (subst_texp t_5 x5 t2)
-end.
-
-Definition subst_tvl (t5:texp) (x5:var) (tvl5:tvl) : tvl :=
-  match tvl5 with
-  | (tvl_exp tv) => tvl_exp (subst_texp t5 x5 tv)
-  | (tvl_la l) => tvl_la l
-end.
-
 Fixpoint esubst_exp (e_5:exp) (x5:var) (e__6:exp) {struct e__6} : exp :=
   match e__6 with
-  | exp_top => exp_top
+  | exp_top => exp_top 
   | (exp_base b) => exp_base b
   | (exp_var_b nat) => exp_var_b nat
   | (exp_var_f x) => (if eq_var x x5 then e_5 else (exp_var_f x))
@@ -265,6 +219,20 @@ Fixpoint esubst_exp (e_5:exp) (x5:var) (e__6:exp) {struct e__6} : exp :=
   | (exp_anno e A) => exp_anno (esubst_exp e_5 x5 e) A
   | (exp_rcd l e) => exp_rcd l (esubst_exp e_5 x5 e)
   | (exp_proj e l) => exp_proj (esubst_exp e_5 x5 e) l
+end.
+
+Fixpoint subst_texp (t_5:texp) (x5:var) (t__6:texp) {struct t__6} : texp :=
+  match t__6 with
+  | (texp_var_b nat) => texp_var_b nat
+  | (texp_var_f x) => (if eq_var x x5 then t_5 else (texp_var_f x))
+  | (texp_base b) => texp_base b
+  | (texp_abs t) => texp_abs (subst_texp t_5 x5 t)
+  | (texp_fixpoint t) => texp_fixpoint (subst_texp t_5 x5 t)
+  | (texp_app t1 t2) => texp_app (subst_texp t_5 x5 t1) (subst_texp t_5 x5 t2)
+  | texp_nil => texp_nil 
+  | (texp_cons ll t1' t2) => texp_cons ll (subst_texp t_5 x5 t1') (subst_texp t_5 x5 t2)
+  | (texp_proj t1 ll) => texp_proj (subst_texp t_5 x5 t1) ll
+  | (texp_concat t1 t2) => texp_concat (subst_texp t_5 x5 t1) (subst_texp t_5 x5 t2)
 end.
 
 Fixpoint type2index (A: typ) : tindex :=
@@ -309,7 +277,7 @@ Fixpoint Tlookup (i:tindex) (T:ttyp) : option ttyp :=
 
 (* defns TopLikeType *)
 Inductive toplike : typ -> Prop :=    (* defn toplike *)
- | TL_top :
+ | TL_top : 
      toplike typ_top
  | TL_and : forall (A B:typ),
      toplike A ->
@@ -352,19 +320,19 @@ Inductive eqIndTyp : typ -> typ -> Prop :=    (* defn eqIndTyp *)
 (* defns SplitType *)
 Inductive spl : typ -> typ -> typ -> Prop :=    (* defn spl *)
  | Sp_and : forall (A B:typ),
-     spl  (typ_and A B)   A   B
+     spl  (typ_and A B)   A   B 
  | Sp_arrow : forall (A B B1 B2:typ),
      spl B B1 B2 ->
-     spl  (typ_arrow A B)   (typ_arrow A B1)   (typ_arrow A B2)
+     spl  (typ_arrow A B)   (typ_arrow A B1)   (typ_arrow A B2) 
  | Sp_rcd : forall (l:label) (B B1 B2:typ),
      spl B B1 B2 ->
      spl (typ_rcd l B) (typ_rcd l B1) (typ_rcd l B2).
 
 (* defns OrdinaryType *)
 Inductive ord : typ -> Prop :=    (* defn ord *)
- | O_top :
+ | O_top : 
      ord typ_top
- | O_int :
+ | O_int : 
      ord typ_base
  | O_arrow : forall (A B:typ),
      ord B ->
@@ -417,7 +385,7 @@ Inductive comerge : texp -> typ -> typ -> texp -> typ -> texp -> Prop :=    (* d
      comerge t1 A (typ_and A B) t2 B (texp_concat t1 t2)
  | M_Arrow : forall (L:vars) (t1:texp) (A B1 B:typ) (t2:texp) (B2:typ) (t:texp),
       ( forall x , x \notin  L  -> comerge (texp_app  (texp_proj t1  (type2index  (typ_arrow A B1) ) )  (texp_var_f x)) B1 B (texp_app  (texp_proj t2  (type2index  (typ_arrow A B2) ) )  (texp_var_f x)) B2  ( open_texp_wrt_texp t (texp_var_f x) )  )  ->
-     comerge t1 (typ_arrow A B1) (typ_arrow A B) t2 (typ_arrow A B2)  (texp_cons   (type2index  (typ_arrow A B) )    (texp_abs t)  texp_nil)
+     comerge t1 (typ_arrow A B1) (typ_arrow A B) t2 (typ_arrow A B2)  (texp_cons   (type2index  (typ_arrow A B) )    (texp_abs t)  texp_nil) 
  | M_Rcd : forall (t1:texp) (l:label) (A1 A:typ) (t2:texp) (A2:typ) (t:texp),
      comerge (texp_proj t1  (type2index  (typ_rcd l A1) ) ) A1 A (texp_proj t2  (type2index  (typ_rcd l A2) ) ) A2 t ->
      comerge t1 (typ_rcd l A1) (typ_rcd l A) t2 (typ_rcd l A2)  (texp_cons   (type2index  (typ_rcd l A) )    t  texp_nil) .
@@ -433,20 +401,20 @@ Inductive cosub : texp -> typ -> typ -> texp -> Prop :=    (* defn cosub *)
      lc_texp t ->
      ord B ->
       not ( toplike B )  ->
-     cosub t typ_bot B  (texp_cons   (type2index  B )    (texp_fixpoint (texp_var_b 0))  texp_nil)
+     cosub t typ_bot B  (texp_cons   (type2index  B )    (texp_fixpoint (texp_var_b 0))  texp_nil) 
  | S_Base : forall (t:texp),
      lc_texp t ->
-     cosub t typ_base typ_base  (texp_cons   (type2index  typ_base )    (texp_proj t  (type2index  typ_base ) )  texp_nil)
+     cosub t typ_base typ_base  (texp_cons   (type2index  typ_base )    (texp_proj t  (type2index  typ_base ) )  texp_nil) 
  | S_Arrow : forall (L:vars) (t:texp) (A1 A2 B1 B2:typ) (t2 t1:texp),
      ord B2 ->
       not ( toplike B2 )  ->
       ( forall x , x \notin  L  ->  ( cosub (texp_var_f x) B1 A1 t1  /\  cosub (texp_app  (texp_proj t  (type2index  (typ_arrow A1 A2) ) )  t1) A2 B2  ( open_texp_wrt_texp t2 (texp_var_f x) )  )  )  ->
-     cosub t (typ_arrow A1 A2) (typ_arrow B1 B2)  (texp_cons   (type2index  (typ_arrow B1 B2) )    (texp_abs t2)  texp_nil)
+     cosub t (typ_arrow A1 A2) (typ_arrow B1 B2)  (texp_cons   (type2index  (typ_arrow B1 B2) )    (texp_abs t2)  texp_nil) 
  | S_Rcd : forall (t:texp) (l:label) (A B:typ) (t2:texp),
      ord B ->
       not ( toplike B )  ->
      cosub (texp_proj t  (type2index  (typ_rcd l A) ) ) A B t2 ->
-     cosub t (typ_rcd l A) (typ_rcd l B)  (texp_cons   (type2index  (typ_rcd l B) )    t2  texp_nil)
+     cosub t (typ_rcd l A) (typ_rcd l B)  (texp_cons   (type2index  (typ_rcd l B) )    t2  texp_nil) 
  | S_AndL : forall (t:texp) (A B C:typ) (t':texp),
      ord C ->
      cosub t A C t' ->
@@ -462,43 +430,41 @@ Inductive cosub : texp -> typ -> typ -> texp -> Prop :=    (* defn cosub *)
      comerge t1 B1 B t2 B2 t3 ->
      cosub t A B t3.
 
-(* defns ApplicativeDistribution *)
-Inductive appdist : typ -> typ -> Prop :=    (* defn appdist *)
- | AD_Arrow : forall (A B:typ),
-     appdist (typ_arrow A B) (typ_arrow A B)
- | AD_TopArrow :
-     appdist typ_top (typ_arrow typ_top typ_top)
- | AD_AndArrow : forall (A B A1 B1 A2 B2:typ),
-     appdist A (typ_arrow A1 A2) ->
-     appdist B (typ_arrow B1 B2) ->
-     appdist (typ_and A B) (typ_arrow (typ_and A1 B1) (typ_and A2 B2))
- | AD_Rcd : forall (l:label) (A:typ),
-     appdist (typ_rcd l A) (typ_rcd l A)
- | AD_TopRcd : forall (l:label),
-     appdist typ_top (typ_rcd l typ_top)
- | AD_AndRcd : forall (A B:typ) (l:label) (A' B':typ),
-     appdist A (typ_rcd l A') ->
-     appdist B (typ_rcd l B') ->
-     appdist (typ_and A B) (typ_rcd l (typ_and A' B')).
+(* defns Projection *)
+Inductive proj : texp -> typ -> label -> texp -> typ -> Prop :=    (* defn proj *)
+ | P_Top : forall (t1:texp) (A:typ) (l:label),
+     lc_texp t1 ->
+     toplike A ->
+     proj t1 A l texp_nil typ_top
+ | P_RcdEq : forall (t:texp) (l:label) (A:typ),
+     lc_texp t ->
+     proj t (typ_rcd l A) l (texp_proj t (ti_rcd l  (type2index  A ) )) A
+ | P_RcdNeq : forall (t:texp) (l1:label) (A:typ) (l2:label),
+     lc_texp t ->
+      l1  <>  l2  ->
+     proj t (typ_rcd l1 A) l2 texp_nil typ_top
+ | P_And : forall (t1:texp) (A B:typ) (l:label) (t3 t4:texp) (A' B':typ) (t:texp),
+     lc_texp t1 ->
+     proj t A l t3 A' ->
+     proj t B l t4 B' ->
+     proj t1 (typ_and A B) l (texp_concat t3 t4) (typ_and A' B').
 
 (* defns DistributiveApplication *)
-Inductive distapp : texp -> typ -> tvl -> typ -> texp -> Prop :=    (* defn distapp *)
+Inductive distapp : texp -> typ -> texp -> typ -> texp -> typ -> Prop :=    (* defn distapp *)
  | A_Top : forall (t1:texp) (A:typ) (t2:texp) (B:typ),
      lc_texp t1 ->
      lc_texp t2 ->
      toplike A ->
-     distapp t1 A (tvl_exp t2) B texp_nil
+     distapp t1 A t2 B texp_nil typ_top
  | A_Arrow : forall (t1:texp) (A B:typ) (t2:texp) (C:typ) (t3:texp),
      lc_texp t1 ->
      cosub t2 C A t3 ->
-     distapp t1 (typ_arrow A B) (tvl_exp t2) C (texp_app  (texp_proj t1  (type2index  (typ_arrow A B) ) )  t3)
- | A_Rcd : forall (t:texp) (l:label) (A B:typ),
-     lc_texp t ->
-     distapp t (typ_rcd l A) (tvl_la l) B (texp_proj t (ti_rcd l  (type2index  A ) ))
- | A_And : forall (t:texp) (A B:typ) (t2:texp) (C:typ) (t1:texp),
-     distapp t A (tvl_exp t2) C t1 ->
-     distapp t B (tvl_exp t2) C t2 ->
-     distapp t (typ_and A B) (tvl_exp t2) C (texp_concat t1 t2).
+     distapp t1 (typ_arrow A B) t2 C (texp_app  (texp_proj t1  (type2index  (typ_arrow A B) ) )  t3) B
+ | A_And : forall (t1:texp) (A B:typ) (t2:texp) (C:typ) (t3 t4:texp) (A' B':typ) (t:texp),
+     lc_texp t1 ->
+     distapp t A t2 C t3 A' ->
+     distapp t B t2 C t4 B' ->
+     distapp t1 (typ_and A B) t2 C (texp_concat t3 t4) (typ_and A' B').
 
 (* defns Elaboration *)
 Inductive elaboration : ctx -> exp -> dirflag -> typ -> texp -> Prop :=    (* defn elaboration *)
@@ -516,7 +482,7 @@ Inductive elaboration : ctx -> exp -> dirflag -> typ -> texp -> Prop :=    (* de
      elaboration G (exp_rcd l e) Inf (typ_rcd l A) texp_nil
  | Ela_Base : forall (G:ctx) (b:lit),
       uniq  G  ->
-     elaboration G (exp_base b) Inf typ_base  (texp_cons   (type2index  typ_base )    (texp_base b)  texp_nil)
+     elaboration G (exp_base b) Inf typ_base  (texp_cons   (type2index  typ_base )    (texp_base b)  texp_nil) 
  | Ela_Var : forall (G:ctx) (x:var) (A:typ),
       uniq  G  ->
       binds  x A G  ->
@@ -526,20 +492,18 @@ Inductive elaboration : ctx -> exp -> dirflag -> typ -> texp -> Prop :=    (* de
      elaboration G (exp_fixpoint A e) Inf A (texp_fixpoint t)
  | Ela_Abs : forall (L:vars) (G:ctx) (A:typ) (e:exp) (B:typ) (t:texp),
       ( forall x , x \notin  L  -> elaboration  (cons ( x , A )  G )   ( open_exp_wrt_exp e (exp_var_f x) )  Chk B  ( open_texp_wrt_texp t (texp_var_f x) )  )  ->
-     elaboration G (exp_abs A e B) Inf (typ_arrow A B)  (texp_cons  (ti_arrow  (type2index  B ) )   (texp_abs t)  texp_nil)
- | Ela_App : forall (G:ctx) (e1 e2:exp) (C:typ) (t3:texp) (A:typ) (t1:texp) (B B':typ) (t2:texp),
+     elaboration G (exp_abs A e B) Inf (typ_arrow A B)  (texp_cons  (ti_arrow  (type2index  B ) )   (texp_abs t)  texp_nil) 
+ | Ela_App : forall (G:ctx) (e1 e2:exp) (C:typ) (t3:texp) (A:typ) (t1:texp) (B':typ) (t2:texp),
      elaboration G e1 Inf A t1 ->
-     appdist A (typ_arrow B C) ->
      elaboration G e2 Inf B' t2 ->
-     distapp t1 A (tvl_exp t2) B' t3 ->
+     distapp t1 A t2 B' t3 C ->
      elaboration G (exp_app e1 e2) Inf C t3
  | Ela_Rcd : forall (G:ctx) (l:label) (e:exp) (A:typ) (t:texp),
      elaboration G e Inf A t ->
-     elaboration G (exp_rcd l e) Inf (typ_rcd l A)  (texp_cons  (ti_rcd l  (type2index  A ) )   t  texp_nil)
- | Ela_Proj : forall (G:ctx) (e:exp) (l:label) (B:typ) (t2:texp) (A:typ) (t1:texp) (C:typ),
+     elaboration G (exp_rcd l e) Inf (typ_rcd l A)  (texp_cons  (ti_rcd l  (type2index  A ) )   t  texp_nil) 
+ | Ela_Proj : forall (G:ctx) (e:exp) (l:label) (B:typ) (t2:texp) (A:typ) (t1:texp),
      elaboration G e Inf A t1 ->
-     appdist A (typ_rcd l B) ->
-     distapp t1 A (tvl_la l) C t2 ->
+     proj t1 A l t2 B ->
      elaboration G (exp_proj e l) Inf B t2
  | Ela_Merge : forall (G:ctx) (e1 e2:exp) (A B:typ) (t1 t2:texp),
      elaboration G e1 Inf A t1 ->
@@ -556,7 +520,7 @@ Inductive elaboration : ctx -> exp -> dirflag -> typ -> texp -> Prop :=    (* de
 
 (* defns Values *)
 Inductive value : texp -> Prop :=    (* defn value *)
- | value_unit :
+ | value_unit : 
      value texp_nil
  | value_lit : forall (b:lit),
      value (texp_base b)
@@ -612,7 +576,7 @@ Inductive target_step : texp -> texp -> Prop :=    (* defn target_step *)
  | TS_AppAbs : forall (t tv:texp),
      lc_texp (texp_abs t) ->
      lc_texp tv ->
-     target_step (texp_app  (texp_abs t)  tv)  (open_texp_wrt_texp  t tv )
+     target_step (texp_app  (texp_abs t)  tv)  (open_texp_wrt_texp  t tv ) 
  | TS_Fixpoint : forall (t:texp),
      lc_texp (texp_fixpoint t) ->
      target_step (texp_fixpoint t)  (open_texp_wrt_texp  t (texp_fixpoint t) ) .
@@ -628,7 +592,7 @@ Inductive concat_typ : ttyp -> ttyp -> ttyp -> Prop :=    (* defn concat_typ *)
 
 (* defns RecordTypes *)
 Inductive rec_typ : ttyp -> Prop :=    (* defn rec_typ *)
- | RT_Nil :
+ | RT_Nil : 
      rec_typ ttyp_top
  | RT_Rcd : forall (ll:tindex) (At Bt:ttyp),
      rec_typ Bt ->
@@ -642,27 +606,10 @@ Inductive contained_by_rec_typ : ttyp -> tindex -> ttyp -> Prop :=    (* defn co
      contained_by_rec_typ Bt ll2 Ct ->
      contained_by_rec_typ  (ttyp_rcd ll1 At Bt)  ll2 Ct.
 
-(* defns WellformedTypes *)
-Inductive wf_typ : ttyp -> Prop :=    (* defn wf_typ *)
- | WF_Nil :
-     wf_typ ttyp_top
- | WF_Bot :
-     wf_typ ttyp_bot
- | WF_Base :
-     wf_typ ttyp_base
- | WF_Rcd : forall (ll:tindex) (At Bt:ttyp),
-     wf_typ At ->
-     wf_typ Bt ->
-     rec_typ Bt ->
-      (  Tlookup  ll   Bt  = Some  At   \/   Tlookup  ll   Bt  = None  )  ->
-     wf_typ (ttyp_rcd ll At Bt)
- | WF_Arrow : forall (At Bt:ttyp),
-     wf_typ At ->
-     wf_typ Bt ->
-     wf_typ (ttyp_arrow At Bt).
-
 (* defns TargetEqIndexType *)
 Inductive eqIndTypTarget : ttyp -> ttyp -> Prop :=    (* defn eqIndTypTarget *)
+ | TEI_refl : forall (At:ttyp),
+     eqIndTypTarget At At
  | TEI_trans : forall (At Ct Bt:ttyp),
      eqIndTypTarget At Bt ->
      eqIndTypTarget Bt Ct ->
@@ -678,18 +625,47 @@ Inductive eqIndTypTarget : ttyp -> ttyp -> Prop :=    (* defn eqIndTypTarget *)
      eqIndTypTarget At Bt ->
      eqIndTypTarget  (ttyp_rcd  (ti_string l)   At  ttyp_top)   (ttyp_rcd  (ti_string l)   Bt  ttyp_top) .
 
+(* defns WellformedTypes *)
+Inductive wf_typ : ttyp -> Prop :=    (* defn wf_typ *)
+ | WF_Nil : 
+     wf_typ ttyp_top
+ | WF_Bot : 
+     wf_typ ttyp_bot
+ | WF_Base : 
+     wf_typ ttyp_base
+ | WF_Rcd : forall (ll:tindex) (At Bt At':ttyp),
+     wf_typ At ->
+     wf_typ Bt ->
+     rec_typ Bt ->
+      (  Tlookup  ll   Bt  = Some  At'   \/   Tlookup  ll   Bt  = None  )  ->
+     eqIndTypTarget At At' ->
+     wf_typ (ttyp_rcd ll At Bt)
+ | WF_Arrow : forall (At Bt:ttyp),
+     wf_typ At ->
+     wf_typ Bt ->
+     wf_typ (ttyp_arrow At Bt).
+
+(* defns WellformedCtx *)
+Inductive wf_ctx : tctx -> Prop :=    (* defn wf_ctx *)
+ | WFC_Nil : 
+     wf_ctx  nil 
+ | WFC_Cons : forall (Gt:tctx) (x:var) (At:ttyp),
+     wf_typ At ->
+     wf_ctx Gt ->
+     wf_ctx  (cons ( x , At )  Gt ) .
+
 (* defns TargetTyping *)
 Inductive target_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target_typing *)
  | TTyping_Base : forall (Gt:tctx) (b:lit),
       uniq  Gt  ->
+     wf_ctx Gt ->
      target_typing Gt (texp_base b) ttyp_base
  | TTyping_Var : forall (Gt:tctx) (x:var) (At:ttyp),
       uniq  Gt  ->
-     wf_typ At ->
+     wf_ctx Gt ->
       binds  x At Gt  ->
      target_typing Gt (texp_var_f x) At
  | TTyping_Abs : forall (L:vars) (Gt:tctx) (t:texp) (At Bt:ttyp),
-     wf_typ At ->
       ( forall x , x \notin  L  -> target_typing  (cons ( x , At )  Gt )   ( open_texp_wrt_texp t (texp_var_f x) )  Bt )  ->
      target_typing Gt (texp_abs t) (ttyp_arrow At Bt)
  | TTyping_Fix : forall (L:vars) (Gt:tctx) (t:texp) (At:ttyp),
@@ -701,6 +677,7 @@ Inductive target_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target_typi
      target_typing Gt (texp_app t1 t2) Bt
  | TTyping_RcdNil : forall (Gt:tctx),
       uniq  Gt  ->
+     wf_ctx Gt ->
      target_typing Gt texp_nil ttyp_top
  | TTyping_RcdCons : forall (Gt:tctx) (ll:tindex) (t1 t2:texp) (At Bt At':ttyp),
      rec_typ Bt ->
@@ -708,7 +685,7 @@ Inductive target_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target_typi
      eqIndTypTarget At At' ->
      target_typing Gt t1 At ->
      target_typing Gt t2 Bt ->
-     target_typing Gt  (texp_cons ll t1 t2)   (ttyp_rcd ll At Bt)
+     target_typing Gt  (texp_cons ll t1 t2)   (ttyp_rcd ll At Bt) 
  | TTyping_RcdProj : forall (Gt:tctx) (t:texp) (ll:tindex) (Bt At:ttyp),
      target_typing Gt t At ->
       Tlookup  ll   At  = Some  Bt  ->
@@ -723,16 +700,16 @@ Inductive target_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target_typi
 
 (* defns ConvertSource2Target *)
 Inductive styp2ttyp : typ -> ttyp -> Prop :=    (* defn styp2ttyp *)
- | ST_Top :
+ | ST_Top : 
      styp2ttyp typ_top ttyp_top
- | ST_Bot :
+ | ST_Bot : 
      styp2ttyp typ_bot ttyp_bot
- | ST_Base :
-     styp2ttyp typ_base  (ttyp_rcd   (type2index  typ_base )    ttyp_base  ttyp_top)
+ | ST_Base : 
+     styp2ttyp typ_base  (ttyp_rcd   (type2index  typ_base )    ttyp_base  ttyp_top) 
  | ST_Arrow : forall (A B:typ) (At Bt:ttyp),
      styp2ttyp A At ->
      styp2ttyp B Bt ->
-     styp2ttyp (typ_arrow A B)  (ttyp_rcd  (ti_arrow  (type2index  B ) )   (ttyp_arrow At Bt)  ttyp_top)
+     styp2ttyp (typ_arrow A B)  (ttyp_rcd  (ti_arrow  (type2index  B ) )   (ttyp_arrow At Bt)  ttyp_top) 
  | ST_Rcd : forall (l:label) (A:typ) (At:ttyp),
      styp2ttyp A At ->
      styp2ttyp (typ_rcd l A)  (ttyp_rcd  (ti_rcd l  (type2index  A ) )   (ttyp_arrow ttyp_top At)  ttyp_top) .
@@ -748,7 +725,7 @@ Inductive target_flex_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target
  | TFTyping_Part : forall (Gt:tctx) (t:texp) (ll:tindex) (Bt At:ttyp),
      target_typing Gt t At ->
       Tlookup  ll   At  = Some  Bt  ->
-     target_flex_typing Gt t  (ttyp_rcd  ll   Bt  ttyp_top)
+     target_flex_typing Gt t  (ttyp_rcd  ll   Bt  ttyp_top) 
  | TFTyping_Cons : forall (Gt:tctx) (t:texp) (ll:tindex) (At Bt:ttyp),
      target_flex_typing Gt t  (ttyp_rcd  ll   At  ttyp_top)  ->
      target_flex_typing Gt t Bt ->
@@ -759,4 +736,6 @@ Inductive target_flex_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target
 
 
 (** infrastructure *)
-Hint Constructors toplike eqIndTyp spl ord disjoint comerge cosub appdist distapp elaboration value target_step concat_typ rec_typ contained_by_rec_typ wf_typ eqIndTypTarget target_typing styp2ttyp target_flex_typing lc_texp lc_tvl lc_exp : core.
+Hint Constructors toplike eqIndTyp spl ord disjoint comerge cosub proj distapp elaboration value target_step concat_typ rec_typ contained_by_rec_typ eqIndTypTarget wf_typ wf_ctx target_typing styp2ttyp target_flex_typing lc_texp lc_exp : core.
+
+

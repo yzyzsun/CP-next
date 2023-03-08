@@ -80,9 +80,9 @@ tctx, Gt {{ tex \Gamma }} :: 'target_ctx_' ::= {{ com typing context }} {{ coq l
   | Gt , x : At    ::  :: cons     {{ coq (cons ([[x]],[[At]]) [[Gt]]) }}
                                    {{ com assumption }}
 
-tvl :: 'tvl_' ::=  {{ com target value or projection label }}
-  | tv            ::  :: exp
-  | { l }        ::  :: la
+% tvl :: 'tvl_' ::=  {{ com target value or projection label }}
+%   | tv            ::  :: exp
+%   | { l }        ::  :: la
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -240,36 +240,7 @@ ContainedByRecTyp   :: '' ::=
   Bt |> ll2 : Ct
   ------------------------------- :: Tail
   (ll1 : At , Bt) |> ll2 : Ct
-  
-defns
-WellformedTypes   :: '' ::=
 
-  defn
-  |- At
-  :: :: wf_typ :: 'WF_'
-  {{ com Type wellformedness }}
-  by
-
-  -------------------- :: Nil
-  |- Top
-
-  -------------------- :: Bot
-  |- Bot
-
-  -------------------- :: Base
-  |- Base
-
-  |- At
-  |- Bt
-  recTyp Bt
-  lookup ll Bt => At or lookup ll Bt =/>
-  ----------------------------------------- :: Rcd
-  |- ll : At , Bt
-
-  |- At
-  |- Bt
-  -------------------- :: Arrow
-  |- At -> Bt
 
 defns
 TargetEqIndexType :: '' ::=
@@ -278,6 +249,9 @@ TargetEqIndexType :: '' ::=
   At ~= Bt :: :: eqIndTypTarget :: TEI_
   {{ com Types with the same index }}
   by
+
+  --------------- :: refl
+  At ~= At
 
   At ~= Bt
   Bt ~= Ct
@@ -310,7 +284,57 @@ TargetEqIndexType :: '' ::=
   % A1 ~= A2
   % -------------------- :: dup
   % (A1&A2)&B ~= A1&B
-  
+
+
+defns
+WellformedTypes   :: '' ::=
+
+  defn
+  |- At
+  :: :: wf_typ :: 'WF_'
+  {{ com Type wellformedness }}
+  by
+
+  -------------------- :: Nil
+  |- Top
+
+  -------------------- :: Bot
+  |- Bot
+
+  -------------------- :: Base
+  |- Base
+
+  |- At
+  |- Bt
+  recTyp Bt
+  lookup ll Bt => At' or lookup ll Bt =/>
+  At ~= At'
+  ----------------------------------------- :: Rcd
+  |- ll : At , Bt
+
+  |- At
+  |- Bt
+  -------------------- :: Arrow
+  |- At -> Bt
+
+defns
+WellformedCtx   :: '' ::=
+
+  defn
+  |- Gt
+  :: :: wf_ctx :: 'WFC_'
+  {{ com Context wellformedness }}
+  by
+
+  -------------------- :: Nil
+  |- []
+
+  |- At
+  |- Gt
+  -------------------- :: Cons
+  |- Gt , x : At
+
+
 defns
 TargetTyping :: '' ::=
 
@@ -321,16 +345,16 @@ TargetTyping :: '' ::=
   by
 
   uniq Gt
+  |- Gt
   --------------------------- :: Base
   Gt |- b : Base
 
   uniq Gt
-  |- At
+  |- Gt
   x : At in Gt
   --------------------------- :: Var
   Gt |- x : At
 
-  |- At
   Gt, x:At |- t : Bt
   --------------------------- :: Abs
   Gt |- \x. t : At->Bt
@@ -345,6 +369,7 @@ TargetTyping :: '' ::=
   Gt |- t1 t2 : Bt
 
   uniq Gt
+  |- Gt
   --------------------------- :: RcdNil
   Gt |- { } : Top
 
@@ -437,7 +462,7 @@ TargetFlexTyping :: '' ::=
   defn
   Gt |- t <= At
   :: :: target_flex_typing :: 'TFTyping_'
-  {{ com Target typing }}
+  {{ com Target flex typing }}
   by
 
   Gt |- t : At

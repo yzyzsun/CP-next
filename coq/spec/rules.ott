@@ -445,61 +445,82 @@ CoSubtyping :: '' ::=
 
 
 
+% defns
+% ApplicativeDistribution :: '' ::=
+
+%   defn
+%   A |> B :: :: appdist :: AD_
+%   {{ com Applicative distribution }}
+%   {{ tex [[A]] \rhd [[B]] }}
+%   by
+
+%   ---------------- :: Arrow
+%   A -> B |> A -> B
+
+%   ----------------- :: TopArrow
+%   Top |> Top -> Top
+
+%   A |> A1 -> A2
+%   B |> B1 -> B2
+%   --------------------------- :: AndArrow
+%   A & B |> A1 & B1 -> A2 & B2
+
+%   ------------------ :: Rcd
+%   {l : A} |> {l : A}
+
+%   ---------------- :: TopRcd
+%   Top |> {l : Top}
+
+%   A |> {l : A'}
+%   B |> {l : B'}
+%   ---------------------- :: AndRcd
+%   A & B |> {l : A' & B'}
+
+
 defns
-ApplicativeDistribution :: '' ::=
+Projection :: '' ::=
 
   defn
-  A |> B :: :: appdist :: AD_
-  {{ com Applicative distribution }}
-  {{ tex [[A]] \rhd [[B]] }}
+  t1 : A ; { l } ~~> t3 : C :: :: proj :: P_
+  {{ com Distributive projection }}
   by
 
-  ---------------- :: Arrow
-  A -> B |> A -> B
+  toplike A
+  ----------------------------------------- :: Top
+  t1 : A ; { l } ~~> { } : Top
 
-  ----------------- :: TopArrow
-  Top |> Top -> Top
+  -------------------------------------------- :: RcdEq
+  t : {l : A} ; { l } ~~> t.{l : |A|} : A
 
-  A |> A1 -> A2
-  B |> B1 -> B2
-  --------------------------- :: AndArrow
-  A & B |> A1 & B1 -> A2 & B2
+  l1 <> l2
+  -------------------------------------------- :: RcdNeq
+  t : {l1 : A} ; { l2 } ~~> { } : Top
 
-  ------------------ :: Rcd
-  {l : A} |> {l : A}
-
-  ---------------- :: TopRcd
-  Top |> {l : Top}
-
-  A |> {l : A'}
-  B |> {l : B'}
-  ---------------------- :: AndRcd
-  A & B |> {l : A' & B'}
-
+  t : A ; { l } ~~> t3 : A' 
+  t : B ; { l } ~~> t4 : B'
+  ----------------------------------------- :: And
+  t1 : A & B ; { l } ~~> t3; t4 : A' & B'
 
 defns
 DistributiveApplication :: '' ::=
 
   defn
-  t1 : A ; tvl : B ~~> t3 :: :: distapp :: A_
+  t1 : A ; t2 : B ~~> t3 : C :: :: distapp :: A_
   {{ com Distributive application }}
   by
 
   toplike A
   ----------------------------------------- :: Top
-  t1 : A ; t2 : B ~~> { }
+  t1 : A ; t2 : B ~~> { } : Top
 
   t2 : C <: A ~~> t3
-  ----------------------------------------- :: Arrow
-  t1 : A -> B ; t2 : C ~~> (t1.|A->B|) t3
+  -------------------------------------------- :: Arrow
+  t1 : A -> B ; t2 : C ~~> (t1.|A->B|) t3 : B
 
-  ----------------------------------------- :: Rcd
-  t : {l : A} ; { l } : B ~~> t.{l : |A|}
-
-  t : A ; t2 : C ~~> t1
-  t : B ; t2 : C ~~> t2
+  t : A ; t2 : C ~~> t3 : A' 
+  t : B ; t2 : C ~~> t4 : B'
   ----------------------------------------- :: And
-  t : A & B ; t2 : C ~~> t1; t2
+  t1 : A & B ; t2 : C ~~> t3; t4 : A' & B'
 
 
 defns
@@ -550,10 +571,10 @@ Elaboration :: '' ::=
 
 
   G |- e1 => A ~~> t1
-  A |> B -> C
+  % A |> B -> C
   G |- e2 => B' ~~> t2
   % B' <: B
-  t1 : A ; t2 : B' ~~> t3
+  t1 : A ; t2 : B' ~~> t3 : C
   ----------------------------------------- :: App
   G |- e1 e2 => C ~~> t3
 
@@ -564,8 +585,7 @@ Elaboration :: '' ::=
 
 
   G |- e => A ~~> t1
-  A |> {l : B}
-  t1 : A ; {l} : C ~~> t2
+  t1 : A ; {l} ~~> t2 : B
   ------------------------------------------------- :: Proj
   G |- e.l => B ~~> t2
 
