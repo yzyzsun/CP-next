@@ -1,10 +1,10 @@
 --> "let x = 4 in let y = 8 in x + y is 12"
 
-type Env = String -> Int;
+type Map = String -> Int;
 
 empty = undefined;
-lookup (s : String) (env : Env) = env s;
-insert (s : String) (v : Int) (env : Env) =
+lookup (s : String) (env : Map) = env s;
+insert (s : String) (v : Int) (env : Map) =
   \(s': String) -> if s == s' then v else lookup s' env;
 
 elem (s : String) (a : [String]) =

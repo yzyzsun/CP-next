@@ -470,22 +470,26 @@ inferRec x e t = do
     "annotated" <+> show t <+> "is not a supertype of inferred" <+> show t1
 
 checkDef :: S.Def -> Checking Unit
-checkDef (S.TyDef def a sorts params t) = case def of
-  S.TypeAlias -> do
-    ctx <- gets fromState
-    case runTyping (addSorts $ addTyBinds $ transformTyDef t) ctx of
-      Left err -> throwError err
-      Right t' -> modify_ \st -> st { tyAliases = (a /\ sig t') : st.tyAliases }
-  S.Interface -> do
-    ctx <- gets fromState
-    case runTyping (addSorts $ addTyBinds $ addTyBind a C.TyTop $ transformTyDef t) ctx of
-      Left err -> throwError err
-      Right t' -> modify_ \st -> st { tyAliases = (a /\ sig (S.TyRec a t')) : st.tyAliases }
-                                               -- TODO: S.TyRec a (sig t')
-  S.InterfaceExtends super -> do
-    checkDef $ S.TyDef S.Interface (a <> "_") sorts params t
-    let self = S.TyVar (a <> "_") # withSorts # withParams
-    checkDef $ S.TyDef S.TypeAlias a sorts params (S.TyAnd super self)
+checkDef (S.TyDef def a sorts params t) = do
+  aliases <- gets (_.tyAliases)
+  if isJust $ lookup a aliases then
+    throwError $ TypeError ("type" <+> show a <+> "has already been defined") UnknownPos
+  else case def of
+    S.TypeAlias -> do
+      ctx <- gets fromState
+      case runTyping (addSorts $ addTyBinds $ transformTyDef t) ctx of
+        Left err -> throwError err
+        Right t' -> modify_ \st -> st { tyAliases = (a /\ sig t') : st.tyAliases }
+    S.Interface -> do
+      ctx <- gets fromState
+      case runTyping (addSorts $ addTyBinds $ addTyBind a C.TyTop $ transformTyDef t) ctx of
+        Left err -> throwError err
+        Right t' -> modify_ \st -> st { tyAliases = (a /\ sig (S.TyRec a t')) : st.tyAliases }
+                                                -- TODO: S.TyRec a (sig t')
+    S.InterfaceExtends super -> do
+      checkDef $ S.TyDef S.Interface (a <> "_") sorts params t
+      let self = S.TyVar (a <> "_") # withSorts # withParams
+      checkDef $ S.TyDef S.TypeAlias a sorts params (S.TyAnd super self)
   where
     dualSorts :: List (Name /\ Name)
     dualSorts = sorts <#> \sort -> sort /\ (sort <> "_")
@@ -503,7 +507,7 @@ checkDef (S.TyDef def a sorts params t) = case def of
 checkDef (S.TmDef x Nil Nil mt e) = do
   bindings <- gets (_.tmBindings)
   if isJust $ lookup x bindings then
-    throwError $ TypeError (show x <+> "has already been defined") UnknownPos
+    throwError $ TypeError ("term" <+> show x <+> "has already been defined") UnknownPos
   else do
     ctx <- gets fromState
     let typing = case mt of Just t -> inferRec x e t

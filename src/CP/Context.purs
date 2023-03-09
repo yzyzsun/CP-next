@@ -137,16 +137,17 @@ initState = { mode       : HOAS
 
 mergeStates :: REPLState -> REPLState -> Either (List Name) REPLState
 mergeStates st1 st2 =
-  let dupNames = st1.tmBindings >>= \(x /\ _ /\ _) ->
-                  st2.tmBindings >>= \(y /\ _ /\ _) ->
+  let dupTms = st1.tmBindings >>= \(x /\ _ /\ _) ->
+                 st2.tmBindings >>= \(y /\ _ /\ _) ->
+                   if x == y then singleton x else Nil
+      dupTys = st1.tyAliases >>= \(x /\ _) ->
+                 st2.tyAliases >>= \(y /\ _) ->
                    if x == y then singleton x else Nil in
-  if null dupNames
+  if null dupTms && null dupTys
   then Right $ initState { tmBindings = st1.tmBindings <> st2.tmBindings
                          , tyAliases = st1.tyAliases <> st2.tyAliases
-                         -- in the case of duplicate type aliases, the kvlist-to-map function
-                         -- `fromFoldable` prefers later values (`st2`) over earlier ones (`st1`)
                          }
-  else Left dupNames
+  else Left $ dupTms <> dupTys
 
 runChecking :: forall a. Checking a -> REPLState -> Either TypeError (a /\ REPLState)
 runChecking m st = runExcept $ runStateT m st
