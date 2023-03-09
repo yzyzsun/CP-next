@@ -356,7 +356,7 @@ ty = fix \t -> buildExprParser toperators $ cty t
 
 cty :: SParser Ty -> SParser Ty
 cty t = foldl TyApp <$> bty t <*> many (bty t) <|>
-        forallTy <|> traitTy
+        forallTy <|> traitTy <|> absTy
 
 bty :: SParser Ty -> SParser Ty
 bty t = foldl TyApp <$> aty t <*> many (sortTy t)
@@ -395,6 +395,18 @@ traitTy = do
     ti <- optional (try (ty <* symbol "=>"))
     to <- ty
     pure $ TyTrait ti to
+
+-- used for serialization of type aliases
+absTy :: SParser Ty
+absTy = do
+  symbol "\\"
+  e <- choice [ Left <$> try upperIdentifier
+              , Right <$> angles (Tuple <$> upperIdentifier <* symbol "," <*> upperIdentifier)
+              ]
+  symbol "->"
+  t <- ty
+  pure $ case e of Left a -> TyAbs a t
+                   Right (Tuple a b) -> TySig a b t
 
 recordTy :: SParser Ty
 recordTy = braces $ TyRcd <$> sepEndBySemi do

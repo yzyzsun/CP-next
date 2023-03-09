@@ -9,7 +9,7 @@ import Data.Array.NonEmpty (NonEmptyArray, foldl1, fromArray, (!!))
 import Data.Either (Either(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Data.String (Pattern(..), drop, lastIndexOf, length, null, splitAt, stripPrefix, trim)
+import Data.String (Pattern(..), drop, lastIndexOf, length, splitAt, stripPrefix, trim)
 import Data.String.Regex (Regex, match, replace)
 import Data.String.Regex.Flags (global, noFlags)
 import Data.String.Regex.Unsafe (unsafeRegex)
@@ -23,11 +23,11 @@ import Effect.Console (log)
 import Effect.Exception (message, try)
 import Effect.Now (nowTime)
 import Effect.Ref (Ref, modify_, new, read, write)
-import Language.CP (compile, importDefs, inferType, interpret)
-import Language.CP.Context (Mode(..), REPLState, clearEnv, fromState, initState, mergeStates, ppState, runChecking, runTyping)
+import Language.CP (compile, deserialize, importDefs, inferType, interpret, serialize, showParseError)
+import Language.CP.Context (Mode(..), REPLState, clearEnv, fromState, initState, mergeStates, runChecking, runTyping)
 import Language.CP.Util (unsafeFromJust)
 import Node.Encoding (Encoding(..))
-import Node.FS.Stats (isDirectory)
+import Node.FS.Stats (Stats(..), isDirectory)
 import Node.FS.Sync as Sync
 import Node.Path (FilePath, concat, dirname, sep)
 import Node.Process (cwd, exit)
@@ -75,7 +75,7 @@ showOrClearEnv :: Cmd
 showOrClearEnv arg ref = case arg of
   "" -> do
     st <- read ref
-    log $ ppState st
+    log $ serialize st
   "clear" -> modify_ clearEnv ref
   other -> fatal $ "Invalid argument: " <> other
 
@@ -111,51 +111,82 @@ evalProg code ref = do
 compileFile :: Cmd
 compileFile file ref = do
   beginTime <- nowTime
-  code <- readTextFile file
-  void $ compileJS file code \_ -> do
+  success <- compileJS file
+  if success then do
     compileTime <- nowTime
     st <- read ref
     if st.timing then let seconds = showSeconds $ diff compileTime beginTime in
       info $ "Compile time: " <> seconds
     else pure unit
-    f <- jsfile file
-    require f \_ -> do
+    workDir <- cwd
+    let file' = concat [workDir, extJS file]
+    require file' \_ -> do
       endTime <- nowTime
       if st.timing then let seconds = showSeconds $ diff endTime compileTime in
         info $ "Run time: " <> seconds
       else pure unit
-    pure $ "" /\ initState
+  else pure unit
   where
-    compileLibs :: FilePath -> String -> Effect (String /\ REPLState)
-    compileLibs path program = matchOpen path program
-      (\libName libFile libCode -> compileJS libFile libCode \st -> do
-        f <- jsfile libFile
-        s /\ st' <- compileLibs path $ replace openRegex (importAll libName f) program
-        case mergeStates st st' of
-          Right st'' -> pure $ s /\ st''
-          Left names -> fatal (show names <> " in " <> show libName <> " have been defined") $> "" /\ initState)
-      (\s -> pure $ s /\ initState)
-    importAll :: String -> FilePath -> String
-    importAll n f = "{-# PRELUDE\n"
-                 <> "import * as " <> n <> " from " <> show f <> ";\n"
-                 <> "for (var [key, value] of Object.entries(" <> n <> ")) "
-                 <> "{ global[key] = value; }\n"
-                 <> "#-}\n"
-    -- TODO: check if the file is already compiled and up to date
-    compileJS :: FilePath -> String -> (REPLState -> Effect (String /\ REPLState)) -> Effect (String /\ REPLState)
-    compileJS filepath code callback = do
-      program /\ st <- compileLibs (dirname file) code
-      if null program then pure $ "" /\ initState
-      else case compile program st of
-        Left err -> fatal err $> "" /\ initState
-        Right (js /\ st') -> do
-          f <- jsfile filepath
-          writeTextFile f js
-          callback st'
-    jsfile :: FilePath -> Effect FilePath
-    jsfile filepath = do
+    compileJS :: FilePath -> Effect Boolean
+    compileJS f = do
+      code <- readTextFile f
+      mst <- loadHeaders code
+      case mst of Just st -> do program <- importLibs code
+                                case compile program st of
+                                  Left err -> fatal err $> false
+                                  Right (js /\ h) -> do
+                                    writeTextFile (extJS f) js
+                                    writeTextFile (extHeader f) h
+                                    pure true
+                  Nothing -> pure false
+    loadHeaders :: String -> Effect (Maybe REPLState)
+    loadHeaders code = matchOpen dir code (const (pure (Just initState))) \n f -> do
+      mst <- loadHeader f
+      mst' <- loadHeaders (replace openRegex "" code)
+      case mst, mst' of
+        Just st, Just st' -> case mergeStates st st' of
+          Right st'' -> pure $ Just st''
+          Left names -> fatal (show names <> " in " <> show n <> " have been defined") $> Nothing
+        _, _ -> pure Nothing
+    loadHeader :: FilePath -> Effect (Maybe REPLState)
+    loadHeader f = do
+      Stats cp <- Sync.stat f
+      header <- try $ Sync.stat (extHeader f)
+      case header of
+        Right (Stats h) -> if cp.mtime <= h.mtime then do
+                             text <- readTextFile (extHeader f)
+                             text' <- includeHeaders text
+                             case deserialize text' of
+                               Left err -> fatal (showParseError err text') $> Nothing
+                               Right st -> pure $ Just st
+                           else compileJS f *> loadHeader f
+        Left _ -> compileJS f *> loadHeader f
+    includeHeaders :: String -> Effect String
+    includeHeaders code = case match includeRegex code of
+      Just arr -> do
+        let f = unsafeFromJust $ unsafeFromJust $ arr !! 1
+        text <- readTextFile f
+        includeHeaders $ replace includeRegex text code
+      Nothing -> pure code
+    includeRegex :: Regex
+    includeRegex = unsafeRegex """include\s+"([^"]+)"\s*;""" noFlags
+    importLibs :: String -> Effect String
+    importLibs code = matchOpen dir code pure \n f -> do
       workDir <- cwd
-      pure $ concat [workDir, filepath <> ".mjs"]
+      let f' = concat [workDir, f]
+      importLibs $ replace openRegex (preludeAll n f') code
+    preludeAll :: String -> FilePath -> String
+    preludeAll n f = "{-# PRELUDE H\n"
+                  <> "include " <> show (extHeader f) <> ";\n"
+                  <> "#-}\n"
+                  <> "{-# PRELUDE CP\n"
+                  <> "import * as " <> n <> " from " <> show (extJS f) <> ";\n"
+                  <> "for (var [key, value] of Object.entries(" <> n <> ")) "
+                  <> "{ global[key] = value; }\n"
+                  <> "#-}\n"
+    dir = dirname file
+    extHeader = (_ <> ".h")
+    extJS = (_ <> ".mjs")
 
 errorCmd :: Cmd
 errorCmd input ref = do
@@ -296,23 +327,19 @@ writeTextFile f t = do
                  Left err -> fatal (message err)
 
 preprocess :: FilePath -> String -> Effect String
-preprocess path program = matchOpen path program resolve pure
-  where resolve _ _ code = preprocess path $
-          replace openRegex (replace lineRegex " " code) program
-        lineRegex = unsafeRegex """(--.*)?[\r\n]+""" global
+preprocess path program = matchOpen path program pure \_ f -> do
+  text <- readTextFile f
+  preprocess path $ replace openRegex (replace lineRegex " " text) program
+  where lineRegex = unsafeRegex """(--.*)?[\r\n]+""" global
 
-matchOpen :: forall a. FilePath -> String
-          -> (String -> String -> String -> Effect a)
-          -> (String -> Effect a)
-          -> Effect a
-matchOpen path program hit miss = case match openRegex program of
+matchOpen :: forall a. FilePath -> String -> (String -> Effect a) -> (String -> String -> Effect a) -> Effect a
+matchOpen path program miss hit = case match openRegex program of
+  Nothing -> miss program
   Just arr -> do
     let name = unsafeFromJust $ unsafeFromJust $ arr !! 1
-        file = filepath name
-    text <- readTextFile file
-    hit name file text
-  Nothing -> miss program
-  where filepath name = concat [path, name <> ".lib"]
+        file = lib name
+    hit name file
+  where lib name = concat [path, name <> ".lib"]
 
 openRegex :: Regex
 openRegex = unsafeRegex """open\s+(\w+)\s*;""" noFlags

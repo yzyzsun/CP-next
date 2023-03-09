@@ -9,7 +9,6 @@ import Data.Array (all, elem, head, notElem, null, unzip)
 import Data.Either (Either(..))
 import Data.Foldable (foldl, foldr, lookup, traverse_)
 import Data.List (List(..), filter, last, singleton, sort, (:))
-import Data.Map (insert)
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Set as Set
 import Data.Traversable (for, traverse)
@@ -476,20 +475,20 @@ checkDef (S.TyDef def a sorts params t) = case def of
     ctx <- gets fromState
     case runTyping (addSorts $ addTyBinds $ transformTyDef t) ctx of
       Left err -> throwError err
-      Right t' -> modify_ \st -> st { tyAliases = insert a (sig t') st.tyAliases }
+      Right t' -> modify_ \st -> st { tyAliases = (a /\ sig t') : st.tyAliases }
   S.Interface -> do
     ctx <- gets fromState
     case runTyping (addSorts $ addTyBinds $ addTyBind a C.TyTop $ transformTyDef t) ctx of
       Left err -> throwError err
-      Right t' -> modify_ \st -> st { tyAliases = insert a (sig (S.TyRec a t')) st.tyAliases }
-                                               -- TODO:    (S.TyRec a (sig t'))
+      Right t' -> modify_ \st -> st { tyAliases = (a /\ sig (S.TyRec a t')) : st.tyAliases }
+                                               -- TODO: S.TyRec a (sig t')
   S.InterfaceExtends super -> do
-    checkDef $ S.TyDef S.Interface ("$" <> a) sorts params t
-    let self = S.TyVar ("$" <> a) # withSorts # withParams
+    checkDef $ S.TyDef S.Interface (a <> "_") sorts params t
+    let self = S.TyVar (a <> "_") # withSorts # withParams
     checkDef $ S.TyDef S.TypeAlias a sorts params (S.TyAnd super self)
   where
     dualSorts :: List (Name /\ Name)
-    dualSorts = sorts <#> \sort -> sort /\ ("$" <> sort)
+    dualSorts = sorts <#> \sort -> sort /\ (sort <> "_")
     addSorts :: forall a. Typing a -> Typing a
     addSorts typing = foldr (uncurry addSort) typing dualSorts
     addTyBinds :: forall a. Typing a -> Typing a

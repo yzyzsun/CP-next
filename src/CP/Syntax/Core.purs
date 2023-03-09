@@ -36,10 +36,10 @@ instance Show Ty where
   show TyDouble = "Double"
   show TyString = "String"
   show TyBool   = "Bool"
-  show TyTop    = "⊤"
-  show TyBot    = "⊥"
+  show TyTop    = "Top"
+  show TyBot    = "Bot"
   show (TyArrow ti to true) = "Trait" <> angles (show ti <+> "=>" <+> show to)
-  show (TyArrow t1 t2 false) = parens $ show t1 <+> "→" <+> show t2
+  show (TyArrow t1 t2 false) = parens $ show t1 <+> "->" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
   -- Optional record types can be regarded just as Top, but
   -- they can help casting keep corresponding fields if present.
@@ -47,8 +47,8 @@ instance Show Ty where
     l <> (if opt then "?" else "") <+> ":" <+> show t
   show (TyVar a) = a
   show (TyForall a td t) = parens $
-    "∀" <> a <+> "*" <+> show td <> "." <+> show t
-  show (TyRec a t) = parens $ "μ" <+> a <> "." <+> show t
+    "forall" <+> a <+> "*" <+> show td <> "." <+> show t
+  show (TyRec a t) = parens $ "mu" <+> a <> "." <+> show t
   show (TyArray t) = brackets $ show t
 
 derive instance Eq Ty

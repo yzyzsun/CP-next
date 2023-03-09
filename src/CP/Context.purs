@@ -9,7 +9,7 @@ import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.List (List(..), null, singleton)
-import Data.Map (Map, empty, fromFoldable, insert, lookup, toUnfoldable, union)
+import Data.Map (Map, empty, fromFoldable, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
@@ -120,18 +120,19 @@ derive instance Generic Mode _
 instance Show Mode where show = genericShow
 
 type TmBindings = List (Name /\ C.Ty /\ (C.Tm -> C.Tm))
+type TyAliases = List (Name /\ S.Ty)
 
 type REPLState =  { mode       :: Mode
                   , timing     :: Boolean
                   , tmBindings :: TmBindings
-                  , tyAliases  :: Map Name S.Ty
+                  , tyAliases  :: TyAliases
                   }
 
 initState :: REPLState
 initState = { mode       : HOAS
             , timing     : false
             , tmBindings : Nil
-            , tyAliases  : empty
+            , tyAliases  : Nil
             }
 
 mergeStates :: REPLState -> REPLState -> Either (List Name) REPLState
@@ -140,31 +141,22 @@ mergeStates st1 st2 =
                   st2.tmBindings >>= \(y /\ _ /\ _) ->
                    if x == y then singleton x else Nil in
   if null dupNames
-  then Right $ initState { tmBindings = st2.tmBindings <> st1.tmBindings
-                         -- prefer `st2` in the case of duplicate type aliases
-                         , tyAliases = union st2.tyAliases st1.tyAliases
+  then Right $ initState { tmBindings = st1.tmBindings <> st2.tmBindings
+                         , tyAliases = st1.tyAliases <> st2.tyAliases
+                         -- in the case of duplicate type aliases, the kvlist-to-map function
+                         -- `fromFoldable` prefers later values (`st2`) over earlier ones (`st1`)
                          }
   else Left dupNames
 
 runChecking :: forall a. Checking a -> REPLState -> Either TypeError (a /\ REPLState)
 runChecking m st = runExcept $ runStateT m st
 
-toList :: forall k v. Map k v -> List (k /\ v)
-toList = toUnfoldable
-
-ppState :: REPLState -> String
-ppState st = S.intercalate' "\n" (map ppTmBinding st.tmBindings) <>
-  S.intercalate' "\n" (map ppTyAlias $ toList st.tyAliases)
-  where
-    ppTmBinding (x /\ t /\ _) = "term " <> x <> " : " <> show t
-    ppTyAlias (x /\ t) = "type " <> x <> " = " <> show t
-
 clearEnv :: REPLState -> REPLState
-clearEnv st = st { tmBindings = Nil, tyAliases = empty }
+clearEnv st = st { tmBindings = Nil, tyAliases = Nil }
 
 fromState :: REPLState -> Ctx
 fromState b = { tmBindEnv  : fromFoldable $ rmap fst <$> b.tmBindings
-              , tyAliasEnv : b.tyAliases
+              , tyAliasEnv : fromFoldable b.tyAliases
               , tyBindEnv  : empty
               , sortEnv    : empty
               , letVars    : Set.fromFoldable $ fst <$> b.tmBindings
