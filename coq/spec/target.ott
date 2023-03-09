@@ -359,7 +359,8 @@ TargetTyping :: '' ::=
   --------------------------- :: Abs
   Gt |- \x. t : At->Bt
 
-  Gt, x:At |- t : At
+  Gt, x:Bt |- t : At
+  At ~= Bt
   --------------------------- :: Fix
   Gt |- fix x. t : At
 

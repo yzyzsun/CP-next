@@ -668,8 +668,9 @@ Inductive target_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target_typi
  | TTyping_Abs : forall (L:vars) (Gt:tctx) (t:texp) (At Bt:ttyp),
       ( forall x , x \notin  L  -> target_typing  (cons ( x , At )  Gt )   ( open_texp_wrt_texp t (texp_var_f x) )  Bt )  ->
      target_typing Gt (texp_abs t) (ttyp_arrow At Bt)
- | TTyping_Fix : forall (L:vars) (Gt:tctx) (t:texp) (At:ttyp),
-      ( forall x , x \notin  L  -> target_typing  (cons ( x , At )  Gt )   ( open_texp_wrt_texp t (texp_var_f x) )  At )  ->
+ | TTyping_Fix : forall (L:vars) (Gt:tctx) (t:texp) (At Bt:ttyp),
+      ( forall x , x \notin  L  -> target_typing  (cons ( x , Bt )  Gt )   ( open_texp_wrt_texp t (texp_var_f x) )  At )  ->
+     eqIndTypTarget At Bt ->
      target_typing Gt (texp_fixpoint t) At
  | TTyping_App : forall (Gt:tctx) (t1 t2:texp) (Bt At:ttyp),
      target_typing Gt t1 (ttyp_arrow At Bt) ->

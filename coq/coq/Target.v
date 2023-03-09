@@ -240,8 +240,8 @@ Proof with eauto using context_wf_compose_middle.
       apply~ H0.
       solve_uniq.
     + (* fix *)
-      pick fresh x and apply TTyping_Fix.
-      rewrite_env (([(x, At)] ++ E) ++ F ++ G).
+      pick fresh x and apply TTyping_Fix...
+      rewrite_env (([(x, Bt)] ++ E) ++ F ++ G).
       apply~ H0.
       solve_uniq.
 Qed.
@@ -291,7 +291,7 @@ Proof with eauto using context_wf_inv_1, context_wf_inv_2.
     eauto.
   - (* fixpoint *)
     pick fresh x and apply TTyping_Fix...
-    rewrite_env (((x, At) :: F) ++ E).
+    rewrite_env (((x, Bt) :: F) ++ E).
     rewrite subst_texp_open_texp_wrt_texp_var...
 Qed.
 
@@ -315,6 +315,25 @@ Proof.
     lets HW: target_typing_wf_2 HT. inverts* HW.
 Qed.
 
+Lemma eqIndTypTarget_arrow_inv : forall A B C,
+    eqIndTypTarget (ttyp_arrow A B) C -> exists C1 C2, C = ttyp_arrow C1 C2.
+Proof with eauto.
+  introv HE. inductions HE...
+  - forwards* (?&?&?): IHHE1. subst*.
+    forwards* (?&?&?): IHHE2.
+Admitted.
+
+Lemma eqIndTypTarget_arrow_inv_1 : forall A B C1 C2,
+    eqIndTypTarget (ttyp_arrow A B) (ttyp_arrow C1 C2) -> eqIndTypTarget A C1.
+Proof with eauto.
+  introv HE. inductions HE...
+Admitted.
+
+Lemma eqIndTypTarget_arrow_inv_2 : forall A B C1 C2,
+    eqIndTypTarget (ttyp_arrow A B) (ttyp_arrow C1 C2) -> eqIndTypTarget B C2.
+Proof with eauto.
+  introv HE. inductions HE...
+Admitted.
 
 Lemma substitution_preserves_typing_relax : forall E F t u S S' T z,
     target_typing (F ++ [(z,S)] ++ E) t T ->
@@ -347,16 +366,26 @@ Proof with eauto using context_wf_inv_1, context_wf_inv_2.
     applys* subst_texp_fresh_mutual; solve_notin.
   - (* fixpoint *)
     pick fresh x. instantiate_cofinites...
-    rewrite_env (((x, At) :: F) ++ [(z, S)] ++ E) in H...
+    rewrite_env (((x, Bt) :: F) ++ [(z, S)] ++ E) in H...
     forwards* (T' & ? & HT): H0 H.
     exists T'. split*.
     pick fresh y and apply TTyping_Fix.
-    rewrite_env ((x, At) :: F ++ E) in HT.
+    rewrite_env ((x, Bt) :: F ++ E) in HT.
     rewrite <- subst_texp_open_texp_wrt_texp_var in HT...
     forwards* : subst_var_typing HT.
     applys* subst_texp_fresh_mutual; solve_notin.
     applys notin_union_3. solve_notin.
     applys* subst_texp_fresh_mutual; solve_notin.
+    applys* TEI_trans.
+  - (* app *)
+    forwards* (? & He & HT1): IHT1_1. forwards* (? & ? & HT2): IHT1_2.
+    forwards* (?&?&?): eqIndTypTarget_arrow_inv He. subst*.
+    exists x2. split*.
+    forwards* : eqIndTypTarget_arrow_inv_2 He.
+Abort.
+    applys* TTyping_App HT1 HT2.
+    assert x =
+Qed.
 Abort.
     pick fresh x and apply TTyping_Fix...
     rewrite_env (((x, At) :: F) ++ E).
