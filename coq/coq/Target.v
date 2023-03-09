@@ -345,9 +345,19 @@ Proof with eauto using context_wf_inv_1, context_wf_inv_2.
     applys* subst_texp_fresh_mutual; solve_notin.
     applys notin_union_3. solve_notin.
     applys* subst_texp_fresh_mutual; solve_notin.
-  - Abort.
-
   - (* fixpoint *)
+    pick fresh x. instantiate_cofinites...
+    rewrite_env (((x, At) :: F) ++ [(z, S)] ++ E) in H...
+    forwards* (T' & ? & HT): H0 H.
+    exists T'. split*.
+    pick fresh y and apply TTyping_Fix.
+    rewrite_env ((x, At) :: F ++ E) in HT.
+    rewrite <- subst_texp_open_texp_wrt_texp_var in HT...
+    forwards* : subst_var_typing HT.
+    applys* subst_texp_fresh_mutual; solve_notin.
+    applys notin_union_3. solve_notin.
+    applys* subst_texp_fresh_mutual; solve_notin.
+Abort.
     pick fresh x and apply TTyping_Fix...
     rewrite_env (((x, At) :: F) ++ E).
     rewrite subst_texp_open_texp_wrt_texp_var...
