@@ -264,12 +264,13 @@ TargetEqIndexType :: '' ::=
 
   At1 ~= At2
   Bt1 ~= Bt2
-  ---------------- :: arrow
+  ---------------------- :: arrow
   At1->Bt1 ~= At2->Bt2
 
   At ~= Bt
-  --------------- :: rcd
-  {l:At} ~= {l:Bt}
+  Ct ~= Ct'
+  ------------------------- :: rcd
+  ll:At, Ct ~= ll:Bt, Ct'
 
   % --------------- :: comm
   % At&Bt ~= Bt&At
@@ -365,7 +366,8 @@ TargetTyping :: '' ::=
   Gt |- fix x. t : At
 
   Gt |- t1 : At->Bt
-  Gt |- t2 : At
+  Gt |- t2 : At'
+  At ~= At'
   --------------------------- :: App
   Gt |- t1 t2 : Bt
 

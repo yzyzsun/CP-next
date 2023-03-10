@@ -621,9 +621,10 @@ Inductive eqIndTypTarget : ttyp -> ttyp -> Prop :=    (* defn eqIndTypTarget *)
      eqIndTypTarget At1 At2 ->
      eqIndTypTarget Bt1 Bt2 ->
      eqIndTypTarget (ttyp_arrow At1 Bt1) (ttyp_arrow At2 Bt2)
- | TEI_rcd : forall (l:label) (At Bt:ttyp),
+ | TEI_rcd : forall (ll:tindex) (At Ct Bt Ct':ttyp),
      eqIndTypTarget At Bt ->
-     eqIndTypTarget  (ttyp_rcd  (ti_string l)   At  ttyp_top)   (ttyp_rcd  (ti_string l)   Bt  ttyp_top) .
+     eqIndTypTarget Ct Ct' ->
+     eqIndTypTarget (ttyp_rcd ll At Ct) (ttyp_rcd ll Bt Ct').
 
 (* defns WellformedTypes *)
 Inductive wf_typ : ttyp -> Prop :=    (* defn wf_typ *)
@@ -672,9 +673,10 @@ Inductive target_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target_typi
       ( forall x , x \notin  L  -> target_typing  (cons ( x , Bt )  Gt )   ( open_texp_wrt_texp t (texp_var_f x) )  At )  ->
      eqIndTypTarget At Bt ->
      target_typing Gt (texp_fixpoint t) At
- | TTyping_App : forall (Gt:tctx) (t1 t2:texp) (Bt At:ttyp),
+ | TTyping_App : forall (Gt:tctx) (t1 t2:texp) (Bt At At':ttyp),
      target_typing Gt t1 (ttyp_arrow At Bt) ->
-     target_typing Gt t2 At ->
+     target_typing Gt t2 At' ->
+     eqIndTypTarget At At' ->
      target_typing Gt (texp_app t1 t2) Bt
  | TTyping_RcdNil : forall (Gt:tctx),
       uniq  Gt  ->

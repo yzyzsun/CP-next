@@ -5,12 +5,33 @@ Require Import Arith Lia.
 Require Import Infrastructure.
 
 
-Lemma eqIndTypTarget_refl : forall T,
-    eqIndTypTarget T T.
+
+Lemma eqIndTypTarget_wf_typ : forall A B,
+    eqIndTypTarget A B -> wf_typ A -> wf_typ B.
 Proof.
 Admitted.
 
-#[local] Hint Resolve eqIndTypTarget_refl : core.
+Lemma eqIndTypTarget_rec_typ : forall A B,
+    eqIndTypTarget A B -> rec_typ A -> rec_typ B.
+Proof.
+Admitted.
+
+Lemma eqIndTypTarget_lookup_none : forall A B l,
+    eqIndTypTarget A B -> Tlookup l A = None -> Tlookup l B = None.
+Proof.
+Admitted.
+
+Lemma eqIndTypTarget_lookup_some : forall A B l C,
+    eqIndTypTarget A B -> Tlookup l A = Some C ->
+    exists C', eqIndTypTarget C C' /\ Tlookup l B = Some C'.
+Proof.
+Admitted.
+
+Lemma eqIndTypTarget_concat_typ : forall A B C A' B',
+    concat_typ A B C -> eqIndTypTarget A A' -> eqIndTypTarget B B' ->
+    exists C', concat_typ A' B' C' /\ eqIndTypTarget C C'.
+Proof.
+Admitted.
 
 Lemma wf_rcd_lookup : forall i T Ti,
   wf_typ T ->
@@ -323,6 +344,12 @@ Proof with eauto.
     forwards* (?&?&?): IHHE2.
 Admitted.
 
+Lemma eqIndTypTarget_rcd_inv : forall l A B C1 C2,
+    eqIndTypTarget (ttyp_rcd l A B) (ttyp_rcd l C1 C2) -> A = C1.
+Proof with eauto.
+  introv HE. inductions HE...
+Admitted.
+
 Lemma eqIndTypTarget_arrow_inv_1 : forall A B C1 C2,
     eqIndTypTarget (ttyp_arrow A B) (ttyp_arrow C1 C2) -> eqIndTypTarget A C1.
 Proof with eauto.
@@ -382,34 +409,38 @@ Proof with eauto using context_wf_inv_1, context_wf_inv_2.
     forwards* (?&?&?): eqIndTypTarget_arrow_inv He. subst*.
     exists x2. split*.
     forwards* : eqIndTypTarget_arrow_inv_2 He.
-Abort.
     applys* TTyping_App HT1 HT2.
-    assert x =
+    forwards* : eqIndTypTarget_arrow_inv_1 He.
+  - (* cons *)
+    forwards* (? & He & HT1): IHT1_1. forwards* (? & ? & HT2): IHT1_2.
+    destruct* H0.
+    + forwards* (?&?&Heq): eqIndTypTarget_lookup_some Bt x0 ll.
+      exists. split.
+      2: applys TTyping_RcdCons HT1 HT2.
+      applys* TEI_rcd.
+      applys* eqIndTypTarget_rec_typ.
+      left*.
+      applys* TEI_trans.
+    + forwards* Heq: eqIndTypTarget_lookup_none Bt ll.
+      exists. split.
+      2: applys TTyping_RcdCons HT1 HT2.
+      applys* TEI_rcd.
+      applys* eqIndTypTarget_rec_typ.
+      right*.
+      applys* TEI_trans.
+  - (* proj *)
+    forwards* (? & He & HT1): IHT1.
+    forwards* Heq: eqIndTypTarget_lookup_some ll He.
+  - (* merge *)
+    forwards* (? & He & HT1): IHT1_1. forwards* (? & ? & HT2): IHT1_2.
+    forwards* (T & HC &?): eqIndTypTarget_concat_typ H1.
+    exists T. split*.
+    applys* TTyping_RcdMerge HC.
+    all: applys* eqIndTypTarget_rec_typ.
 Qed.
-Abort.
-    pick fresh x and apply TTyping_Fix...
-    rewrite_env (((x, At) :: F) ++ E).
-    rewrite subst_texp_open_texp_wrt_texp_var...
-    applys* H0.
-    eauto.
 
 
-    exists. split.
-    eapply (Typ_abs (union L (singleton z))); eauto.
-    intros.
-    forwards~(?&?&?): H0 x.
-    rewrite_env (([(x, A)] ++ F) ++ [(z, S)] ++ E).
-    reflexivity.
-    (* lc_e_abs_exists *)
-    rewrite subst_exp_open_exp_wrt_exp_var; auto.
-    rewrite_env (([(x, A)] ++ F) ++ E).
-    apply subsub2sub in H3.
-    forwards*: Typing_chk_sub H2 H3.
-    auto.
-Qed.
-
-
-Theorem preservation : forall t t' T,
+Theorem preservation : forall t' t T,
     target_typing [] t T ->
     t >-> t' ->
     exists T', eqIndTypTarget T T' /\ target_typing [] t' T'.
@@ -422,31 +453,70 @@ Proof with eauto using rcd_typ_concat.
     rewrite* (subst_texp_intro x).
     assert (Heq: [] = @app (atom * ttyp) [] []) by eauto.
     rewrite Heq.
-    applys* substitution_preserves_typing.
+    applys* substitution_preserves_typing_relax.
   - (* app *)
     inverts* Red.
-    + inverts* Typ1.
-      pick fresh x. forwards*: H6 x.
+    + forwards* (?&?&?): IHTyp1;
+      forwards (?&?&?): eqIndTypTarget_arrow_inv; try tassumption; subst;
+      forwards: eqIndTypTarget_arrow_inv_1; try tassumption;
+        forwards: eqIndTypTarget_arrow_inv_2; try tassumption; exists; eauto.
+    + forwards* (?&?&?): IHTyp2;
+      forwards (?&?&?): eqIndTypTarget_arrow_inv; try tassumption; subst;
+      forwards: eqIndTypTarget_arrow_inv_1; try tassumption;
+      forwards: eqIndTypTarget_arrow_inv_2; try tassumption; exists; eauto.
+    + inverts* Typ1; try solve_by_invert.
+      pick fresh x. forwards*: H5 x.
       rewrite* (subst_texp_intro x).
       assert (Heq: [] = @app (atom * ttyp) [] []) by eauto.
       rewrite Heq.
-      applys* substitution_preserves_typing.
-  - (* proj *)
-    inverts* Red.
-    forwards* (?&?&?): lookup_field_in_value H.
-    assert (x=t'). {
-      rewrite H0 in H4. inverts~ H4.
-    }
-    subst~.
+      applys* substitution_preserves_typing_relax.
   - (* cons *)
     inverts* Red.
-    + inverts Typ1. inverts~ H1.
+    + forwards* (?&?&?): IHTyp1. destruct H0.
+      * forwards* (?&?&?): eqIndTypTarget_lookup_some ll H0.
+        exists. split.
+        2: applys* TTyping_RcdCons H3 Typ2.
+        eauto.
+      * forwards* Heq: eqIndTypTarget_lookup_none ll H0.
+        exists. split.
+        2: applys* TTyping_RcdCons H3 Typ2. eauto.
+    + forwards* (?&?&?): IHTyp2. destruct H0.
+      * forwards* (?&?&?): eqIndTypTarget_lookup_some ll H0.
+        exists. split.
+        2: applys* TTyping_RcdCons Typ1 H3.
+        eauto. applys* eqIndTypTarget_rec_typ.
+      * forwards* Heq: eqIndTypTarget_lookup_none ll H0.
+        exists. split.
+        2: applys* TTyping_RcdCons Typ1 H3.
+        eauto. applys* eqIndTypTarget_rec_typ.
+  - (* proj *)
+    inverts* Red.
+    + forwards* (?&?&?): IHTyp.
+      forwards* (?&?&?): eqIndTypTarget_lookup_some ll H0.
+    + exists; eauto.
+      forwards* (?&?&?): lookup_field_in_value H.
+      assert (x=t'). {
+        rewrite H0 in H4. inverts~ H4.
+      } subst~.
+  - (* merge *)
+    inverts* Red.
+    + forwards* (?&?&?): IHTyp1.
+      forwards (T'&?&?): eqIndTypTarget_concat_typ H1; try tassumption; eauto.
+      exists* T'. split*. applys* TTyping_RcdMerge Typ2 H5.
+      applys* eqIndTypTarget_rec_typ.
+    + forwards* (?&?&?): IHTyp2.
+      forwards (T'&?&?): eqIndTypTarget_concat_typ H1; try tassumption; eauto.
+      exists* T'. split*. applys* TTyping_RcdMerge Typ1 H5.
+      applys* eqIndTypTarget_rec_typ.
+    + inverts Typ1. inverts* H1.
     + inverts Typ1. inverts~ H1.
       destruct H9.
-      * applys* TTyping_RcdCons...
-        forwards*: lookup_concat_typ. left. rewrite* H2.
-      * applys* TTyping_RcdCons...
-        forwards*: lookup_concat_typ_none.
-        rewrite H2.
+      * forwards* (?&?&?): eqIndTypTarget_lookup_some ll H1.
+        exists. split*. applys* TTyping_RcdCons...
+        forwards*: lookup_concat_typ. left. rewrite* H6.
+      * forwards*: lookup_concat_typ_none.
+        exists. split. applys TEI_refl.
+        applys TTyping_RcdCons; try applys TEI_refl; eauto.
+        applys* rcd_typ_concat H16. rewrite H2.
         destruct H15 as [Heq|Heq]; rewrite Heq; eauto.
 Qed.
