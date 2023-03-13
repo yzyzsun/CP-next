@@ -272,6 +272,9 @@ TargetEqIndexType :: '' ::=
   ------------------------- :: rcd
   ll:At, Ct ~= ll:Bt, Ct'
 
+  ------------------------------------------ :: comm
+  ll1:At, (ll2:Bt, Ct) ~= ll2:Bt, (ll1:At, Ct')
+
   % --------------- :: comm
   % At&Bt ~= Bt&At
 

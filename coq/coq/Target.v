@@ -3,35 +3,8 @@ Require Import Metalib.Metatheory.
 Require Import List. Import ListNotations.
 Require Import Arith Lia.
 Require Import Infrastructure.
+Require Import Translation.
 
-
-
-Lemma eqIndTypTarget_wf_typ : forall A B,
-    eqIndTypTarget A B -> wf_typ A -> wf_typ B.
-Proof.
-Admitted.
-
-Lemma eqIndTypTarget_rec_typ : forall A B,
-    eqIndTypTarget A B -> rec_typ A -> rec_typ B.
-Proof.
-Admitted.
-
-Lemma eqIndTypTarget_lookup_none : forall A B l,
-    eqIndTypTarget A B -> Tlookup l A = None -> Tlookup l B = None.
-Proof.
-Admitted.
-
-Lemma eqIndTypTarget_lookup_some : forall A B l C,
-    eqIndTypTarget A B -> Tlookup l A = Some C ->
-    exists C', eqIndTypTarget C C' /\ Tlookup l B = Some C'.
-Proof.
-Admitted.
-
-Lemma eqIndTypTarget_concat_typ : forall A B C A' B',
-    concat_typ A B C -> eqIndTypTarget A A' -> eqIndTypTarget B B' ->
-    exists C', concat_typ A' B' C' /\ eqIndTypTarget C C'.
-Proof.
-Admitted.
 
 Lemma wf_rcd_lookup : forall i T Ti,
   wf_typ T ->
@@ -335,32 +308,6 @@ Proof.
   - constructor*; inverts* HU.
     lets HW: target_typing_wf_2 HT. inverts* HW.
 Qed.
-
-Lemma eqIndTypTarget_arrow_inv : forall A B C,
-    eqIndTypTarget (ttyp_arrow A B) C -> exists C1 C2, C = ttyp_arrow C1 C2.
-Proof with eauto.
-  introv HE. inductions HE...
-  - forwards* (?&?&?): IHHE1. subst*.
-    forwards* (?&?&?): IHHE2.
-Admitted.
-
-Lemma eqIndTypTarget_rcd_inv : forall l A B C1 C2,
-    eqIndTypTarget (ttyp_rcd l A B) (ttyp_rcd l C1 C2) -> A = C1.
-Proof with eauto.
-  introv HE. inductions HE...
-Admitted.
-
-Lemma eqIndTypTarget_arrow_inv_1 : forall A B C1 C2,
-    eqIndTypTarget (ttyp_arrow A B) (ttyp_arrow C1 C2) -> eqIndTypTarget A C1.
-Proof with eauto.
-  introv HE. inductions HE...
-Admitted.
-
-Lemma eqIndTypTarget_arrow_inv_2 : forall A B C1 C2,
-    eqIndTypTarget (ttyp_arrow A B) (ttyp_arrow C1 C2) -> eqIndTypTarget B C2.
-Proof with eauto.
-  introv HE. inductions HE...
-Admitted.
 
 Lemma substitution_preserves_typing_relax : forall E F t u S S' T z,
     target_typing (F ++ [(z,S)] ++ E) t T ->

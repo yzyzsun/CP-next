@@ -306,6 +306,9 @@ Inductive eqIndTyp : typ -> typ -> Prop :=    (* defn eqIndTyp *)
  | EI_rcd : forall (l:label) (A B:typ),
      eqIndTyp A B ->
      eqIndTyp (typ_rcd l A) (typ_rcd l B)
+ | EI_and : forall (A B A':typ),
+     eqIndTyp A A' ->
+     eqIndTyp (typ_and A B) (typ_and A' B)
  | EI_comm : forall (A B:typ),
      eqIndTyp (typ_and A B) (typ_and B A)
  | EI_assoc : forall (A B C:typ),
@@ -624,7 +627,9 @@ Inductive eqIndTypTarget : ttyp -> ttyp -> Prop :=    (* defn eqIndTypTarget *)
  | TEI_rcd : forall (ll:tindex) (At Ct Bt Ct':ttyp),
      eqIndTypTarget At Bt ->
      eqIndTypTarget Ct Ct' ->
-     eqIndTypTarget (ttyp_rcd ll At Ct) (ttyp_rcd ll Bt Ct').
+     eqIndTypTarget (ttyp_rcd ll At Ct) (ttyp_rcd ll Bt Ct')
+ | TEI_comm : forall (ll1:tindex) (At:ttyp) (ll2:tindex) (Bt Ct Ct':ttyp),
+     eqIndTypTarget (ttyp_rcd ll1 At  (ttyp_rcd ll2 Bt Ct) ) (ttyp_rcd ll2 Bt  (ttyp_rcd ll1 At Ct') ).
 
 (* defns WellformedTypes *)
 Inductive wf_typ : ttyp -> Prop :=    (* defn wf_typ *)

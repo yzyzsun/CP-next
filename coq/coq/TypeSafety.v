@@ -134,6 +134,64 @@ Proof.
 Qed.
 
 
+Lemma flex_typing_property2 : forall E t At Bt,
+    target_flex_typing E t At -> rec_typ Bt -> wf_typ Bt ->
+    (forall ll Ct, Tlookup ll Bt = Some Ct -> exists Ct', Tlookup ll At = Some Ct' /\ eqIndTypTarget Ct Ct') ->
+    target_flex_typing E t Bt.
+Proof with eauto using flex_typing_top.
+  introv HT HR HW HL. induction* HR...
+  - forwards (?&Heq&?): HL ll. simpl. case_if*.
+    applys* TFTyping_Cons.
+    + forwards (?&?&?): flex_typing_property3 HT Heq.
+      applys* TFTyping_Part.
+    + applys IHHR. inverts* HW.
+      introv LKB. applys HL.
+      simpl. case_if*. subst*.
+      * inverts HW. destruct H5.
+        ** rewrite <- LKB. rewrite H.
+
+
+
+Lemma flex_typing_property1 : forall E t ll At Ct,
+    target_flex_typing E t (ttyp_rcd ll At Ct) -> rec_typ Ct ->
+    target_flex_typing E t Ct.
+Proof with eauto using flex_typing_top.
+  introv HT HC. induction HC.
+  - auto...
+  -
+
+Lemma flex_typing_property1 : forall E t C A B,
+    target_flex_typing E t C ->
+    concat_typ A B C ->
+    target_flex_typing E t A /\ target_flex_typing E t B.
+Proof with eauto using flex_typing_top.
+  introv TC HC. induction HC.
+  - split...
+  - forwards (?&?&?): flex_typing_property3 ll TC.
+    simpl. case_if*. split.
+    + applys TFTyping_Cons. applys* TFTyping_Part.
+
+
+  gen B C.
+  induction A; intros; inverts HC...
+  - split.
+    + applys TFTyping_Cons.
+  gen A B.
+  induction C; intros; inverts HC...
+  - clear IHC1.
+    forwards: IHC2 H5.
+  induction TC; intros; inverts HC...
+  - forwards HW: target_typing_wf_typ H. inverts HW.
+  gen B C.
+  indTypSize (size_typ A).
+  induction A; intros; inverts HC...
+  - clear IHA1. forwards: IHA2 H5. destruct H. inverts* TC. split.
+
+    + rewrite <- x0...
+    + rewrite x...
+  - split*.
+Qed.
+
 Lemma flex_typing_property1 : forall E t A B,
     target_flex_typing E t |[typ_and A B]| ->
     target_flex_typing E t |[A]| /\ target_flex_typing E t |[B]|.
@@ -144,7 +202,10 @@ Proof with eauto using flex_typing_top.
   - split.
     + rewrite <- x0...
     + rewrite x...
+  - split*.
 Qed.
+
+concat_source_intersection
 
 (* (* non-deterministic lookup works *) *)
 (* Lemma flex_typing_property2 : forall E t At Bt ll, *)
