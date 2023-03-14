@@ -90,18 +90,24 @@ J2;
 \vfill
 \ottdefndistapp
 
-\begin{multicols}{3}
+\begin{multicols}{2}
 \begin{verbatim}
 /* A-Arrow */
-x[T](y, z);
+var y0 = {};  J;
+x[T](y0, z);
 
 /* A-All */
 x[T](Ts, z);
-
-/* A-Rcd */
-Object.assign(z, x[T]);
 \end{verbatim}
 \end{multicols}
+
+\vfill
+\ottdefndistproj
+
+\begin{verbatim}
+/* P-Rcd */
+Object.assign(z, x[T]);
+\end{verbatim}
 
 \newpage
 \ottdefncosub
