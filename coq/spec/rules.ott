@@ -139,6 +139,12 @@ formula :: 'formula_' ::=
   | l1 <> l2                 ::   :: label
     {{ coq [[l1]] <> [[l2]] }}
     {{ tex [[l1]] \neq [[l2]] }}
+  | ll1 != ll2               ::   :: llabel
+    {{ coq [[ll1]] <> [[ll2]] }}
+    {{ tex [[ll1]] \neq [[ll2]] }}
+  | At = Bt                  ::   :: ttype
+    {{ coq [[At]] = [[Bt]] }}
+    {{ tex [[At]] = [[Bt]] }}
   | A <*> B                  :: M :: disjointSpec
     {{ coq disjointSpec[[A]][[B]] }}
   | v1 ~ v2                  :: M :: consistencySpec

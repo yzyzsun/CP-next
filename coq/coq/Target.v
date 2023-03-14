@@ -350,7 +350,7 @@ Proof with eauto using context_wf_inv_1, context_wf_inv_2.
     applys* subst_texp_fresh_mutual; solve_notin.
     applys notin_union_3. solve_notin.
     applys* subst_texp_fresh_mutual; solve_notin.
-    applys* TEI_trans.
+    eauto using TEI_trans, TEI_symm.
   - (* app *)
     forwards* (? & He & HT1): IHT1_1. forwards* (? & ? & HT2): IHT1_2.
     forwards* (?&?&?): eqIndTypTarget_arrow_inv He. subst*.
@@ -358,6 +358,7 @@ Proof with eauto using context_wf_inv_1, context_wf_inv_2.
     forwards* : eqIndTypTarget_arrow_inv_2 He.
     applys* TTyping_App HT1 HT2.
     forwards* : eqIndTypTarget_arrow_inv_1 He.
+    eauto using TEI_trans, TEI_symm.
   - (* cons *)
     forwards* (? & He & HT1): IHT1_1. forwards* (? & ? & HT2): IHT1_2.
     destruct* H0.
@@ -365,16 +366,12 @@ Proof with eauto using context_wf_inv_1, context_wf_inv_2.
       exists. split.
       2: applys TTyping_RcdCons HT1 HT2.
       applys* TEI_rcd.
-      applys* eqIndTypTarget_rec_typ.
-      left*.
-      applys* TEI_trans.
+      2: applys* eqIndTypTarget_rec_typ. all: eauto using TEI_symm, TEI_trans.
     + forwards* Heq: eqIndTypTarget_lookup_none Bt ll.
       exists. split.
       2: applys TTyping_RcdCons HT1 HT2.
-      applys* TEI_rcd.
-      applys* eqIndTypTarget_rec_typ.
-      right*.
-      applys* TEI_trans.
+      applys TEI_rcd.
+      all: eauto using eqIndTypTarget_rec_typ, TEI_trans, TEI_symm.
   - (* proj *)
     forwards* (? & He & HT1): IHT1.
     forwards* Heq: eqIndTypTarget_lookup_some ll He.
@@ -384,6 +381,7 @@ Proof with eauto using context_wf_inv_1, context_wf_inv_2.
     exists T. split*.
     applys* TTyping_RcdMerge HC.
     all: applys* eqIndTypTarget_rec_typ.
+    Unshelve. eauto.
 Qed.
 
 
@@ -391,7 +389,7 @@ Theorem preservation : forall t' t T,
     target_typing [] t T ->
     t >-> t' ->
     exists T', eqIndTypTarget T T' /\ target_typing [] t' T'.
-Proof with eauto using rcd_typ_concat.
+Proof with eauto using eqIndTypTarget_rec_typ, TEI_trans, TEI_symm, rcd_typ_concat.
   introv Typ Red. gen t'.
   inductions Typ; intros;
     try solve [inverts* Red].
@@ -401,16 +399,19 @@ Proof with eauto using rcd_typ_concat.
     assert (Heq: [] = @app (atom * ttyp) [] []) by eauto.
     rewrite Heq.
     applys* substitution_preserves_typing_relax.
+    eauto using TEI_trans, TEI_symm.
   - (* app *)
     inverts* Red.
     + forwards* (?&?&?): IHTyp1;
       forwards (?&?&?): eqIndTypTarget_arrow_inv; try tassumption; subst;
       forwards: eqIndTypTarget_arrow_inv_1; try tassumption;
         forwards: eqIndTypTarget_arrow_inv_2; try tassumption; exists; eauto.
-    + forwards* (?&?&?): IHTyp2;
-      forwards (?&?&?): eqIndTypTarget_arrow_inv; try tassumption; subst;
-      forwards: eqIndTypTarget_arrow_inv_1; try tassumption;
-      forwards: eqIndTypTarget_arrow_inv_2; try tassumption; exists; eauto.
+      eauto using TEI_trans, TEI_symm.
+    + forwards* (?&?&?): IHTyp2.
+      (* forwards (?&?&?): eqIndTypTarget_arrow_inv; try tassumption; subst. *)
+      (* forwards: eqIndTypTarget_arrow_inv_1; try tassumption. *)
+      (* forwards: eqIndTypTarget_arrow_inv_2; try tassumption. *)
+      exists; eauto. split. 2: applys TTyping_App Typ1 H1. all: eauto...
     + inverts* Typ1; try solve_by_invert.
       pick fresh x. forwards*: H5 x.
       rewrite* (subst_texp_intro x).
@@ -423,7 +424,7 @@ Proof with eauto using rcd_typ_concat.
       * forwards* (?&?&?): eqIndTypTarget_lookup_some ll H0.
         exists. split.
         2: applys* TTyping_RcdCons H3 Typ2.
-        eauto.
+        all: eauto using TEI_trans, TEI_symm.
       * forwards* Heq: eqIndTypTarget_lookup_none ll H0.
         exists. split.
         2: applys* TTyping_RcdCons H3 Typ2. eauto.
@@ -431,7 +432,7 @@ Proof with eauto using rcd_typ_concat.
       * forwards* (?&?&?): eqIndTypTarget_lookup_some ll H0.
         exists. split.
         2: applys* TTyping_RcdCons Typ1 H3.
-        eauto. applys* eqIndTypTarget_rec_typ.
+        all: eauto...
       * forwards* Heq: eqIndTypTarget_lookup_none ll H0.
         exists. split.
         2: applys* TTyping_RcdCons Typ1 H3.
@@ -466,4 +467,5 @@ Proof with eauto using rcd_typ_concat.
         applys TTyping_RcdCons; try applys TEI_refl; eauto.
         applys* rcd_typ_concat H16. rewrite H2.
         destruct H15 as [Heq|Heq]; rewrite Heq; eauto.
+    Unshelve. all: eauto.
 Qed.

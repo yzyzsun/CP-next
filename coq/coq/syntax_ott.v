@@ -41,10 +41,6 @@ Inductive texp : Set :=  (*r target term *)
  | texp_proj (t1:texp) (ll:tindex) (*r projection *)
  | texp_concat (t1:texp) (t2:texp) (*r concatenation *).
 
-Inductive dirflag : Set :=  (*r checking direction *)
- | Inf : dirflag
- | Chk : dirflag.
-
 Definition tctx : Set := list ( atom * ttyp ).
 
 Inductive exp : Set :=  (*r expressions *)
@@ -59,6 +55,10 @@ Inductive exp : Set :=  (*r expressions *)
  | exp_anno (e:exp) (A:typ) (*r annotation *)
  | exp_rcd (l:label) (e:exp) (*r record *)
  | exp_proj (e:exp) (l:label) (*r projection *).
+
+Inductive dirflag : Set :=  (*r checking direction *)
+ | Inf : dirflag
+ | Chk : dirflag.
 
 Definition ctx : Set := list ( atom * typ ).
 
@@ -613,31 +613,44 @@ Inductive contained_by_rec_typ : ttyp -> tindex -> ttyp -> Prop :=    (* defn co
 Inductive eqIndTypTarget : ttyp -> ttyp -> Prop :=    (* defn eqIndTypTarget *)
  | TEI_refl : forall (At:ttyp),
      eqIndTypTarget At At
- | TEI_trans : forall (At Ct Bt:ttyp),
-     eqIndTypTarget At Bt ->
-     eqIndTypTarget Bt Ct ->
-     eqIndTypTarget At Ct
- | TEI_symm : forall (At Bt:ttyp),
-     eqIndTypTarget Bt At ->
-     eqIndTypTarget At Bt
  | TEI_arrow : forall (At1 Bt1 At2 Bt2:ttyp),
      eqIndTypTarget At1 At2 ->
      eqIndTypTarget Bt1 Bt2 ->
      eqIndTypTarget (ttyp_arrow At1 Bt1) (ttyp_arrow At2 Bt2)
- | TEI_rcd : forall (ll:tindex) (At Ct Bt Ct':ttyp),
+ | TEI_rcd : forall (ll:tindex) (At Ct Bt Ct' At':ttyp),
+     rec_typ Ct ->
+      (  Tlookup  ll   Ct  = None   \/    (  Tlookup  ll   Ct  = Some  At'   /\  eqIndTypTarget At' At )   )  ->
      eqIndTypTarget At Bt ->
      eqIndTypTarget Ct Ct' ->
      eqIndTypTarget (ttyp_rcd ll At Ct) (ttyp_rcd ll Bt Ct')
- | TEI_comm : forall (ll1:tindex) (At:ttyp) (ll2:tindex) (Bt Ct Ct':ttyp),
-     eqIndTypTarget (ttyp_rcd ll1 At  (ttyp_rcd ll2 Bt Ct) ) (ttyp_rcd ll2 Bt  (ttyp_rcd ll1 At Ct') ).
+ | TEI_comm : forall (ll1:tindex) (At:ttyp) (ll2:tindex) (Bt Ct Ct' At' Bt':ttyp),
+     rec_typ Ct ->
+      (  Tlookup  ll1   Ct  = None   \/    (  Tlookup  ll1   Ct  = Some  At'   /\  eqIndTypTarget At' At )   )  ->
+      (  Tlookup  ll2   Ct  = None   \/    (  Tlookup  ll2   Ct  = Some  Bt'   /\  eqIndTypTarget Bt' Bt )   )  ->
+      ll1  <>  ll2  ->
+     eqIndTypTarget (ttyp_rcd ll2 Bt  (ttyp_rcd ll1 At Ct) ) Ct' ->
+     eqIndTypTarget (ttyp_rcd ll1 At  (ttyp_rcd ll2 Bt Ct) ) Ct'
+ | TEI_dup : forall (ll:tindex) (At Bt Ct Ct' At':ttyp),
+     rec_typ Ct ->
+      (  Tlookup  ll   Ct  = None   \/    (  Tlookup  ll   Ct  = Some  At'   /\  eqIndTypTarget At' At )   )  ->
+     eqIndTypTarget At Bt ->
+     eqIndTypTarget (ttyp_rcd ll Bt  (ttyp_rcd ll At Ct) ) Ct' ->
+     eqIndTypTarget (ttyp_rcd ll At  (ttyp_rcd ll Bt Ct) ) Ct'.
 
 (* defns TargetSubtype *)
 Inductive SubtypeTarget : ttyp -> ttyp -> Prop :=    (* defn SubtypeTarget *)
  | TS_top : forall (At:ttyp),
      SubtypeTarget At ttyp_top
+ | TS_refl : forall (At:ttyp),
+     SubtypeTarget At At
+ | TS_arrow : forall (At1 Bt1 At2 Bt2:ttyp),
+     SubtypeTarget At1 At2 ->
+     SubtypeTarget Bt1 Bt2 ->
+     SubtypeTarget (ttyp_arrow At1 Bt1) (ttyp_arrow At2 Bt2)
  | TS_rcd : forall (Ct:ttyp) (ll:tindex) (At Ct' Bt:ttyp),
+     rec_typ Ct' ->
       Tlookup  ll   Ct  = Some  Bt  ->
-     eqIndTypTarget Bt At ->
+     SubtypeTarget Bt At ->
      SubtypeTarget Ct Ct' ->
      SubtypeTarget Ct (ttyp_rcd ll At Ct').
 
@@ -716,22 +729,6 @@ Inductive target_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target_typi
      concat_typ At Bt Ct ->
      target_typing Gt (texp_concat t1 t2) Ct.
 
-(* defns ConvertSource2Target *)
-Inductive styp2ttyp : typ -> ttyp -> Prop :=    (* defn styp2ttyp *)
- | ST_Top : 
-     styp2ttyp typ_top ttyp_top
- | ST_Bot : 
-     styp2ttyp typ_bot ttyp_bot
- | ST_Base : 
-     styp2ttyp typ_base  (ttyp_rcd   (type2index  typ_base )    ttyp_base  ttyp_top) 
- | ST_Arrow : forall (A B:typ) (At Bt:ttyp),
-     styp2ttyp A At ->
-     styp2ttyp B Bt ->
-     styp2ttyp (typ_arrow A B)  (ttyp_rcd  (ti_arrow  (type2index  B ) )   (ttyp_arrow At Bt)  ttyp_top) 
- | ST_Rcd : forall (l:label) (A:typ) (At:ttyp),
-     styp2ttyp A At ->
-     styp2ttyp (typ_rcd l A)  (ttyp_rcd  (ti_rcd l  (type2index  A ) )   (ttyp_arrow ttyp_top At)  ttyp_top) .
-
 (* defns TargetFlexTyping *)
 Inductive target_flex_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target_flex_typing *)
  | TFTyping_Orig : forall (Gt:tctx) (t:texp) (At:ttyp),
@@ -755,6 +752,6 @@ Inductive target_flex_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target
 
 
 (** infrastructure *)
-Hint Constructors toplike eqIndTyp spl ord disjoint comerge cosub proj distapp elaboration value target_step concat_typ rec_typ contained_by_rec_typ eqIndTypTarget SubtypeTarget wf_typ wf_ctx target_typing styp2ttyp target_flex_typing lc_texp lc_exp : core.
+Hint Constructors toplike eqIndTyp spl ord disjoint comerge cosub proj distapp elaboration value target_step concat_typ rec_typ contained_by_rec_typ eqIndTypTarget SubtypeTarget wf_typ wf_ctx target_typing target_flex_typing lc_texp lc_exp : core.
 
 

@@ -77,8 +77,6 @@ Require Export Target.
 
 Definition target_flex_typing E t At := exists Bt, target_typing E t Bt /\ SubtypeTarget Bt At.
 
-Lemma TS_trans : forall A B C, SubtypeTarget A B -> SubtypeTarget B C -> SubtypeTarget A C.
-Admitted.
 
 Lemma TS_andl : forall A B, SubtypeTarget |[typ_and A B]| |[A]|.
 Admitted.
@@ -91,19 +89,19 @@ Admitted.
 
 Lemma subtype_wrt_lookup_same : forall A B l C,
     SubtypeTarget A B -> Tlookup l B = Some C ->
-    exists C', Tlookup l A = Some C' /\ eqIndTypTarget C' C.
+    exists C', Tlookup l A = Some C' /\ SubtypeTarget C' C.
 Proof.
   introv  HS HL. gen C.
   induction* HS; intros; inverts* HL.
   - case_if*.
     + inverts H2. subst*.
-    + forwards* (?&?&?): IHHS.
+    + forwards* (?&?&?): IHHS2.
 Qed.
 
 Lemma lookup_wf_typ_1 : forall l T At l',
-    wf_typ (ttyp_rcd l T At) -> Tlookup l' (ttyp_rcd l T At) = Tlookup l' At \/ l = l'.
+    Tlookup l' (ttyp_rcd l T At) = Tlookup l' At \/ l = l'.
 Proof.
-  introv WF. simpl. case_if*.
+  introv. simpl. case_if*.
 Qed.
 
 Lemma lookup_wf_typ_2 : forall l T At Bt,
@@ -113,37 +111,73 @@ Proof.
   all: rewrite LK in H; inverts* H.
 Qed.
 
-Lemma subtype_wide : forall l T At Bt,
-    wf_typ (ttyp_rcd l T At) -> SubtypeTarget At Bt -> SubtypeTarget (ttyp_rcd l T At) Bt.
-Proof with try reflexivity.
-  introv WF ST. gen Bt l T.
-  induction* At; intros.
-  all: inductions ST; eauto; try solve_by_invert.
-  - forwards* [Heq|Heq]: lookup_wf_typ_1 WF.
-    + applys TS_rcd. rewrite* Heq. all: eauto.
-    + subst. forwards: lookup_wf_typ_2 WF H.
-      applys TS_rcd.
-      { simpl. case_if*. }
-      { applys* TEI_trans. }
-      { eauto. }
-Qed.
-
-Lemma subtype_refl : forall At,
-    rec_typ At -> wf_typ At -> SubtypeTarget At At.
+Lemma TS_trans : forall A B C, SubtypeTarget A B -> SubtypeTarget B C -> SubtypeTarget A C.
 Proof.
-  introv HR HW. induction* HW; try solve_by_invert.
-  - inverts HR.
-    applys* TS_rcd.
-    simpl. case_if*.
-    applys* subtype_wide.
+  introv HSA HSB. gen A.
+  induction* HSB; intros.
+  - inverts* HSA.
+  - forwards* (?&?&?): subtype_wrt_lookup_same H0.
 Qed.
 
 Lemma subtype_complete : forall At Bt,
-    rec_typ At -> wf_typ At -> rec_typ Bt -> wf_typ Bt ->
     eqIndTypTarget At Bt -> SubtypeTarget At Bt.
-Proof with eauto using subtype_refl.
-  introv HRa HWa HRb HWb HE. induction* HE...
-  - forwards*: IHHE1. forwards*: IHHE2. applys TS_trans.
+Proof with eauto using eqIndTypTarget_rec_typ, TS_trans.
+  (* introv HRa HWa HRb HWb HE. *)
+  introv HE. induction* HE...
+  (* forwards*: IHHE1. forwards*: IHHE2... applys TS_trans. *)
+  - applys TS_rcd...
+    { simpl. case_if*. }
+    admit.
+  - applys TS_trans IHHE. applys* TS_rcd.
+    { simpl. case_if*. case_if*. }
+    applys* TS_rcd.
+    { simpl. case_if*. }
+    admit.
+  - applys TS_trans IHHE2. applys* TS_rcd.
+    { simpl. case_if*. }
+    applys* TS_rcd.
+    { simpl. case_if*. }
+    admit.
+Admitted.
+
+Lemma subtype_wide : forall l T At Bt,
+    (forall l Ct, Tlookup l At = Some Ct -> eqIndTypTarget T Ct) -> rec_typ At -> SubtypeTarget At Bt ->
+    SubtypeTarget (ttyp_rcd l T At) Bt.
+Proof with try reflexivity.
+  introv WF HR ST. gen At l T.
+  induction* Bt; intros; try solve [inverts ST; inverts HR; solve_by_invert].
+  inverts ST.
+  - (* refl *) forwards* [Heq|Heq]: lookup_wf_typ_1.
+    + applys TS_rcd.
+      2: { rewrite* Heq.
+           simpl. case_if*. }
+      3: { applys* IHBt2. applys* IHBt2.
+           inverts* HR. introv LK.
+           + subst*. forwards: lookup_wf_typ_2 WF. simpl. case_if*.
+      applys TS_rcd.
+      { simpl. case_if*. }
+      { applys* subtype_complete. }
+      { applys* IHBt2. applys* IHBt2. inverts* WF. inverts* HR. }
+  - (* rcd *) forwards* [Heq|Heq]: lookup_wf_typ_1.
+    + applys TS_rcd. rewrite* Heq. eauto.
+      applys* IHBt2.
+    + subst*. forwards*: lookup_wf_typ_2 WF.
+      applys TS_rcd.
+      { simpl. case_if*. }
+      { applys* TS_trans Bt. applys* subtype_complete. }
+      { applys* IHBt2. }
+Qed.
+
+(* Lemma subtype_refl : forall At, *)
+(*     rec_typ At -> wf_typ At -> SubtypeTarget At At. *)
+(* Proof. *)
+(*   introv HR HW. induction* HW; try solve_by_invert. *)
+(*   - inverts HR. *)
+(*     applys* TS_rcd. *)
+(*     simpl. case_if*. *)
+(*     applys* subtype_wide. *)
+(* Qed. *)
+
 
 (* Lemma subtype_wrt_lookup_same : forall A B l C, *)
 (*     wf_typ A ->  wf_typ B -> SubtypeTarget A B -> Tlookup l B = Some C -> *)

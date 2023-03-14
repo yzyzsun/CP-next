@@ -250,17 +250,13 @@ TargetEqIndexType :: '' ::=
   {{ com Types with the same index }}
   by
 
-  |- At
-  recTyp At
   --------------- :: refl
   At ~= At
 
-  |- Bt
-  recTyp Bt
-  At ~= Bt
-  Bt ~= Ct
-  --------------- :: trans
-  At ~= Ct
+  % At ~= Bt
+  % Bt ~= Ct
+  % --------------- :: trans
+  % At ~= Ct
 
   % Bt ~= At
   % --------------- :: symm
@@ -271,15 +267,27 @@ TargetEqIndexType :: '' ::=
   ---------------------- :: arrow
   At1->Bt1 ~= At2->Bt2
 
-  |- ll:At, Ct
-  |- ll:Bt, Ct'
+  recTyp Ct
+  lookup ll Ct =/> or (lookup ll Ct => At' and At' ~= At)
   At ~= Bt
   Ct ~= Ct'
   ------------------------- :: rcd
   ll:At, Ct ~= ll:Bt, Ct'
 
+  recTyp Ct
+  lookup ll1 Ct =/> or (lookup ll1 Ct => At' and At' ~= At)
+  lookup ll2 Ct =/> or (lookup ll2 Ct => Bt' and Bt' ~= Bt)
+  ll1 != ll2
+  ll2:Bt, (ll1:At, Ct) ~= Ct'
   ---------------------------------------------- :: comm
-  ll1:At, (ll2:Bt, Ct) ~= ll2:Bt, (ll1:At, Ct')
+  ll1:At, (ll2:Bt, Ct) ~= Ct'
+
+  recTyp Ct
+  lookup ll Ct =/> or (lookup ll Ct => At' and At' ~= At)
+  At ~= Bt
+  ll:Bt, (ll:At, Ct) ~= Ct'
+  ---------------------------------------------- :: dup
+  ll:At, (ll:Bt, Ct) ~= Ct'
 
   % --------------- :: comm
   % At&Bt ~= Bt&At
@@ -320,15 +328,25 @@ TargetSubtype :: '' ::=
 
   defn
   At < Bt :: :: SubtypeTarget :: TS_
-  {{ com Types with the same index }}
+  {{ tex [[At]] [[<:]] [[Bt]] }}
+  {{ com Target Subtyping }}
   by
 
   --------------- :: top
   At < Top
+  
 
+  --------------- :: refl
+  At < At
 
+  At1 < At2
+  Bt1 < Bt2
+  ---------------------- :: arrow
+  At1->Bt1 < At2->Bt2
+
+  recTyp Ct'
   lookup ll Ct => Bt
-  Bt ~= At
+  Bt < At
   % if we use Bt < At, we will need At < At for general At
   Ct < Ct'
   --------------- :: rcd
@@ -450,36 +468,36 @@ TargetTyping :: '' ::=
   % Gt |- t : At & Bt
   
   
-defns
-ConvertSource2Target :: '' ::=
+% defns
+% ConvertSource2Target :: '' ::=
 
-  defn
-  A => At :: :: styp2ttyp :: ST_
-  {{ com Try convert source types to target types }}
-  by
-
-
-  ----------------------- :: Top
-  Top => Top
+%   defn
+%   A => At :: :: styp2ttyp :: ST_
+%   {{ com Try convert source types to target types }}
+%   by
 
 
-  ----------------------- :: Bot
-  Bot => Bot
+%   ----------------------- :: Top
+%   Top => Top
+
+
+%   ----------------------- :: Bot
+%   Bot => Bot
 
  
-  ----------------------------------- :: Base
-  Base => { |Base| : Base }
+%   ----------------------------------- :: Base
+%   Base => { |Base| : Base }
 
 
-  A => At
-  B => Bt
-  ----------------------------------- :: Arrow
-  A->B => { ->|B| : At->Bt }
+%   A => At
+%   B => Bt
+%   ----------------------------------- :: Arrow
+%   A->B => { ->|B| : At->Bt }
 
 
-  A => At
-  ----------------------------------- :: Rcd
-  {l : A} => { {l : |A|} : Top->At } 
+%   A => At
+%   ----------------------------------- :: Rcd
+%   {l : A} => { {l : |A|} : Top->At } 
 
 
 %   A => At

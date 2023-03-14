@@ -132,6 +132,18 @@ Proof with eauto.
     + simpl.
 Admitted.
 
+Lemma TEI_symm : forall A B,
+    eqIndTypTarget A B -> eqIndTypTarget B A.
+Proof with eauto.
+  introv H. Admitted.
+  (* indTypSize (size_typ A + size_typ B). induction* H. *)
+  (* destruct* H. applys TEI_comm. *)
+(* Qed. *)
+
+Lemma TEI_trans : forall A B C,
+    eqIndTypTarget A B -> eqIndTypTarget B C -> eqIndTypTarget A C.
+Admitted.
+
 Lemma eqIndTypTarget_concat_comm : forall A B,
     rec_typ A -> rec_typ B ->
     eqIndTypTarget (ttyp_concat_simpl A B) (ttyp_concat_simpl B A).
@@ -139,10 +151,14 @@ Proof with eauto.
   introv HA HB. gen B.
   induction* HA; intros; induction* HB; simpl...
   - simpl in IHHB.
-    applys TEI_trans. applys TEI_rcd. applys TEI_refl. applys* IHHA.
-    applys TEI_trans. simpl. apply TEI_comm.
-    applys TEI_rcd. applys TEI_refl. applys* IHHB.
-Qed.
+    applys TEI_trans. applys TEI_rcd. admit.
+(* applys TEI_refl. applys* IHHA. *)
+(*     applys TEI_trans. simpl. apply TEI_comm. admit. *)
+(*     applys TEI_rcd. applys TEI_refl. *)
+(*     applys TEI_trans. applys TEI_rcd. *)
+(*     2: applys TEI_symm; applys* IHHA. 2: applys* IHHB. *)
+    (* eauto. *)
+Admitted.
 
 Lemma ttyp_concat_simpl_assoc : forall A B C,
     rec_typ A -> rec_typ B -> rec_typ C ->
@@ -160,31 +176,38 @@ Lemma eqIndTypTarget_ttyp_concat_simpl : forall A1 A2 B1 B2,
 Proof with eauto using translate_to_record_types.
   introv HEA HEB. gen B1 B2.
   induction HEA; intros.
-  - induction* At. simpl...
+  - induction* At. simpl... admit.
   - applys TEI_trans.
     + forwards*: IHHEA1. + forwards*: IHHEA2.
-  - applys* TEI_symm.
-  - simpl...
-  - simpl...
-  - simpl...
-Qed.
+  - applys* TEI_symm. admit.
+  - simpl... admit.
+  - admit.
+  (* - simpl... applys TEI_trans. applys TEI_comm. applys H. applys* TEI_rcd. applys* TEI_rcd. *)
+    (* induction* Ct. simpl... *)
 
+  (* - simpl... applys TEI_trans. applys TEI_dup. applys* TEI_rcd. applys* TEI_rcd. *)
+    (* induction* Ct. simpl... *)
+Admitted.
+(* Qed. *)
+
+#[local] Hint Resolve TEI_symm : core.
 Lemma translate_eqv : forall A B,
     eqIndTyp A B -> eqIndTypTarget |[ A ]| |[ B ]|.
 Proof with eauto using translate_to_record_types.
   introv HE. lets HE': HE. induction* HE'.
   - forwards Heq: eqindextype_sound HE.
-    unfolds styp2ttyp. rewrite Heq. simpl...
-  - forwards Heq: eqindextype_sound HE.
-    unfolds styp2ttyp. rewrite Heq. simpl...
-  - simpl. forwards*: IHHE'.
-    applys* eqIndTypTarget_ttyp_concat_simpl.
-  - simpl. forwards Heq: eqindextype_sound HE.
-    applys eqIndTypTarget_concat_comm...
-  - simpl. rewrite* ttyp_concat_simpl_assoc...
-  - simpl. rewrite* ttyp_trans_ord_top.
-  - simpl. forwards*: IHHE'. (* dedup or not dedup *) admit.
+    (* unfolds styp2ttyp. rewrite Heq. simpl... *)
 Admitted.
+(*   - forwards Heq: eqindextype_sound HE. *)
+(*     unfolds styp2ttyp. rewrite Heq. simpl... *)
+(*   - simpl. forwards*: IHHE'. *)
+(*     applys* eqIndTypTarget_ttyp_concat_simpl. (* label conflict checking *) *)
+(*   - simpl. forwards Heq: eqindextype_sound HE. *)
+(*     applys eqIndTypTarget_concat_comm... *)
+(*   - simpl. rewrite* ttyp_concat_simpl_assoc... *)
+(*   - simpl. rewrite* ttyp_trans_ord_top. *)
+(*   - simpl. forwards*: IHHE'. (* dedup or not dedup *) admit. *)
+(* Admitted. *)
 
 #[local] Hint Constructors wf_typ : core.
 
@@ -209,11 +232,12 @@ Proof with intuition eauto using rcd_typ_concat_simpl.
     lets HR2: translate_to_record_types A2.
     induction* HR1.
     + inverts* IHA1.
+      forwards* HW: IHHR1.
       simpl...
       * forwards* Heq: lookup_concat_simpl H.
         rewrite H in Heq...
       * forwards* Heq: lookup_concat_simpl_none |[ A2 ]| H...
-        applys* WF_Rcd...
+        applys WF_Rcd. 1-3: eauto...
 Admitted.
 
 
@@ -277,8 +301,8 @@ Lemma eqIndTypTarget_arrow_inv : forall A B C,
     eqIndTypTarget (ttyp_arrow A B) C -> exists C1 C2, C = ttyp_arrow C1 C2.
 Proof with eauto.
   introv HE. inductions HE...
-  - forwards* (?&?&?): IHHE1. subst*.
-    forwards* (?&?&?): IHHE2.
+  (* - forwards* (?&?&?): IHHE1. subst*. *)
+  (*   forwards* (?&?&?): IHHE2. *)
 Admitted.
 
 Lemma eqIndTypTarget_rcd_inv : forall l A B C1 C2,
