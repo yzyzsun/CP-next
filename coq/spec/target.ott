@@ -250,29 +250,35 @@ TargetEqIndexType :: '' ::=
   {{ com Types with the same index }}
   by
 
+  |- At
+  recTyp At
   --------------- :: refl
   At ~= At
 
+  |- Bt
+  recTyp Bt
   At ~= Bt
   Bt ~= Ct
   --------------- :: trans
   At ~= Ct
 
-  Bt ~= At
-  --------------- :: symm
-  At ~= Bt
+  % Bt ~= At
+  % --------------- :: symm
+  % At ~= Bt
 
   At1 ~= At2
   Bt1 ~= Bt2
   ---------------------- :: arrow
   At1->Bt1 ~= At2->Bt2
 
+  |- ll:At, Ct
+  |- ll:Bt, Ct'
   At ~= Bt
   Ct ~= Ct'
   ------------------------- :: rcd
   ll:At, Ct ~= ll:Bt, Ct'
 
-  ------------------------------------------ :: comm
+  ---------------------------------------------- :: comm
   ll1:At, (ll2:Bt, Ct) ~= ll2:Bt, (ll1:At, Ct')
 
   % --------------- :: comm
@@ -289,6 +295,44 @@ TargetEqIndexType :: '' ::=
   % -------------------- :: dup
   % (A1&A2)&B ~= A1&B
 
+
+% defns
+% TargetSubtype :: '' ::=
+
+%   defn
+%   At < Bt :: :: SubtypeTarget :: TS_
+%   {{ com Types with the same index }}
+%   by
+
+%   At ~= Bt
+%   --------------- :: refl
+%   At < Bt
+
+%   --------------- :: top
+%   At < Top
+
+%   Bt < Ct
+%   --------------- :: wide
+%   ll:At, Bt < Ct
+
+defns
+TargetSubtype :: '' ::=
+
+  defn
+  At < Bt :: :: SubtypeTarget :: TS_
+  {{ com Types with the same index }}
+  by
+
+  --------------- :: top
+  At < Top
+
+
+  lookup ll Ct => Bt
+  Bt ~= At
+  % if we use Bt < At, we will need At < At for general At
+  Ct < Ct'
+  --------------- :: rcd
+  Ct < ll:At, Ct'
 
 defns
 WellformedTypes   :: '' ::=
@@ -490,6 +534,11 @@ TargetFlexTyping :: '' ::=
   --------------------------- :: Cons
   Gt |- t <= ll : At , Bt
 
-  Gt |- t <= { ll : At }
-  --------------------------- :: Proj
-  Gt |- t.ll <= At
+  Gt |- t <= At
+  At ~= Bt
+  --------------------------- :: Sim
+  Gt |- t <= Bt
+
+  % Gt |- t <= { ll : At }
+  % --------------------------- :: Proj
+  % Gt |- t.ll <= At

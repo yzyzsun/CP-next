@@ -41,6 +41,10 @@ Inductive texp : Set :=  (*r target term *)
  | texp_proj (t1:texp) (ll:tindex) (*r projection *)
  | texp_concat (t1:texp) (t2:texp) (*r concatenation *).
 
+Inductive dirflag : Set :=  (*r checking direction *)
+ | Inf : dirflag
+ | Chk : dirflag.
+
 Definition tctx : Set := list ( atom * ttyp ).
 
 Inductive exp : Set :=  (*r expressions *)
@@ -55,10 +59,6 @@ Inductive exp : Set :=  (*r expressions *)
  | exp_anno (e:exp) (A:typ) (*r annotation *)
  | exp_rcd (l:label) (e:exp) (*r record *)
  | exp_proj (e:exp) (l:label) (*r projection *).
-
-Inductive dirflag : Set :=  (*r checking direction *)
- | Inf : dirflag
- | Chk : dirflag.
 
 Definition ctx : Set := list ( atom * typ ).
 
@@ -631,6 +631,16 @@ Inductive eqIndTypTarget : ttyp -> ttyp -> Prop :=    (* defn eqIndTypTarget *)
  | TEI_comm : forall (ll1:tindex) (At:ttyp) (ll2:tindex) (Bt Ct Ct':ttyp),
      eqIndTypTarget (ttyp_rcd ll1 At  (ttyp_rcd ll2 Bt Ct) ) (ttyp_rcd ll2 Bt  (ttyp_rcd ll1 At Ct') ).
 
+(* defns TargetSubtype *)
+Inductive SubtypeTarget : ttyp -> ttyp -> Prop :=    (* defn SubtypeTarget *)
+ | TS_top : forall (At:ttyp),
+     SubtypeTarget At ttyp_top
+ | TS_rcd : forall (Ct:ttyp) (ll:tindex) (At Ct' Bt:ttyp),
+      Tlookup  ll   Ct  = Some  Bt  ->
+     eqIndTypTarget Bt At ->
+     SubtypeTarget Ct Ct' ->
+     SubtypeTarget Ct (ttyp_rcd ll At Ct').
+
 (* defns WellformedTypes *)
 Inductive wf_typ : ttyp -> Prop :=    (* defn wf_typ *)
  | WF_Nil : 
@@ -738,12 +748,13 @@ Inductive target_flex_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target
      target_flex_typing Gt t  (ttyp_rcd  ll   At  ttyp_top)  ->
      target_flex_typing Gt t Bt ->
      target_flex_typing Gt t (ttyp_rcd ll At Bt)
- | TFTyping_Proj : forall (Gt:tctx) (t:texp) (ll:tindex) (At:ttyp),
-     target_flex_typing Gt t  (ttyp_rcd  ll   At  ttyp_top)  ->
-     target_flex_typing Gt (texp_proj t ll) At.
+ | TFTyping_Sim : forall (Gt:tctx) (t:texp) (Bt At:ttyp),
+     target_flex_typing Gt t At ->
+     eqIndTypTarget At Bt ->
+     target_flex_typing Gt t Bt.
 
 
 (** infrastructure *)
-Hint Constructors toplike eqIndTyp spl ord disjoint comerge cosub proj distapp elaboration value target_step concat_typ rec_typ contained_by_rec_typ eqIndTypTarget wf_typ wf_ctx target_typing styp2ttyp target_flex_typing lc_texp lc_exp : core.
+Hint Constructors toplike eqIndTyp spl ord disjoint comerge cosub proj distapp elaboration value target_step concat_typ rec_typ contained_by_rec_typ eqIndTypTarget SubtypeTarget wf_typ wf_ctx target_typing styp2ttyp target_flex_typing lc_texp lc_exp : core.
 
 

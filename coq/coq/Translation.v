@@ -217,23 +217,23 @@ Proof with intuition eauto using rcd_typ_concat_simpl.
 Admitted.
 
 
-(* Lemma ttyp_trans_ord_ntop : forall A, *)
-(*     ord A -> ~ toplike A -> exists B, |[A]| = (ttyp_rcd (||A||) B ttyp_top) /\ wf_typ B. *)
-(* Admitted. *)
+Lemma ttyp_trans_ord_ntop : forall A,
+    ord A -> ~ toplike A -> exists B, |[A]| = (ttyp_rcd (||A||) B ttyp_top) /\ wf_typ B.
+Admitted.
 
-(* Lemma ttyp_trans_base : *)
-(* |[typ_base]| = ttyp_rcd (||typ_base||) ttyp_base ttyp_top. *)
-(* Admitted. *)
+Lemma ttyp_trans_base :
+|[typ_base]| = ttyp_rcd (||typ_base||) ttyp_base ttyp_top.
+Admitted.
 
-(* Lemma ttyp_trans_ord_ntop_arrow : forall A', A *)
-(* (* ord A -> ~ toplike A -> *) (* S-arrow requires no precondition *) *)
-(* |[(typ_arrow A' A)]| = ttyp_rcd (||typ_arrow A' A||) (ttyp_arrow |[A']| |[A]|) ttyp_top. *)
-(* Admitted. *)
+Lemma ttyp_trans_ord_ntop_arrow : forall A' A,
+(* ord A -> ~ toplike A -> *) (* S-arrow requires no precondition *)
+|[(typ_arrow A' A)]| = ttyp_rcd (||typ_arrow A' A||) (ttyp_arrow |[A']| |[A]|) ttyp_top.
+Admitted.
 
-(* Lemma ttyp_trans_rcd : forall l A, *)
-(* (* ord A -> ~ toplike A -> *) (* S-arrow requires no precondition *) *)
-(* |[(typ_rcd l A)]| = ttyp_rcd (||(typ_rcd l A)||) |[A]| ttyp_top. *)
-(* Admitted. *)
+Lemma ttyp_trans_rcd : forall l A,
+(* ord A -> ~ toplike A -> *) (* S-arrow requires no precondition *)
+|[(typ_rcd l A)]| = ttyp_rcd (||(typ_rcd l A)||) |[A]| ttyp_top.
+Admitted.
 
 (* Lemma ttyp_trans_and : forall A B C, *)
 (*     concat_typ |[ A ]| |[ B ]| C -> |[ (typ_and A B) ]| = C. *)
