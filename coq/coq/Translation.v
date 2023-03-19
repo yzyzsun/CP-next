@@ -170,13 +170,20 @@ Proof with simpl in *; eauto.
 Qed.
 
 
+Lemma TEI_refl : forall At,
+    wf_typ At -> eqIndTypTarget At At.
+Proof with eauto.
+  introv WF. induction* WF.
+Qed.
+
+
 Lemma eqIndTypTarget_ttyp_concat_simpl : forall A1 A2 B1 B2,
     eqIndTypTarget A1 A2 -> eqIndTypTarget B1 B2 ->
     eqIndTypTarget (ttyp_concat_simpl A1 B1) (ttyp_concat_simpl A2 B2).
 Proof with eauto using translate_to_record_types.
   introv HEA HEB. gen B1 B2.
   induction HEA; intros.
-  - induction* At. simpl... admit.
+  1-3: simpl...
   - applys TEI_trans.
     + forwards*: IHHEA1. + forwards*: IHHEA2.
   - applys* TEI_symm. admit.
@@ -234,10 +241,10 @@ Proof with intuition eauto using rcd_typ_concat_simpl.
     + inverts* IHA1.
       forwards* HW: IHHR1.
       simpl...
-      * forwards* Heq: lookup_concat_simpl H.
-        rewrite H in Heq...
+      * forwards* Heq: lookup_concat_simpl H0.
+        rewrite H0 in Heq...
       * forwards* Heq: lookup_concat_simpl_none |[ A2 ]| H...
-        applys WF_Rcd. 1-3: eauto...
+        applys* WF_Rcd. eauto...
 Admitted.
 
 

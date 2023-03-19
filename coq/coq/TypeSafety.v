@@ -87,16 +87,42 @@ Admitted.
 Lemma TS_eq : forall A B C, SubtypeTarget A B -> eqIndTypTarget A C -> SubtypeTarget C B.
 Admitted.
 
+
+Lemma subtype_wf_typ_1 : forall At Bt,
+    SubtypeTarget At Bt -> wf_typ At.
+Proof with eauto.
+  introv HS. induction* HS.
+Qed.
+
+Lemma subtype_wf_typ_2 : forall At Bt,
+    SubtypeTarget At Bt -> wf_typ Bt.
+Proof with intuition eauto.
+  introv HS. induction* HS.
+  destruct H1 as [(?&?)|?]...
+Qed.
+
+#[local] Hint Resolve subtype_wf_typ_1 subtype_wf_typ_2 : core.
+
 Lemma subtype_wrt_lookup_same : forall A B l C,
     SubtypeTarget A B -> Tlookup l B = Some C ->
     exists C', Tlookup l A = Some C' /\ SubtypeTarget C' C.
-Proof.
-  introv  HS HL. gen C.
-  induction* HS; intros; inverts* HL.
+Proof with intuition eauto using wf_typ_look_up_wf.
+  introv HS HL. gen C.
+  induction* HS; intros; inverts HL.
+  - exists...
   - case_if*.
-    + inverts H2. subst*.
+    + inverts H3. subst*.
     + forwards* (?&?&?): IHHS2.
 Qed.
+
+Lemma TS_trans : forall A B C, SubtypeTarget A B -> SubtypeTarget B C -> SubtypeTarget A C.
+Proof.
+  introv HSA HSB. gen A.
+  induction* HSB; intros.
+  - inverts* HSA.
+  - forwards* (?&?&?): subtype_wrt_lookup_same H0.
+Qed.
+
 
 Lemma lookup_wf_typ_1 : forall l T At l',
     Tlookup l' (ttyp_rcd l T At) = Tlookup l' At \/ l = l'.
@@ -111,12 +137,11 @@ Proof.
   all: rewrite LK in H; inverts* H.
 Qed.
 
-Lemma TS_trans : forall A B C, SubtypeTarget A B -> SubtypeTarget B C -> SubtypeTarget A C.
-Proof.
-  introv HSA HSB. gen A.
-  induction* HSB; intros.
-  - inverts* HSA.
-  - forwards* (?&?&?): subtype_wrt_lookup_same H0.
+
+Lemma eqindtyptarget_wf_typ_1 : forall At Bt,
+    eqIndTypTarget At Bt -> wf_typ At.
+Proof with eauto.
+  introv HS. induction* HS.
 Qed.
 
 Lemma subtype_complete : forall At Bt,
@@ -141,7 +166,8 @@ Proof with eauto using eqIndTypTarget_rec_typ, TS_trans.
 Admitted.
 
 Lemma subtype_wide : forall l T At Bt,
-    (forall l Ct, Tlookup l At = Some Ct -> eqIndTypTarget T Ct) -> rec_typ At -> SubtypeTarget At Bt ->
+    (forall l Ct, Tlookup l At = Some Ct -> eqIndTypTarget T Ct) ->
+    rec_typ At -> SubtypeTarget At Bt ->
     SubtypeTarget (ttyp_rcd l T At) Bt.
 Proof with try reflexivity.
   introv WF HR ST. gen At l T.

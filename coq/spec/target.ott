@@ -250,9 +250,15 @@ TargetEqIndexType :: '' ::=
   {{ com Types with the same index }}
   by
 
-  --------------- :: refl
-  At ~= At
+  --------------- :: top
+  Top ~= Top
 
+  --------------- :: bot
+  Bot ~= Bot
+
+  --------------- :: base
+  Base ~= Base
+  
   % At ~= Bt
   % Bt ~= Ct
   % --------------- :: trans
@@ -268,22 +274,24 @@ TargetEqIndexType :: '' ::=
   At1->Bt1 ~= At2->Bt2
 
   recTyp Ct
-  lookup ll Ct =/> or (lookup ll Ct => At' and At' ~= At)
+  recTyp Ct'
+  (lookup ll Ct => At' and At' ~= At) or lookup ll Ct =/> 
+  (lookup ll Ct => Bt' and Bt' ~= Bt) or lookup ll Ct' =/> 
   At ~= Bt
   Ct ~= Ct'
   ------------------------- :: rcd
   ll:At, Ct ~= ll:Bt, Ct'
 
   recTyp Ct
-  lookup ll1 Ct =/> or (lookup ll1 Ct => At' and At' ~= At)
-  lookup ll2 Ct =/> or (lookup ll2 Ct => Bt' and Bt' ~= Bt)
+  (lookup ll1 Ct => At' and At' ~= At) or lookup ll1 Ct =/> 
+  (lookup ll2 Ct => Bt' and Bt' ~= Bt) or lookup ll2 Ct =/> 
   ll1 != ll2
   ll2:Bt, (ll1:At, Ct) ~= Ct'
   ---------------------------------------------- :: comm
   ll1:At, (ll2:Bt, Ct) ~= Ct'
 
   recTyp Ct
-  lookup ll Ct =/> or (lookup ll Ct => At' and At' ~= At)
+  (lookup ll Ct => At' and At' ~= At) or lookup ll Ct =/> 
   At ~= Bt
   ll:Bt, (ll:At, Ct) ~= Ct'
   ---------------------------------------------- :: dup
@@ -323,34 +331,6 @@ TargetEqIndexType :: '' ::=
 %   --------------- :: wide
 %   ll:At, Bt < Ct
 
-defns
-TargetSubtype :: '' ::=
-
-  defn
-  At < Bt :: :: SubtypeTarget :: TS_
-  {{ tex [[At]] [[<:]] [[Bt]] }}
-  {{ com Target Subtyping }}
-  by
-
-  --------------- :: top
-  At < Top
-  
-
-  --------------- :: refl
-  At < At
-
-  At1 < At2
-  Bt1 < Bt2
-  ---------------------- :: arrow
-  At1->Bt1 < At2->Bt2
-
-  recTyp Ct'
-  lookup ll Ct => Bt
-  Bt < At
-  % if we use Bt < At, we will need At < At for general At
-  Ct < Ct'
-  --------------- :: rcd
-  Ct < ll:At, Ct'
 
 defns
 WellformedTypes   :: '' ::=
@@ -373,8 +353,7 @@ WellformedTypes   :: '' ::=
   |- At
   |- Bt
   recTyp Bt
-  lookup ll Bt => At' or lookup ll Bt =/>
-  At ~= At'
+  (lookup ll Bt => At' and At' ~= At) or lookup ll Bt =/>
   ----------------------------------------- :: Rcd
   |- ll : At , Bt
 
@@ -401,6 +380,37 @@ WellformedCtx   :: '' ::=
   |- Gt , x : At
 
 
+defns
+TargetSubtype :: '' ::=
+
+  defn
+  At < Bt :: :: SubtypeTarget :: TS_
+  {{ tex [[At]] [[<:]] [[Bt]] }}
+  {{ com Target Subtyping }}
+  by
+
+  |- At
+  --------------- :: top
+  At < Top
+  
+  |- At
+  --------------- :: refl
+  At < At
+
+  At1 < At2
+  Bt1 < Bt2
+  ---------------------- :: arrow
+  At1->Bt1 < At2->Bt2
+
+  recTyp Ct'
+  lookup ll Ct => Bt
+  Bt < At
+  % if we use Bt < At, we will need At < At for general At
+  (lookup ll Ct' => At' and At ~= At') or lookup ll Ct' =/>
+  Ct < Ct'
+  --------------- :: rcd
+  Ct < ll:At, Ct'
+  
 defns
 TargetTyping :: '' ::=
 
@@ -442,8 +452,7 @@ TargetTyping :: '' ::=
   Gt |- { } : Top
 
   recTyp Bt
-  lookup ll Bt => At' or lookup ll Bt =/>
-  At ~= At'
+  (lookup ll Bt => At' and At' ~= At) or lookup ll Bt =/>
   Gt |- t1 : At
   Gt |- t2 : Bt
   ----------------------------------------- :: RcdCons
