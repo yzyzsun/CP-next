@@ -20,14 +20,22 @@ Proof.
   - inverts* H2.
 Qed.
 
-Lemma rcd_typ_concat : forall T1 T2 T3,
-    rec_typ T1 -> rec_typ T2 ->
-    concat_typ T1 T2 T3 ->
-    rec_typ T3.
+Lemma rcd_typ_concat_1 : forall T1 T2 T3,
+    concat_typ T1 T2 T3 -> rec_typ T1.
 Proof.
-  introv WF1 WF2 CT.
-  induction* CT.
-  - inverts* WF1.
+  introv CT. induction* CT.
+Qed.
+
+Lemma rcd_typ_concat_2 : forall T1 T2 T3,
+    concat_typ T1 T2 T3 -> rec_typ T2.
+Proof.
+  introv CT. induction* CT.
+Qed.
+
+Lemma rcd_typ_concat_3 : forall T1 T2 T3,
+    concat_typ T1 T2 T3 -> rec_typ T3.
+Proof.
+  introv CT. induction* CT.
 Qed.
 
 Lemma lookup_concat_typ : forall i A B C T,
@@ -65,7 +73,7 @@ Lemma wf_rcd_concat : forall T1 T2 T3,
     rec_typ T1 -> rec_typ T2 ->
     concat_typ T1 T2 T3 ->
     wf_typ T3.
-Proof with eauto using rcd_typ_concat.
+Proof with eauto using rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3.
   introv WF1 WF2 RT1 RT2 CT.
   induction* CT.
   - inverts* WF1. inverts* RT1...
@@ -73,7 +81,7 @@ Proof with eauto using rcd_typ_concat.
     + forwards* Heq: lookup_concat_typ H0 CT.
       rewrite H0 in Heq... intuition eauto; econstructor...
     + forwards* Heq: lookup_concat_typ_none H0 CT.
-      destruct H as [H' | H']; rewrite H' in Heq; econstructor...
+      destruct H as [(H'&?) | H']; rewrite H' in Heq; econstructor...
       Unshelve. all: eauto.
 Qed.
 
@@ -132,14 +140,6 @@ Proof.
     all: eauto.
 Qed.
 
-Lemma wf_typ_look_up_wf : forall l At Bt,
-    Tlookup l At = Some Bt -> wf_typ At -> wf_typ Bt.
-Proof with eauto.
-  introv Heq WF. gen l Bt.
-  induction WF; intros; try solve_by_invert.
-  inverts Heq. case_if*.
-  - inverts* H2.
-Qed.
 
 Lemma target_typing_wf_typ : forall G t T,
     target_typing G t T -> wf_typ T.
@@ -369,7 +369,7 @@ Proof with eauto using target_context_binds_wf, context_wf_inv_1, context_wf_inv
     + forwards* (?&?&Heq): eqIndTypTarget_lookup_some Bt x0 ll.
       exists. split.
       2: applys TTyping_RcdCons HT1 HT2...
-      applys* TEI_rcd... left. split*. intuition eauto using TEI_trans.
+      applys* TEI_rcd... left. split*. intuition eauto using TEI_trans, TEI_symm.
       left. split*. intuition eauto using TEI_trans, TEI_symm.
     + forwards* Heq: eqIndTypTarget_lookup_none Bt ll.
       exists. split.
@@ -393,7 +393,8 @@ Theorem preservation : forall t' t T,
     target_typing [] t T ->
     t >-> t' ->
     exists T', eqIndTypTarget T T' /\ target_typing [] t' T'.
-Proof with eauto using eqIndTypTarget_rec_typ, TEI_trans, TEI_symm, rcd_typ_concat, target_typing_wf_typ.
+Proof with eauto using eqIndTypTarget_rec_typ, TEI_trans, TEI_symm,
+    rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3, target_typing_wf_typ.
   introv Typ Red. gen t'.
   inductions Typ; intros;
     try solve [inverts* Red].
@@ -471,23 +472,23 @@ Proof with eauto using eqIndTypTarget_rec_typ, TEI_trans, TEI_symm, rcd_typ_conc
         2: { econstructor. 3: eassumption.
              3: econstructor. 5-7: eassumption.
              2: left; rewrite* Heq...
-             all: eauto using rcd_typ_concat.
+             all: eauto...
         }
         applys* TEI_refl. econstructor. 4: left; rewrite* Heq... all: eauto...
       * forwards* LKC: lookup_concat_typ_none.
-        destruct H14 as [Heq|Heq]; rewrite Heq in LKC.
+        destruct H14 as [(Heq&?)|Heq]; rewrite Heq in LKC.
         ** exists. split*.
            2: { econstructor. 3: eassumption.
              3: econstructor. 5-7: eassumption.
              2: left; rewrite* LKC...
-             all: eauto using rcd_typ_concat.
+             all: eauto...
            }
         applys* TEI_refl. econstructor. 4: left; rewrite* LKC... all: eauto...
         ** exists. split*.
            2: { econstructor. 3: eassumption.
              3: econstructor. 5-7: eassumption.
              2: right; rewrite* LKC...
-             all: eauto using rcd_typ_concat.
+             all: eauto...
            }
         applys* TEI_refl. econstructor. 4: right; rewrite* LKC... all: eauto...
     Unshelve. all: eauto.

@@ -18,6 +18,39 @@ Require Export Target.
 #[local] Hint Resolve target_typing_wf_1 target_typing_wf_2 ttyp_trans_wf : core.
 #[local] Hint Unfold Tlookup : core.
 
+
+Ltac lookup_concat l HC :=
+  match type of HC with
+  | concat_typ ?A ?B ?C => let Heq := fresh "Heq" in
+                           match goal with
+                           | H: Tlookup l A = Some _ |- _ =>
+                               forwards Heq: lookup_concat_typ H HC;
+                               rewrite H in Heq
+                           | H: Tlookup l A = None, H2: Tlookup l B = _ |- _ =>
+                               forwards Heq: lookup_concat_typ_none H HC;
+                               rewrite H2 in Heq
+                           end
+  end.
+
+Ltac lookup_eq l HE :=
+  match type of HE with
+  | eqIndTypTarget ?A ?B => let Heq := fresh "Heq" in
+                            match goal with
+                            | H: Tlookup l A = Some _ |- _ =>
+                                forwards (?&?&Heq): eqIndTypTarget_lookup_some HE H
+                            (* rewrite H in Heq *)
+                            | H: Tlookup l A = None|- _ =>
+                                forwards Heq: eqIndTypTarget_lookup_none HE H
+                            | H: Tlookup l B = Some _ |- _ =>
+                                apply TEI_symm in HE;
+                                forwards (?&?&Heq): eqIndTypTarget_lookup_some HE H
+                            (* rewrite H in Heq *)
+                            | H: Tlookup l B = None|- _ =>
+                                apply TEI_symm in HE;
+                                forwards Heq: eqIndTypTarget_lookup_none HE H
+                            end
+  end.
+
 (* Definition subtype_wrt_lookup A B := *)
 (*   A = B \/ (exists ll At Bt, B = ttyp_rcd ll At Bt /\ forall l C, Tlookup l B = Some C -> Tlookup l A = Some C). *)
 (* (* maybe too strict? *) *)
@@ -75,133 +108,167 @@ Require Export Target.
 (*                   target_typing E t B' /\ B' <: |[B]|. *)
 
 
-Definition target_flex_typing E t At := exists Bt, target_typing E t Bt /\ SubtypeTarget Bt At.
+(* Definition target_flex_typing E t At := exists Bt, target_typing E t Bt /\ SubtypeTarget Bt At. *)
 
 
-Lemma TS_andl : forall A B, SubtypeTarget |[typ_and A B]| |[A]|.
-Admitted.
+(* Lemma TS_andl : forall A B, SubtypeTarget |[typ_and A B]| |[A]|. *)
+(* Admitted. *)
 
-Lemma TS_andr : forall A B, SubtypeTarget |[typ_and A B]| |[B]|.
-Admitted.
+(* Lemma TS_andr : forall A B, SubtypeTarget |[typ_and A B]| |[B]|. *)
+(* Admitted. *)
 
-Lemma TS_eq : forall A B C, SubtypeTarget A B -> eqIndTypTarget A C -> SubtypeTarget C B.
-Admitted.
+(* Lemma TS_eq : forall A B C, SubtypeTarget A B -> eqIndTypTarget A C -> SubtypeTarget C B. *)
+(* Admitted. *)
 
 
-Lemma subtype_wf_typ_1 : forall At Bt,
-    SubtypeTarget At Bt -> wf_typ At.
-Proof with eauto.
-  introv HS. induction* HS.
+(* Lemma subtype_wf_typ_1 : forall At Bt, *)
+(*     SubtypeTarget At Bt -> wf_typ At. *)
+(* Proof with eauto. *)
+(*   introv HS. induction* HS. *)
+(* Qed. *)
+
+(* Lemma subtype_wf_typ_2 : forall At Bt, *)
+(*     SubtypeTarget At Bt -> wf_typ Bt. *)
+(* Proof with intuition eauto. *)
+(*   introv HS. induction* HS. *)
+(* Qed. *)
+
+(* #[local] Hint Resolve subtype_wf_typ_1 subtype_wf_typ_2 : core. *)
+
+(* Lemma subtype_wrt_lookup_same : forall A B l C, *)
+(*     SubtypeTarget A B -> Tlookup l B = Some C -> *)
+(*     exists C', Tlookup l A = Some C' /\ SubtypeTarget C' C. *)
+(* Proof with intuition eauto using wf_typ_look_up_wf. *)
+(*   introv HS HL. gen C. *)
+(*   induction* HS; intros; inverts HL. *)
+(*   - exists... *)
+(*   - case_if*. *)
+(*     + inverts H3. subst*. *)
+(*     + forwards* (?&?&?): IHHS2. *)
+(* Qed. *)
+
+(* Lemma TS_trans : forall A B C, SubtypeTarget A B -> SubtypeTarget B C -> SubtypeTarget A C. *)
+(* Proof. *)
+(*   introv HSA HSB. gen A. *)
+(*   induction* HSB; intros. *)
+(*   - inverts* HSA. *)
+(*   - forwards* (?&?&?): subtype_wrt_lookup_same H0. *)
+(* Qed. *)
+
+
+
+Lemma eqindtyptarget_subtypespec : forall At Bt,
+    eqIndTypTarget At Bt ->
+    rec_typ At -> rec_typ Bt ->
+    subtype_wrt_lookup At Bt.
+    (* Tlookup l At = Some A -> exists B, Tlookup l Bt = Some B /\ eqIndTypTarget A B. *)
+Proof with eauto using TEI_trans, eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2.
+  introv HE HRA HRB. unfolds. splits... introv HL. gen l B.
+  induction* HE; intros; try solve_by_invert.
+  - inverts HRA. inverts HRB.
+    destruct (tindex_eq_dec l ll).
+    + subst*. destruct_lookup HL. inverts HL.
+      exists; split*. simpl. case_if*.
+    + destruct_lookup HL.
+      * forwards~ (?&?&?): IHHE2 HL.
+        exists. split. simpl. case_if*. eauto.
+      * intuition eauto.
+  - inverts HRA. inverts H4.
+    destruct (tindex_eq_dec l ll1).
+    + destruct (tindex_eq_dec l ll2).
+      * subst. intuition eauto.
+      * subst. clear H0 H1.
+        forwards~ (?&?&?): IHHE ll1 HL.
+        unify_lookup.
+        exists; simpl; repeat case_if*.
+    + destruct (tindex_eq_dec l ll2).
+      * subst. clear H0 H1.
+        forwards~ (?&?&?): IHHE ll2 HL.
+        unify_lookup.
+        exists; simpl; repeat case_if*.
+      * subst. clear H0 H1.
+        forwards~ (?&?&?): IHHE l HL.
+        unify_lookup.
+        exists; simpl; repeat case_if*.
+  - inverts HRA. inverts H2.
+    forwards~ (?&?&?): IHHE2 l HL.
+    destruct (tindex_eq_dec l ll).
+    + subst.
+      destruct_lookup H1. inverts H1.
+      exists; splits; simpl; repeat case_if...
+    + destruct_lookup H1. inverts H1.
+      exists; splits; simpl; repeat case_if...
+      intuition eauto.
 Qed.
 
-Lemma subtype_wf_typ_2 : forall At Bt,
-    SubtypeTarget At Bt -> wf_typ Bt.
-Proof with intuition eauto.
-  introv HS. induction* HS.
-  destruct H1 as [(?&?)|?]...
-Qed.
 
-#[local] Hint Resolve subtype_wf_typ_1 subtype_wf_typ_2 : core.
-
-Lemma subtype_wrt_lookup_same : forall A B l C,
-    SubtypeTarget A B -> Tlookup l B = Some C ->
-    exists C', Tlookup l A = Some C' /\ SubtypeTarget C' C.
-Proof with intuition eauto using wf_typ_look_up_wf.
-  introv HS HL. gen C.
-  induction* HS; intros; inverts HL.
-  - exists...
-  - case_if*.
-    + inverts H3. subst*.
-    + forwards* (?&?&?): IHHS2.
-Qed.
-
-Lemma TS_trans : forall A B C, SubtypeTarget A B -> SubtypeTarget B C -> SubtypeTarget A C.
-Proof.
-  introv HSA HSB. gen A.
-  induction* HSB; intros.
-  - inverts* HSA.
-  - forwards* (?&?&?): subtype_wrt_lookup_same H0.
-Qed.
-
-
-Lemma lookup_wf_typ_1 : forall l T At l',
-    Tlookup l' (ttyp_rcd l T At) = Tlookup l' At \/ l = l'.
-Proof.
-  introv. simpl. case_if*.
-Qed.
-
-Lemma lookup_wf_typ_2 : forall l T At Bt,
-    wf_typ (ttyp_rcd l T At) -> Tlookup l At = Some Bt -> eqIndTypTarget T Bt.
-Proof.
-  introv WF LK. inverts WF. destruct H5.
-  all: rewrite LK in H; inverts* H.
-Qed.
-
-
-Lemma eqindtyptarget_wf_typ_1 : forall At Bt,
-    eqIndTypTarget At Bt -> wf_typ At.
-Proof with eauto.
-  introv HS. induction* HS.
-Qed.
-
-Lemma subtype_complete : forall At Bt,
-    eqIndTypTarget At Bt -> SubtypeTarget At Bt.
-Proof with eauto using eqIndTypTarget_rec_typ, TS_trans.
-  (* introv HRa HWa HRb HWb HE. *)
-  introv HE. induction* HE...
-  (* forwards*: IHHE1. forwards*: IHHE2... applys TS_trans. *)
-  - applys TS_rcd...
-    { simpl. case_if*. }
-    admit.
-  - applys TS_trans IHHE. applys* TS_rcd.
-    { simpl. case_if*. case_if*. }
-    applys* TS_rcd.
-    { simpl. case_if*. }
-    admit.
-  - applys TS_trans IHHE2. applys* TS_rcd.
-    { simpl. case_if*. }
-    applys* TS_rcd.
-    { simpl. case_if*. }
-    admit.
-Admitted.
-
-Lemma subtype_wide : forall l T At Bt,
-    (forall l Ct, Tlookup l At = Some Ct -> eqIndTypTarget T Ct) ->
-    rec_typ At -> SubtypeTarget At Bt ->
-    SubtypeTarget (ttyp_rcd l T At) Bt.
-Proof with try reflexivity.
-  introv WF HR ST. gen At l T.
-  induction* Bt; intros; try solve [inverts ST; inverts HR; solve_by_invert].
-  inverts ST.
-  - (* refl *) forwards* [Heq|Heq]: lookup_wf_typ_1.
-    + applys TS_rcd.
-      2: { rewrite* Heq.
-           simpl. case_if*. }
-      3: { applys* IHBt2. applys* IHBt2.
-           inverts* HR. introv LK.
-           + subst*. forwards: lookup_wf_typ_2 WF. simpl. case_if*.
-      applys TS_rcd.
-      { simpl. case_if*. }
-      { applys* subtype_complete. }
-      { applys* IHBt2. applys* IHBt2. inverts* WF. inverts* HR. }
-  - (* rcd *) forwards* [Heq|Heq]: lookup_wf_typ_1.
-    + applys TS_rcd. rewrite* Heq. eauto.
-      applys* IHBt2.
-    + subst*. forwards*: lookup_wf_typ_2 WF.
-      applys TS_rcd.
-      { simpl. case_if*. }
-      { applys* TS_trans Bt. applys* subtype_complete. }
-      { applys* IHBt2. }
+Lemma subtypespec_wrt_lookup_same : forall A B l C,
+    subtype_wrt_lookup A B -> Tlookup l B = Some C ->
+    exists C', Tlookup l A = Some C' /\ eqIndTypTarget C' C.
+Proof with intuition eauto using  eqindtyptarget_wf_typ_1, wf_typ_look_up_wf.
+  introv HS HL. unfold subtype_wrt_lookup in HS.
+  intuition eauto.
+  (* apply H4 in HL. destruct_conj. *)
+  (* exists... applys~ eqindtyptarget_subtypespec. *)
 Qed.
 
 (* Lemma subtype_refl : forall At, *)
 (*     rec_typ At -> wf_typ At -> SubtypeTarget At At. *)
 (* Proof. *)
 (*   introv HR HW. induction* HW; try solve_by_invert. *)
-(*   - inverts HR. *)
+(* Qed. *)
+
+(* Lemma subtype_complete : forall At Bt, *)
+(*     eqIndTypTarget At Bt -> SubtypeTarget At Bt. *)
+(* Proof with eauto using eqIndTypTarget_rec_typ, TS_trans. *)
+(*   (* introv HRa HWa HRb HWb HE. *) *)
+(*   introv HE. induction* HE... *)
+(*   (* forwards*: IHHE1. forwards*: IHHE2... applys TS_trans. *) *)
+(*   - applys TS_rcd... unify_lookup. *)
+(*     applys TS_trans IHHE2. *)
+(*     unify_lookup. Abort. *)
+(* all: econstructor. *)
+(*     { simpl. case_if*. } *)
+(*     admit. *)
+(*   - applys TS_trans IHHE. applys* TS_rcd. *)
+(*     { simpl. case_if*. case_if*. } *)
 (*     applys* TS_rcd. *)
-(*     simpl. case_if*. *)
-(*     applys* subtype_wide. *)
+(*     { simpl. case_if*. } *)
+(*     admit. *)
+(*   - applys TS_trans IHHE2. applys* TS_rcd. *)
+(*     { simpl. case_if*. } *)
+(*     applys* TS_rcd. *)
+(*     { simpl. case_if*. } *)
+(*     admit. *)
+(* Admitted. *)
+
+(* Lemma subtype_wide : forall l T At Bt, *)
+(*     (forall l Ct, Tlookup l At = Some Ct -> eqIndTypTarget T Ct) -> *)
+(*     rec_typ At -> SubtypeTarget At Bt -> *)
+(*     SubtypeTarget (ttyp_rcd l T At) Bt. *)
+(* Proof with try reflexivity. *)
+(*   introv WF HR ST. gen At l T. *)
+(*   induction* Bt; intros; try solve [inverts ST; inverts HR; solve_by_invert]. *)
+(*   inverts ST. *)
+(*   - (* refl *) forwards* [Heq|Heq]: lookup_wf_typ_1. *)
+(*     + applys TS_rcd. *)
+(*       2: { rewrite* Heq. *)
+(*            simpl. case_if*. } *)
+(*       3: { applys* IHBt2. applys* IHBt2. *)
+(*            inverts* HR. introv LK. *)
+(*            + subst*. forwards: lookup_wf_typ_2 WF. simpl. case_if*. *)
+(*       applys TS_rcd. *)
+(*       { simpl. case_if*. } *)
+(*       { applys* subtype_complete. } *)
+(*       { applys* IHBt2. applys* IHBt2. inverts* WF. inverts* HR. } *)
+(*   - (* rcd *) forwards* [Heq|Heq]: lookup_wf_typ_1. *)
+(*     + applys TS_rcd. rewrite* Heq. eauto. *)
+(*       applys* IHBt2. *)
+(*     + subst*. forwards*: lookup_wf_typ_2 WF. *)
+(*       applys TS_rcd. *)
+(*       { simpl. case_if*. } *)
+(*       { applys* TS_trans Bt. applys* subtype_complete. } *)
+(*       { applys* IHBt2. } *)
 (* Qed. *)
 
 
@@ -219,27 +286,27 @@ Qed.
 
 (* properties of flex_typing *)
 
-Lemma target_flex_typing_wf : forall E t A,
-    target_flex_typing E t A -> uniq E. Admitted.
-(* Proof with eauto using target_typing_wf_1; destruct_uniq; solve_uniq. *)
-(*   introv H. *)
-(*   induction* H. *)
-(* Qed. *)
+(* Lemma target_flex_typing_wf : forall E t A, *)
+(*     target_flex_typing E t A -> uniq E. Admitted. *)
+(* (* Proof with eauto using target_typing_wf_1; destruct_uniq; solve_uniq. *) *)
+(* (*   introv H. *) *)
+(* (*   induction* H. *) *)
+(* (* Qed. *) *)
 
 
-Lemma target_flex_typing_wf_2 : forall E t A,
-    target_flex_typing E t A -> wf_ctx E.  Admitted.
-(* Proof with eauto using target_typing_wf_2, context_wf_inv_1, context_wf_inv_2. *)
-(*   introv H. induction* H. *)
-(* Qed. *)
+(* Lemma target_flex_typing_wf_2 : forall E t A, *)
+(*     target_flex_typing E t A -> wf_ctx E.  Admitted. *)
+(* (* Proof with eauto using target_typing_wf_2, context_wf_inv_1, context_wf_inv_2. *) *)
+(* (*   introv H. induction* H. *) *)
+(* (* Qed. *) *)
 
-#[local] Hint Resolve target_flex_typing_wf target_flex_typing_wf_2 : core.
+(* #[local] Hint Resolve target_flex_typing_wf target_flex_typing_wf_2 : core. *)
 
-#[local] Hint Constructors target_typing : core.
+(* #[local] Hint Constructors target_typing : core. *)
 
-(** flex_typing relaxes target typing **)
-Lemma flex_typing_property0 : forall E t A,
-    target_typing E t |[A]| -> target_flex_typing E t |[A]|.  Admitted.
+(* (** flex_typing relaxes target typing **) *)
+(* Lemma flex_typing_property0 : forall E t A, *)
+(*     target_typing E t |[A]| -> target_flex_typing E t |[A]|.  Admitted. *)
 (* Proof. *)
 (*   introv H. *)
 (*   applys* TFTyping_Orig. *)
@@ -408,55 +475,162 @@ Proof.
     pick fresh x. applys* H0.
 Qed.
 
+Lemma eqIndTypTarget_top_inv : forall C,
+    eqIndTypTarget C ttyp_top -> C = ttyp_top.
+Proof with eauto; try solve_by_invert.
+  introv HE. inductions HE...
+  - forwards* : IHHE...
+  - forwards* : IHHE2...
+Qed.
 
-(* new property: same label means same type *)
-Lemma comerge_well_typed : forall E t1 A1 t B t2 A2,
-    comerge t1 A1 B t2 A2 t -> target_typing E t1 |[A1]| -> target_typing E t2 |[A2]|
-  -> target_typing E t |[B]|.
-Proof with elia; try tassumption; eauto using target_typing_wf_1, target_typing_wf_2, TEI_refl.
-  introv HC HTa HTb. gen E t1 t2 t B.
-  indTypSize (size_typ A1 + size_typ A2). inverts HC.
-  - applys* TTyping_RcdMerge HTa HTb.
-    1,2: applys* translate_to_record_types.
-    applys* concat_source_intersection.
-  - (* abs *)
-    rewrite ttyp_trans_ord_ntop_arrow...
-    applys* TTyping_RcdCons.
-    pick fresh x and apply TTyping_Abs...
-    lets* Hc: H x.
-    forwards: IH ( ( x, |[ A ]| ) :: E) Hc...
-    1-2: applys TTyping_App...
-    2,4: econstructor...
-    1-2: applys TTyping_RcdProj...
-    1,3: rewrite_env ( [ (x, |[ A ]|) ] ++  E); applys target_weakening_simpl.
-    1,4: eassumption.
-    1-4: simpl...
-    all: rewrite ttyp_trans_ord_ntop_arrow...
-    all: unfold Tlookup...
-    all: case_if...
-  - (* rcd *)
-    rewrite ttyp_trans_rcd... applys* TTyping_RcdCons...
-    forwards: IH E H...
-    all: applys TTyping_RcdProj...
-    all: rewrite ttyp_trans_rcd...
-    all: unfold Tlookup...
-    all: case_if...
+Lemma TEI_cons : forall l A B A' B',
+    eqIndTypTarget A A' -> eqIndTypTarget B B' ->
+    wf_typ (ttyp_rcd l A B) -> wf_typ (ttyp_rcd l A' B') ->
+    eqIndTypTarget (ttyp_rcd l A B) (ttyp_rcd l A' B').
+Proof with eauto using eqIndTypTarget_rec_typ, TEI_symm.
+  introv HEa HEb HWa HWb.
+  inverts HWa. inverts HWb. econstructor...
+Qed.
+
+Lemma eqindtyptarget_concat_1 : forall T A B C,
+    concat_typ A B C -> eqIndTypTarget T A -> wf_typ B -> rec_typ B ->
+    exists C', concat_typ T B C' /\ eqIndTypTarget C' C.
+Proof with eauto using TEI_symm, TEI_refl, TEI_trans.
+  introv HC HE HW HR. gen B C.
+  induction HE; intros; try solve_by_invert.
+  - exists. split*. forwards*: wf_rcd_concat HC.
+    eauto...
+  - inverts HC. forwards~ (?&?&?): IHHE2 H9.
+    destruct_conj. exists. split.
+    econstructor. { destruct H8 as [(?&?)|?]. intuition eauto... right*. }
+    eassumption. applys~ TEI_cons.
+    all: unify_lookup.
+    all: econstructor.
+    all: eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2,
+        wf_rcd_concat, rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3.
+    all: try lookup_concat ll H9; try lookup_concat ll H3...
+  - forwards* (?&?&?): IHHE. inverts H3. inverts H11.
+    exists. split.
+    all: unify_lookup; lookup_concat ll1 H12; lookup_concat ll2 H12;
+      econstructor...
+    all: eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2,
+        wf_rcd_concat, rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3.
+  - forwards* (?&?&?): IHHE2. inverts keep H1. inverts H9.
+    unify_lookup; lookup_concat ll H11...
+    all: exists; split.
+    1,3,5,7: econstructor; try solve [right*]; try solve [left*].
+    1-4: econstructor; try solve [right*]; try solve [left*]...
+    all: applys TEI_dup H2.
+    all: try solve [right*]; try solve [left*]...
+    all: eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2,
+        wf_rcd_concat, rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3.
+    Unshelve. all: econstructor.
+Qed.
+
+
+Lemma eqindtyptarget_concat_2 : forall T A B C,
+    concat_typ A B C -> eqIndTypTarget T B -> wf_typ A -> rec_typ A ->
+    exists C', concat_typ A T C' /\ eqIndTypTarget C' C.
+Proof with eauto using TEI_symm, TEI_refl, TEI_trans,
+    rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3.
+  introv HC HE HW HR. gen B C T.
+  induction HR; intros.
+  - inverts HC. exists. split.
+    econstructor. eauto using TEI_symm, eqIndTypTarget_rec_typ.
+    eauto.
+  - inverts HC. inverts HW. forwards~ (?&?&?): IHHR H5 HE.
+    unify_lookup; try lookup_eq ll HE; try lookup_concat ll H5; try lookup_eq ll H0.
+    + exists. split. econstructor... applys TEI_cons...
+      { econstructor... applys wf_rcd_concat H...
+        eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2. }
+      { econstructor... eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2. }
+    + exists. split. econstructor... applys TEI_cons...
+      { econstructor... applys wf_rcd_concat H...
+        eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2. }
+      { econstructor... eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2. }
+    + exists. split. econstructor... applys TEI_cons...
+      { econstructor... applys wf_rcd_concat H...
+        eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2. }
+      { econstructor... eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2. }
+    + exists. split. econstructor... applys TEI_cons...
+      { econstructor... applys wf_rcd_concat H...
+        eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2. }
+      { econstructor... eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2. }
+      Unshelve. all: econstructor.
+Qed.
+
+Lemma eqindtyptarget_concat : forall T1 T2 A1 A2 B,
+    eqIndTypTarget T1 A1 -> eqIndTypTarget T2 A2 -> concat_typ A1 A2 B ->
+    exists C, concat_typ T1 T2 C /\ eqIndTypTarget C B.
+Proof with eauto using TEI_symm, TEI_refl, TEI_trans,
+    eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2,
+    rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3.
+  introv HE1 HE2 HC.
+  forwards (?&?&?): eqindtyptarget_concat_1 HC HE1...
+  forwards (?&?&?): eqindtyptarget_concat_2 H HE2...
 Qed.
 
 
 Lemma eqIndTypTarget_arrow_inv_3 : forall A B C,
     eqIndTypTarget C (ttyp_arrow A B) -> exists C1 C2, C = ttyp_arrow C1 C2.
-Proof with eauto.
+Proof with eauto; try solve_by_invert.
   introv HE. inductions HE...
-  - forwards* (?&?&?): IHHE1. subst*.
-    forwards* (?&?&?): IHHE2.
-Admitted.
+  - forwards* (?&?&?): IHHE...
+  - forwards* (?&?&?): IHHE2...
+Qed.
+
+(* new property: same label means same type *)
+Lemma comerge_well_typed : forall E t1 A1 t B t2 A2 T1 T2,
+    comerge t1 A1 B t2 A2 t ->
+    target_typing E t1 T1 -> eqIndTypTarget T1 |[A1]| ->
+    target_typing E t2 T2 -> eqIndTypTarget T2 |[A2]| ->
+    exists T, target_typing E t T /\ eqIndTypTarget T |[B]|.
+Proof with elia; try tassumption; eauto using target_typing_wf_1, target_typing_wf_2, TEI_refl, TEI_symm.
+  introv HC HTa Eqa HTb Eqb. gen E t1 t2 t B T1 T2.
+  indTypSize (size_typ A1 + size_typ A2). inverts HC.
+  - forwards (?&?&?): eqindtyptarget_concat Eqa Eqb.
+    applys* concat_source_intersection.
+    exists. split.
+    applys* TTyping_RcdMerge HTa HTb.
+    all: now eauto using eqIndTypTarget_rec_typ, TEI_symm, translate_to_record_types.
+  - (* abs *)
+    apply TEI_symm in Eqa, Eqb.
+    lets (?&?&?): eqIndTypTarget_lookup_some (|| typ_arrow A B1 ||) Eqa.
+    2: lets (?&?&?): eqIndTypTarget_lookup_some (|| typ_arrow A B2 ||) Eqb.
+    1-2: rewrite ttyp_trans_ord_ntop_arrow; simpl; case_if*.
+    apply TEI_symm in H0. forwards(?&?&?): eqIndTypTarget_arrow_inv_3 H0. subst.
+    forwards : eqIndTypTarget_arrow_inv_1 H0. forwards : eqIndTypTarget_arrow_inv_2 H0.
+    apply TEI_symm in H2. forwards(?&?&?): eqIndTypTarget_arrow_inv_3 H2. subst.
+    forwards : eqIndTypTarget_arrow_inv_1 H2. forwards : eqIndTypTarget_arrow_inv_2 H2.
+
+    pick fresh y. lets Hc: H y.
+    lets (?&?&?): IH ( ( y, |[ A ]| ) :: E) Hc. elia. now eauto.
+    1,3: applys TTyping_App.
+    2,5: econstructor...
+    1,3: applys TTyping_RcdProj.
+    1,3: rewrite_env ( [ (y, |[ A ]|) ] ++  E); applys target_weakening_simpl; try eassumption.
+    1-6: eauto; eassumption.
+    1-4: simpl...
+    exists. split. applys* TTyping_RcdCons.
+    pick fresh z and apply TTyping_Abs... forwards* : subst_var_typing H8.
+    all: eauto.
+    econstructor...
+  - (* rcd *)
+    apply TEI_symm in Eqa, Eqb.
+    lets (?&?&?): eqIndTypTarget_lookup_some (|| typ_rcd l0 A0 ||) Eqa.
+    2: lets (?&?&?): eqIndTypTarget_lookup_some (|| typ_rcd l0 A3 ||) Eqb.
+    1-2: rewrite ttyp_trans_rcd... 1-2: simpl; case_if*.
+    lets (?&?&?): IH E H...
+    exists. split. applys* TTyping_RcdCons...
+    econstructor...
+    Unshelve. all: econstructor.
+Qed.
 
 
 Lemma cosub_well_typed : forall E t1 A B t2 At,
-    cosub t1 A B t2 -> target_typing E t1 At -> SubtypeTarget At |[A]| ->
-    exists Bt', target_typing E t2 Bt' /\ eqIndTypTarget |[B]| Bt'.
-Proof with elia; eauto using translate_to_record_types, target_typing_wf_1, target_typing_wf_2.
+    cosub t1 A B t2 -> target_typing E t1 At -> subtype_wrt_lookup At |[A]| ->
+    exists Bt', target_typing E t2 Bt' /\ eqIndTypTarget Bt' |[B]|.
+Proof with elia; eauto using TEI_symm, translate_to_record_types, target_typing_wf_1, target_typing_wf_2, target_typing_wf_typ, subtypespec_refl, subtypespec_trans.
   introv HS HT ST. gen At t1 t2 E.
   indTypSize (size_typ A + size_typ B). inverts HS.
   - (* top *)
@@ -464,70 +638,156 @@ Proof with elia; eauto using translate_to_record_types, target_typing_wf_1, targ
   - (* bot *)
     lets* (?&EQ&WF): ttyp_trans_ord_ntop B. rewrite EQ...
     exists. split. applys TTyping_RcdCons.
-    3,6: applys TEI_refl. all: eauto.
+    5: applys TEI_refl. 2: right.
+    all: eauto.
     pick fresh y and apply TTyping_Fix.
-    unfold open_texp_wrt_texp. simpl. applys TTyping_Var... applys TEI_refl.
+    unfold open_texp_wrt_texp. simpl. applys TTyping_Var... applys~ TEI_refl.
   - (* base *)
     rewrite ttyp_trans_base...
-    lets (?&?&?): subtype_wrt_lookup_same (|| typ_base ||) ST.
+    lets (?&?&?): subtypespec_wrt_lookup_same (|| typ_base ||) ST.
     (* lets (?&?&?&?&?): flex_typing_property3 (|| typ_base ||) HT. *)
     rewrite ttyp_trans_base. simpl...
     exists. split.
-    applys TTyping_RcdCons. 4: applys TTyping_RcdProj H0.
+    applys TTyping_RcdCons. 3: applys TTyping_RcdProj H0.
     all: eauto...
   - (* arrow *)
-    rewrite ttyp_trans_ord_ntop_arrow...
-    lets (?&?&Eq): subtype_wrt_lookup_same (|| (typ_arrow A1 A2) ||) ST.
+    lets (?&?&Eq): subtypespec_wrt_lookup_same (|| (typ_arrow A1 A2) ||) ST.
     (* lets* (?&?&?&?&?): flex_typing_property3 (|| (typ_arrow A1 A2) ||) HT. *)
     rewrite ttyp_trans_ord_ntop_arrow... simpl. case_if...
     forwards (?&?&Heq): eqIndTypTarget_arrow_inv_3 Eq. subst.
     forwards : eqIndTypTarget_arrow_inv_1 Eq.
-    exists. split. applys TTyping_RcdCons.
-    4: {
-    pick fresh y and apply TTyping_Abs.
+    forwards *: eqIndTypTarget_arrow_inv_2 Eq.
+
+    pick fresh y.
     lets* (HS1 & HS2): H1 y.
     lets (?&?&?): IH HS1 ((y, |[ B1 ]|) :: E)...
-    { applys* subtype_refl... }
     { econstructor... }
     (* { applys flex_typing_property0. econstructor... } *)
-    forwards: IH HS2...
+    lets (?&?&?): IH HS2. elia.
     2: { (* applys flex_typing_property0... *)
       applys TTyping_App.
       rewrite_env ([ (y, |[ B1 ]|) ] ++ E).
+      applys TTyping_RcdProj H2.
       applys target_weakening_simpl...
-      2: { applys* TEI_trans H3 H5. }
-      eauto.
-    }
-    forwards *: eqIndTypTarget_arrow_inv_2 Eq.
-                            applys TTyping_RcdProj HT.
-lets (?&?&?): subtype_wrt_lookup_same (|| (typ_arrow A1 A2) ||) ST.
-simpl. case_if*. rewrite ttyp_trans_ord_ntop_arrow...
-destruct_uniq...
+      tassumption.
+      eauto using TEI_trans, TEI_symm.
+      }
+      applys* eqindtyptarget_subtypespec.
+      applys eqIndTypTarget_rec_typ. applys TEI_symm H4.
+      1-2: eauto using translate_to_record_types.
 
+      exists. split. applys TTyping_RcdCons.
+      3: {
+        pick fresh z and apply TTyping_Abs.
+        forwards* : subst_var_typing H7.
+        solve_notin.
+      }
+      3: eauto.
+      2: right*.
+      1: now eauto.
+      rewrite ttyp_trans_ord_ntop_arrow...
+      econstructor... econstructor... applys TEI_refl...
   - (* rcd *)
-    rewrite ttyp_trans_rcd... applys* TTyping_RcdCons...
-    forwards: IH H1 E...
-    applys* flex_typing_property0.
-    lets* (?&?&?): flex_typing_property3 (|| (typ_rcd l0 A0) ||) HT.
-    rewrite ttyp_trans_rcd.
-    unfold Tlookup. case_if...
+    lets (?&?&Eq): subtypespec_wrt_lookup_same (|| typ_rcd l0 A0 ||) ST.
+    rewrite ttyp_trans_rcd... simpl. case_if*.
+    forwards* (?&?&?): IH H1 E... applys* eqindtyptarget_subtypespec...
+    applys eqIndTypTarget_rec_typ. applys TEI_symm Eq. applys* translate_to_record_types.
+    exists. split.
+    applys* TTyping_RcdCons...
+    econstructor...
   - (* and *)
-    forwards* (?&?): flex_typing_property1 HT.
-    applys* IH H0. elia.
+    (* forwards*: TEI_refl (|[ A0 ]|)... *)
+    (* forwards*: eqindtyptarget_subtypespec (|[ A0 ]|)... *)
+    applys* IH H0 HT... applys subtypespec_trans ST subtypespec_andl.
   - (* and *)
-    forwards* (?&?): flex_typing_property1 HT.
-    applys* IH H0. elia.
+    applys* IH H0 HT... applys subtypespec_trans ST subtypespec_andr.
   - (* comerge *)
-    forwards*: IH H0. elia.
-    forwards*: IH H1. elia.
-    applys* comerge_well_typed H2.
+    forwards* (?&?&Eq1): IH H0. elia.
+    forwards* (?&?&Eq2): IH H1. elia.
+    forwards(?&?&?): comerge_well_typed H2; try eassumption.
+    exists. split*...
+    Unshelve. all: econstructor.
 Qed.
 
+(* Lemma cosub_well_typed : forall E t1 A B t2 At, *)
+(*     cosub t1 A B t2 -> target_typing E t1 At -> SubtypeTarget At |[A]| -> *)
+(*     exists Bt', target_typing E t2 Bt' /\ eqIndTypTarget |[B]| Bt'. *)
+(* Proof with elia; eauto using TEI_symm, translate_to_record_types, target_typing_wf_1, target_typing_wf_2. *)
+(*   introv HS HT ST. gen At t1 t2 E. *)
+(*   indTypSize (size_typ A + size_typ B). inverts HS. *)
+(*   - (* top *) *)
+(*     forwards* EQ: ttyp_trans_ord_top B. rewrite EQ. exists. split... *)
+(*   - (* bot *) *)
+(*     lets* (?&EQ&WF): ttyp_trans_ord_ntop B. rewrite EQ... *)
+(*     exists. split. applys TTyping_RcdCons. *)
+(*     5: applys TEI_refl. 2: right. *)
+(*     all: eauto. *)
+(*     pick fresh y and apply TTyping_Fix. *)
+(*     unfold open_texp_wrt_texp. simpl. applys TTyping_Var... applys~ TEI_refl. *)
+(*   - (* base *) *)
+(*     rewrite ttyp_trans_base... *)
+(*     lets (?&?&?): subtype_wrt_lookup_same (|| typ_base ||) ST. *)
+(*     (* lets (?&?&?&?&?): flex_typing_property3 (|| typ_base ||) HT. *) *)
+(*     rewrite ttyp_trans_base. simpl... *)
+(*     exists. split. *)
+(*     applys TTyping_RcdCons. 3: applys TTyping_RcdProj H0. *)
+(*     all: eauto... econstructor... *)
+(*   - (* arrow *) *)
+(*     rewrite ttyp_trans_ord_ntop_arrow... *)
+(*     lets (?&?&Eq): subtype_wrt_lookup_same (|| (typ_arrow A1 A2) ||) ST. *)
+(*     (* lets* (?&?&?&?&?): flex_typing_property3 (|| (typ_arrow A1 A2) ||) HT. *) *)
+(*     rewrite ttyp_trans_ord_ntop_arrow... simpl. case_if... *)
+(*     forwards (?&?&Heq): eqIndTypTarget_arrow_inv_3 Eq. subst. *)
+(*     forwards : eqIndTypTarget_arrow_inv_1 Eq. *)
+(*     exists. split. applys TTyping_RcdCons. *)
+(*     4: { *)
+(*     pick fresh y and apply TTyping_Abs. *)
+(*     lets* (HS1 & HS2): H1 y. *)
+(*     lets (?&?&?): IH HS1 ((y, |[ B1 ]|) :: E)... *)
+(*     { applys* subtype_refl... } *)
+(*     { econstructor... } *)
+(*     (* { applys flex_typing_property0. econstructor... } *) *)
+(*     forwards: IH HS2... *)
+(*     2: { (* applys flex_typing_property0... *) *)
+(*       applys TTyping_App. *)
+(*       rewrite_env ([ (y, |[ B1 ]|) ] ++ E). *)
+(*       applys target_weakening_simpl... *)
+(*       2: { applys* TEI_trans H3 H5. } *)
+(*       eauto. *)
+(*     } *)
+(*     forwards *: eqIndTypTarget_arrow_inv_2 Eq. *)
+(*                             applys TTyping_RcdProj HT. *)
+(* lets (?&?&?): subtype_wrt_lookup_same (|| (typ_arrow A1 A2) ||) ST. *)
+(* simpl. case_if*. rewrite ttyp_trans_ord_ntop_arrow... *)
+(* destruct_uniq... *)
 
-Lemma cosub_well_typed_relax : forall E t1 A B t2,
-    cosub t1 A B t2 -> target_typing E t1 |[A]| -> target_typing E t2 |[B]|.
+(*   - (* rcd *) *)
+(*     rewrite ttyp_trans_rcd... applys* TTyping_RcdCons... *)
+(*     forwards: IH H1 E... *)
+(*     applys* flex_typing_property0. *)
+(*     lets* (?&?&?): flex_typing_property3 (|| (typ_rcd l0 A0) ||) HT. *)
+(*     rewrite ttyp_trans_rcd. *)
+(*     unfold Tlookup. case_if... *)
+(*   - (* and *) *)
+(*     forwards* (?&?): flex_typing_property1 HT. *)
+(*     applys* IH H0. elia. *)
+(*   - (* and *) *)
+(*     forwards* (?&?): flex_typing_property1 HT. *)
+(*     applys* IH H0. elia. *)
+(*   - (* comerge *) *)
+(*     forwards*: IH H0. elia. *)
+(*     forwards*: IH H1. elia. *)
+(*     applys* comerge_well_typed H2. *)
+(* Qed. *)
+
+
+Lemma cosub_well_typed_relax : forall E t1 A B t2 A',
+    cosub t1 A B t2 -> target_typing E t1 A' -> eqIndTypTarget A' |[A]| ->
+    exists B', target_typing E t2 B' /\ eqIndTypTarget B' |[B]|.
 Proof.
-  eauto using cosub_well_typed.
+  intuition eauto. applys* cosub_well_typed.
+  applys* eqindtyptarget_subtypespec;
+    eauto using eqIndTypTarget_rec_typ, TEI_symm, translate_to_record_types.
 Qed.
 
 (* (* previous aborted proof with the def of texp_behave_like_styp *) *)
@@ -569,14 +829,6 @@ Qed.
 (*   - (* and *) *)
 
 
-Fixpoint context_trans (G:ctx) : tctx :=
-  match G with
-  | [] => []
-  | (x, A) :: l => (x, |[A]|) :: (context_trans l)
-  end.
-
-Notation "||[ G ]||" := (context_trans G) (at level 1, G at next level).
-
 Lemma ctx_trans_preserves_binds : forall x A G,
     binds x A G -> binds x |[A]| ||[G]||.
 Proof.
@@ -603,85 +855,116 @@ Proof.
   rewrite* ctx_trans_preserves_dom.
 Qed.
 
-Lemma toplike_appdist_inv : forall A B C,
-    appdist A (typ_arrow B C) -> toplike A -> toplike C.
+Lemma toplike_appdist_inv : forall A B C T t1 t2 t3,
+    distapp t1 A t2 T t3 (typ_arrow B C) -> toplike A -> toplike C.
 Proof.
   introv HA HT. inductions HA.
-  all: inverts* HT.
+  all: inverts* HT. now inverts* H2.
 Qed.
 
-Lemma distapp_well_typed_app : forall A B C G t1 t2 B' t3,
-    appdist A (typ_arrow B C) -> target_flex_typing ||[ G ]|| t1 |[A]| ->
-    target_flex_typing ||[ G ]|| t2 |[B']| -> distapp t1 A (tvl_exp t2) B' t3 ->
-    target_typing ||[ G ]|| t3 |[C]|.
-Proof with eauto using target_typing_wf_1.
-  introv HA HTa HTb HD. gen t1 t2 t3 B'.
-  inductions HA; intros; inverts HD...
+Lemma distapp_well_typed_app : forall A B C G t1 t2 t3 A' B',
+    distapp t1 A t2 B t3 C ->
+    target_typing ||[ G ]|| t1 A' -> subtype_wrt_lookup A' |[A]| ->
+    target_typing ||[ G ]|| t2 B' -> subtype_wrt_lookup B' |[B]| ->
+    exists C', target_typing ||[ G ]|| t3 C' /\ eqIndTypTarget C' |[C]|.
+Proof with eauto using target_typing_wf_1, eqIndTypTarget_rec_typ, TEI_symm, translate_to_record_types.
+  introv HA HTa HEa HTb HEb. gen A' B'.
+  inductions HA; intros.
   - rewrite* ttyp_trans_ord_top.
-    inverts* H4.
-  - applys* TTyping_App.
-    forwards* (?&?&?): flex_typing_property3 (|| (typ_arrow B C) ||) HTa.
-    rewrite ttyp_trans_ord_ntop_arrow.
-    simpl. case_if...
-    applys * cosub_well_typed.
-  - rewrite* ttyp_trans_ord_top.
-  - rewrite* ttyp_trans_ord_top.
-    inverts H4. constructor; applys* toplike_appdist_inv.
-  - forwards* (?&?): flex_typing_property1 HTa.
-    forwards*: IHHA1 HTb. forwards*: IHHA2 HTb.
-    applys* TTyping_RcdMerge H1 H2.
-    all: eauto using concat_source_intersection, translate_to_record_types.
+  - forwards* (?&?&?): cosub_well_typed H0.
+    lets (?&?&?): subtypespec_wrt_lookup_same (|| (typ_arrow A B) ||) HEa.
+    rewrite ttyp_trans_ord_ntop_arrow. simpl. case_if...
+    forwards(?&?&?): eqIndTypTarget_arrow_inv_3 H4. subst.
+    forwards: eqIndTypTarget_arrow_inv_1 H4. forwards : eqIndTypTarget_arrow_inv_2 H4.
+    exists. split. applys TTyping_App.
+    econstructor. 1-3: now eauto.
+    all: eauto using TEI_trans, TEI_symm.
+  - forwards* (?&?&?): IHHA1 HTb. eauto using subtypespec_andl, subtypespec_trans.
+    forwards* (?&?&?): IHHA2 HTb. eauto using subtypespec_andr, subtypespec_trans.
+    forwards* (?&?&?): eqindtyptarget_concat H0 H2.
+    applys* concat_source_intersection.
+    exists. split. applys* TTyping_RcdMerge H H1.
+    all: eauto using eqIndTypTarget_rec_typ, TEI_symm, translate_to_record_types.
 Qed.
 
 
-Lemma distapp_well_typed_proj : forall A l B G t1 t3 C,
-    appdist A (typ_rcd l B) -> target_typing ||[ G ]|| t1 |[A]| ->
-    distapp t1 A (tvl_la l) C t3 ->
-    target_typing ||[ G ]|| t3 |[B]|.
+Lemma distapp_well_typed_proj : forall A l t1 t3 C G A',
+    proj t1 A l t3 C -> target_typing ||[ G ]|| t1 A' -> subtype_wrt_lookup A' |[A]| ->
+    exists C', target_typing ||[ G ]|| t3 C' /\ eqIndTypTarget C' |[C]|.
 Proof with eauto using target_typing_wf_1.
-  introv HA HT HD.
-  inductions HA; inverts HD...
-  - rewrite ttyp_trans_rcd in HT...
-    applys* TTyping_RcdProj.
+  introv HA HT HS.
+  inductions HA...
+  - rewrite* ttyp_trans_ord_top.
+  - lets (?&?&?): subtypespec_wrt_lookup_same (|| typ_rcd l A ||) HS.
     simpl. case_if...
+    exists. split. applys* TTyping_RcdProj. now eauto.
+  - rewrite* ttyp_trans_ord_top.
+  - forwards* (?&?&?): IHHA1 HT. eauto using subtypespec_andl, subtypespec_trans.
+    forwards* (?&?&?): IHHA2 HT. eauto using subtypespec_andr, subtypespec_trans.
+    forwards* (?&?&?): eqindtyptarget_concat H0 H2.
+    applys* concat_source_intersection.
+    exists. split. applys* TTyping_RcdMerge H H1.
+    all: eauto using eqIndTypTarget_rec_typ, TEI_symm, translate_to_record_types.
 Qed.
 
 (** via styp2ttyp to convert type *)
 Theorem elaboration_well_typed : forall G e dirflag A t,
     elaboration G e dirflag A t ->
-    target_typing ||[ G ]|| t |[A]|.
-Proof with eauto using translate_to_record_types, target_typing_wf_1, ctx_trans_preserves_uniq.
+    exists A', target_typing ||[ G ]|| t A' /\  eqIndTypTarget A' |[A]|.
+Proof with eauto using elaboration_wf_ctx, translate_to_record_types, target_typing_wf_1, ctx_trans_preserves_uniq, TEI_refl, TEI_symm, TEI_trans, eqindtyptarget_subtypespec.
   introv HT.
   induction HT...
   - rewrite* ttyp_trans_ord_top.
-    applys TTyping_RcdNil...
+    exists. split. applys TTyping_RcdNil... eauto using TEI_refl.
   - rewrite* ttyp_trans_ord_top.
-    applys TTyping_RcdNil...
+    exists. split. applys TTyping_RcdNil... eauto using TEI_refl.
   - rewrite* ttyp_trans_ord_top.
   - (* base *)
     rewrite* ttyp_trans_base.
-    applys TTyping_RcdCons...
+    exists. split. applys TTyping_RcdCons.
+    4: eauto...
+    all: eauto...
   - (* var *)
     apply ctx_trans_preserves_binds in H0...
+    exists. split*. econstructor... applys TEI_refl. eauto using target_context_binds_wf.
+  - (* fix *)
+    pick fresh x. forwards~ (?&?&?): H0 x.
+    exists. split. remember ||[ G ]||. pick fresh y and apply TTyping_Fix.
+    applys subst_var_typing H1...
+    all: eauto.
   - (* abs *)
+    pick fresh x. forwards~ (?&?&?): H0 x.
+    forwards: target_typing_wf_2 H1. inverts H3.
+    forwards: target_typing_wf_1 H1. inverts H3.
     rewrite ttyp_trans_ord_ntop_arrow...
-    applys TTyping_RcdCons...
+    exists. split. applys TTyping_RcdCons.
+    4: eauto...
+    3: { remember ||[ G ]||.
+         pick fresh y and apply TTyping_Abs.
+         applys subst_var_typing H1.
+         all: eauto.
+    }
+    3: econstructor.
+    all: eauto.
+    econstructor...
   - (* app *)
-    applys* distapp_well_typed_app.
+    destruct_conj. applys* distapp_well_typed_app...
+    all: eauto using eqindtyptarget_subtypespec, eqIndTypTarget_rec_typ, TEI_symm, translate_to_record_types.
   - (* rcd *)
     rewrite ttyp_trans_rcd...
+    destruct_conj. exists. split. applys TTyping_RcdCons H.
+    3: eauto. all: eauto.
   - (* proj *)
-    applys* distapp_well_typed_proj.
+    destruct_conj. applys* distapp_well_typed_proj.
+    all: eauto using eqindtyptarget_subtypespec, eqIndTypTarget_rec_typ, TEI_symm, translate_to_record_types.
   - (* merge *)
+    destruct_conj.
     lets HC: concat_source_intersection A B.
-    applys TTyping_RcdMerge IHHT1 IHHT2...
+    forwards* (?&?&?): eqindtyptarget_concat HC.
+    exists. split.
+    applys TTyping_RcdMerge H2 H0...
+    all: eauto using eqindtyptarget_subtypespec, eqIndTypTarget_rec_typ, TEI_symm, translate_to_record_types.
   - (* subsumption *)
-    applys * cosub_well_typed_relax.
+    destruct_conj. forwards* (?&?&?): cosub_well_typed_relax H.
+    Unshelve. all: econstructor.
 Qed.
-
-  (* H : disjoint A B *)
-  (* IHHT1 : target_typing ||[ G ]|| t1 |[ A ]| *)
-  (* IHHT2 : target_typing ||[ G ]|| t2 |[ B ]| *)
-  (* HC : concat_typ |[ A ]| |[ B ]| |[ (typ_and A B) ]| *)
-  (* ============================ *)
-  (* target_typing ||[ G ]|| (texp_concat t1 t2) |[ (typ_and A B) ]| *)

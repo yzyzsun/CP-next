@@ -135,3 +135,11 @@ Ltac pick_fresh_applys_and_instantiate_cofinites H :=
 Ltac detect_fresh_var_and_apply H :=
   let f x := applys_and_instantiate_cofinites_with H x in
   detect_fresh_var_and_do f.
+
+
+Ltac destruct_disj :=
+  repeat match goal with H: ?T |- _ =>
+    match T with
+    | _ \/ _ => destruct H
+    end
+    end.

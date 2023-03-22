@@ -191,23 +191,6 @@ TargetStep   :: '' ::=
   fix x.t  >-> t [x~>>fix x.t]
 
 
-defns
-ConcatTypes   :: '' ::=
-
-  defn
-  At & Bt => Ct
-  :: :: concat_typ :: 'CT_'
-  {{ com Concatenate types }}
-  by
-
-  -------------------- :: Nil
-  Top & Bt => Bt
-
-  lookup ll Bt2 => At or lookup ll Bt2 =/>
-  Bt1 & Bt2 => Ct
-  ---------------------------------------- :: Rcd
-  (ll : At , Bt1) & Bt2 => ll : At , Ct
-
 
 defns
 RecordTypes   :: '' ::=
@@ -224,22 +207,6 @@ RecordTypes   :: '' ::=
   recTyp Bt
   -------------------- :: Rcd
   recTyp ll : At , Bt
-
-defns
-ContainedByRecTyp   :: '' ::=
-
-  defn
-  At |> ll : Bt
-  :: :: contained_by_rec_typ :: 'CRT_'
-  {{ com non-deterministic lookup }}
-  by
-
-  ------------------------------- :: Head
-  (ll1 : At , Bt) |> ll1 : At
-
-  Bt |> ll2 : Ct
-  ------------------------------- :: Tail
-  (ll1 : At , Bt) |> ll2 : Ct
 
 
 defns
@@ -276,7 +243,7 @@ TargetEqIndexType :: '' ::=
   recTyp Ct
   recTyp Ct'
   (lookup ll Ct => At' and At' ~= At) or lookup ll Ct =/> 
-  (lookup ll Ct => Bt' and Bt' ~= Bt) or lookup ll Ct' =/> 
+  (lookup ll Ct' => Bt' and Bt' ~= Bt) or lookup ll Ct' =/> 
   At ~= Bt
   Ct ~= Ct'
   ------------------------- :: rcd
@@ -310,6 +277,43 @@ TargetEqIndexType :: '' ::=
   % A1 ~= A2
   % -------------------- :: dup
   % (A1&A2)&B ~= A1&B
+  
+defns
+ConcatTypes   :: '' ::=
+
+  defn
+  At & Bt => Ct
+  :: :: concat_typ :: 'CT_'
+  {{ com Concatenate types }}
+  by
+
+  recTyp Bt
+  -------------------- :: Nil
+  Top & Bt => Bt
+
+
+  (lookup ll Bt2 => At' and At' ~= At) or lookup ll Bt2 =/>
+  Bt1 & Bt2 => Ct
+  ---------------------------------------- :: Rcd
+  (ll : At , Bt1) & Bt2 => ll : At , Ct
+
+defns
+ContainedByRecTyp   :: '' ::=
+
+  defn
+  At |> ll : Bt
+  :: :: contained_by_rec_typ :: 'CRT_'
+  {{ com non-deterministic lookup }}
+  by
+
+  ------------------------------- :: Head
+  (ll1 : At , Bt) |> ll1 : At
+
+  Bt |> ll2 : Ct
+  ------------------------------- :: Tail
+  (ll1 : At , Bt) |> ll2 : Ct
+
+
 
 
 % defns
@@ -406,7 +410,7 @@ TargetSubtype :: '' ::=
   lookup ll Ct => Bt
   Bt < At
   % if we use Bt < At, we will need At < At for general At
-  (lookup ll Ct' => At' and At ~= At') or lookup ll Ct' =/>
+  (lookup ll Ct' => At' and At' ~= At) or lookup ll Ct' =/>
   Ct < Ct'
   --------------- :: rcd
   Ct < ll:At, Ct'

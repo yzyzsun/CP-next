@@ -53,6 +53,52 @@ Proof with eauto.
   - simpl...
 Qed.
 
+Lemma lookup_wf_typ_1 : forall l T At l',
+    Tlookup l' (ttyp_rcd l T At) = Tlookup l' At \/ l = l'.
+Proof.
+  introv. simpl. case_if*.
+Qed.
+
+Lemma lookup_wf_typ_2 : forall l T At Bt,
+    wf_typ (ttyp_rcd l T At) -> Tlookup l At = Some Bt -> eqIndTypTarget Bt T.
+Proof.
+  introv WF LK. inverts WF. destruct H5.
+  all: rewrite LK in H; inverts* H.
+  inverts* H0.
+Qed.
+
+
+
+Ltac unify_lookup :=
+      destruct_disj; destruct_conj;
+      repeat lazymatch goal with
+    | |- Some _ = Some _  => try reflexivity
+    | H : Some _ = None |- _ => inverts H
+    | H : Some _ = Some _ |- _ => inverts H
+    | H1 : ?A = Some _ , H2 : ?A = Some _ |- _ => rewrite H1 in H2
+    | H1 : ?A = Some _ , H2 : ?A = None |- _ => rewrite H1 in H2
+    | H : Tlookup ?l (ttyp_rcd ?l ?A ?C) = _ |- _ =>
+        simpl in H; case_if
+    | H : Tlookup ?r (ttyp_rcd ?l ?A ?C) = _ |- _ =>
+        let Heq := fresh "Heq" in
+        lets [Heq|Heq]: lookup_wf_typ_1 l A C r;
+        [ rewrite Heq in H; clear Heq | subst ]
+    | H: ?l <> ?r |- Tlookup ?r (ttyp_rcd ?l ?A ?C) = _ => simpl; case_if
+    | H: ?r <> ?l |- Tlookup ?r (ttyp_rcd ?l ?A ?C) = _ => simpl; case_if
+    | |- Tlookup ?l (ttyp_rcd ?l ?A ?C) = _ => simpl; case_if
+        end.
+
+
+Ltac destruct_lookup H :=
+      match type of H with
+    | Tlookup ?l (ttyp_rcd ?l ?A ?C) = _  =>
+        simpl in H; case_if
+    | Tlookup ?r (ttyp_rcd ?l ?A ?C) = _  =>
+        let Heq := fresh "Heq" in
+        lets [Heq|Heq]: lookup_wf_typ_1 l A C r;
+        [ rewrite Heq in H; clear Heq | subst ]
+      end.
+
 (* Source types to target types *)
 
 
@@ -328,4 +374,91 @@ Lemma eqIndTypTarget_arrow_inv_2 : forall A B C1 C2,
     eqIndTypTarget (ttyp_arrow A B) (ttyp_arrow C1 C2) -> eqIndTypTarget B C2.
 Proof with eauto.
   introv HE. inductions HE...
+Admitted.
+
+Lemma eqindtyptarget_wf_typ_1 : forall At Bt,
+    eqIndTypTarget At Bt -> wf_typ At.
+Proof with eauto.
+  introv HS. induction* HS.
+  - inverts* IHHS. inverts H7. inverts H8.
+    unify_lookup.
+    +
+      econstructor...
+      left; split; unify_lookup; tassumption.
+    +
+      econstructor...
+      left; split; unify_lookup; tassumption.
+    +
+      econstructor...
+      right; unify_lookup; tassumption.
+    +
+      econstructor...
+      right; unify_lookup; tassumption.
+  - inverts* IHHS2. inverts H5. inverts H6.
+    unify_lookup.
+    econstructor... econstructor...
+    left; split*. eauto using TEI_trans.
+    left; split. unify_lookup. eauto using TEI_trans, TEI_symm.
+    econstructor...
+    left; split. unify_lookup. eauto using TEI_trans, TEI_symm.
+    Unshelve. all: eauto.
+Qed.
+
+Lemma eqindtyptarget_wf_typ_2 : forall At Bt,
+    eqIndTypTarget At Bt -> wf_typ Bt.
+Proof.
+  introv H. apply TEI_symm in H. eauto using eqindtyptarget_wf_typ_1.
+Qed.
+
+Fixpoint context_trans (G:ctx) : tctx :=
+  match G with
+  | [] => []
+  | (x, A) :: l => (x, |[A]|) :: (context_trans l)
+  end.
+
+Notation "||[ G ]||" := (context_trans G) (at level 1, G at next level).
+
+
+Lemma elaboration_wf_ctx : forall G,
+    uniq G  -> wf_ctx ||[G]||.
+Admitted.
+
+
+Lemma wf_typ_look_up_wf : forall l At Bt,
+    Tlookup l At = Some Bt -> wf_typ At -> wf_typ Bt.
+Proof with eauto.
+  introv Heq WF. gen l Bt.
+  induction WF; intros; try solve_by_invert.
+  inverts Heq. case_if*.
+  - inverts* H2.
+Qed.
+
+Definition subtype_wrt_lookup At Bt :=
+  rec_typ At /\ rec_typ Bt /\ wf_typ At /\ wf_typ Bt /\ forall l B, Tlookup l Bt = Some B -> exists A, Tlookup l At = Some A /\ eqIndTypTarget A B.
+
+
+Lemma subtypespec_refl : forall At,
+    rec_typ At -> wf_typ At -> subtype_wrt_lookup At At.
+Proof.
+  introv HR HW. induction* HW; try solve_by_invert.
+  all: unfolds; splits*; introv HL; try solve_by_invert.
+  exists. split*. eauto using TEI_refl, wf_typ_look_up_wf.
+Qed.
+
+Lemma subtypespec_trans : forall At Bt Ct,
+    subtype_wrt_lookup At Bt -> subtype_wrt_lookup Bt Ct ->
+    subtype_wrt_lookup At Ct.
+Proof with eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2.
+  introv HA HB. unfold subtype_wrt_lookup in *.
+  destruct_conj.
+  splits... introv HL.
+  forwards* (?&?&?): H3. forwards* (?&?&?): H8.
+  intuition eauto using TEI_trans.
+Qed.
+
+
+Lemma subtypespec_andl : forall A B, subtype_wrt_lookup |[typ_and A B]| |[A]|.
+Admitted.
+
+Lemma subtypespec_andr : forall A B, subtype_wrt_lookup |[typ_and A B]| |[B]|.
 Admitted.
