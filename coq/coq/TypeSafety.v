@@ -19,19 +19,6 @@ Require Export Target.
 #[local] Hint Unfold Tlookup : core.
 
 
-Ltac lookup_concat l HC :=
-  match type of HC with
-  | concat_typ ?A ?B ?C => let Heq := fresh "Heq" in
-                           match goal with
-                           | H: Tlookup l A = Some _ |- _ =>
-                               forwards Heq: lookup_concat_typ H HC;
-                               rewrite H in Heq
-                           | H: Tlookup l A = None, H2: Tlookup l B = _ |- _ =>
-                               forwards Heq: lookup_concat_typ_none H HC;
-                               rewrite H2 in Heq
-                           end
-  end.
-
 Ltac lookup_eq l HE :=
   match type of HE with
   | eqIndTypTarget ?A ?B => let Heq := fresh "Heq" in
@@ -363,13 +350,13 @@ Qed.
 
 
 (** flex_typing on well-typed terms only **)
-Lemma flex_typing_wt : forall E t A,
-    target_flex_typing E t A -> exists B, target_typing E t B.
-Proof.
-  introv HT. induction* HT.
-  (* - forwards* (?&?&?): flex_typing_property3 ll At HT. *)
-  (*   simpl. case_if*. *)
-Qed.
+(* Lemma flex_typing_wt : forall E t A, *)
+(*     target_flex_typing E t A -> exists B, target_typing E t B. *)
+(* Proof. *)
+(*   introv HT. induction* HT. *)
+(*   (* - forwards* (?&?&?): flex_typing_property3 ll At HT. *) *)
+(*   (*   simpl. case_if*. *) *)
+(* Qed. *)
 
 
 (** top is the supertype in flex_typing  **)
@@ -466,22 +453,22 @@ Qed.
 (*     exists Bt, target_typing E t Bt /\ Tlookup ll Bt = Some Ct. *)
 (* Admitted. *)
 
-Lemma comerge_split : forall t1 A1 t B t2 A2,
-    comerge t1 A1 B t2 A2 t -> spl B A1 A2.
-Proof.
-  introv H.
-  induction* H.
-  - apply Sp_arrow.
-    pick fresh x. applys* H0.
-Qed.
+(* Lemma comerge_split : forall t1 A1 t B t2 A2, *)
+(*     comerge t1 A1 B t2 A2 t -> spl B A1 A2. *)
+(* Proof. *)
+(*   introv H. *)
+(*   induction* H. *)
+(*   - apply Sp_arrow. *)
+(*     pick fresh x. applys* H0. *)
+(* Qed. *)
 
-Lemma eqIndTypTarget_top_inv : forall C,
-    eqIndTypTarget C ttyp_top -> C = ttyp_top.
-Proof with eauto; try solve_by_invert.
-  introv HE. inductions HE...
-  - forwards* : IHHE...
-  - forwards* : IHHE2...
-Qed.
+(* Lemma eqIndTypTarget_top_inv : forall C, *)
+(*     eqIndTypTarget C ttyp_top -> C = ttyp_top. *)
+(* Proof with eauto; try solve_by_invert. *)
+(*   introv HE. inductions HE... *)
+(*   - forwards* : IHHE... *)
+(*   - forwards* : IHHE2... *)
+(* Qed. *)
 
 Lemma TEI_cons : forall l A B A' B',
     eqIndTypTarget A A' -> eqIndTypTarget B B' ->
