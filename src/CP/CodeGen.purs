@@ -538,10 +538,10 @@ thunk = JSFunction Nothing [] <<< JSBlock
 lazyObj :: Name -> Array JS -> JS
 lazyObj x j = JSObjectLiteral [Getter "get" getter]
   where getter = j <>
-          [ JSApp (JSAccessor "defineProperty" (JSVar "Object"))
-              [ JSVar "this", JSStringLiteral "get", JSObjectLiteral [LiteralName "value" (JSVar x)] ]
-          , JSReturn (JSVar x)
+          [ JSApp (JSVar "delete") [ thisGet ]
+          , JSReturn (JSAssignment thisGet (JSVar x))
           ]
+        thisGet = JSAccessor "get" (JSVar "this")
 
 assignObj :: Name -> Array JS -> JS
 assignObj z args = JSApp (JSAccessor "assign" (JSVar "Object")) ([JSVar z] <> args)
