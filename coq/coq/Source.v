@@ -204,19 +204,3 @@ Fixpoint styp2ttyplist (A: typ) : list (string * ttyp2) :=
   | typ_and A1 A2 => [[ A1 ]] ++ [[ A2 ]]
   end
 where "[[ A ]]" := (styp2ttyplist A).
-
-(* Type safety *)
-(** The key is to prove the lookup label does exists in the record *)
-(** To prove type safety, we need to translate typing contexts / types
- \ x : A . e : B  => A->B ~> \ x . |e| ??? **)
-
-Lemma cosub_well_typed : forall E t1 A B t2,
-    cosub t1 A B t2 -> target_typing E t1 [[A]] -> target_typing E t2 [[B]] .
-Abort.
-(* t1 is not always well-typed *)
-
-
-(** via styp2ttyp to convert type *)
-Theorem elaboration_well_typed : forall G e dirflag A t,
-    elaboration G e dirflag A t -> exists E T, target_typing E t T.
-Abort.

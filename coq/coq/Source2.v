@@ -15,21 +15,38 @@ Inductive stype : Set :=
  | st_list (l:list stype).
 
 
-Definition stype2string (A: typ) : string :=
-  tlist2string (tlist_filter (type2tlist A)).
+(* convert type to type list which allows list of types inside *)
+Inductive tlist : Set :=
+ | tl_bot : tlist
+ | tl_base : tlist
+ | tl_arrow (T:tlist)
+ | tl_rcd (l:label) (T:tlist)
+ | tl_list (l:list tlist).
 
-Notation "| A |" := (stype2string A) (at level 40).
+(* Fixpoint tlist2string (T: tlist) : string := *)
+(*   match T with *)
+(*   | tl_list l => fold_left append (sort (List.map tlist2string l)) "" *)
+(*   | tl_arrow T => "->" ++ tlist2string T *)
+(*   | tl_rcd l T => "{" ++  l ++ ":" ++ tlist2string T ++ "}" *)
+(*   | tl_bot => "Bot" *)
+(*   | tl_base => "Base" *)
+(*   end. *)
 
-Fixpoint stype2ttyplist (A: stype) : list (string * ttyp2) :=
-  match A with
-  | st_bot => [ (|A|, tt_bot) ]
-  | st_base => [ (|A|, tt_base) ]
-  | st_arrow B1 B2 => [ (|A|, tt_arrow (tt_list ([[ B1 ]]))
-                                            (tt_list ([[ B2 ]]))) ]
-  | st_rcd l A' => [ (|A|, tt_arrow (tt_list []) (tt_list ([[ A' ]]))) ]
-  | st_list A1 A2 => [[ A1 ]] ++ [[ A2 ]]
-  end
-where "[[ A ]]" := (styp2ttyplist A).
+(* Definition stype2string (A: typ) : string := *)
+(*   tlist2string (tlist_filter (type2tlist A)). *)
+
+(* Notation "| A |" := (stype2string A) (at level 40). *)
+
+(* Fixpoint stype2ttyplist (A: stype) : list (string * ttyp2) := *)
+(*   match A with *)
+(*   | st_bot => [ (|A|, tt_bot) ] *)
+(*   | st_base => [ (|A|, tt_base) ] *)
+(*   | st_arrow B1 B2 => [ (|A|, tt_arrow (tt_list ([[ B1 ]])) *)
+(*                                             (tt_list ([[ B2 ]]))) ] *)
+(*   | st_rcd l A' => [ (|A|, tt_arrow (tt_list []) (tt_list ([[ A' ]]))) ] *)
+(*   | st_list A1 A2 => [[ A1 ]] ++ [[ A2 ]] *)
+(*   end *)
+(* where "[[ A ]]" := (styp2ttyplist A). *)
 
 (* filter toplike type out *)
 Fixpoint check_toplike (T : stype) :=
@@ -83,6 +100,10 @@ Check Permutation.
 Definition is_a_sorting_algorithm (f: list string -> list string) := forall al,
     Permutation al (f al) /\ sorted (f al).
 
+Theorem insertion_sort_correct:
+    is_a_sorting_algorithm sort.
+Proof. Admitted.
+
 (* convert type to string *)
 Check concat.
 Check fold_left append ["A";"B"] "".
@@ -101,7 +122,7 @@ Definition check_non_toplike T := negb (check_toplike T).
 Fixpoint stype2string (T: stype) : string :=
   match T with
   | st_list l => fold_left append (sort (List.map stype2string (filter check_non_toplike l))) ""
-  | st_arrow U T => "->" ++ stype2string T
+  | st_arrow U T => stype2string U ++ "->" ++ stype2string T
   | st_rcd l T => "{" ++  l ++ ":" ++ stype2string T ++ "}"
   | st_bot => "Bot"
   | st_base => "Base"
@@ -193,14 +214,3 @@ where "[[ A ]]" := (styp2ttyplist A).
 (** The key is to prove the lookup label does exists in the record *)
 (** To prove type safety, we need to translate typing contexts / types
  \ x : A . e : B  => A->B ~> \ x . |e| ??? **)
-
-Lemma cosub_well_typed : forall E t1 A B t2,
-    cosub t1 A B t2 -> target_typing E t1 [[A]] -> target_typing E t2 [[B]] .
-Abort.
-(* t1 is not always well-typed *)
-
-
-(** via styp2ttyp to convert type *)
-Theorem elaboration_well_typed : forall G e dirflag A t,
-    elaboration G e dirflag A t -> exists E T, target_typing E t T.
-Abort.

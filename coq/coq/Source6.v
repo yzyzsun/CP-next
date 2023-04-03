@@ -19,7 +19,27 @@ Print string_lex_as_OT.
 
 Module NOTF := OT_to_Full string_lex_as_OT.
 Module NTTLB := OTF_to_TTLB NOTF.
-Module Import NSort := Sort NTTLB.
+Require Import MSets.MSetInterface.
+Module test := MakeListOrdering string_lex_as_OT.
+Module SONT := MakeSetOrdering string_lex_as_OT.
+
+Require Import Structures.OrdersAlt.
+Module String_as_OT := Update_OT String_as_OT. Module Str := Make String_as_OT.
+Print Str.
+
+Module NOTF' := OT_to_Full  SONT.
+Module NTTLB' := OTF_to_TTLB NOTF'.
+Module NSort := Sort SONT.
+
+Module PSONT := Make.
+Print PSONT.
+Print SONT.
+Print Sort.
+Module NSort := Sort NTTLB.
+
+Print SONT.
+Module SONT : SetsOn NOTF.
+Module Import NSort := Sort ( ).
 
 Compute merge ["A"; "E"] ["C"].
 Check Sorted_merge.
@@ -61,13 +81,11 @@ Open Scope string_scope.
 
 Definition LS := list string.
 
-(* dedup => fold_left append (nodup string_dec l) "". *)
 Definition list_string_2_string (l : LS) : string :=
   fold_left append l "".
 
 Coercion list_string_2_string : LS >-> string.
 
-(* deduped *)
 Fixpoint stype2string (A: typ) : LS :=
   if (check_toplike A) then []
   else
@@ -77,7 +95,7 @@ Fixpoint stype2string (A: typ) : LS :=
     | typ_base => [ "Base" ]
     | typ_arrow A1 A2 => [ ( "(" ++ (stype2string A1) ++ "->" ++ (stype2string A2) ++ ")" ) ]
     | typ_rcd l A' => ["{" ++  l ++ "=>" ++ (stype2string A') ++ "}"]
-    | typ_and A1 A2 => nodup string_dec (merge (stype2string A1) (stype2string A2))
+    | typ_and A1 A2 => merge (stype2string A1) (stype2string A2)
     end.
 
 Print LocallySorted.
@@ -269,266 +287,39 @@ Check NTTLB.leb_trans.
 (* Qed. *)
 
 (* no duplication sorted *)
-
-Definition sorted := Sorted lex_lt.
-
-Theorem sorted_unique : forall (l1 l2 : list string),
-    sorted l1 -> sorted l2 -> Permutation l1 l2 -> l1 = l2.
-Proof.
-  introv HS1 HS2 HP.
-  applys* Sort_In_eq lex_lt.
-  applys lex_lt_trans.
-  applys lex_lt_not_eq.
-  split; introv HI;
-    eauto using Permutation_sym, Permutation_in.
-Qed.
-
-Theorem merge_comm : forall (l1 l2 : list string),
-    sorted l1 -> sorted l2 ->
-    merge l1 l2 = merge l2 l1.
-    (* nodup string_dec (merge l1 l2) = nodup string_dec (merge l2 l1). *)
-Proof.
-  introv HS1 HS2.
-  applys* Sort_In_eq lex_lt.
-  admit.
-  applys lex_lt_not_eq.
-  admit. admit.
-  admit.
-  (* - lets HP: Permuted_merge. *)
-  (*   split; introv HI; applys nodup_In; apply nodup_In in HI; *)
-  (*     applys Permutation_in HP. *)
-  (*   all: applys in_app_iff; applys or_comm; applys in_app_iff. *)
-  (*   all: applys Permutation_in HI; applys* Permutation_sym HP. *)
-Admitted.
-
-(* Search Sorted. *)
-(* Admitted. *)
-(*   Search Permutation. *)
-(*   admit. admit. *)
-(*   - lets HP: Permuted_merge. *)
-(*     split; introv HI; applys nodup_In; apply nodup_In in HI; *)
-(*       applys Permutation_in HP. *)
-(*     all: applys in_app_iff; applys or_comm; applys in_app_iff. *)
-(*     all: applys Permutation_in HI; applys* Permutation_sym HP. *)
-(* Admitted. *)
-
-(*     nodup string_dec (merge l1 l2) = nodup string_dec (merge l3 ++ l4). *)
-
-Check Sorted_merge.
-
-Lemma In_merge : forall y l r,
-    In y (merge l r) <-> In y l \/ In y r.
-Proof.
-Admitted.
-
-(* Lemma HdRel_lt : forall a y l, *)
-(*     HdRel lex_lt a l -> In y l -> lex_lt a y. *)
-(* Proof with eauto with bool. *)
-(*   introv HR HI. gen a y. induction l; intros... *)
-(*   - inverts HI. *)
-(*   - Print HdRel. inverts HR. forwards: IHl H0. inverts HI. Print HdRel. *)
-(*   applys* SortA_InfA_InA l. 4: now applys* InA_iff_In. *)
-(*            eapply eq_equivalence. eapply lex_lt_strorder. *)
-(*            eapply NOTF.lt_compat. *)
-
-Lemma HdRel_nodup : forall a l,
-    Sorted NOTF.le l -> HdRel lex_lt a l -> HdRel lex_lt a (nodup string_dec l).
-Proof with eauto.
-  introv HS HR.
-  applys In_InfA. introv HI. apply nodup_In in HI.
-  induction l.
-  - inverts HI.
-  - apply in_inv in HI. destruct HI.
-    + subst*. inverts* HR.
-    + inverts HS. inverts HR.
-      forwards*: IHl.
-      inverts* H3. constructor.
-      destruct H0. now applys* lex_lt_trans.
-      now subst*.
-Qed.
-
-Lemma le_trans : forall s0 s1 s2 : string, NOTF.le s0 s1 -> NOTF.le s1 s2 -> NOTF.le s0 s2.
-Admitted.
-
-Lemma HdRel_nodup_le : forall a l,
-    Sorted NOTF.le l -> HdRel NOTF.le a l -> HdRel lex_lt a (nodup string_dec l).
-Proof with eauto.
-  introv HS HR. gen a. induction l; intros.
-  - simpl...
-  - inverts HS. inverts HR.
-    simpl. case_if*.
-    + applys* IHl.
-      inverts* H2. constructor...
-      eauto using le_trans.
-    + constructor...
-Abort. (* incorrect: a may be in l *)
-Check lex_lt_trans.  Check NTTLB.leb_trans.
-
-Lemma sorted_nodup_aux : forall l,
-    sorted (nodup string_dec l) -> Sorted NOTF.le l.
-Abort. (* incorrect *)
-
-Lemma sorted_nodup : forall l,
-    Sorted NOTF.le l -> sorted (nodup string_dec l).
-Proof with eauto.
-  introv HS. induction* l.
-  - simpl... econstructor...
-  - inverts HS. forwards*: IHl.
-    simpl. case_if.
-    + apply H.
-    + econstructor... destruct l...
-      * simpl...
-      * applys* HdRel_nodup.
-        inverts H2. inverts* H3.
-        exfalso. applys C. applys in_eq.
-Qed.
-
-(* Lemma HdRel_nodup : forall a l, *)
-(*         HdRel NOTF.le a l -> In b l -> lex_lt a b. *)
-(*         Search (Sorted). *)
-(*         inverts H2. inverts H3. econstructor. *)
-(*     fold nodup. *)
-(*     ; econstructor. *)
-(*     + forwards: IHl HS. constructor*. *)
-(*       clear HS IHl. *)
-(*       induction* l. *)
-(*       apply in_inv in C. destruct C. *)
-(*       * subst*. constructor*. right*. *)
-(*       * constructor. inverts H. *)
-(*         Search Sorted. *)
-
-
-(*         Search HdRel. applys* IHl. *)
-
-
-(*       Search (Sorted _ _ -> HdRel _ _ _). *)
-
-(*        HS : Sorted NOTF.le l *)
-(*   HR : HdRel lex_lt a l *)
-(*   y : string *)
-(*   HI : In y l *)
-(*   ============================ *)
-(*   lex_lt a y *)
-
-
-(*       Search (Sorted). *)
-
-Lemma HdRel_relax : forall a l,
-    HdRel lex_lt a l -> HdRel NOTF.le a l.
-Proof with eauto.
-  introv HS. induction* HS. constructor...
-  left*.
-Qed.
-
-Lemma sorted_relax : forall l,
-    sorted l -> Sorted NOTF.le l.
-Proof with eauto.
-  introv HS. induction* HS.
-  destruct H... constructor... constructor...
-  left*.
-Qed.
-
-#[local] Hint Constructors Sorted HdRel : core.
-#[local] Hint Resolve HdRel_relax sorted_relax : core.
-
-Lemma test : forall a l r,
-    HdRel NOTF.le a l -> HdRel NOTF.le a r -> HdRel NOTF.le a (merge l r).
-Admitted.
-
-Lemma merge_sorted : forall l r,
-    sorted l -> sorted r -> Sorted NOTF.le (merge l r).
-Proof with eauto using sorted_relax.
-  introv HSl HSr. gen r.
-  induction HSl; intros; autorewrite with merge...
-  - induction HSr...
-    + autorewrite with merge.
-      constructor...
-    + destruct (string_compare_lex a a0) eqn:HE. destruct c.
-      * subst*. simpl. rewrite HE. simpl...
-        econstructor. applys IHHSl...
-        econstructor... applys test...
-        econstructor... right*.
-      * simpl. rewrite HE. simpl...
-        forwards* IH: IHHSl (a0 :: l0)...
-        all: econstructor...
-        applys test...
-      * simpl. rewrite HE. simpl...
-        econstructor... applys test (a :: l) l0...
-Qed.
-
-Lemma merge_sorted_dedup: forall l r,
-    sorted l -> sorted r -> sorted (nodup string_dec (merge l r)).
-Proof with eauto using sorted_nodup, sorted_relax.
-  introv HSl HSr.
-  forwards: merge_sorted HSl HSr...
-Qed.
-(*   induction HSl; intros; autorewrite with merge... *)
-(*   - induction HSr... *)
-(*     + autorewrite with merge. simpl. case_if... *)
-(*       constructor... applys sorted_nodup... *)
-(*       applys HdRel_nodup... *)
-(*     + forwards* IH: IHHSl (a0 :: l0)... *)
-(*       econstructor... *)
-(*       simpl. case_if... simpl. case_if... *)
-(*       econstructor... applys HdRel_nodup... *)
-
-
-(*       econstructor... *)
-(*     + simpl. case_if*. *)
-(*       constructor*. applys* HdRel_nodup. applys* sorted_relax. *)
-(*   - induction HSr... *)
-(*     + autorewrite with merge. simpl. case_if... *)
-(* eauto using sorted_nodup *)
-(*     + autorewrite with merge. repeat case_if... *)
-(*       fold nodup.sorted_relax applys* SortA_InfA_InA. *)
-(*       sorted (nodup *)
-(*       autorewrite with merge. *)
-(*       constructor. *)
-(*     + forwards* HSP: IHHSl l0. *)
-(*       autorewrite with merge. case_if... *)
-(*       * case_if in C. forwards* HSP': IHHSl (a0 :: l0). *)
-(*         all: constructor... *)
-(*         applys In_InfA. introv HI. forwards [HI'|HI']: In_merge HI. *)
-(*         ** applys* SortA_InfA_InA l. 4: now applys* InA_iff_In. *)
-(*            eapply eq_equivalence. eapply lex_lt_strorder. *)
-(*            eapply NOTF.lt_compat. *)
-(*         ** applys* SortA_InfA_InA (a0 :: l0). 5: now applys* InA_iff_In. *)
-(*            eapply eq_equivalence. eapply lex_lt_strorder. *)
-(*            eapply NOTF.lt_compat. constructor... *)
-(*            Search (Proper (eq ==> eq ==> iff) lex_lt). *)
-(*         eauto. *)
-(*         Search (InA). *)
-(*         Search Sorted. *)
-(*         lets: InfA_app. *)
-(*         Search HdRel. SortA_InfA_InA. *)
-(*         case_if... *)
-(*       * case_if... *)
-(*         ** lets* HSP: IHHSl (y0 :: l0). forwards*: HSP. *)
-(*            case_if... *)
-(*         ** simpl in IHHSr. case_if... *)
-(* Qed. *)
-
-
 (* Theorem merge_comm : forall (l1 l2 : list string), *)
 (*   Sorted lex_lt l1 -> Sorted lex_lt l2 -> merge l1 l2 = merge l2 l1. *)
 (* Proof. *)
 (*   introv HS1 HS2. *)
-(*   lets: SortA_equivlistA_eqlistA. *)
-(*   Print StrictOrder. *)
+(*   applys* Sort_In_eq lex_lt. *)
+(*   admit. *)
+(*   applys lex_lt_not_eq. *)
+(*   admit. admit. *)
 
-(*   Search (Sorted). *)
-(*   Search (lex_lt). *)
-(*   pose proof NTTLB.leb_trans. unfold Transitive in H. Print NOTF. Search le. *)
-(*   assert (forall x y, proj1_sig (string_compare_lex x y) = Lt -> *)
-(*                       lex_lt x y). eauto. *)
-(*   pose proof NOTF.compare_spec. intros. forwards: H0 x y. *)
-(*   destruct H2; try discriminate. eauto. *)
-(*   intros. destruct H1. destruct H2. Search NTTLB.leb. *)
-(*   Search CompareSpec. *)
-(*   NTTLB.leb_le: *)
-(*   forall x y : string, *)
-(*   is_true (NTTLB.leb x y) <-> (fun x0 y0 : string => lex_lt x0 y0 \/ x0 = y0) x y *)
-(* Admitted. *)
+
+Theorem merge_comm : forall (l1 l2 : list string),
+  Sorted lex_lt l1 -> Sorted lex_lt l2 -> merge l1 l2 = merge l2 l1.
+Proof.
+  introv HS1 HS2.
+  lets: SortA_equivlistA_eqlistA.
+  Print StrictOrder.
+
+  Search (Sorted).
+
+
+
+  Search (lex_lt).
+  pose proof NTTLB.leb_trans. unfold Transitive in H. Print NOTF. Search le.
+  assert (forall x y, proj1_sig (string_compare_lex x y) = Lt ->
+                      lex_lt x y). eauto.
+  pose proof NOTF.compare_spec. intros. forwards: H0 x y.
+  destruct H2; try discriminate. eauto.
+  intros. destruct H1. destruct H2. Search NTTLB.leb.
+  Search CompareSpec.
+  NTTLB.leb_le:
+  forall x y : string,
+  is_true (NTTLB.leb x y) <-> (fun x0 y0 : string => lex_lt x0 y0 \/ x0 = y0) x y
+Admitted.
 
 (* } *)
 Open Scope string_scope.
@@ -573,7 +364,7 @@ Proof with eauto.
 Qed.
 
 Lemma stype2string_and : forall A B : typ,
-    || typ_and A B || = nodup string_dec (merge (stype2string A) (stype2string B)).
+    || typ_and A B || = merge (stype2string A) (stype2string B).
 Proof.
   introv. simpl.
   destruct (check_toplike A) eqn:HA. destruct (check_toplike B) eqn:HB.
@@ -591,7 +382,6 @@ Proof with eauto.
   introv HE. induction* HE.
   - split; intro H; intuition eauto.
   - split; intro H; intuition eauto.
-  - split; intro H; intuition eauto.
   - split; intro H; econstructor; inverts H; intuition eauto.
   - split; intro H; econstructor; inverts H; intuition eauto.
   - split; intro H; econstructor; inverts H; intuition eauto.
@@ -599,7 +389,7 @@ Proof with eauto.
   - split; intro H; econstructor; inverts H; try inverts H3; try inverts H2;
       intuition eauto.
   - split; intro H'; eauto; inverts H'; intuition eauto.
-  - split; intro H; try econstructor; inverts H; try inverts H3; try inverts H2;
+  - split; intro H; econstructor; inverts H; try inverts H3; try inverts H2;
       intuition eauto.
 Qed.
 
@@ -607,43 +397,13 @@ Qed.
 (*     ||A|| = ||B|| -> type2tlist A = type2tlist B. *)
 (* Proof with intuition eauto. *)
 (*   introv HE. unfold stype2string in HE. rewrite HE. *)
-Lemma typeindex_sorted: forall A,
-    sorted (|| A ||).
-Proof with eauto.
-  introv. induction* A; simpl...
-  all: unfolds...
-  all: try econstructor...
-  - case_if...
-    econstructor...
-  - case_if... applys* merge_sorted_dedup.
-  - case_if...
-    econstructor...
-Qed.
-
-Lemma typeindex_nodup: forall A,
-    NoDup (|| A ||).
-Proof with eauto.
-  introv. induction* A; simpl...
-Admitted.
-
- Lemma merge_double_nodup : forall l,
-     nodup string_dec (merge l l) = nodup string_dec l.
- Admitted.
-
- Lemma typeindex_nodup_elim : forall A,
-     nodup string_dec (|| A ||) = || A ||.
-Proof with eauto.
-  introv. applys nodup_fixed_point. applys typeindex_nodup.
-Qed.
-
-#[local] Hint Rewrite typeindex_nodup_elim : merge.
-#[local] Hint Resolve typeindex_sorted : core.
 
 Lemma eqIndTyp_sound : forall A B,
     eqIndTyp A B -> || A || = || B ||.
-Proof with eauto using typeindex_nodup, NoDup_nodup, merge_sorted_dedup.
-  introv HE. induction* HE.
+Proof with eauto.
+  introv HE. induction HE.
   - rewrite* IHHE1.
+  - rewrite* IHHE.
   - lets [|]: index_arrow_inv A1 B1;
       lets [|]: index_arrow_inv A2 B2.
     2: forwards (HT2&?): eqIndTyp_toplike HE2;
@@ -661,93 +421,11 @@ Proof with eauto using typeindex_nodup, NoDup_nodup, merge_sorted_dedup.
     1-3: repeat rewrite stype2string_toplike...
     rewrite H; rewrite H0; rewrite IHHE...
   - repeat rewrite stype2string_and. rewrite IHHE...
-  - repeat rewrite stype2string_and. rewrite* merge_comm.
-  - repeat rewrite stype2string_and.
-    applys sorted_unique...
-    applys* NoDup_Permutation... split; introv HI.
-    all: apply nodup_In; applys In_merge.
-    all: repeat apply nodup_In in HI; try apply In_merge in HI.
-    all: intuition eauto; repeat apply nodup_In in H; try apply In_merge in H; intuition eauto.
-    1-2: left; apply nodup_In; applys In_merge...
-    1-2: right; apply nodup_In; applys In_merge...
-  - rewrite stype2string_toplike...
-    (* rewrite stype2string_and. rewrite stype2string_toplike... *)
-    (* autorewrite with merge. *)
-    (* simpl. applys nodup_fixed_point. *)
-    (* eauto using typeindex_nodup. *)
-  - applys sorted_unique...
-    repeat rewrite stype2string_and.
-    rewrite IHHE.
-    applys* NoDup_Permutation... split; introv HI.
-    + rewrite* merge_double_nodup in HI.
-      rewrite* typeindex_nodup_elim in HI.
-    + rewrite* merge_double_nodup.
-      rewrite* typeindex_nodup_elim.
-      Unshelve. eauto.
-Qed.
-
-Lemma nodup_empty_inv : forall l,
-    nodup string_dec l = [] -> l = [].
-Proof.
-  introv HE. induction* l.
-  simpl in HE. case_if.
-  exfalso. forwards~: IHl. subst. inverts C.
-Qed.
-
-Lemma merge_empty_inv : forall l r,
-    merge l r = [] -> l = [] /\ r = [].
-Proof.
-  introv HE. destruct* l; destruct* r.
-  simpl in HE. case_if.
-Qed.
-
-Lemma stype2string_toplike_complete : forall A,
-    || A || = [] -> toplike A.
-Proof with eauto.
-  introv HT. apply check_toplike_sound_complete.
-  induction A; simpl in HT; try discriminate; try case_if; simpl...
-  apply nodup_empty_inv in HT.
-  forwards (?&?): merge_empty_inv HT.
-  forwards~: IHA1. forwards~: IHA2. rewrite H1. rewrite* H2.
-Qed.
-
-Lemma stype2string_single_and_inv : forall a A B,
-    [ a ] = || typ_and A B || -> [ a ] = || A || \/ [ a ] = || B ||.
-Proof with eauto using NoDup_nodup, merge_sorted_dedup, check_toplike_sound_complete.
-  introv HE.
-  rewrite stype2string_and in HE. gen a B.
-  induction (|| A ||); intros.
-  - autorewrite with merge in HE...
-  - induction (|| B ||).
-    + autorewrite with merge in HE...
-
-  unfold stype2string in HE. case_if. simpl.
-
-Lemma eqIndTyp_complete : forall A B,
-    || A || = || B || -> eqIndTyp A B.
-Proof with eauto using NoDup_nodup, merge_sorted_dedup, check_toplike_sound_complete.
-  introv HE.
-  induction A.
-  - forwards*: stype2string_toplike_complete B...
-  - simpl in HE. induction B...
-    all: try solve [simpl in HE; try case_if; try discriminate].
-    simpl in HE.
-
-    econstructor.
-  - forwards*: stype2string_toplike_complete (typ_arrow B1 B2).
-    simpl in HE; try case_if. applys EI_symm. applys EI_top...
-    apply check_toplike_sound_complete in C.
-    constructor...
-  - forwards*: stype2string_toplike_complete (typ_and B1 B2).
-  -
-    rewrite <- HE.
-    simpl in HE; try case_if.
-    + applys EI_symm. applys EI_top...
-      apply check_toplike_sound_complete...
-    + applys EI_symm. applys EI_top...
-      apply check_toplike_sound_complete...
-      forwards*: stype2string_toplike_complete (typ_and B1 B2).
-      rewrite <- HE.
+  - repeat rewrite stype2string_and. admit.
+  - admit.
+  - admit.
+  - (* no dedup yet *) admit.
+Admitted.
 
 Fixpoint Tlookup (i:string) (T:ttyp) : option ttyp :=
   match T with

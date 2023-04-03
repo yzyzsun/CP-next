@@ -292,6 +292,8 @@ Inductive toplike : typ -> Prop :=    (* defn toplike *)
 
 (* defns EqIndexType *)
 Inductive eqIndTyp : typ -> typ -> Prop :=    (* defn eqIndTyp *)
+ | EI_refl : forall (A:typ),
+     eqIndTyp A A
  | EI_trans : forall (A C B:typ),
      eqIndTyp A B ->
      eqIndTyp B C ->
