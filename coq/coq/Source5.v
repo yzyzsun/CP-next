@@ -589,18 +589,10 @@ Lemma eqIndTyp_toplike : forall A B,
     eqIndTyp A B -> toplike A <-> toplike B.
 Proof with eauto.
   introv HE. induction* HE.
-  - split; intro H; intuition eauto.
-  - split; intro H; intuition eauto.
-  - split; intro H; intuition eauto.
-  - split; intro H; econstructor; inverts H; intuition eauto.
-  - split; intro H; econstructor; inverts H; intuition eauto.
-  - split; intro H; econstructor; inverts H; intuition eauto.
-  - split; intro H; econstructor; inverts H; intuition eauto.
-  - split; intro H; econstructor; inverts H; try inverts H3; try inverts H2;
-      intuition eauto.
-  - split; intro H'; eauto; inverts H'; intuition eauto.
-  - split; intro H; try econstructor; inverts H; try inverts H3; try inverts H2;
-      intuition eauto.
+  all: try solve [split; intro H; intuition eauto].
+  all: try solve [split; intro H; econstructor; inverts H; intuition eauto].
+  all: try solve [split; intro H; econstructor; inverts H; try inverts H3; try inverts H2; intuition eauto].
+  all: try solve [split; intro H'; eauto; inverts H'; intuition eauto].
 Qed.
 
 (* Lemma test : forall A B, *)
@@ -671,10 +663,8 @@ Proof with eauto using typeindex_nodup, NoDup_nodup, merge_sorted_dedup.
     1-2: left; apply nodup_In; applys In_merge...
     1-2: right; apply nodup_In; applys In_merge...
   - rewrite stype2string_toplike...
-    (* rewrite stype2string_and. rewrite stype2string_toplike... *)
-    (* autorewrite with merge. *)
-    (* simpl. applys nodup_fixed_point. *)
-    (* eauto using typeindex_nodup. *)
+  - rewrite stype2string_and. rewrite stype2string_toplike...
+    autorewrite with merge...
   - applys sorted_unique...
     repeat rewrite stype2string_and.
     rewrite IHHE.
@@ -712,42 +702,37 @@ Proof with eauto.
 Qed.
 
 Lemma stype2string_single_and_inv : forall a A B,
-    [ a ] = || typ_and A B || -> [ a ] = || A || \/ [ a ] = || B ||.
+    [ a ] = || typ_and A B || -> ([ a ] = || A || \/ [ a ] = || B ||) /\ ([ ] = || A || \/ [ ] = || B ||).
 Proof with eauto using NoDup_nodup, merge_sorted_dedup, check_toplike_sound_complete.
   introv HE.
   rewrite stype2string_and in HE. gen a B.
   induction (|| A ||); intros.
   - autorewrite with merge in HE...
-  - induction (|| B ||).
+  - Search nodup. induction (|| B ||).
     + autorewrite with merge in HE...
-
-  unfold stype2string in HE. case_if. simpl.
+Admitted.
 
 Lemma eqIndTyp_complete : forall A B,
     || A || = || B || -> eqIndTyp A B.
 Proof with eauto using NoDup_nodup, merge_sorted_dedup, check_toplike_sound_complete.
-  introv HE.
-  induction A.
+  introv HE. gen B.
+  induction A; intros.
   - forwards*: stype2string_toplike_complete B...
   - simpl in HE. induction B...
     all: try solve [simpl in HE; try case_if; try discriminate].
-    simpl in HE.
-
-    econstructor.
-  - forwards*: stype2string_toplike_complete (typ_arrow B1 B2).
-    simpl in HE; try case_if. applys EI_symm. applys EI_top...
-    apply check_toplike_sound_complete in C.
-    constructor...
-  - forwards*: stype2string_toplike_complete (typ_and B1 B2).
-  -
-    rewrite <- HE.
-    simpl in HE; try case_if.
-    + applys EI_symm. applys EI_top...
-      apply check_toplike_sound_complete...
-    + applys EI_symm. applys EI_top...
-      apply check_toplike_sound_complete...
-      forwards*: stype2string_toplike_complete (typ_and B1 B2).
-      rewrite <- HE.
+    forwards ([|]&[|]): stype2string_single_and_inv HE.
+    all: try forwards: IHB1 H. all: try forwards: IHB1 H0.
+    admit.
+    forwards*: stype2string_toplike_complete B2...
+    applys EI_trans H1. applys EI_trans EI_comm.
+    applys EI_trans EI_and. applys EI_symm EI_topelim.
+    applys* EI_symm EI_top.
+    admit. admit.
+  - admit.
+  - admit.
+  - (* and case ??? *) admit.
+  - admit.
+Admitted.
 
 Fixpoint Tlookup (i:string) (T:ttyp) : option ttyp :=
   match T with
@@ -787,61 +772,26 @@ Inductive eqIndTypTarget : ttyp -> ttyp -> Prop :=    (* defn eqIndTypTarget *)
       (   (  Tlookup  ll2   Ct  = Some  Bt'   /\  eqIndTypTarget Bt' Bt )    \/   Tlookup  ll2   Ct  = None  )  ->
       ll1  <>  ll2  ->
      eqIndTypTarget (ttyp_rcd ll2 Bt  (ttyp_rcd ll1 At Ct) ) Ct' ->
-     eqIndTypTarget (ttyp_rcd ll1 At  (ttyp_rcd ll2 Bt Ct) ) Ct'
- | TEI_dup : forall (ll:string) (At Bt Ct Ct' At':ttyp),
-     rec_typ Ct ->
-      (   (  Tlookup  ll   Ct  = Some  At'   /\  eqIndTypTarget At' At )    \/   Tlookup  ll   Ct  = None  )  ->
-     eqIndTypTarget At Bt ->
-     eqIndTypTarget (ttyp_rcd ll Bt  (ttyp_rcd ll At Ct) ) Ct' ->
-     eqIndTypTarget (ttyp_rcd ll At  (ttyp_rcd ll Bt Ct) ) Ct'.
+     eqIndTypTarget (ttyp_rcd ll1 At  (ttyp_rcd ll2 Bt Ct) ) Ct'.
+
 
 Lemma eqIndTyp_sound_target : forall A B,
     eqIndTyp A B -> eqIndTypTarget |[A]| |[B]|.
 Proof.
   introv HE. induction HE.
+  - (* refl *) admit.
   - (* trans *) admit.
   - (* symm *) admit.
   - (* arrow congurence *) admit.
-  - (* rcd; needs property about eqindtyp *) admit.
-  - (* list; needs property about eqindtyp *) admit.
-  - (* list swap *) admit.
+  - (* rcd; needs property about eqindtyp *)
+    simpl. case_if; case_if. 1-3: admit.
+    admit.
+  - (* list; needs property about eqindtyp ? *)
+    simpl. admit.
+  - (* list swap ? *) admit.
+  - (* assoc *) admit.
+  - apply check_toplike_sound_complete in H.
+    simpl. (* toplike |[ A ]| ttyp_top *) admit.
+  - admit.
+  - (* double *) admit.
 Admitted.
-
-Lemma index_string_mapping : forall A B,
-    || A || = || B || <-> | A | = | B |.
-Proof.
-  split; introv H; gen B.
-  - induction A; intros; simpl in H.
-    + unfolds in H. unfolds. simpl.
-
-
-Lemma eqIndTyp_sound_complete : forall A B,
-    eqIndTyp A B <-> |[A]| = |[B]|.
-Proof with eauto.
-  split. introv HE.
-  - induction HE.
-    + rewrite* IHHE1.
-    + rewrite* IHHE.
-    + simpl
-Abort.
-
-
-
-Reserved Notation " [[ A ]]" (at level 80).
-Fixpoint styp2ttyplist (A: typ) : list (string * ttyp2) :=
-  match A with
-  | typ_top => []
-  | typ_bot => [ (|A|, tt_bot) ]
-  | typ_base => [ (|A|, tt_base) ]
-  | typ_arrow B1 B2 => [ (|A|, tt_arrow (tt_list ([[ B1 ]]))
-                                            (tt_list ([[ B2 ]]))) ]
-  | typ_rcd l A' => [ (|A|, tt_arrow (tt_list []) (tt_list ([[ A' ]]))) ]
-  | typ_and A1 A2 => [[ A1 ]] ++ [[ A2 ]]
-  end
-where "[[ A ]]" := (styp2ttyplist A).
-
-Fixpoint ttyp2ttyp (l: list (string * ttyp2)) : ttyp :=
-  match l with
-  | nil => ttyp_top
-  | (s, t2) :: l' => ttyp_rcd (ti_string s) (ttyp2ttyp [t2]) (ttyp2ttyp l')
-  end.

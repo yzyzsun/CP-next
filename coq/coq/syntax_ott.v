@@ -318,6 +318,8 @@ Inductive eqIndTyp : typ -> typ -> Prop :=    (* defn eqIndTyp *)
  | EI_top : forall (A:typ),
      toplike A ->
      eqIndTyp A typ_top
+ | EI_topelim : forall (A:typ),
+     eqIndTyp (typ_and typ_top A) A
  | EI_dup : forall (A1 A2:typ),
      eqIndTyp A1 A2 ->
      eqIndTyp (typ_and A1 A2) A1.
