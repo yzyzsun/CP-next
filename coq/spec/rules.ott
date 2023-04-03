@@ -226,6 +226,9 @@ EqIndexType :: '' ::=
   {{ com Types with the same index }}
   by
 
+  --------------- :: refl
+  A ~= A
+  
   A ~= B
   B ~= C
   --------------- :: trans
