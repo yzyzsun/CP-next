@@ -39,6 +39,8 @@ $(SYNTAX)_ott.v: $(OTT_LOC)/rules.ott $(OTT_LOC)/target.ott
 		exit 1; \
 	fi >&2
 	sed -i '1iSet Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".\nFrom Coq Require Import Strings.String.\n' $(SYNTAX)_ott.v
+	sed -i 's/texp_fixpoint (texp_var_f x)/texp_fixpoint (texp_var_b 0)/g' $(SYNTAX)_ott.v
+
 
 
 $(TARGET)_inf.v: $(OTT_LOC)/rules.ott
