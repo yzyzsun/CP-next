@@ -177,15 +177,15 @@ Proof with eauto using TEI_trans, eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ
         forwards~ (?&?&?): IHHE l HL.
         unify_lookup.
         exists; simpl; repeat case_if*.
-  - inverts HRA. inverts H2.
-    forwards~ (?&?&?): IHHE2 l HL.
-    destruct (tindex_eq_dec l ll).
-    + subst.
-      destruct_lookup H1. inverts H1.
-      exists; splits; simpl; repeat case_if...
-    + destruct_lookup H1. inverts H1.
-      exists; splits; simpl; repeat case_if...
-      intuition eauto.
+  (* - inverts HRA. inverts H2. *)
+  (*   forwards~ (?&?&?): IHHE2 l HL. *)
+  (*   destruct (tindex_eq_dec l ll). *)
+  (*   + subst. *)
+  (*     destruct_lookup H1. inverts H1. *)
+  (*     exists; splits; simpl; repeat case_if... *)
+  (*   + destruct_lookup H1. inverts H1. *)
+  (*     exists; splits; simpl; repeat case_if... *)
+  (*     intuition eauto. *)
 Qed.
 
 
@@ -502,15 +502,15 @@ Proof with eauto using TEI_symm, TEI_refl, TEI_trans.
       econstructor...
     all: eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2,
         wf_rcd_concat, rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3.
-  - forwards* (?&?&?): IHHE2. inverts keep H1. inverts H9.
-    unify_lookup; lookup_concat ll H11...
-    all: exists; split.
-    1,3,5,7: econstructor; try solve [right*]; try solve [left*].
-    1-4: econstructor; try solve [right*]; try solve [left*]...
-    all: applys TEI_dup H2.
-    all: try solve [right*]; try solve [left*]...
-    all: eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2,
-        wf_rcd_concat, rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3.
+  (* - forwards* (?&?&?): IHHE2. inverts keep H1. inverts H9. *)
+  (*   unify_lookup; lookup_concat ll H11... *)
+  (*   all: exists; split. *)
+  (*   1,3,5,7: econstructor; try solve [right*]; try solve [left*]. *)
+  (*   1-4: econstructor; try solve [right*]; try solve [left*]... *)
+  (*   all: applys TEI_dup H2. *)
+  (*   all: try solve [right*]; try solve [left*]... *)
+  (*   all: eauto using eqindtyptarget_wf_typ_1, eqindtyptarget_wf_typ_2, *)
+  (*       wf_rcd_concat, rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3. *)
     Unshelve. all: econstructor.
 Qed.
 
@@ -563,7 +563,7 @@ Lemma eqIndTypTarget_arrow_inv_3 : forall A B C,
 Proof with eauto; try solve_by_invert.
   introv HE. inductions HE...
   - forwards* (?&?&?): IHHE...
-  - forwards* (?&?&?): IHHE2...
+  (* - forwards* (?&?&?): IHHE2... *)
 Qed.
 
 (* new property: same label means same type *)
@@ -617,7 +617,7 @@ Qed.
 Lemma cosub_well_typed : forall E t1 A B t2 At,
     cosub t1 A B t2 -> target_typing E t1 At -> subtype_wrt_lookup At |[A]| ->
     exists Bt', target_typing E t2 Bt' /\ eqIndTypTarget Bt' |[B]|.
-Proof with elia; eauto using TEI_symm, translate_to_record_types, target_typing_wf_1, target_typing_wf_2, target_typing_wf_typ, subtypespec_refl, subtypespec_trans.
+Proof with elia; eauto using TEI_symm, translate_to_record_types, target_typing_wf_1, target_typing_wf_2, target_typing_wf_typ, subtypespec_refl, subtypespec_trans, eqIndTypTarget_rec_typ, eqIndTypTarget_rec_typ_2.
   introv HS HT ST. gen At t1 t2 E.
   indTypSize (size_typ A + size_typ B). inverts HS.
   - (* top *)
@@ -659,10 +659,7 @@ Proof with elia; eauto using TEI_symm, translate_to_record_types, target_typing_
       tassumption.
       eauto using TEI_trans, TEI_symm.
       }
-      applys* eqindtyptarget_subtypespec.
-      applys eqIndTypTarget_rec_typ. applys TEI_symm H4.
-      1-2: eauto using translate_to_record_types.
-
+      applys* eqindtyptarget_subtypespec...
       exists. split. applys TTyping_RcdCons.
       3: {
         pick fresh z and apply TTyping_Abs.
@@ -678,7 +675,6 @@ Proof with elia; eauto using TEI_symm, translate_to_record_types, target_typing_
     lets (?&?&Eq): subtypespec_wrt_lookup_same (|| typ_rcd l0 A0 ||) ST.
     rewrite ttyp_trans_rcd... simpl. case_if*.
     forwards* (?&?&?): IH H1 E... applys* eqindtyptarget_subtypespec...
-    applys eqIndTypTarget_rec_typ. applys TEI_symm Eq. applys* translate_to_record_types.
     exists. split.
     applys* TTyping_RcdCons...
     econstructor...

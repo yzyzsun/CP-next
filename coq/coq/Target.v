@@ -238,7 +238,7 @@ Lemma substitution_preserves_typing_relax : forall E F t u S S' T z,
     target_typing (F ++ [(z,S)] ++ E) t T ->
     target_typing E u S' -> eqIndTypTarget S S' ->
     exists T', eqIndTypTarget T T' /\ target_typing (F ++ E) ([z ~>> u] t) T'.
-Proof with eauto using target_context_binds_wf, context_wf_inv_1, context_wf_inv_2, eqIndTypTarget_rec_typ.
+Proof with eauto using target_context_binds_wf, context_wf_inv_1, context_wf_inv_2, eqIndTypTarget_rec_typ, eqIndTypTarget_rec_typ_2.
   introv Typ1 Typ2 Eq.
   lets T1: Typ1. inductions T1.
   all: assert (wf_ctx (F ++ E)) by
@@ -305,8 +305,7 @@ Proof with eauto using target_context_binds_wf, context_wf_inv_1, context_wf_inv
     forwards* (? & He & HT1): IHT1_1. forwards* (? & ? & HT2): IHT1_2.
     forwards* (T & HC &?): eqIndTypTarget_concat_typ H1.
     exists T. split*.
-    applys* TTyping_RcdMerge HC.
-    all: applys* eqIndTypTarget_rec_typ.
+    applys* TTyping_RcdMerge HC...
     Unshelve. all: eauto.
 Qed.
 

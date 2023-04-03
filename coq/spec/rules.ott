@@ -256,11 +256,11 @@ EqIndexType :: '' ::=
 
   toplike A
   --------------- :: top
-  A&B ~= B
+  A ~= Top
 
   A1 ~= A2
   -------------------- :: dup
-  (A1&A2)&B ~= A1&B
+  A1&A2 ~= A1
   
   
 defns

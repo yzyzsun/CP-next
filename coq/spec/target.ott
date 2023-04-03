@@ -257,12 +257,12 @@ TargetEqIndexType :: '' ::=
   ---------------------------------------------- :: comm
   ll1:At, (ll2:Bt, Ct) ~= Ct'
 
-  recTyp Ct
-  (lookup ll Ct => At' and At' ~= At) or lookup ll Ct =/> 
-  At ~= Bt
-  ll:Bt, (ll:At, Ct) ~= Ct'
-  ---------------------------------------------- :: dup
-  ll:At, (ll:Bt, Ct) ~= Ct'
+  % recTyp Ct
+  % (lookup ll Ct => At' and At' ~= At) or lookup ll Ct =/> 
+  % At ~= Bt
+  % ll:Bt, (ll:At, Ct) ~= Ct'
+  % ---------------------------------------------- :: dup
+  % ll:At, (ll:Bt, Ct) ~= Ct'
 
   % --------------- :: comm
   % At&Bt ~= Bt&At

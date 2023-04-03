@@ -313,12 +313,12 @@ Inductive eqIndTyp : typ -> typ -> Prop :=    (* defn eqIndTyp *)
      eqIndTyp (typ_and A B) (typ_and B A)
  | EI_assoc : forall (A B C:typ),
      eqIndTyp (typ_and A  (typ_and B C) ) (typ_and  (typ_and A B)  C)
- | EI_top : forall (A B:typ),
+ | EI_top : forall (A:typ),
      toplike A ->
-     eqIndTyp (typ_and A B) B
- | EI_dup : forall (A1 A2 B:typ),
+     eqIndTyp A typ_top
+ | EI_dup : forall (A1 A2:typ),
      eqIndTyp A1 A2 ->
-     eqIndTyp (typ_and  (typ_and A1 A2)  B) (typ_and A1 B).
+     eqIndTyp (typ_and A1 A2) A1.
 
 (* defns SplitType *)
 Inductive spl : typ -> typ -> typ -> Prop :=    (* defn spl *)
@@ -616,13 +616,7 @@ Inductive eqIndTypTarget : ttyp -> ttyp -> Prop :=    (* defn eqIndTypTarget *)
       (   (  Tlookup  ll2   Ct  = Some  Bt'   /\  eqIndTypTarget Bt' Bt )    \/   Tlookup  ll2   Ct  = None  )  ->
       ll1  <>  ll2  ->
      eqIndTypTarget (ttyp_rcd ll2 Bt  (ttyp_rcd ll1 At Ct) ) Ct' ->
-     eqIndTypTarget (ttyp_rcd ll1 At  (ttyp_rcd ll2 Bt Ct) ) Ct'
- | TEI_dup : forall (ll:tindex) (At Bt Ct Ct' At':ttyp),
-     rec_typ Ct ->
-      (   (  Tlookup  ll   Ct  = Some  At'   /\  eqIndTypTarget At' At )    \/   Tlookup  ll   Ct  = None  )  ->
-     eqIndTypTarget At Bt ->
-     eqIndTypTarget (ttyp_rcd ll Bt  (ttyp_rcd ll At Ct) ) Ct' ->
-     eqIndTypTarget (ttyp_rcd ll At  (ttyp_rcd ll Bt Ct) ) Ct'.
+     eqIndTypTarget (ttyp_rcd ll1 At  (ttyp_rcd ll2 Bt Ct) ) Ct'.
 
 (* defns ConcatTypes *)
 Inductive concat_typ : ttyp -> ttyp -> ttyp -> Prop :=    (* defn concat_typ *)

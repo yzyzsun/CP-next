@@ -598,7 +598,7 @@ Proof with eauto.
   - split; intro H; econstructor; inverts H; try inverts H3; try inverts H2;
       intuition eauto.
   - split; intro H'; eauto; inverts H'; intuition eauto.
-  - split; intro H; econstructor; inverts H; try inverts H3; try inverts H2;
+  - split; intro H; try econstructor; inverts H; try inverts H3; try inverts H2;
       intuition eauto.
 Qed.
 
@@ -639,7 +639,7 @@ Qed.
 
 Lemma eqIndTyp_sound : forall A B,
     eqIndTyp A B -> || A || = || B ||.
-Proof with eauto using NoDup_nodup, merge_sorted_dedup.
+Proof with eauto using typeindex_nodup, NoDup_nodup, merge_sorted_dedup.
   introv HE. induction HE.
   - rewrite* IHHE1.
   - rewrite* IHHE.
@@ -669,30 +669,71 @@ Proof with eauto using NoDup_nodup, merge_sorted_dedup.
     all: intuition eauto; repeat apply nodup_In in H; try apply In_merge in H; intuition eauto.
     1-2: left; apply nodup_In; applys In_merge...
     1-2: right; apply nodup_In; applys In_merge...
-  - rewrite stype2string_and. rewrite stype2string_toplike...
-    autorewrite with merge.
-    simpl. applys nodup_fixed_point.
-    eauto using typeindex_nodup.
+  - rewrite stype2string_toplike...
+    (* rewrite stype2string_and. rewrite stype2string_toplike... *)
+    (* autorewrite with merge. *)
+    (* simpl. applys nodup_fixed_point. *)
+    (* eauto using typeindex_nodup. *)
   - applys sorted_unique...
     repeat rewrite stype2string_and.
     rewrite IHHE.
     applys* NoDup_Permutation... split; introv HI.
-    + applys nodup_In. apply nodup_In in HI.
-      rewrite* merge_double_nodup in HI.
+    + rewrite* merge_double_nodup in HI.
       rewrite* typeindex_nodup_elim in HI.
-    + applys nodup_In. apply nodup_In in HI.
-      rewrite* merge_double_nodup.
+    + rewrite* merge_double_nodup.
       rewrite* typeindex_nodup_elim.
       Unshelve. eauto.
 Qed.
 
+Lemma nodup_empty_inv : forall l,
+    nodup string_dec l = [] -> l = [].
+Proof.
+  introv HE. induction* l.
+  simpl in HE. case_if.
+  exfalso. forwards~: IHl. subst. inverts C.
+Qed.
+
+Lemma merge_empty_inv : forall l r,
+    merge l r = [] -> l = [] /\ r = [].
+Proof.
+  introv HE. destruct* l; destruct* r.
+  simpl in HE. case_if.
+Qed.
+
+Lemma stype2string_toplike_complete : forall A,
+    || A || = [] -> toplike A.
+Proof with eauto.
+  introv HT. apply check_toplike_sound_complete.
+  induction A; simpl in HT; try discriminate; try case_if; simpl...
+  apply nodup_empty_inv in HT.
+  forwards (?&?): merge_empty_inv HT.
+  forwards~: IHA1. forwards~: IHA2. rewrite H1. rewrite* H2.
+Qed.
+
 Lemma eqIndTyp_complete : forall A B,
     || A || = || B || -> eqIndTyp A B.
-Proof with eauto using NoDup_nodup, merge_sorted_dedup.
+Proof with eauto using NoDup_nodup, merge_sorted_dedup, check_toplike_sound_complete.
   introv HE.
-  induction A; induction B...
-  all: simpl in HE; try case_if; try discriminate.
-  - applys EI_top.
+  induction A.
+  - forwards*: stype2string_toplike_complete B...
+  - simpl in HE. induction B...
+    all: try solve [simpl in HE; try case_if; try discriminate].
+
+    econstructor.
+  - forwards*: stype2string_toplike_complete (typ_arrow B1 B2).
+    simpl in HE; try case_if. applys EI_symm. applys EI_top...
+    apply check_toplike_sound_complete in C.
+    constructor...
+  - forwards*: stype2string_toplike_complete (typ_and B1 B2).
+  -
+    rewrite <- HE.
+    simpl in HE; try case_if.
+    + applys EI_symm. applys EI_top...
+      apply check_toplike_sound_complete...
+    + applys EI_symm. applys EI_top...
+      apply check_toplike_sound_complete...
+      forwards*: stype2string_toplike_complete (typ_and B1 B2).
+      rewrite <- HE.
 
 Fixpoint Tlookup (i:string) (T:ttyp) : option ttyp :=
   match T with
