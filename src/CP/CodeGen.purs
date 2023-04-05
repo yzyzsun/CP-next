@@ -416,6 +416,15 @@ subtype r1@(C.TyRcd l1 t1 _) r2@(C.TyRcd l2 t2 _) x y _ | l1 == l2 = do
                                         JSAccessor "get" (JSIndexer (toIndex r1) (JSVar x))
                                     , initialize y0 ] <> j) in
            pure [ addProp (JSVar y) (toIndex r2) rvalue ]
+subtype a1@(C.TyArray t1) a2@(C.TyArray t2) x y _ = do
+  x0 <- freshVarName
+  y0 <- freshVarName
+  j <- subtype t1 t2 x0 y0 true
+  let arr = JSIndexer (toIndex a2) (JSVar y)
+      block = [ initialize y0 ] <> j <> [ JSApp (JSAccessor "push" arr) [JSVar y0] ]
+  pure [ JSAssignment arr (JSArrayLiteral [])
+       , JSForOf x0 (JSIndexer (toIndex a1) (JSVar x)) $ JSBlock block
+       ]
 subtype (C.TyAnd ta tb) tc x y _ = subtype ta tc x y false <|> subtype tb tc x y false
 subtype (C.TyVar a) (C.TyVar a') x y _ | a == a' = let index = "$$index" in
   pure [ JSForOf index (JSVar (variable a)) $ JSAssignment (JSIndexer (JSVar index) (JSVar y))
@@ -503,6 +512,7 @@ toIndex = JSTemplateLiteral <<< fst <<< go Nil
     isBaseType C.TyInt = true
     isBaseType C.TyDouble = true
     isBaseType C.TyString = true
+    isBaseType C.TyBot = true
     isBaseType _ = false
 
 flatten :: C.Ty -> Array C.Ty
