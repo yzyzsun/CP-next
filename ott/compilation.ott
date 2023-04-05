@@ -1,7 +1,7 @@
 grammar
 
 T, Ts :: 'ti_' ::= {{ com Type indices }}
-  | Base      ::  :: base  {{ com base type }} {{ tex \mathbb{B} }}
+  | Base      ::  :: base  {{ com base type }} {{ tex \mathbb{Z} }}
   | -> T      ::  :: arrow {{ com function type }} {{ tex \overrightarrow{[[T]]} }}
   | \-/ T     ::  :: all   {{ com universal type }} {{ tex [[T]]^\forall }}
   | { l : T } ::  :: rcd   {{ com record type }}
@@ -60,7 +60,7 @@ G |- {l = e} => {l : A} ~~> nothing | z-
 
 
 T = |Base|
----------------------------- :: Base
+---------------------------- :: Int
 G |- b => Base ~~> code | z-
 
 
@@ -70,8 +70,8 @@ G |- x => A ~~> code | z-
 
 
 x : A in G
----------------------------- :: VarGen
-G |- x => A ~~> nothing | x+
+------------------------- :: VarGen
+G |- x => A ~~> code | z+
 
 
 G, x:A |- e <= A ~~> J | z-
@@ -87,9 +87,9 @@ G |- \x:A. e:B => A->B ~~> code | z-
 
 G |- e1 => A ~~> J1 | x+
 G |- e2 => B ~~> J2 | y+
-G |- x : A ; y : B ~~> J3 | z : C
---------------------------------- :: App
-G |- e1 e2 => C ~~> J1;J2;J3 | z-
+G |- x : A ; y0 : B ~~> J3 | z : C
+---------------------------------- :: App
+G |- e1 e2 => C ~~> code | z-
 
 
 T = \-/|B|
@@ -144,7 +144,7 @@ G |- e => A ~~> J | z+
 G |- e <= A ~~> J | z+
 
 
-G |- e1 => A ~~> J1 | x-
+G |- e1 => A ~~> J1 | y+
 G, x:A |- e2 => B ~~> J2 | z-
 ---------------------------------- :: Def
 G |- x = e1; e2 => B ~~> code | z-
@@ -237,7 +237,7 @@ x : A <:+ y : A ~~> code
 
 
 T = |Base|
-------------------------------- :: Base
+------------------------------- :: Int
 x : Base <:pm y : Base ~~> code
 
 

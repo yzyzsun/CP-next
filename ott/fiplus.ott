@@ -7,7 +7,7 @@ grammar
 typ, A, B, C :: 't_' ::= {{ com types }}
   | Top              ::  :: top    {{ com top type }} {{ tex \top }}
   | Bot              ::  :: bot    {{ com bottom type }} {{ tex \bot }}
-  | Base             ::  :: base   {{ com base type }} {{ tex \mathbb{B} }}
+  | Base             ::  :: base   {{ com base type }} {{ tex \mathbb{Z} }}
   | X                ::  :: var    {{ com type variable }}
   | A -> B           ::  :: arrow  {{ com function type }}
   | Forall X * A . B ::  :: all    {{ com universal type }} {{ tex \forall [[X]]\!*\![[A]].\;[[B]] }}
@@ -19,7 +19,7 @@ typ, A, B, C :: 't_' ::= {{ com types }}
 
 exp, e :: 'e_' ::= {{ com expressions }}
   | {}               ::  :: top    {{ com top value }}
-  | b                ::  :: base   {{ com base literal }} {{ tex b }}
+  | b                ::  :: base   {{ com base literal }} {{ tex n }}
   | x                ::  :: var    {{ com variable }}
   | fix x : A . e    ::  :: fix    {{ com fixpoint }} {{ tex [[fix]]\,[[x]]\!:\![[A]].\;[[e]] }}
   | \ x : A . e : B  ::  :: abs    {{ com abstraction }} {{ tex [[\]][[x]]\!:\![[A]].\;[[e]]\!:\![[B]] }}

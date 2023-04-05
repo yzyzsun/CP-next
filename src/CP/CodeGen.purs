@@ -279,9 +279,8 @@ infer (C.TmLet x e1 e2 global) z = do
               pure { ast: [export $ initialize $ variable x] <> j1 <> j2, typ: t2 }
     CBN -> do { ast: j1, typ: t1, var: y } <- infer' e1
               { ast: j2, typ: t2 } <- addTmBind x t1 $ infer e2 z
-              let def = JSVariableIntroduction (variable x) $ Just $
-                          JSObjectLiteral [LiteralName "get" (JSVar y)]
-              pure { ast: j1 <> [export def] <> j2, typ: t2 }
+              let def = JSVariableIntroduction (variable x) $ Just $ lazyObj y j1
+              pure { ast: [export def] <> j2, typ: t2 }
   where export = if global then JSExport else identity
 infer (C.TmMain e) _ = do
   z <- freshVarName

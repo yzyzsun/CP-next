@@ -11,10 +11,7 @@
 
 \newcommand\calculus{$\mathsf{F}_i^+$\xspace}
 
-\title{
-  Compiling from \calculus to JavaScript \\
-  \large (simplified scheme with call-by-value)
-}
+\title{Compiling from \calculus to JavaScript}
 \author{Yaozhu Sun}
 
 \begin{document}
@@ -30,45 +27,36 @@
   &\text{Values}      &    v ::=&~ [[{}]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[/\X*A. e:B]] ~|~ [[{l = v}]] ~|~ [[v1 ,, v2]] \\
 \end{align*}
 
-\noindent
-\boxed{[[|A|]] = [[T]]} \hfill \textit{(Type translation)}
-\begin{mathpar}
-\inferrule{}{ [[|Base|]] = [[Base]] }
-\and
-\inferrule{}{ [[|X|]] = \mathbf{atoi}(X) }
-\and
-\inferrule{}{ [[|A->B|]] = [[->|B|]] }
-\and
-\inferrule{}{ [[|Forall X*A. B|]] = [[\-/|B|]] }
-\and
-\inferrule{}{ [[|{l:A}|]] = [[{l:|A|}]] }
-\and
-\inferrule
-{ A_{k_1} < A_{k_2} < \cdots < A_{k_m} \\ \neg \rceil A_k \lceil }
-{ |A_1\&A_2\&\cdots\&A_n| = |A_{k_1}|\&|A_{k_2}|\&\cdots\&|A_{k_m}| }
-\end{mathpar}
-
-\ottdefntoplike
-
-\ottdefnordinary
-
-\newpage
 \ottdefncompile
-\bigskip\bigskip\bigskip
 
 \begin{multicols}{3}
 \begin{verbatim}
 /* J-Gen */
 var z = {};  J;
 
-/* J-Base */
-z[T] = b;
+/* J-Int */
+z[T] = n;
 
 /* J-Var */
-Object.assign(z, x);
+Object.assign(z, x.get);
+
+/* J-VarGen */
+var z = x.get;
 
 /* J-Fix */
-var x = z;  J;
+var x = { get: z };
+J;
+
+
+/* J-App */
+J1;
+var y0 = {
+  get get() {
+    J2;
+    delete this.get;
+    return this.get = y;
+  }
+};  J3;
 
 /* J-Abs */
 z[T] = (x, y) => { J };
@@ -76,18 +64,28 @@ z[T] = (x, y) => { J };
 /* J-TAbs */
 z[T] = (X, y) => { J };
 
+
 /* J-Rcd */
-J;
-z[T] = y;
+z[T] = {
+  get get() {
+    J;
+    delete this.get;
+    return this.get = y;
+  }
+};
 
 /* J-Def */
-export var x = {};
-J1;
-J2;
+export var x = {
+  get get() {
+    J1;
+    delete this.get;
+    return this.get = y;
+  }
+};  J2;
 \end{verbatim}
 \end{multicols}
 
-\vfill
+\newpage
 \ottdefndistapp
 
 \begin{multicols}{2}
@@ -106,7 +104,7 @@ x[T](Ts, z);
 
 \begin{verbatim}
 /* P-Rcd */
-Object.assign(z, x[T]);
+Object.assign(z, x[T].get);
 \end{verbatim}
 
 \newpage
@@ -120,7 +118,7 @@ y[T] = null;
 /* S-Eq */
 Object.assign(y, x);
 
-/* S-Base */
+/* S-Int */
 y[T] = x[T];
 
 /* S-Var */
@@ -129,10 +127,16 @@ for (var T of X) {
 }
 
 /* S-Arrow */
-y[T2] = (x1, y2) => {
-  var y1 = {};  J1;
+y[T2] = (p, y2) => {
   var x2 = {};
-  x[T1](y1, x2);
+  x[T1]({
+    get get() {
+      var x1 = p.get;
+      var y1 = {};  J1;
+      delete this.get;
+      return this.get = y1;
+    }
+  }, x2);
   J2;
 };
 
@@ -144,9 +148,14 @@ y[T2] = (X, y0) => {
 };
 
 /* S-Rcd */
-var x0 = x[T1];
-var y0 = {};  J;
-y[T2] = y0;
+y[T2] = {
+  get get() {
+    var x0 = x[T1].get;
+    var y0 = {};  J;
+    delete this.get;
+    return this.get = y0;
+  }
+}
 
 /* S-Split */
 var y1 = {}; // if y1 != z
@@ -169,6 +178,10 @@ z[T] = (p, y) => {
   J;
 };
 
+
+
+
+
 /* M-All */
 z[T] = (X, y) => {
   var y1 = {}; // if y1 != y
@@ -178,14 +191,23 @@ z[T] = (X, y) => {
   J;
 };
 
+
+
+
+
 /* M-Rcd */
-var y = {};
-var y1 = {}; // if y1 != y
-var y2 = {}; // if y2 != y
-Object.assign(y1, x1[T1]);
-Object.assign(y2, x2[T2]);
-J;
-z[T] = y;
+z[T] = {
+  get get() {
+    var y = {};
+    var y1 = {}; // if y1 != y
+    var y2 = {}; // if y2 != y
+    Object.assign(y1, x1[T1].get);
+    Object.assign(y2, x2[T2].get);
+    J;
+    delete this.get
+    return this.get = y;
+  }
+};
 \end{verbatim}
 \end{multicols}
 
