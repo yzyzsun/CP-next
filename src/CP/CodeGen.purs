@@ -5,7 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.RWS (RWST, asks, evalRWST, local, modify)
-import Data.Array (concat, foldl, length, (!!))
+import Data.Array (concat, foldl, length, notElem, (!!))
 import Data.Array as A
 import Data.Bifunctor (bimap, lmap, rmap)
 import Data.Either (Either)
@@ -13,7 +13,7 @@ import Data.Int (toNumber)
 import Data.List (List(..), elem, (:))
 import Data.Map (Map, empty, fromFoldable, insert, lookup)
 import Data.Maybe (Maybe(..))
-import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll)
+import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll, stripPrefix, stripSuffix, toLower)
 import Data.Traversable (traverse)
 import Data.Tuple (fst)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -50,15 +50,14 @@ fromState st = emptyCtx { tmBindEnv = fromFoldable $ rmap fst <$> st.tmBindings 
 runCodeGen :: C.Tm -> Ctx -> Either String (Array JS)
 runCodeGen e ctx = do
   { ast } /\ _ <- runExcept $ evalRWST (infer e "$0") ctx 0
-  pure $ [ JSFunction (Just "toIndex") ["t"] $ JSBlock
-            [JSIfElse (JSBinary EqualTo (JSAccessor "length" (JSVar "t")) (JSNumericLiteral 1.0))
-                      (JSBlock [JSReturn $ JSIndexer (JSNumericLiteral 0.0) (JSVar "t")])
-                      (Just $ JSBlock [JSReturn $ JSBinary Add
-                        (JSBinary Add
-                          (JSStringLiteral "(&")
-                          (JSApp (JSAccessor "join" (JSApp (JSAccessor "sort" (JSVar "t")) [])) [JSStringLiteral "&"]))
-                        (JSStringLiteral "&)")])]
-         ] <> ast
+  pure $ [ JSRawCode prelude ] <> ast
+
+prelude :: String
+prelude = """function toIndex(tt) {
+    var ts = tt.sort().filter((t, i) => t === 0 || t !== tt[i-1]);
+    if (ts.length === 1) return ts[0];
+    else return '(' + ts.join('&') + ')';
+}"""
 
 type AST = Array JS
 
@@ -480,33 +479,28 @@ unsplit { z, tx: r1@(C.TyRcd _ t1 _), ty: r2@(C.TyRcd _ t2 _), tz: r@(C.TyRcd _ 
   pure { ast, x: x1, y: x2 }
 unsplit s = unsafeCrashWith $ "cannot unsplit" <+> show s
 
-toIndices :: C.Ty -> JS
-toIndices (C.TyVar a) = JSVar $ variable a
-toIndices t@(C.TyAnd _ _) = JSArrayLiteral $ map toIndex $ flatten t
-toIndices C.TyTop = JSArrayLiteral []
-toIndices t = JSArrayLiteral [toIndex t]
-
 toIndex :: C.Ty -> JS
 toIndex = JSTemplateLiteral <<< fst <<< go Nil
   where
     go :: List Name -> C.Ty -> String /\ Boolean
-    go _ t | isBaseType t    = show t /\ false
+    go _ t | isBaseType t    = toLower (show t) /\ false
     go as (C.TyArrow _ t _)  = lmap ("fun_" <> _) (go as t)
     go as (C.TyForall a _ t) = lmap ("forall_" <> _) (go (a:as) t)
     go as (C.TyRcd l t _)    = lmap (("rcd_" <> l <> ":") <> _) (go as t)
     go as (C.TyArray t)      = lmap ("array_" <> _) (go as t)
-    go as (C.TyVar a)        = if a `elem` as then a /\ false
-                               else ("${toIndex(" <> variable a <> ")}") /\ true
-    go as t@(C.TyAnd _ _)    = let flattened = flatten t in
-      if length flattened == 1 then go as (unsafeFromJust (flattened !! 0))
-      else let ts /\ b = foldl (\(ts /\ b) t -> bimap (flip A.insert ts) (b || _) (go as t))
-                               ([] /\ false) flattened in
-           if not b then ("(&" <> joinWith "&" ts <> "&)") /\ false
-           else ("${toIndex(" <> print1 (JSArrayLiteral (go' as <$> flattened)) <> ")}") /\ true
+    -- TODO: change variable names to De Bruijn indices
+    go as (C.TyVar a) | a `elem` as = a /\ false
+                      | otherwise = ("${toIndex(" <> variable a <> ")}") /\ true
+    go as t@(C.TyAnd _ _) = let ts /\ b = foldl (\(ts /\ b) t -> bimap (insertIfNotElem ts) (b || _) (go as t))
+                                                ([] /\ false) (flatten t) in
+      if b then ("${toIndex(" <> print1 (JSArrayLiteral (transformVar <$> ts)) <> ")}") /\ true
+      else (if length ts == 1 then unsafeFromJust (ts !! 0) else "(" <> joinWith "&" ts <> ")") /\ false
     go _ t = unsafeCrashWith $ "cannot use as an index: " <> show t
-    go' :: List Name -> C.Ty -> JS
-    go' as (C.TyVar a) | not (a `elem` as) = JSUnary Spread (JSVar (variable a))
-    go' as t = JSTemplateLiteral $ fst $ go as t
+    -- a dirty string manipulation:
+    transformVar :: String -> JS
+    transformVar s = case stripPrefix (Pattern "${toIndex(") s of
+      Just s' -> JSUnary Spread $ JSVar $ unsafeFromJust $ stripSuffix (Pattern ")}") s'
+      Nothing -> JSTemplateLiteral s
     isBaseType :: C.Ty -> Boolean
     isBaseType C.TyBool = true
     isBaseType C.TyInt = true
@@ -514,6 +508,15 @@ toIndex = JSTemplateLiteral <<< fst <<< go Nil
     isBaseType C.TyString = true
     isBaseType C.TyBot = true
     isBaseType _ = false
+    -- this function does sorting and deduplication:
+    insertIfNotElem :: Array String -> String -> Array String
+    insertIfNotElem arr a = if notElem a arr then A.insert a arr else arr
+
+toIndices :: C.Ty -> JS
+toIndices (C.TyVar a) = JSVar $ variable a
+toIndices t@(C.TyAnd _ _) = JSArrayLiteral $ map toIndex $ flatten t
+toIndices t | isTopLike t = JSArrayLiteral []
+            | otherwise   = JSArrayLiteral [toIndex t]
 
 flatten :: C.Ty -> Array C.Ty
 flatten (C.TyAnd t1 t2) = flatten t1 <> flatten t2
