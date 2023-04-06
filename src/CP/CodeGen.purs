@@ -5,14 +5,14 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.RWS (RWST, asks, evalRWST, local, modify)
-import Data.Array (concat, foldl, length, notElem, (!!))
+import Data.Array (all, concat, find, foldl, length, notElem, (!!))
 import Data.Array as A
 import Data.Bifunctor (bimap, lmap, rmap)
 import Data.Either (Either)
 import Data.Int (toNumber)
 import Data.List (List(..), elem, (:))
 import Data.Map (Map, empty, fromFoldable, insert, lookup)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isJust)
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll, stripPrefix, stripSuffix, toLower)
 import Data.Traversable (traverse)
 import Data.Tuple (fst)
@@ -163,7 +163,7 @@ infer (C.TmBinary Op.Append e1 e2) z = do
             (JSBinary Add (JSIndexer (toIndex C.TyString) (JSVar x))
                           (JSIndexer (toIndex C.TyString) (JSVar y))) ] in
       pure { ast, typ: C.TyString }
-    typ@(C.TyArray t), C.TyArray t' | t === t' ->
+    typ@(C.TyArray t), C.TyArray t' | t .=. t' ->
       let ast = j1 <> j2 <> [ addProp (JSVar z) (toIndex typ)
             (JSApp (JSAccessor "concat" (JSIndexer (toIndex typ) (JSVar x)))
                                         [JSIndexer (toIndex typ) (JSVar y)]) ] in
@@ -186,7 +186,7 @@ infer (C.TmIf e1 e2 e3) z = do
   if t1 == C.TyBool then do
     { ast: j2, typ: t2 } <- infer e2 z
     { ast: j3, typ: t3 } <- infer e3 z
-    if t2 === t3 then do
+    if t2 .=. t3 then do
       let ast = j1 <> [ JSIfElse (JSIndexer (toIndex C.TyBool) (JSVar var))
                                  (JSBlock j2) (Just (JSBlock j3)) ]
       pure { ast, typ: t2 }
@@ -305,7 +305,7 @@ infer' e = do
   { ast, typ } <- infer e var
   pure { ast: [ initialize var ] <> ast, typ, var }
 
--- TODO: change (infer' e) to (infer e y) if t === typ
+-- TODO: change (infer' e) to (infer e y) if t .=. typ
 check :: C.Tm -> C.Ty -> Name -> CodeGen AST
 check e t y = do
   { ast, typ, var: x } <- infer' e
@@ -314,7 +314,7 @@ check e t y = do
 check' :: C.Tm -> C.Ty -> CodeGen { ast :: AST, var :: Name }
 check' e t = do
   { ast: j1, typ, var: x } <- infer' e
-  if t === typ then pure { ast: j1, var: x }
+  if t .=. typ then pure { ast: j1, var: x }
   else do
     y <- freshVarName
     j2 <- subtype typ t x y true
@@ -330,7 +330,7 @@ distapp (C.TyAnd ta tb) x arg z = do
   pure { ast: j1 <> j2, typ: C.TyAnd t1 t2 }
 distapp t@(C.TyArrow targ tret _) x (TmArg y t') z =
   let app var = JSApp (JSIndexer (toIndex t) (JSVar x)) [JSVar var, JSVar z] in
-  if targ === t' then pure { ast: [ app y ], typ: tret }
+  if targ .=. t' then pure { ast: [ app y ], typ: tret }
   else do
     order <- asks (_.evalOrder)
     ast <- case order of
@@ -369,7 +369,7 @@ proj t x l z o = unsafeFromJust $ go t
 subtype :: C.Ty -> C.Ty -> Name -> Name -> Boolean -> CodeGen AST
 subtype _ t _ _ _ | isTopLike t = pure []
 subtype C.TyBot t _ y _ = pure [ JSAssignment (JSIndexer (toIndex t) (JSVar y)) JSNullLiteral ]
-subtype ta tb x y true | ta === tb = pure [ assignObj y [JSVar x] ]
+subtype ta tb x y true | ta .=. tb = pure [ assignObj y [JSVar x] ]
 subtype ta tb x z b | Just (tb1 /\ tb2) <- split tb =
   if isTopLike tb1 then subtype ta tb2 x z b
   else if isTopLike tb2 then subtype ta tb1 x z b
@@ -390,11 +390,11 @@ subtype ta@(C.TyArrow ta1 ta2 _) tb@(C.TyArrow tb1 tb2 _) x y _ = do
   let func = case order of
         CBV -> let block = [ initialize y1 ] <> j1
                         <> [ initialize x2, JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar y1, JSVar x2] ] <> j2 in
-              JSFunction Nothing [x1, y2] (JSBlock block)
+               JSFunction Nothing [x1, y2] (JSBlock block)
         CBN -> let arg = lazyObj y1 ([ JSVariableIntroduction x1 $ Just $ JSAccessor "get" (JSVar "p")
                                      , initialize y1 ] <> j1)
                    block = [ initialize x2, JSApp (JSIndexer (toIndex ta) (JSVar x)) [arg, JSVar x2] ] <> j2 in
-                JSFunction Nothing ["p", y2] (JSBlock block)
+               JSFunction Nothing ["p", y2] (JSBlock block)
   pure [ addProp (JSVar y) (toIndex tb) func ]
 subtype ta@(C.TyForall a _ ta2) tb@(C.TyForall b _ tb2) x y _ = do
   x0 <- freshVarName
@@ -522,6 +522,23 @@ flatten :: C.Ty -> Array C.Ty
 flatten (C.TyAnd t1 t2) = flatten t1 <> flatten t2
 flatten t | isTopLike t = []
           | otherwise   = [t]
+
+equiv :: C.Ty -> C.Ty -> Boolean
+equiv t1 t2 | isTopLike t1 && isTopLike t2 = true
+equiv t1@(C.TyAnd _ _) t2 = let ts1 = flatten t1
+                                ts2 = flatten t2 in
+                            all (\t -> isJust $ find (t .=. _) ts2) ts1 &&
+                            all (\t -> isJust $ find (t .=. _) ts1) ts2
+equiv t1 t2@(C.TyAnd _ _) = equiv t2 t1
+equiv (C.TyArrow t1 t2 _) (C.TyArrow t3 t4 _) = t1 .=. t3 && t2 .=. t4
+equiv (C.TyRcd l1 t1 opt1) (C.TyRcd l2 t2 opt2) = l1 == l2 && t1 .=. t2 && opt1 == opt2
+equiv (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) = td1 .=. td2 && t1 .=. C.tySubst a2 (C.TyVar a1) t2
+equiv (C.TyRec a1 t1) (C.TyRec a2 t2) = t1 .=. C.tySubst a2 (C.TyVar a1) t2
+equiv (C.TyArray t1) (C.TyArray t2) = t1 .=. t2
+equiv t1 t2 | t1 === t2 = true
+            | otherwise = false
+
+infix 4 equiv as .=.
 
 freshVarName :: CodeGen Name
 freshVarName = do
