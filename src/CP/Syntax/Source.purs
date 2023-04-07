@@ -108,7 +108,7 @@ instance Show Bias where
   show Leftist  = "+,"
   show Rightist = ",+"
 
--- TODO: add type parameters
+-- TODO: add type parameters and support recursion
 data RcdField = RcdField Boolean Label TmParamList (Either Tm MethodPattern)
               | DefaultPattern MethodPattern
 data MethodPattern = MethodPattern SelfAnno Label TmParamList Tm
