@@ -91,11 +91,24 @@ export var x = {
 \begin{multicols}{2}
 \begin{verbatim}
 /* A-Arrow */
-var y0 = {};  J;
-x[T](y0, z);
+x[T]({
+  get get() {
+    var y1 = y.get;
+    var y2 = {};  J;
+    delete this.get;
+    return this.get = y2;
+  }
+}, z);
 
 /* A-All */
 x[T](Ts, z);
+
+
+
+
+
+
+
 \end{verbatim}
 \end{multicols}
 
