@@ -194,8 +194,11 @@ infer (C.TmIf e1 e2 e3) z = do
                    <+> show t2 <+> "and" <+> show t3
   else throwError $ "if-condition expected Bool, but got" <+> show t1
 infer (C.TmVar x) z = do
+  order <- asks (_.evalOrder)
+  let access = case order of CBV -> identity
+                             CBN -> JSAccessor "get"
   typ <- lookupTmBind x
-  pure { ast: [ assignObj z [getVar x] ], typ }
+  pure { ast: [ assignObj z [access (JSVar (variable x))] ], typ }
 infer (C.TmFix x e typ) z = do
   j <- addTmBind x typ $ check e typ z
   order <- asks (_.evalOrder)
@@ -296,7 +299,7 @@ infer' (C.TmVar x) = do
   case order of
     CBV -> pure { ast: [], typ, var: variable x }
     CBN -> do var <- freshVarName
-              pure { ast: [ JSVariableIntroduction var $ Just $ getVar x ], typ, var }
+              pure { ast: [ JSVariableIntroduction var $ Just $ JSAccessor "get" (JSVar (variable x)) ], typ, var }
 infer' (C.TmAnno e typ) = do
   { ast, var } <- check' e typ
   pure { ast, typ, var }
@@ -580,6 +583,3 @@ addProp o x f = JSAssignment (JSIndexer x o) f
 
 variable :: Name -> Name
 variable = ("$" <> _) <<< replaceAll (Pattern "'") (Replacement "$prime")
-
-getVar :: Name -> JS
-getVar x = JSAccessor "get" (JSVar (variable x))
