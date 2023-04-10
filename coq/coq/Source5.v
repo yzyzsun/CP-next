@@ -730,7 +730,7 @@ Proof with eauto using NoDup_nodup, merge_sorted_dedup, check_toplike_sound_comp
     admit. admit.
   - admit.
   - admit.
-  - (* and case ??? *) admit.
+  - (* and case ??? : 1)either toplike 2) destruct B || normalize *) admit.
   - admit.
 Admitted.
 
@@ -795,3 +795,21 @@ Proof.
   - admit.
   - (* double *) admit.
 Admitted.
+
+after deduplication is the same permutation
+
+  flattern a tree to a list?
+
+  generate sets from list / tree?
+
+
+  f (A & B) = f(C)
+
+                f(A) = f(B) --> |[ A ]| ~ |[ B ]|
+
+  label->type
+
+
+           (A & B) & C
+
+        \y. ( \x. (\r. A | r) (\r. B | r) x ) ((\r.C|r) y)
