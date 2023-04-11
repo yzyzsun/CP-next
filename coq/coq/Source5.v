@@ -796,20 +796,20 @@ Proof.
   - (* double *) admit.
 Admitted.
 
-after deduplication is the same permutation
+(* after deduplication is the same permutation *)
 
-  flattern a tree to a list?
+(*   flattern a tree to a list? *)
 
-  generate sets from list / tree?
-
-
-  f (A & B) = f(C)
-
-                f(A) = f(B) --> |[ A ]| ~ |[ B ]|
-
-  label->type
+(*   generate sets from list / tree? *)
 
 
-           (A & B) & C
+(*   f (A & B) = f(C) *)
 
-        \y. ( \x. (\r. A | r) (\r. B | r) x ) ((\r.C|r) y)
+(*                 f(A) = f(B) --> |[ A ]| ~ |[ B ]| *)
+
+(*   label->type *)
+
+
+(*            (A & B) & C *)
+
+(*         \y. ( \x. (\r. A | r) (\r. B | r) x ) ((\r.C|r) y) *)
