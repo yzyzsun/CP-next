@@ -281,7 +281,8 @@ Fixpoint ttyp_concat_simpl (A: ttyp) (B: ttyp) :=
 
 Reserved Notation "|[ A ]|" (at level 5, A at next level).
 Fixpoint styp2ttyp (A: typ) : ttyp :=
-  match A with
+  if (check_toplike A) then ttyp_top
+  else match A with
   | typ_top => ttyp_top
   | typ_bot => ttyp_rcd (|| A ||) ttyp_bot ttyp_top
   | typ_base => ttyp_rcd (|| A ||) ttyp_base ttyp_top

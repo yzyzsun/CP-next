@@ -33,6 +33,11 @@ Proof.
   inverts* H0.
 Qed.
 
+Lemma lookup_wf_typ_3 : forall l T At l',
+    l = l' -> Tlookup l (ttyp_rcd l' T At) = Some T.
+Proof.
+  introv HE. subst. simpl. case_if*.
+Qed.
 
 Lemma wf_typ_look_up_wf : forall l At Bt,
     Tlookup l At = Some Bt -> wf_typ At -> wf_typ Bt.
@@ -42,6 +47,8 @@ Proof with eauto.
   inverts Heq. case_if*.
   - inverts* H2.
 Qed.
+
+#[local] Hint Resolve lookup_wf_typ_2 lookup_wf_typ_3 wf_typ_look_up_wf : core.
 
 Ltac unify_lookup :=
       destruct_disj; destruct_conj;
@@ -75,7 +82,7 @@ Ltac destruct_lookup H :=
 
 
 (* TEI eqIndTypTarget *)
-#[local] Hint Unfold Tlookup : core.
+(* #[local] Hint Unfold Tlookup : core. *)
 
 Lemma wf_rcd_lookup : forall i T Ti,
   wf_typ T ->
@@ -457,7 +464,8 @@ Qed.
 (* Properties of translation (to target type) functions *)
 
 Definition styp2ttyp_raw (A: typ) : ttyp :=
-  match A with
+  if (check_toplike A) then ttyp_top
+  else match A with
   | typ_bot => ttyp_bot
   | typ_base =>  ttyp_base
   | typ_arrow B1 B2 => ttyp_arrow (|[ B1 ]|) (|[ B2 ]|)
@@ -467,23 +475,26 @@ Definition styp2ttyp_raw (A: typ) : ttyp :=
 
 Notation "[[ A ]]" := (styp2ttyp_raw A) (at level 5, A at next level).
 
-Lemma translate_types : forall A,
-    A = typ_top \/ exists A1 A2, A = typ_and A1 A2 \/ |[ A ]| = ttyp_rcd (|| A ||) ([[ A ]]) ttyp_top.
-Proof with eauto.
-  introv. induction* A.
-  Unshelve. all: econstructor.
-Qed.
+(* Lemma translate_types : forall A, *)
+(*     check_toplike A = false -> (exists A1 A2, A = typ_and A1 A2) \/ |[ A ]| = ttyp_rcd (|| A ||) ([[ A ]]) ttyp_top. *)
+(* Proof with eauto. *)
+(*   introv HC. induction* A; simpl in HC; try discriminate. *)
+(*   - right*. simpl. case_if*. reflexivity. forwards* [(?&?&IH)|IH]: IHA2. forwards* [(?&?&IH')|IH']: IH. *)
+
+(*     s . right. exists*. right. simpl. *)
+(*   Unshelve. all: econstructor. *)
+(* Qed. *)
 
 Lemma translate_to_record_types : forall A,
     rec_typ |[ A ]|.
 Proof with eauto using rcd_typ_concat_simpl.
-  introv. induction A; simpl...
+  introv. induction A; simpl; try case_if; simpl...
 Qed.
 
 Lemma ttyp_trans_wf : forall A,
     wf_typ |[A]|.
 Proof with intuition eauto using rcd_typ_concat_simpl.
-  introv. induction A; simpl...
+  introv. induction A; simpl; repeat case_if; simpl...
   - lets HR1: translate_to_record_types A1.
     lets HR2: translate_to_record_types A2.
     induction* HR1.
@@ -497,15 +508,15 @@ Proof with intuition eauto using rcd_typ_concat_simpl.
 Admitted.
 
 Lemma ttyp_trans_ord_ntop : forall A,
-    ord A -> ~ toplike A -> exists B, |[A]| = (ttyp_rcd (||A||) B ttyp_top) /\ wf_typ B.
+    ord A -> check_toplike A = false -> exists B, |[A]| = (ttyp_rcd (||A||) B ttyp_top) /\ wf_typ B.
 Proof with eauto using ttyp_trans_wf.
   introv HO HT. induction* HO;
-    try solve [exfalso; applys* HT].
+    try solve [simpl in HT; discriminate].
   - exists. split*. simpl...
-  - forwards (?&?&?): IHHO. introv HB. applys* HT.
-    exists. simpl. split*. econstructor...
-  - forwards (?&?&?): IHHO. introv HB. applys* HT.
-    exists. simpl. split*...
+  - simpl in HT. forwards* (?&?&?): IHHO.
+    exists. simpl. case_if. split*. econstructor...
+  - simpl in HT. forwards* (?&?&?): IHHO.
+    exists. simpl. case_if. split*...
 Qed.
 
 Lemma ttyp_trans_base :
@@ -516,18 +527,18 @@ Qed.
 
 Lemma ttyp_trans_ord_ntop_arrow : forall A' A,
 (* ord A -> ~ toplike A -> *) (* S-arrow requires no precondition *)
-    |[(typ_arrow A' A)]| = ttyp_rcd (||typ_arrow A' A||) (ttyp_arrow |[A']| |[A]|) ttyp_top.
+    check_toplike A = false -> |[(typ_arrow A' A)]| = ttyp_rcd (||typ_arrow A' A||) (ttyp_arrow |[A']| |[A]|) ttyp_top.
 Proof with eauto.
-  introv. simpl...
+  introv HT. simpl in HT. simpl. case_if*.
 Qed.
 
 (* Typ-TopAbs requires no ord *)
 Lemma ttyp_trans_ord_top : forall A,
     toplike A -> |[A]| = ttyp_top.
 Proof with simpl; eauto.
-  introv HT. induction HT...
-  - rewrite IHHT1. rewrite IHHT2...
-  - rewrite IHHT...
+  introv HT.
+  (* - rewrite IHHT1. rewrite IHHT2... *)
+  (* - rewrite IHHT... *)
 Admitted.
 
 
@@ -649,6 +660,7 @@ Proof.
   introv HR HW. induction* HW; try solve_by_invert.
   all: unfolds; splits*; introv HL; try solve_by_invert.
   exists. split*. eauto using TEI_refl, wf_typ_look_up_wf.
+  Unshelve. eauto.
 Qed.
 
 Lemma subtypespec_trans : forall At Bt Ct,
@@ -1565,6 +1577,15 @@ Proof with eauto using NoDup_nodup, merge_sorted_dedup, check_toplike_sound_comp
     applys* incl_app.
 Admitted.
 
+Corollary eqIndTyp_sound_alt : forall B A,
+    sub B A -> sub A B -> (|| B ||) = (|| A ||).
+Proof.
+  introv HS1 HS2.
+  apply eqIndTyp_sound_alt_gen in HS1.
+  apply eqIndTyp_sound_alt_gen in HS2.
+  (* dedup sort unique *)
+Admitted.
+
 Definition target_typ_with_same_index At Bt := exists A B, || A || = || B ||
                                                            /\ |[ A ]| = At
                                                            /\ |[ B ]| = Bt.
@@ -1577,18 +1598,84 @@ Admitted.
 (* ? directly use list in target language *)
 (* ? use a relation for type translation in target language *)
 
+(* refine subtypespec *)
+Inductive subTarget : ttyp -> ttyp -> Prop :=
+ | ST_refl : forall At,
+     subTarget At At
+| ST_arrow : forall At Bt At' Bt',
+    subTarget At At' -> subTarget At' At -> subTarget Bt Bt' -> subTarget Bt' Bt -> subTarget (ttyp_arrow At Bt) (ttyp_arrow At' Bt')
+ | ST_rcd : forall At Bt,
+     (forall l Ct, Tlookup l At = Some Ct -> exists Ct', Tlookup l Bt = Some Ct' /\ subTarget Ct' Ct) ->
+     subTarget Bt At.
+
+#[local] Hint Constructors subTarget : core.
+
+Lemma ST_top: forall A, subTarget |[ A ]| ttyp_top. Admitted.
+
+Lemma ST_trans: forall A B C, subTarget A B -> subTarget B C -> subTarget A C. Admitted.
+
+Lemma ST_andl : forall A B, subTarget |[ (typ_and A B) ]| |[ A ]|. Admitted.
+
+Lemma ST_andr : forall A B, subTarget |[ (typ_and A B) ]| |[ B ]|. Admitted.
+
+Lemma ST_inv : forall A B,
+    subTarget |[ A ]| |[ B ]| -> forall l Ct, Tlookup l |[ B ]| = Some Ct -> exists Ct', Tlookup l |[ A ]| = Some Ct' /\ subTarget Ct' Ct. Admitted.
+
+#[local] Hint Resolve ST_top ST_andl ST_andr : core.
+
 Lemma lookup_sub : forall A B,
-    sub B A ->
-    forall l Ct, Tlookup l |[A]| = Some Ct -> exists Ct', Tlookup l |[B]| = Some Ct'
-    (* /\ sub C C' /\ sub C' C  % not 1-1 mapping *)
-    /\ target_typ_with_same_index Ct Ct'.
+    sub A B -> subTarget |[A]| |[B]|.
 Proof.
   introv HS.
-  induction HS; introv HL.
-  - simpl in HL. case_if.
-    exists. simpl. split*.
-    case_if*.
-  - forwards: stype2string_toplike H.
+  induction HS; try solve [simpl; eauto].
+  - rewrite* (ttyp_trans_ord_top B)...
+  - simpl. case_if*. admit.
+    simpl. case_if*. admit.
+    +
+      rewrite* (eqIndTyp_sound_alt A1 B1). rewrite* (eqIndTyp_sound_alt A2 B2).
+      applys ST_rcd. introv HL. simpl in HL. case_if*.
+      subst. exists. split*. injection HL. intro HE. subst*.
+  - applys* ST_trans IHHS.
+  - applys* ST_trans IHHS.
+  - simpl. case_if*.
+    + applys ST_rcd. introv HL.
+      remember (Tlookup l |[A2]|). destruct o.
+      * forwards* (?&?&?): ST_inv IHHS1.
+        forwards* : lookup_concat_simpl (|[ A2 ]|) (|[ A3 ]|).
+        rewrite HL in H1. rewrite <- Heqo in H1. injection H1. intro Heq. subst*.
+      * forwards* (?&?&?): ST_inv IHHS2.
+        forwards* : lookup_concat_simpl_none (|[ A2 ]|) (|[ A3 ]|). admit.
+        rewrite* HL in H.
+Admitted.
+
+(* Lemma lookup_sub : forall A B, *)
+(*     sub B A -> *)
+(*     forall l Ct, Tlookup l |[A]| = Some Ct -> exists Ct', Tlookup l |[B]| = Some Ct' *)
+(*     (* /\ sub C C' /\ sub C' C  % not 1-1 mapping *) *)
+(*     /\ target_typ_with_same_index Ct Ct'. *)
+(* Proof with simpl in *; try discriminate. *)
+(*   introv HS. *)
+(*   induction HS; introv HL. *)
+(*   - simpl in HL. case_if. *)
+(*     exists. simpl. split*. *)
+(*     case_if*. *)
+(*   - rewrite* ttyp_trans_ord_top in HL... *)
+(*   - simpl in *. case_if*. *)
+(*   - simpl in HL. case_if*. *)
+(*     simpl. case_if*. *)
+(*     + (* contradiction *) admit. *)
+(*     + simpl in HL. case_if*. subst. *)
+(*       rewrite* (eqIndTyp_sound_alt A1 B1). rewrite* (eqIndTyp_sound_alt A2 B2). *)
+(*       exists*. split. applys* lookup_wf_typ_3. *)
+(*       injection HL. intro HE. rewrite <- HE. *)
+(*       unfolds. exists* (typ_arrow B1 B2) (typ_arrow A1 A2). *)
+(*       splits; simpl; try rewrite C0; try rewrite C. *)
+(*       rewrite* (eqIndTyp_sound_alt A1 B1). rewrite* (eqIndTyp_sound_alt A2 B2). *)
+(*       simpl. all: admit. *)
+(*   - admit. *)
+  -
+
+    forwards: stype2string_toplike H.
     rewrite H0 in HL.
 
 
