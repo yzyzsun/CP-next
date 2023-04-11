@@ -1404,7 +1404,7 @@ Proof with eauto using NoDup_nodup, merge_sorted_dedup, check_toplike_sound_comp
         Search (_ ++ _ = _ ++ _). (* better use an inductive type as a label *)
         assert (|| B1 || = || A1 ||) by admit. assert (|| A2 || = || B2 ||) by admit.
         forwards*: IH H. elia. forwards*: IH H0. elia.
-        applys* S_arr.
+        applys* S_arr. admit. admit.
       * (* and *)
         forwards ([|]&[|]): stype2string_single_and_inv HE.
         simpl in HE. rewrite <- H0 in HE.
@@ -1465,8 +1465,11 @@ Proof with eauto using NoDup_nodup, merge_sorted_dedup, check_toplike_sound_comp
         injection H. intro HEq.
         Search (_ ++ _ = _ ++ _). (* better use an inductive type as a label *)
         assert (|| B1 || = || A1 ||) by admit. assert (|| A2 || = || B2 ||) by admit.
+        assert (|| A1 || = || B1 ||) by admit. assert (|| B2 || = || A2 ||) by admit.
         forwards: IH B1 A1; eauto using incl_eq. elia.
+        forwards: IH A1 B1; eauto using incl_eq. elia.
         forwards: IH A2 B2; eauto using incl_eq. elia.
+        forwards: IH B2 A2; eauto using incl_eq. elia.
       }
       3: { (* and *) admit.
            (* forwards ([|]&[|]): stype2string_single_and_inv HE. *)
@@ -1501,7 +1504,6 @@ Proof with eauto using NoDup_nodup, merge_sorted_dedup, check_toplike_sound_comp
     apply incl_Forall_in_iff in HE.
     apply Forall_inv in HE.
     destruct A; simpl in HE; try solve [try case_if; try destruct HE; try discriminate; intuition eauto; inverts H].
-    + admit.
     + case_if.
        assert (incl (nodup string_dec (syntax_ott.NSort.merge (|| A1 ||) (|| A2 ||))) ((|| A1 ||) ++ (|| A2 ||))). {
       applys nodup_incl string_dec.
@@ -1536,8 +1538,61 @@ Admitted.
 (* (incl (nodup string_dec (syntax_ott.nsort.merge (|| a1 ||) (|| a2 ||))) ((|| a1 ||) ++ (|| a2 ||))) *)
 (* incl ((|| b1 ||) ++ (|| b2 ||)) (syntax_ott.nsort.merge (|| b1 ||) (|| b2 ||)) *)
 
-(* !! soundness hard to prove *)
+Lemma incl_eq_tindex: forall A B,
+  incl (||A||) (||B||) -> incl (||B||) (||A||) -> ||A|| = ||B||.
+Admitted.
 
+Lemma eqIndTyp_sound_alt_gen : forall A B,
+    sub A B -> incl (|| B ||) (|| A ||).
+Proof with eauto using NoDup_nodup, merge_sorted_dedup, check_toplike_sound_complete.
+  introv HS.
+  induction HS; try solve [simpl; eauto using incl_refl].
+  - rewrite* stype2string_toplike. applys incl_nil.
+  - simpl. case_if. applys incl_nil.
+    case_if. admit.
+    applys incl_eq.
+    forwards*: incl_eq_tindex A1 B1. forwards*: incl_eq_tindex A2 B2.
+    rewrite H. rewrite H0...
+  - applys incl_tran IHHS.
+    simpl. case_if. admit.
+    assert (incl ((|| A1 ||) ++ (|| A2 ||)) (nodup string_dec (syntax_ott.NSort.merge (|| A1 ||) (|| A2 ||)))) by admit.
+    applys incl_tran H.
+    applys incl_appl. applys incl_refl.
+  - admit.
+  - simpl. case_if. applys incl_nil.
+    assert (incl (nodup string_dec (syntax_ott.NSort.merge (|| A2 ||) (|| A3 ||))) ((|| A2 ||) ++ (|| A3 ||))) by admit.
+    applys incl_tran H.
+    applys* incl_app.
+Admitted.
+
+Definition target_typ_with_same_index At Bt := exists A B, || A || = || B ||
+                                                           /\ |[ A ]| = At
+                                                           /\ |[ B ]| = Bt.
+
+Lemma target_typ_with_same_index_refl : forall At,
+    target_typ_with_same_index At At.
+Admitted.
+#[local] Hint Resolve target_typ_with_same_index_refl : core.
+
+(* ? directly use list in target language *)
+(* ? use a relation for type translation in target language *)
+
+Lemma lookup_sub : forall A B,
+    sub B A ->
+    forall l Ct, Tlookup l |[A]| = Some Ct -> exists Ct', Tlookup l |[B]| = Some Ct'
+    (* /\ sub C C' /\ sub C' C  % not 1-1 mapping *)
+    /\ target_typ_with_same_index Ct Ct'.
+Proof.
+  introv HS.
+  induction HS; introv HL.
+  - simpl in HL. case_if.
+    exists. simpl. split*.
+    case_if*.
+  - forwards: stype2string_toplike H.
+    rewrite H0 in HL.
+
+
+sub A B -> sub B A ->
 Print subtype_wrt_lookup.
 
 Definition lookup_none A B: forall l, Tlookup l A = None -> Tlookup l B = None.
@@ -1549,18 +1604,15 @@ Lemma eqind_sound_target : forall A B,
     ||A|| = ||B|| -> subtype_wrt_lookup |[A]| |[B]|.
 Proof.
   introv HE.
-  incl_eq
-  eqIndTyp_complete_alt_gen
+  (* incl_eq *)
+  (* eqIndTyp_complete_alt_gen *)
 
-    - use sub to replace eqindex
+(*     - use sub to replace eqindex *)
 
-    new equality
-    A&B = C if tolist A ++ tolist B .. C
+(*     new equality *)
+(*     A&B = C if tolist A ++ tolist B .. C *)
 
-                 1) manually prove; equality up to permutation
-                                      2)
+(*                  1) manually prove; equality up to permutation *)
+(*                                       2) *)
 
-A < B
-      B < A
-            ---------------
-            A -> < B ->
+(* tolist A *)
