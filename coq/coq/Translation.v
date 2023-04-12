@@ -1648,6 +1648,15 @@ Proof.
         rewrite* HL in H.
 Admitted.
 
+Lemma lookup_eq : forall A B,
+    subTarget A B -> subTarget B A -> forall l, Tlookup l A = None -> Tlookup l B = None.
+Proof.
+  introv HS HR.
+  induction* HS.
+  - introv HL. remember (Tlookup l At). destruct* o.
+    forwards* (?&?&?): H l. rewrite HL in H0. discriminate.
+Qed.
+
 (* Lemma lookup_sub : forall A B, *)
 (*     sub B A -> *)
 (*     forall l Ct, Tlookup l |[A]| = Some Ct -> exists Ct', Tlookup l |[B]| = Some Ct' *)
