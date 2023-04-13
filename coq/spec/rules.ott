@@ -188,7 +188,7 @@ Require Import StructTact.StringOrders.
 
 Module NOTF := OT_to_Full string_lex_as_OT.
 Module NTTLB := OTF_to_TTLB NOTF.
-Module Import NSort := Sort NTTLB.
+Module Export NSort := Sort NTTLB.
 
 Open Scope string_scope.
 
@@ -530,6 +530,10 @@ Subtyping :: '' ::=
    ------------------------ :: arr
    A1 -> A2 <: B1 -> B2
 
+   A <: B
+   B <: A
+   ------------------------ :: rcd
+   {l:A} <: {l:B}
 
    A1 <: A3
    ------------------------- :: andl1

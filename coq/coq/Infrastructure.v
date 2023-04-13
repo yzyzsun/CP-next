@@ -20,8 +20,8 @@ Notation "[ z ~>> u ] e" := (subst_texp u z e) (at level 0).
 Notation "G |- t : At" := (target_typing G t At)  (at level 201, t custom stlc, At custom stlc_ty at level 200). (* > 200 or Ltac will be affected*)
 Notation "At > Ct < Bt" := (concat_typ At Bt Ct) (at level 40).
 Notation "( t1 ,, t2 )" := (texp_concat t1 t2) (at level 201).  (* > 200 or Proof commands will be affected*)
-Notation "{ ll => t1 ; t2 }" := (texp_cons ll t1 t2) (at level 40).
-Notation "{ ll : At ; Bt }" := (ttyp_rcd ll At Bt) (at level 40).
+(* Notation "{ ll => t1 ; t2 }" := (texp_cons ll t1 t2) (at level 80). *)
+(* Notation "{ ll : At ; Bt }" := (ttyp_rcd ll At Bt) (at level 80). *)
 
 
 (*********************** Locally nameless related defns ***********************)
@@ -67,17 +67,46 @@ Ltac spl_size :=
            ( lets (?&?): spl_decrease_size H; clear H)
     end.
 
+(* Ltac elia := *)
+(*   try solve [pose proof (size_typ_min_mutual); *)
+(*              spl_size; simpl in *; try lia]. *)
+
+(* Ltac indTypSize s := *)
+(*   assert (SizeInd: exists i, s < i) by eauto; *)
+(*   destruct SizeInd as [i SizeInd]; *)
+(*   repeat match goal with | [ h : typ |- _ ] => (gen h) end; *)
+(*   induction i as [|i IH]; [ *)
+(*     intros; match goal with | [ H : _ < 0 |- _ ] => inverts H end *)
+(*   | intros ]. *)
+
+Lemma lookup_decrease_size: forall l A C,
+    Tlookup l A = Some C -> size_ttyp C < size_ttyp A.
+Proof with (pose proof (size_ttyp_min_mutual); simpl in *; try case_if; try discriminate; try lia).
+  introv H. gen l C.
+  induction A; intros; simpl in *; eauto...
+  - injection H. intro HE. subst*...
+  - forwards: IHA2 H...
+Qed.
+
+Ltac lookup_size :=
+  try repeat match goal with
+         | [ H: Tlookup _ _ = Some _ |- _ ] =>
+           ( lets : lookup_decrease_size H; clear H)
+    end.
+
 Ltac elia :=
   try solve [pose proof (size_typ_min_mutual);
-             spl_size; simpl in *; try lia].
+             pose proof (size_ttyp_min_mutual);
+             spl_size; lookup_size; simpl in *; try lia].
 
 Ltac indTypSize s :=
   assert (SizeInd: exists i, s < i) by eauto;
   destruct SizeInd as [i SizeInd];
   repeat match goal with | [ h : typ |- _ ] => (gen h) end;
+  repeat match goal with | [ h : ttyp |- _ ] => (gen h) end;
   induction i as [|i IH]; [
     intros; match goal with | [ H : _ < 0 |- _ ] => inverts H end
-  | intros ].
+    | intros ].
 
 
 (* try any assumption *)

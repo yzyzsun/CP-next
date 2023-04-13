@@ -246,7 +246,7 @@ Require Import StructTact.StringOrders.
 
 Module NOTF := OT_to_Full string_lex_as_OT.
 Module NTTLB := OTF_to_TTLB NOTF.
-Module Import NSort := Sort NTTLB.
+Module Export NSort := Sort NTTLB.
 
 Open Scope string_scope.
 
@@ -489,6 +489,10 @@ Inductive sub : typ -> typ -> Prop :=    (* defn sub *)
      sub A2 B2 ->
      sub B2 A2 ->
      sub (typ_arrow A1 A2) (typ_arrow B1 B2)
+ | S_rcd : forall (l:label) (A B:typ),
+     sub A B ->
+     sub B A ->
+     sub (typ_rcd l A) (typ_rcd l B)
  | S_andl1 : forall (A1 A2 A3:typ),
      sub A1 A3 ->
      sub (typ_and A1 A2) A3
