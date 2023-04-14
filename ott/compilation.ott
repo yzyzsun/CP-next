@@ -29,9 +29,6 @@ Compilation :: '' ::=
 defn
 G |- e mode A ~~> J | z pm :: :: compile :: J_
 {{ com Type-directed compilation }} % z- means z is provided (input); z+ means z is generated (output)
-{{ tex [[G]][[|-]][[e]][[mode]][[A]]\;\colorbox{lightgray}{$[[~~>]][[J]]\;|\;[[z]][[pm]]$} }}
-
-
 by
 
 G |- e mode A ~~> J | z-
@@ -87,7 +84,7 @@ G |- \x:A. e:B => A->B ~~> code | z-
 
 G |- e1 => A ~~> J1 | x+
 G |- e2 => B ~~> J2 | y+
-G |- x : A ; y0 : B ~~> J3 | z : C
+G |- x : A $ y0 : B ~~> J3 | z : C
 ---------------------------------- :: App
 G |- e1 e2 => C ~~> code | z-
 
@@ -99,7 +96,7 @@ G |- /\ X * A. e : B => Forall X * A. B ~~> code | z-
 
 
 G |- e => B ~~> J1 | y+
-G |- y : B ; A ~~> J2 | z : C
+G |- y : B $ A ~~> J2 | z : C
 ----------------------------- :: TApp
 G |- e A => C ~~> J1;J2 | z-
 
@@ -111,7 +108,7 @@ G |- {l = e} => {l : A} ~~> code | z-
 
 
 G |- e => A ~~> J1 | y+
-y : A ; {l} ~~> J2 | z : B
+y : A $ {l} ~~> J2 | z : B
 ---------------------------- :: Proj
 G |- e.l => B ~~> J1;J2 | z-
 
@@ -140,95 +137,92 @@ x : A <:+ y : B ~~> J2
 G |- e <= B ~~> J1;J2 | y-
 
 
+A .=. B
 G |- e => A ~~> J | z pm
------------------------- :: SubEq
-G |- e <= A ~~> J | z pm
+------------------------ :: SubEquiv
+G |- e <= B ~~> J | z pm
 
 
 
 defn
-G |- x : A ; p ~~> J | z : B :: :: distapp :: A_
+G |- x : A $ p ~~> J | z : B :: :: distapp :: A_
 {{ com Distributive application }}
-{{ tex [[G]][[|-]][[x]]:[[A]]\,\bullet\,[[p]]\;\colorbox{lightgray}{$[[~~>]]\;[[J]]\;|\;[[z]]:[[B]]$} }}
 by
 
 
 toplike A
 ------------------------------------ :: Top
-G |- x : A ; p ~~> nothing | z : Top
+G |- x : A $ p ~~> nothing | z : Top
 
 
 T = ->|B|
 y1 : C <:+ y2 : A ~~> J
 ---------------------------------------- :: Arrow
-G |- x : A -> B ; y : C ~~> code | z : B
+G |- x : A -> B $ y : C ~~> code | z : B
 
 
 G |- A * C
 T = \-/|B|
 Ts = itoa |C|
 -------------------------------------------------- :: All
-G |- x : Forall X*A. B ; C ~~> code | z : B [X~>C]
+G |- x : Forall X*A. B $ C ~~> code | z : B [X~>C]
 
 
-G |- x : A ; p ~~> J1 | z : A'
-G |- x : B ; p ~~> J2 | z : B'
+G |- x : A $ p ~~> J1 | z : A'
+G |- x : B $ p ~~> J2 | z : B'
 -------------------------------------- :: And
-G |- x : A&B ; p ~~> J1;J2 | z : A'&B'
+G |- x : A&B $ p ~~> J1;J2 | z : A'&B'
 
 
 
 defn
-x : A ; { l } ~~> J | z : B :: :: distproj :: P_
+x : A $ { l } ~~> J | z : B :: :: distproj :: P_
 {{ com Distributive projection }}
-{{ tex [[x]]:[[A]]\,\bullet\,\{[[l]]\}\;\colorbox{lightgray}{$[[~~>]]\;[[J]]\;|\;[[z]]:[[B]]$} }}
 by
 
 
 toplike A
 --------------------------------- :: Top
-x : A ; {l} ~~> nothing | z : Top
+x : A $ {l} ~~> nothing | z : Top
 
 
 T = {l : |A|}
 ---------------------------------- :: RcdEq
-x : {l : A} ; {l} ~~> code | z : A
+x : {l : A} $ {l} ~~> code | z : A
 
 
 l1 <> l2
 T = {l : |A|}
 ----------------------------------------- :: RcdNeq
-x : {l1 : A} ; {l2} ~~> nothing | z : Top
+x : {l1 : A} $ {l2} ~~> nothing | z : Top
 
 
-x : A ; {l} ~~> J1 | z : A'
-x : B ; {l} ~~> J2 | z : B'
+x : A $ {l} ~~> J1 | z : A'
+x : B $ {l} ~~> J2 | z : B'
 ----------------------------------- :: And
-x : A&B ; {l} ~~> J1;J2 | z : A'&B'
+x : A&B $ {l} ~~> J1;J2 | z : A'&B'
 
 
 
 defn
 x : A <: pm y : B ~~> J :: :: cosub :: S_
 {{ com Coercive subtyping }} % x:A <:+ ... means x is exactly of type A (not derive from S-And{L,R})
-{{ tex [[x]]:[[A]][[<:]][[pm]][[y]]:[[B]]\;\colorbox{lightgray}{$[[~~>]][[J]]$} }}
 by
 
 
-ordinary B
 toplike B
 ---------------------------- :: Top
 x : A <:pm y : B ~~> nothing
 
 
 T = |A|
-ordinary A
-------------------------- :: Bot
+--------------------------- :: Bot
 x : Bot <:pm y : A ~~> code
 
 
------------------------- :: Eq
-x : A <:+ y : A ~~> code
+A .=. B
+------------------------ :: Equiv
+x : A <:+ y : B ~~> code
 
 
 T = |Base|
@@ -242,7 +236,6 @@ x : X <:pm y : X ~~> code
 
 T1 = ->|A2|
 T2 = ->|B2|
-ordinary B2
 x1 : B1 <:+ y1 : A1 ~~> J1
 x2 : A2 <:+ y2 : B2 ~~> J2
 --------------------------------------- :: Arrow
@@ -251,7 +244,6 @@ x : A1 -> A2 <:pm y : B1 -> B2 ~~> code
 
 T1 = \-/|A2|
 T2 = \-/|B2|
-ordinary B2
 B1 <: A1
 x0 : A2 <:+ y0 : B2 ~~> J
 ----------------------------------------------------- :: All
@@ -260,19 +252,16 @@ x : Forall X*A1. A2 <:pm y : Forall X*B1. B2 ~~> code
 
 T1 = {l : |A|}
 T2 = {l : |B|}
-ordinary B
 x0 : A <:+ y0 : B ~~> J
 --------------------------------- :: Rcd
 x : {l:A} <:pm y : {l:B} ~~> code
 
 
-ordinary C
 x : A <:- y : C ~~> J
 -------------------------- :: AndL
 x : A & B <:pm y : C ~~> J
 
 
-ordinary C
 x : B <:- y : C ~~> J
 -------------------------- :: AndR
 x : A & B <:pm y : C ~~> J
@@ -290,7 +279,6 @@ x : A <:pm z : B ~~> code
 defn
 x : A |> z : C <| y : B ~~> J :: :: comerge :: M_
 {{ com Coercive merging }}
-{{ tex [[x]]:[[A]]\;\rhd\;[[z]]:[[C]]\;\lhd\;[[y]]:[[B]]\;\colorbox{lightgray}{$[[~~>]]\;[[J]]$} }}
 by
 
 

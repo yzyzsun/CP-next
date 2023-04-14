@@ -17,6 +17,15 @@ typ, A, B, C :: 't_' ::= {{ com types }}
   | A [ X ~> B ]     :: M:: subst
   | ( A )            :: S:: paren
 
+ord, Aord {{ tex A^\circ }} , Bord {{ tex B^\circ }}, Cord {{ tex C^\circ }} :: 'ord_' ::= {{ com ordinary types }}
+  | Top                 ::  :: top
+  | Bot                 ::  :: bot
+  | Base                ::  :: base
+  | X                   ::  :: var
+  | A -> Bord           ::  :: arrow
+  | Forall X * A . Bord ::  :: all
+  | { l : Aord }        ::  :: rcd
+
 exp, e :: 'e_' ::= {{ com expressions }}
   | {}               ::  :: top    {{ com top value }}
   | b                ::  :: base   {{ com base literal }} {{ tex n }}
@@ -28,7 +37,7 @@ exp, e :: 'e_' ::= {{ com expressions }}
   | e A              ::  :: tapp   {{ com type application }}
   | { l = e }        ::  :: rcd    {{ com record }}
   | e . l            ::  :: proj   {{ com projection }}
-  | e1 ,, e2         ::  :: merge  {{ com merging }}
+  | e1 ,, e2         ::  :: merge  {{ com merging }} {{ tex [[e1]]\bbcomma[[e2]] }}
   | e : A            ::  :: anno   {{ com casting }}
   | x = e1; e2       ::  :: def
   | e1 [ x ~> e2 ]   :: M:: subst
@@ -64,7 +73,7 @@ terminals :: 'terminals_' ::=
   | ->           ::  :: arrow      {{ tex \rightarrow }}
   | -->          ::  :: longarrow  {{ tex \hookrightarrow }}
   | ==>          ::  :: darrow     {{ tex \Downarrow }}
-  | ~~>          ::  :: sarrow     {{ tex \rightsquigarrow }}
+  | ~~>          ::  :: sarrow     {{ tex \, \rightsquigarrow \, }}
   | |->          ::  :: mapsto     {{ tex \longmapsto }}
   | <--          ::  :: leftarrow  {{ tex \leftarrow }}
   | <=           ::  :: check      {{ tex \Leftarrow }}
@@ -76,6 +85,11 @@ terminals :: 'terminals_' ::=
   | ~            ::  :: consistent {{ tex \approx }}
   | &            ::  :: intersect  {{ tex \, \& \, }}
   | ,,           ::  :: merge      {{ tex \, ,\!, \, }}
+  | .=.          ::  :: equiv      {{ tex \fallingdotseq }}
+  | $            ::  :: apply      {{ tex \, \bullet \, }}
+  | <|           ::  :: lhd        {{ tex \; \lhd \; }}
+  | |>           ::  :: rhd        {{ tex \; \rhd \; }}
+  | |            ::  :: pipe       {{ tex \; | \; }}
 
 formula :: 'formula_' ::=
   | judgement             ::  :: judgement
@@ -95,13 +109,15 @@ formula :: 'formula_' ::=
   | e1 --> i e2           :: M:: multistep {{ tex [[e1]]~[[-->]][[i]]~[[e2]] }}
   | G |- A * B            :: M:: disjointSpec
   | v1 ~ v2               :: M:: consistentSpec
+  | A .=. B               :: M:: equivalent
 
 parsing
   t_arrow <= t_and
   t_arrow right t_arrow
 
 subrules
-  v <:: e
+  val <:: exp
+  ord <:: typ
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -143,45 +159,6 @@ toplike {l:A}
 
 
 defn
-ordinary A :: :: ordinary :: O_
-{{ com Ordinary types }}
-{{ tex [[A]]^{\circ} }}
-by
-
-
----------------- :: Top
-ordinary Top
-
-
----------------- :: Bot
-ordinary Bot
-
-
----------------- :: Base
-ordinary Base
-
-
----------------- :: Var
-ordinary X
-
-
-ordinary B
----------------- :: Arrow
-ordinary (A->B)
-
-
-ordinary B
------------------------- :: All
-ordinary (Forall X*A. B)
-
-
-ordinary A
----------------- :: Rcd
-ordinary {l:A}
-
-
-
-defn
 split A B C :: :: spl :: Sp_
 {{ com Splittable types }}
 {{ tex [[B]] \lhd\,[[A]]\,\rhd [[C]] }}
@@ -219,51 +196,44 @@ A <: B :: :: sub :: Sub_
 by
 
 
-ordinary B
-toplike B
+toplike Bord
 --------------- :: Top
-A <: B
+A <: Bord
 
 
-ordinary A
 --------------- :: Bot
-Bot <: A
+Bot <: Aord
 
 
 --------------- :: Base
 Base <: Base
 
 
-ordinary B2
 B1 <: A1
-A2 <: B2
+A2 <: Bord2
 ------------------------ :: Arrow
-A1 -> A2 <: B1 -> B2
+A1 -> A2 <: B1 -> Bord2
 
 
-ordinary B2
 B1 <: A1
-A2 <: B2
----------------------------------- :: All
-Forall X*A1. A2 <: Forall X*B1. B2
+A2 <: Bord2
+------------------------------------- :: All
+Forall X*A1. A2 <: Forall X*B1. Bord2
 
 
-ordinary B
-A <: B
+A <: Bord
 ------------------------ :: Rcd
-{l:A} <: {l:B}
+{l:A} <: {l:Bord}
 
 
-ordinary C
-A <: C
+A <: Cord
 ------------------------- :: AndL
-A & B <: C
+A & B <: Cord
 
 
-ordinary C
-B <: C
+B <: Cord
 ------------------------- :: AndR
-A & B <: C
+A & B <: Cord
 
 
 split B B1 B2
@@ -430,49 +400,43 @@ v --> A v' :: :: casting :: Cast_
 by
 
 
-ordinary A
-toplike A
+toplike Aord
 --------------------- :: Top
-v  -->A  {}
+v  -->Aord  {}
 
 
 --------------------- :: Base
 b  -->Base  b
 
 
-ordinary B2
-not toplike B2
+not toplike Bord2
 B1 <: A1
-A2 <: B2
------------------------------------- :: Arrow
-\x:A1.e:A2  -->B1->B2  \x:A1.e:B2
+A2 <: Bord2
+--------------------------------------- :: Arrow
+\x:A1.e:A2  -->B1->Bord2  \x:A1.e:Bord2
 
 
-ordinary B2
-not toplike B2
+not toplike Bord2
 B1 <: A1
-A2 <: B2
------------------------------------------------- :: All
-/\ X*A1. e:A2  -->forall X*B1.B2  /\ X*A1. e:B2
+A2 <: Bord2
+----------------------------------------------------- :: All
+/\ X*A1. e:A2  -->forall X*B1.Bord2  /\ X*A1. e:Bord2
 
 
-ordinary A
-not toplike A
-v  -->A  v'
+not toplike Aord
+v  -->Aord  v'
 --------------------------------- :: Rcd
-{l=v}  -->{l:A}  {l=v'}
+{l=v}  -->{l:Aord}  {l=v'}
 
 
-ordinary A
-v1  -->A  v1'
+v1  -->Aord  v1'
 --------------------------------- :: MergeL
-v1,,v2  -->A  v1'
+v1,,v2  -->Aord  v1'
 
 
-ordinary A
-v2  -->A  v2'
+v2  -->Aord  v2'
 --------------------------------- :: MergeR
-v1,,v2  -->A  v2'
+v1,,v2  -->Aord  v2'
 
 
 split A A1 A2

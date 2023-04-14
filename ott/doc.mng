@@ -6,6 +6,9 @@
 \usepackage{ottalt}
 \usepackage{xcolor}
 \usepackage{xspace}
+\usepackage{bbold}
+\DeclareSymbolFont{bbsymbol}{U}{bbold}{m}{n}
+\DeclareMathSymbol{\bbcomma}{\mathbin}{bbsymbol}{"2C}
 
 \inputott{ott}
 
@@ -20,11 +23,12 @@
 
 \section*{Syntax of \calculus}
 \begin{align*}
-  &\text{Types}       &A,B,C ::=&~ [[Top]] ~|~ [[Bot]] ~|~ [[Base]] ~|~ [[X]] ~|~ [[A -> B]] ~|~ [[Forall X*A. B]] ~|~ [[{l : A}]] ~|~ [[A & B]] \\
-  &\text{Type indices}&[[T]] ::=&~ [[Base]] ~|~ [[->T]] ~|~ [[\-/T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
-  &\text{Expressions} &    e ::=&~ [[{}]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[/\X*A. e:B]] ~|~ [[e A]] ~|~ [[{l = e}]] ~|~ [[e.l]] \\
-  &                   &        |&~ [[e1 ,, e2]] ~|~ [[e : A]] \\
-  &\text{Values}      &    v ::=&~ [[{}]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[/\X*A. e:B]] ~|~ [[{l = v}]] ~|~ [[v1 ,, v2]] \\
+  &\text{Types}          &A,B,C ::=&~ [[Top]] ~|~ [[Bot]] ~|~ [[Base]] ~|~ [[X]] ~|~ [[A -> B]] ~|~ [[Forall X*A. B]] ~|~ [[{l : A}]] ~|~ [[A & B]] \\
+  % &\text{Ordinary types} &[[Aord]],[[Bord]],[[Cord]] ::=&~ [[Top]] ~|~ [[Bot]] ~|~ [[Base]] ~|~ [[X]] ~|~ [[A -> Bord]] ~|~ [[Forall X*A. Bord]] ~|~ [[{l : Aord}]] \\
+  &\text{Expressions}    &    e ::=&~ [[{}]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[/\X*A. e:B]] ~|~ [[e A]] \\
+  &                      &        |&~ [[{l = e}]] ~|~ [[e.l]] ~|~ [[e1 ,, e2]] ~|~ [[e : A]] \\
+  &\text{Type indices}   &[[T]] ::=&~ [[Base]] ~|~ [[->T]] ~|~ [[\-/T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
+  &\text{JavaScript code}&[[J]] ::=&~ [[nothing]] ~|~ [[J1;J2]] ~|~ [[code]]
 \end{align*}
 
 \ottdefncompile
