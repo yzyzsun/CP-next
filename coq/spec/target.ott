@@ -90,6 +90,18 @@ Fixpoint Tlookup (i:string) (T:ttyp) : option ttyp :=
   | ttyp_rcd ti At Bt => if string_eq_dec i ti then Some At else Tlookup i Bt
   | _ => None
   end.
+  
+Inductive subTarget : ttyp -> ttyp -> Prop :=
+ | ST_refl : forall At,
+     subTarget At At
+| ST_arrow: forall At Bt At' Bt',
+    subTarget At At' -> subTarget At' At -> subTarget Bt Bt' -> subTarget Bt' Bt -> subTarget (ttyp_arrow At Bt) (ttyp_arrow At' Bt')
+ | ST_rcd : forall At Bt,
+     [[recTyp At]] -> [[recTyp Bt]] ->
+     (forall l Ct, Tlookup l At = Some Ct -> exists Ct', Tlookup l Bt = Some Ct' /\ subTarget Ct' Ct /\ subTarget Ct Ct') ->
+     subTarget Bt At.
+
+#[export] Hint Constructors subTarget : core.
 }}
 
 defns
@@ -194,74 +206,74 @@ RecordTypes   :: '' ::=
   recTyp l : At , Bt
 
 
-defns
-TargetEqIndexType :: '' ::=
+% defns
+% TargetEqIndexType :: '' ::=
 
-  defn
-  At ~= Bt :: :: eqIndTypTarget :: TEI_
-  {{ com Types with the same index }}
-  by
+%   defn
+%   At ~= Bt :: :: eqIndTypTarget :: TEI_
+%   {{ com Types with the same index }}
+%   by
 
-  --------------- :: top
-  Top ~= Top
+%   --------------- :: top
+%   Top ~= Top
 
-  --------------- :: bot
-  Bot ~= Bot
+%   --------------- :: bot
+%   Bot ~= Bot
 
-  --------------- :: base
-  Base ~= Base
+%   --------------- :: base
+%   Base ~= Base
   
-  % At ~= Bt
-  % Bt ~= Ct
-  % --------------- :: trans
-  % At ~= Ct
+%   % At ~= Bt
+%   % Bt ~= Ct
+%   % --------------- :: trans
+%   % At ~= Ct
 
-  % Bt ~= At
-  % --------------- :: symm
-  % At ~= Bt
+%   % Bt ~= At
+%   % --------------- :: symm
+%   % At ~= Bt
 
-  At1 ~= At2
-  Bt1 ~= Bt2
-  ---------------------- :: arrow
-  At1->Bt1 ~= At2->Bt2
+%   At1 ~= At2
+%   Bt1 ~= Bt2
+%   ---------------------- :: arrow
+%   At1->Bt1 ~= At2->Bt2
 
-  recTyp Ct
-  recTyp Ct'
-  (lookup l Ct => At' and At' ~= At) or lookup l Ct =/> 
-  (lookup l Ct' => Bt' and Bt' ~= Bt) or lookup l Ct' =/> 
-  At ~= Bt
-  Ct ~= Ct'
-  ------------------------- :: rcd
-  l:At, Ct ~= l:Bt, Ct'
+%   recTyp Ct
+%   recTyp Ct'
+%   (lookup l Ct => At' and At' ~= At) or lookup l Ct =/> 
+%   (lookup l Ct' => Bt' and Bt' ~= Bt) or lookup l Ct' =/> 
+%   At ~= Bt
+%   Ct ~= Ct'
+%   ------------------------- :: rcd
+%   l:At, Ct ~= l:Bt, Ct'
 
-  recTyp Ct
-  (lookup l1 Ct => At' and At' ~= At) or lookup l1 Ct =/> 
-  (lookup l2 Ct => Bt' and Bt' ~= Bt) or lookup l2 Ct =/> 
-  l1 != l2
-  l2:Bt, (l1:At, Ct) ~= Ct'
-  ---------------------------------------------- :: comm
-  l1:At, (l2:Bt, Ct) ~= Ct'
+%   recTyp Ct
+%   (lookup l1 Ct => At' and At' ~= At) or lookup l1 Ct =/> 
+%   (lookup l2 Ct => Bt' and Bt' ~= Bt) or lookup l2 Ct =/> 
+%   l1 != l2
+%   l2:Bt, (l1:At, Ct) ~= Ct'
+%   ---------------------------------------------- :: comm
+%   l1:At, (l2:Bt, Ct) ~= Ct'
 
-  % recTyp Ct
-  % (lookup l Ct => At' and At' ~= At) or lookup l Ct =/> 
-  % At ~= Bt
-  % l:Bt, (l:At, Ct) ~= Ct'
-  % ---------------------------------------------- :: dup
-  % l:At, (l:Bt, Ct) ~= Ct'
+%   % recTyp Ct
+%   % (lookup l Ct => At' and At' ~= At) or lookup l Ct =/> 
+%   % At ~= Bt
+%   % l:Bt, (l:At, Ct) ~= Ct'
+%   % ---------------------------------------------- :: dup
+%   % l:At, (l:Bt, Ct) ~= Ct'
 
-  % --------------- :: comm
-  % At&Bt ~= Bt&At
+%   % --------------- :: comm
+%   % At&Bt ~= Bt&At
 
-  % -------------------- :: assoc
-  % At&(Bt&Ct) ~= (At&Bt)&Ct
+%   % -------------------- :: assoc
+%   % At&(Bt&Ct) ~= (At&Bt)&Ct
 
-  % toplike A
-  % --------------- :: top
-  % A&B ~= B
+%   % toplike A
+%   % --------------- :: top
+%   % A&B ~= B
 
-  % A1 ~= A2
-  % -------------------- :: dup
-  % (A1&A2)&B ~= A1&B
+%   % A1 ~= A2
+%   % -------------------- :: dup
+%   % (A1&A2)&B ~= A1&B
   
 defns
 ConcatTypes   :: '' ::=

@@ -164,7 +164,11 @@ formula :: 'formula_' ::=
   | uniq Gt                   ::   :: uniqGt
     {{ coq uniq [[Gt]] }}
     {{ tex }}
-  | t >->* t'             ::  :: steps
+  | t >->* t'                 ::  :: steps
+  | At ~= Bt                  ::  :: eqtarget
+    {{ coq subTarget [[At]] [[Bt]] /\ subTarget [[Bt]] [[At]] }}
+  | A ~~ B                    ::  :: eqsource
+    {{ coq sub [[A]] [[B]] /\ sub [[Bt]] [[At]] }}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -262,55 +266,55 @@ TopLikeType :: '' ::=
   toplike {l:B}
 
 
-defns
-EqIndexType :: '' ::=
+% defns
+% EqIndexType :: '' ::=
 
-  defn
-  A ~= B :: :: eqIndTyp :: EI_
-  {{ com Types with the same index }}
-  by
+%   defn
+%   A ~= B :: :: eqIndTyp :: EI_
+%   {{ com Types with the same index }}
+%   by
 
-  --------------- :: refl
-  A ~= A
+%   --------------- :: refl
+%   A ~= A
   
-  A ~= B
-  B ~= C
-  --------------- :: trans
-  A ~= C
+%   A ~= B
+%   B ~= C
+%   --------------- :: trans
+%   A ~= C
 
-  B ~= A
-  --------------- :: symm
-  A ~= B
+%   B ~= A
+%   --------------- :: symm
+%   A ~= B
 
-  A1 ~= A2
-  B1 ~= B2
-  ---------------- :: arrow
-  A1->B1 ~= A2->B2
+%   A1 ~= A2
+%   B1 ~= B2
+%   ---------------- :: arrow
+%   A1->B1 ~= A2->B2
 
-  A ~= B
-  --------------- :: rcd
-  {l:A} ~= {l:B}
+%   A ~= B
+%   --------------- :: rcd
+%   {l:A} ~= {l:B}
 
-  A ~= A'
-  --------------- :: and
-  A&B ~= A'&B
+%   A ~= A'
+%   --------------- :: and
+%   A&B ~= A'&B
 
-  --------------- :: comm
-  A&B ~= B&A
+%   --------------- :: comm
+%   A&B ~= B&A
 
-  -------------------- :: assoc
-  A&(B&C) ~= (A&B)&C
+%   -------------------- :: assoc
+%   A&(B&C) ~= (A&B)&C
 
-  toplike A
-  --------------- :: top
-  A ~= Top
+%   toplike A
+%   --------------- :: top
+%   A ~= Top
 
-  --------------- :: topelim
-  Top&A ~= A
+%   --------------- :: topelim
+%   Top&A ~= A
 
-  A1 ~= A2
-  -------------------- :: dup
-  A1&A2 ~= A1
+%   A1 ~= A2
+%   -------------------- :: dup
+%   A1&A2 ~= A1
   
   
 defns
@@ -441,17 +445,52 @@ CoMerge :: '' ::=
   t1 : A |> C <| t2 : B ~~> t :: :: comerge :: M_
   {{ com Coercive merging }}
   by
+
+  toplike C
+  split C A B
+  ---------------------------------------- :: Top
+  t1 : A |> C <| t2 : B ~~> { }
+  
+  not toplike A&B
   ---------------------------------------- :: And
   t1 : A |> A&B <| t2 : B ~~> t1 ; t2
 
+  not toplike B1
+  not toplike B2
   (t1.|A->B1|) x : B1 |> B <| (t2.|A->B2|) x : B2 ~~> t
   ------------------------------------------------------------- :: Arrow
   t1 : A->B1 |> A->B <| t2 : A->B2 ~~> { |A->B| => \ x . t }
 
+  not toplike B1
+  toplike B2
+  (t1.|A->B1|) x : B1 |> B <| { } : B2 ~~> t
+  ------------------------------------------------------------- :: ArrowL
+  t1 : A->B1 |> A->B <| t2 : A->B2 ~~> { |A->B| => \ x . t }
+
+  toplike B1
+  not toplike B2
+  { } : B1 |> B <| (t2.|A->B2|) x : B2 ~~> t
+  ------------------------------------------------------------- :: ArrowR
+  t1 : A->B1 |> A->B <| t2 : A->B2 ~~> { |A->B| => \ x . t }
+
+  not toplike A1
+  not toplike A2
   t1.|{l:A1}| : A1 |> A <| t2.|{l:A2}| : A2 ~~> t
   --------------------------------------------------------------- :: Rcd
   t1 : {l:A1} |> {l:A} <| t2 : {l:A2} ~~> {|{l:A}| => t }
 
+  not toplike A1
+  toplike A2
+  t1.|{l:A1}| : A1 |> A <| { } : A2 ~~> t
+  --------------------------------------------------------------- :: RcdL
+  t1 : {l:A1} |> {l:A} <| t2 : {l:A2} ~~> {|{l:A}| => t }
+
+  toplike A1
+  not toplike A2
+  { } : A1 |> A <| t2.|{l:A2}| : A2 ~~> t
+  --------------------------------------------------------------- :: RcdR
+  t1 : {l:A1} |> {l:A} <| t2 : {l:A2} ~~> {|{l:A}| => t }
+  
 
 defns
 CoSubtyping :: '' ::=
@@ -508,8 +547,8 @@ Subtyping :: '' ::=
 
    defn
    A <: B  :: :: sub :: S_
-   {{ com a subset of subtyping }}
-   {{ tex [[A]] [[<:]] [[B]] }}
+   {{ com contains for fields (after translation) }}
+   {{ tex [[A]] \sqsupseteq [[B]] }}
    by
 
    ---------------------- :: z
@@ -593,9 +632,11 @@ Projection :: '' ::=
   ----------------------------------------- :: Top
   t1 : A ; { l } ~~> { } : Top
 
+  not toplike A
   -------------------------------------------- :: RcdEq
   t : {l : A} ; { l } ~~> t.|{l : A}| : A
 
+  not toplike A
   l1 <> l2
   -------------------------------------------- :: RcdNeq
   t : {l1 : A} ; { l2 } ~~> { } : Top
@@ -617,6 +658,7 @@ DistributiveApplication :: '' ::=
   ----------------------------------------- :: Top
   t1 : A ; t2 : B ~~> { } : Top
 
+  not toplike B
   t2 : C <: A ~~> t3
   -------------------------------------------- :: Arrow
   t1 : A -> B ; t2 : C ~~> (t1.|A->B|) t3 : B
@@ -669,6 +711,7 @@ Elaboration :: '' ::=
   G |- fix x:A. e => A ~~> fix x . t
 
 
+  not toplike B
   G, x:A |- e <= B ~~> t
   ----------------------------------------- :: Abs
   G |- \x:A. e:B => A->B ~~> {|A->B| =>\x.t}
@@ -683,6 +726,7 @@ Elaboration :: '' ::=
   G |- e1 e2 => C ~~> t3
 
 
+  not toplike A
   G |- e => A ~~> t
   ------------------------------------------------- :: Rcd
   G |- {l = e} => {l : A} ~~> { |{l : A}| => t }

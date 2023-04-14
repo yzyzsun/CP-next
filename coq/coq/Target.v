@@ -6,8 +6,6 @@ Require Import Infrastructure.
 Require Import Translation.
 
 
-#[local] Hint Resolve TEI_refl : core.
-
 (* Standard properties of typing *)
 
 Lemma target_typing_wf_1 : forall E t A,
@@ -234,12 +232,15 @@ Proof.
     lets HW: target_typing_wf_2 HT. inverts* HW.
 Qed.
 
+#[local] Hint Resolve ST_top ST_andl ST_andr : core.
+
+
 Lemma substitution_preserves_typing_relax : forall E F t u S S' T z,
     target_typing (F ++ [(z,S)] ++ E) t T ->
-    target_typing E u S' -> eqIndTypTarget S S' ->
-    exists T', eqIndTypTarget T T' /\ target_typing (F ++ E) ([z ~>> u] t) T'.
-Proof with eauto using target_context_binds_wf, context_wf_inv_1, context_wf_inv_2, eqIndTypTarget_rec_typ, eqIndTypTarget_rec_typ_2.
-  introv Typ1 Typ2 Eq.
+    target_typing E u S' -> subTarget S S' -> subTarget S' S ->
+    exists T', subTarget T T' /\ subTarget T' T /\target_typing (F ++ E) ([z ~>> u] t) T'.
+Proof with eauto using target_context_binds_wf, context_wf_inv_1, context_wf_inv_2, subTarget_rec_typ.
+  introv Typ1 Typ2 Eq1 Eq2.
   lets T1: Typ1. inductions T1.
   all: assert (wf_ctx (F ++ E)) by
     ( lets HW: target_typing_wf_2 Typ1;
@@ -249,14 +250,14 @@ Proof with eauto using target_context_binds_wf, context_wf_inv_1, context_wf_inv
   - (* var *)
     simpl. case_if; subst.
     + forwards* : binds_mid_eq H1.
-      subst. exists S'. split*. applys* target_weakening_simpl...
-    + forwards* : binds_remove_mid H1. exists* At...
+      subst. exists S'. splits*. applys* target_weakening_simpl...
+    + forwards* : binds_remove_mid H1.
   - (* abs *)
     pick fresh x. instantiate_cofinites...
     rewrite_env (((x, At) :: F) ++ [(z, S)] ++ E) in H...
     forwards* (T' & ? & HT): H0 H.
     forwards WFC: target_typing_wf_2 HT. inverts WFC.
-    exists (ttyp_arrow At T'). split*...
+    exists (ttyp_arrow At T'). splits*...
     pick fresh y and apply TTyping_Abs.
     rewrite_env ((x, At) :: F ++ E) in HT.
     rewrite <- subst_texp_open_texp_wrt_texp_var in HT...
@@ -268,44 +269,38 @@ Proof with eauto using target_context_binds_wf, context_wf_inv_1, context_wf_inv
     pick fresh x. instantiate_cofinites...
     rewrite_env (((x, Bt) :: F) ++ [(z, S)] ++ E) in H...
     forwards* (T' & ? & HT): H0 H.
-    exists T'. split*.
+    exists T'. splits*.
     pick fresh y and apply TTyping_Fix.
     rewrite_env ((x, Bt) :: F ++ E) in HT.
     rewrite <- subst_texp_open_texp_wrt_texp_var in HT...
     forwards* : subst_var_typing HT.
     applys* subst_texp_fresh_mutual; solve_notin.
     applys notin_union_3. solve_notin.
-    applys* subst_texp_fresh_mutual; solve_notin.
-    eauto using TEI_trans, TEI_symm.
+    applys* subst_texp_fresh_mutual; solve_notin. intuition eauto.
+    all: eauto using ST_trans.
   - (* app *)
-    forwards* (? & He & HT1): IHT1_1. forwards* (? & ? & HT2): IHT1_2.
-    forwards* (?&?&?): eqIndTypTarget_arrow_inv He. subst*.
-    exists x2. split*.
-    forwards* : eqIndTypTarget_arrow_inv_2 He.
-    applys* TTyping_App HT1 HT2.
-    forwards* : eqIndTypTarget_arrow_inv_1 He.
-    eauto using TEI_trans, TEI_symm.
+    forwards* (? & ? & He & HT1): IHT1_1. forwards* (? & ? & ? & HT2): IHT1_2.
+    forwards* (?&?&?&?&?&?&?): ST_arrow_inv He. subst*.
+    exists. splits; try eassumption.
+    applys* TTyping_App HT1 HT2. split; intuition eauto using ST_trans.
   - (* cons *)
-    forwards* (? & He & HT1): IHT1_1. forwards* (? & ? & HT2): IHT1_2.
+    forwards* (? & ? & He & HT1): IHT1_1. forwards* (? & ? & ? & HT2): IHT1_2.
     destruct* H0.
-    + forwards* (?&?&Heq): eqIndTypTarget_lookup_some Bt x0 ll.
-      exists. split.
-      2: applys TTyping_RcdCons HT1 HT2...
-      applys* TEI_rcd... left. split*. intuition eauto using TEI_trans, TEI_symm.
-      left. split*. intuition eauto using TEI_trans, TEI_symm.
-    + forwards* Heq: eqIndTypTarget_lookup_none Bt ll.
-      exists. split.
-      2: applys TTyping_RcdCons HT1 HT2.
-      applys TEI_rcd.
-      all: eauto using eqIndTypTarget_rec_typ, TEI_trans, TEI_symm.
+    + forwards* (?&?&?&Heq): lookup_ST_eq_some Bt x0.
+      exists. splits. 3: econstructor; try apply HT1; try apply HT2...
+      1,2: applys~ ST_rcd_2...
+      left. splits... 1-2: intuition eauto using ST_trans.
+    + forwards* Heq: lookup_eq Bt.
+      exists. splits.  3: econstructor; try apply HT1; try apply HT2...
+      1,2: applys~ ST_rcd_2...
   - (* proj *)
-    forwards* (? & He & HT1): IHT1.
-    forwards* Heq: eqIndTypTarget_lookup_some ll He.
+    forwards* (? & He & ? & HT1): IHT1.
+    forwards* (?&?&?&Heq): lookup_ST_eq_some He.
   - (* merge *)
-    forwards* (? & He & HT1): IHT1_1. forwards* (? & ? & HT2): IHT1_2.
-    forwards* (T & HC &?): eqIndTypTarget_concat_typ H1.
-    exists T. split*.
-    applys* TTyping_RcdMerge HC...
+    forwards* (? & He & ? & HT1): IHT1_1. forwards* (? & ? & ? & HT2): IHT1_2.
+    forwards* (T & HC & ? & ?): ST_concat H1. 1-2: eauto using target_typing_wf_typ.
+    exists T. splits*.
+    applys* TTyping_RcdMerge HT1 HT2...
     Unshelve. all: eauto.
 Qed.
 
@@ -313,8 +308,8 @@ Qed.
 Theorem preservation : forall t' t T,
     target_typing [] t T ->
     t >-> t' ->
-    exists T', eqIndTypTarget T T' /\ target_typing [] t' T'.
-Proof with eauto using eqIndTypTarget_rec_typ, TEI_trans, TEI_symm,
+    exists T', subTarget T T' /\ subTarget T' T /\ target_typing [] t' T'.
+Proof with intuition eauto using target_context_binds_wf, context_wf_inv_1, context_wf_inv_2, subTarget_rec_typ,
     rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3, target_typing_wf_typ.
   introv Typ Red. gen t'.
   inductions Typ; intros;
@@ -325,21 +320,14 @@ Proof with eauto using eqIndTypTarget_rec_typ, TEI_trans, TEI_symm,
     assert (Heq: [] = @app (atom * ttyp) [] []) by eauto.
     rewrite Heq.
     applys* substitution_preserves_typing_relax.
-    eauto using TEI_trans, TEI_symm.
   - (* app *)
     inverts* Red.
-    + forwards* (?&?&?): IHTyp1;
-      forwards (?&?&?): eqIndTypTarget_arrow_inv; try tassumption; subst;
-      forwards: eqIndTypTarget_arrow_inv_1; try tassumption;
-        forwards: eqIndTypTarget_arrow_inv_2; try tassumption; exists; eauto.
-      eauto using TEI_trans, TEI_symm.
-    + forwards* (?&?&?): IHTyp2.
-      (* forwards (?&?&?): eqIndTypTarget_arrow_inv; try tassumption; subst. *)
-      (* forwards: eqIndTypTarget_arrow_inv_1; try tassumption. *)
-      (* forwards: eqIndTypTarget_arrow_inv_2; try tassumption. *)
-      exists; eauto. split. 2: applys TTyping_App Typ1 H1.
-      forwards WF: target_typing_wf_typ Typ1. inverts WF.
-      all: eauto...
+    + forwards* (?&?&?&?): IHTyp1;
+      forwards* (?&?&?&?&?&?&?): ST_arrow_inv; try tassumption; subst; exists; eauto.
+      splits; eauto using ST_trans.
+      econstructor; try tassumption. splits; intuition eauto using ST_trans.
+    + forwards* (?&?&?&?): IHTyp2.
+      exists. splits. 3: econstructor... all: eauto using ST_refl, ST_trans.
     + inverts* Typ1; try solve_by_invert.
       pick fresh x. forwards*: H5 x.
       rewrite* (subst_texp_intro x).
@@ -350,67 +338,71 @@ Proof with eauto using eqIndTypTarget_rec_typ, TEI_trans, TEI_symm,
     inverts* Red.
     + forwards* (?&?&?): IHTyp1. destruct H0 as [(?&?)|?].
       *
-        exists. split.
-        2: applys* TTyping_RcdCons H2 Typ2.
-        all: eauto using TEI_trans, TEI_symm. econstructor...
+        exists. splits.
+        3: applys* TTyping_RcdCons H2 Typ2.
+        1-2: applys ST_rcd_2.
+        all: intuition eauto using ST_refl, ST_trans.
       *
-        exists. split.
-        2: applys* TTyping_RcdCons H2 Typ2. econstructor...
-    + forwards* (?&?&?): IHTyp2. destruct H0 as [(?&?)|?].
-      * forwards* (?&?&?): eqIndTypTarget_lookup_some ll H0.
-        exists. split.
-        2: applys* TTyping_RcdCons Typ1 H2...
-        econstructor...
-      * forwards* Heq: eqIndTypTarget_lookup_none ll H0.
-        exists. split.
-        2: applys* TTyping_RcdCons Typ1 H2...
-        econstructor...
+        exists. splits.
+        3: applys* TTyping_RcdCons H2 Typ2.
+        all: intuition eauto using ST_rcd_2, ST_refl, ST_trans.
+    + forwards* (?&?&?&?): IHTyp2. destruct H0 as [(?&?)|?].
+      * forwards* (?&?&?&?): lookup_ST_eq_some l H0.
+        exists. splits.
+        3: applys* TTyping_RcdCons Typ1 H3. 4: left; splits*.
+        1-2: applys ST_rcd_2.
+        4,7,9: auto... all: intuition eauto using ST_rcd_2, ST_refl, ST_trans.
+        all: auto...
+      * forwards* Heq: lookup_eq l H0.
+        exists. splits.
+        3: applys* TTyping_RcdCons Typ1 H3...
+        all: applys ST_rcd_2; intuition eauto using ST_rcd_2, ST_refl, ST_trans...
   - (* proj *)
     inverts* Red.
     + forwards* (?&?&?): IHTyp.
-      forwards* (?&?&?): eqIndTypTarget_lookup_some ll H0.
+      forwards* (?&?&?): lookup_ST_eq_some l H0.
     + exists; eauto.
       forwards* (?&?&?): lookup_field_in_value H.
       assert (x=t'). {
         rewrite H0 in H4. inverts~ H4.
       } subst~.
-      econstructor...
   - (* merge *)
     inverts* Red.
     + forwards* (?&?&?): IHTyp1.
-      forwards (T'&?&?): eqIndTypTarget_concat_typ H1; try tassumption; eauto...
-      (* exists* T'. split*. applys* TTyping_RcdMerge Typ2 H5. *)
-      (* applys* eqIndTypTarget_rec_typ. *)
+      forwards (T'&?&?): ST_concat H1; try tassumption; eauto...
+      forwards* (?&?&?&?): H7.
+      exists* T'. splits. 3: applys* TTyping_RcdMerge Typ2 H5.
+      all: intuition eauto using ST_rcd_2, ST_refl, ST_trans...
     + forwards* (?&?&?): IHTyp2.
-      forwards (T'&?&?): eqIndTypTarget_concat_typ H1; try tassumption; eauto...
-      (* exists* T'. split*. applys* TTyping_RcdMerge Typ1 H5. *)
-      (* applys* eqIndTypTarget_rec_typ. *)
+      forwards (T'&?&?): ST_concat H1; try tassumption; eauto...
+      exists* T'. splits. 3: applys* TTyping_RcdMerge Typ1 H5.
+      all: intuition eauto using ST_rcd_2, ST_refl, ST_trans...
     + inverts Typ1. inverts* H1...
-    + inverts Typ1. inverts~ H1...
+    + inverts Typ1. inverts~ H1.
       destruct H10 as [(?&?)|?].
       * forwards* Heq: lookup_concat_typ H15. rewrite H1 in Heq.
-        exists. split*.
-        2: { econstructor. 3: eassumption.
+        exists. splits.
+        3: { econstructor. 3: eassumption.
              3: econstructor. 5-7: eassumption.
              2: left; rewrite* Heq...
              all: eauto...
         }
-        applys* TEI_refl. econstructor. 4: left; rewrite* Heq... all: eauto...
+        all: intuition eauto using ST_rcd_2, ST_refl, ST_trans...
       * forwards* LKC: lookup_concat_typ_none.
         destruct H14 as [(Heq&?)|Heq]; rewrite Heq in LKC.
-        ** exists. split*.
-           2: { econstructor. 3: eassumption.
+        ** exists. splits.
+           3: { econstructor. 3: eassumption.
              3: econstructor. 5-7: eassumption.
              2: left; rewrite* LKC...
              all: eauto...
            }
-        applys* TEI_refl. econstructor. 4: left; rewrite* LKC... all: eauto...
-        ** exists. split*.
-           2: { econstructor. 3: eassumption.
+        all: intuition eauto using ST_rcd_2, ST_refl, ST_trans...
+        ** exists. splits.
+           3: { econstructor. 3: eassumption.
              3: econstructor. 5-7: eassumption.
              2: right; rewrite* LKC...
              all: eauto...
            }
-        applys* TEI_refl. econstructor. 4: right; rewrite* LKC... all: eauto...
+        all: intuition eauto using ST_rcd_2, ST_refl, ST_trans...
     Unshelve. all: eauto.
 Qed.
