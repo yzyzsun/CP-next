@@ -1,6 +1,6 @@
 --> 25
 
-ints (i:Int) : [Int] = if i == 1 then [] else ints (i-1) ++ [i];
+ints (i:Int) : [Int] = if i <= 1 then [] else ints (i-1) ++ [i];
 primes (nums:[Int]) =
   letrec primes' (nums':[Int]) (i:Int) : [Int] =
     if i >= #nums' then nums'
