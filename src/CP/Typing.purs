@@ -48,6 +48,11 @@ infer (S.TmUnary Len e) = do
   let core = C.TmUnary Len e' /\ C.TyInt
   case t of C.TyArray _ -> pure core
             _ -> throwTypeError $ "Len is not defined for" <+> show t
+infer (S.TmUnary Sqrt e) = do
+  e' /\ t <- infer e
+  let core = C.TmUnary Sqrt e' /\ C.TyDouble
+  case t of C.TyDouble -> pure core
+            _ -> throwTypeError $ "Sqrt is not defined for" <+> show t
 infer (S.TmBinary (Arith op) e1 e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- infer e2

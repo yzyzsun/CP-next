@@ -104,6 +104,13 @@ infer (C.TmUnary Op.Len e) z = do
   let ast = j <> [ addProp (JSVar z) (toIndex C.TyInt)
                            (JSAccessor "length" (JSIndexer (toIndex t) (JSVar y))) ]
   pure { ast, typ: C.TyInt }
+infer (C.TmUnary Op.Sqrt e) z = do
+  { ast: j, typ: t, var: y } <- infer' e
+  let ast = j <> [ addProp (JSVar z) (toIndex C.TyDouble)
+                           (JSApp (JSAccessor "sqrt" (JSVar "Math"))
+                                  [JSIndexer (toIndex C.TyDouble) (JSVar y)]) ]
+  case t of C.TyDouble -> pure { ast, typ: C.TyDouble }
+            _ -> throwError $ "Sqrt is not defined for" <+> show t
 infer (C.TmBinary (Op.Arith op) e1 e2) z = do
   { ast: j1, typ: t1, var: x } <- infer' e1
   { ast: j2, typ: t2, var: y } <- infer' e2

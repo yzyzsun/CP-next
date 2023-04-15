@@ -321,6 +321,7 @@ operators :: OperatorTable Identity String Tm
 operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
               , Prefix (reservedOp "!" $> TmUnary Not)
               , Prefix (reservedOp "#" $> TmUnary Len)
+              , Prefix (reservedOp "√" $> TmUnary Sqrt)
               ]
             , [ Infix (reservedOp "!!" $> TmBinary Index) AssocLeft ]
             , [ Infix (reservedOp "*" $> TmBinary (Arith Mul)) AssocLeft

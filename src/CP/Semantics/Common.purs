@@ -4,16 +4,17 @@ import Prelude
 
 import Data.Array (length, (!!))
 import Data.Maybe (Maybe(..))
-import Data.Number ((%))
+import Data.Number (sqrt, (%))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), Label, LogicOp(..), UnOp(..))
 import Language.CP.Syntax.Core (Tm(..), Ty(..))
 import Partial.Unsafe (unsafeCrashWith)
 
 unop :: UnOp -> Tm -> Tm
-unop Neg (TmInt i)       = TmInt    (negate i)
-unop Neg (TmDouble n)    = TmDouble (negate n)
-unop Not (TmBool b)      = TmBool   (not b)
-unop Len (TmArray _ arr) = TmInt    (length arr)
+unop Neg  (TmInt i)       = TmInt    (negate i)
+unop Neg  (TmDouble n)    = TmDouble (negate n)
+unop Not  (TmBool b)      = TmBool   (not b)
+unop Len  (TmArray _ arr) = TmInt    (length arr)
+unop Sqrt (TmDouble n)    = TmDouble (sqrt n)
 unop op v = unsafeCrashWith $
   "CP.Semantics.Common.unop: impossible unary operation " <> show op <>
   " on " <> show v

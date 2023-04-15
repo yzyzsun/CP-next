@@ -18,12 +18,13 @@ derive instance Eq Kind
 
 -- Operators --
 
-data UnOp = Neg | Not | Len
+data UnOp = Neg | Not | Len | Sqrt
 
 instance Show UnOp where
-  show Neg = "-"
-  show Not = "!"
-  show Len = "#"
+  show Neg  = "-"
+  show Not  = "!"
+  show Len  = "#"
+  show Sqrt = "√"
 
 data BinOp = Arith ArithOp
            | Comp  CompOp
