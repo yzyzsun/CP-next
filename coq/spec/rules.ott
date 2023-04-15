@@ -547,7 +547,7 @@ Subtyping :: '' ::=
 
    defn
    A <: B  :: :: sub :: S_
-   {{ com contains for fields (after translation) }}
+   {{ com Width subtyping }}
    {{ tex [[A]] \sqsupseteq [[B]] }}
    by
 
@@ -577,7 +577,6 @@ Subtyping :: '' ::=
    A1 <: A3
    ------------------------- :: andl1
    A1 & A2 <: A3
-
 
    A2 <: A3
    ------------------------- :: andl2
@@ -624,7 +623,7 @@ defns
 Projection :: '' ::=
 
   defn
-  t1 : A ; { l } ~~> t3 : C :: :: proj :: P_
+  t1 : A ; { l } ~~> t2 : B :: :: proj :: P_
   {{ com Distributive projection }}
   by
 

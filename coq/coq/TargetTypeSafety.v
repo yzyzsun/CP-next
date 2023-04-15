@@ -3,8 +3,369 @@ Require Import Metalib.Metatheory.
 Require Import List. Import ListNotations.
 Require Import Arith Lia.
 Require Import Infrastructure.
-Require Import Translation.
 
+
+(* Lookup *)
+
+Lemma lookup_wf_typ_3 : forall l T At l',
+    l = l' -> Tlookup l (ttyp_rcd l' T At) = Some T.
+Proof.
+  introv HE. subst. simpl. case_if*.
+Qed.
+
+Lemma wf_typ_look_up_wf : forall l At Bt,
+    Tlookup l At = Some Bt -> wf_typ At -> wf_typ Bt.
+Proof with eauto.
+  introv Heq WF. gen l Bt.
+  induction WF; intros; try solve_by_invert.
+  inverts Heq. case_if*.
+  - inverts* H2.
+Qed.
+
+#[export] Hint Resolve lookup_wf_typ_3 wf_typ_look_up_wf : core.
+
+Lemma rcd_typ_concat_1 : forall T1 T2 T3,
+    concat_typ T1 T2 T3 -> rec_typ T1.
+Proof.
+  introv CT. induction* CT.
+Qed.
+
+Lemma rcd_typ_concat_2 : forall T1 T2 T3,
+    concat_typ T1 T2 T3 -> rec_typ T2.
+Proof.
+  introv CT. induction* CT.
+Qed.
+
+Lemma rcd_typ_concat_3 : forall T1 T2 T3,
+    concat_typ T1 T2 T3 -> rec_typ T3.
+Proof.
+  introv CT. induction* CT.
+Qed.
+
+Lemma lookup_concat_typ : forall i A B C T,
+    Tlookup i A = Some T ->
+    concat_typ A B C ->
+    Tlookup i C = Tlookup i A.
+Proof.
+  introv LK CC. gen i T B C.
+  induction A; intros; simpl in LK; inverts LK.
+  case_if*.
+  - inverts* H0. inverts* CC.
+    subst. unfolds. case_if*.
+  - inverts* CC.
+    forwards~ : IHA2 H0 H6.
+    unfolds. case_if*.
+Qed.
+
+
+Lemma lookup_concat_typ_none : forall i A B C,
+    Tlookup i A = None ->
+    concat_typ A B C ->
+    Tlookup i C = Tlookup i B.
+Proof.
+  introv LK CC. gen i B C.
+  induction A; intros; inverts* CC.
+  - inverts* LK; case_if.
+    forwards* Heq: IHA2 H0 H5.
+    rewrite <- Heq.
+    unfolds. case_if*.
+Qed.
+
+Ltac lookup_concat l HC :=
+  match type of HC with
+  | concat_typ ?A ?B ?C => let Heq := fresh "Heq" in
+                           match goal with
+                           | H: Tlookup l A = Some _ |- _ =>
+                               forwards Heq: lookup_concat_typ H HC;
+                               rewrite H in Heq
+                           | H: Tlookup l A = None, H2: Tlookup l B = _ |- _ =>
+                               forwards Heq: lookup_concat_typ_none H HC;
+                               rewrite H2 in Heq
+                           end
+  end.
+
+Lemma lookup_concat_simpl : forall i A B T,
+    Tlookup i A = Some T ->
+    Tlookup i (ttyp_concat_simpl A B) = Tlookup i A.
+Proof.
+  introv LK. gen i T B.
+  induction A; intros; simpl in LK; inverts LK.
+  case_if*.
+  - inverts* H0.
+    subst. simpl. case_if*.
+  - simpl. case_if*.
+Qed.
+
+
+Lemma lookup_concat_simpl_none : forall i A B,
+    Tlookup i A = None -> rec_typ A ->
+    Tlookup i (ttyp_concat_simpl A B) = Tlookup i B.
+Proof.
+  introv LK HR. gen i B.
+  induction A; intros; simpl; try solve_by_invert; eauto.
+  - inverts* HR. inverts LK. case_if.
+    forwards* Heq: IHA2.
+Qed.
+
+Lemma lookup_wf_typ_1 : forall l T At l',
+    Tlookup l' (ttyp_rcd l T At) = Tlookup l' At \/ l = l'.
+Proof.
+  introv. simpl. case_if*.
+Qed.
+
+
+Lemma wf_rcd_lookup : forall i T Ti,
+  wf_typ T ->
+  Tlookup i T = Some Ti ->
+  wf_typ Ti.
+Proof.
+  introv WF LK.
+  gen i Ti.
+  induction WF; intros; simpl in LK; inverts LK.
+  case_if*.
+  - inverts* H2.
+Qed.
+
+Lemma Tlookup_dec : forall l A,
+  (exists B, Tlookup l A = Some B) \/ Tlookup l A = None.
+Proof.
+  introv. remember (Tlookup l A). destruct* o.
+Qed.
+
+Ltac case_lookup l A := lets [(?&?)|?]: Tlookup_dec l A.
+
+Ltac unify_lookup :=
+  destruct_disj; destruct_conj;
+  repeat lazymatch goal with
+    | |- Some _ = Some _  => try reflexivity
+    | H : Some _ = None |- _ => inverts H
+    | H : Some _ = Some _ |- _ => inverts H
+    | H1 : ?A = Some _ , H2 : ?A = Some _ |- _ => rewrite H1 in H2
+    | H1 : ?A = Some _ , H2 : ?A = None |- _ => rewrite H1 in H2
+    | H : Tlookup ?l (ttyp_rcd ?l ?A ?C) = _ |- _ =>
+        simpl in H; case_if
+    | H : Tlookup ?r (ttyp_rcd ?l ?A ?C) = _ |- _ =>
+        let Heq := fresh "Heq" in
+        lets [Heq|Heq]: lookup_wf_typ_1 l A C r;
+        [ rewrite Heq in H; clear Heq | subst ]
+    | H: ?l <> ?r |- Tlookup ?r (ttyp_rcd ?l ?A ?C) = _ => simpl; case_if
+    | H: ?r <> ?l |- Tlookup ?r (ttyp_rcd ?l ?A ?C) = _ => simpl; case_if
+    | |- Tlookup ?l (ttyp_rcd ?l ?A ?C) = _ => simpl; case_if
+    | H1: Tlookup _ ?A = Some _ , H2: ?A = ttyp_top |- _ => rewrite H2 in H1; discriminate
+    end.
+
+Lemma wf_rcd_concat : forall T1 T2 T3,
+    wf_typ T1 -> wf_typ T2 ->
+    rec_typ T1 -> rec_typ T2 ->
+    concat_typ T1 T2 T3 ->
+    wf_typ T3.
+Proof with eauto using rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3.
+  introv WF1 WF2 RT1 RT2 CT.
+  induction* CT.
+  - inverts* WF1. inverts* RT1...
+    destruct H6 as [(?&?)|?].
+    + forwards* Heq: lookup_concat_typ H0 CT.
+      rewrite H0 in Heq... intuition eauto; econstructor...
+    + forwards* Heq: lookup_concat_typ_none H0 CT.
+      destruct H as [(H'&?) | H']; rewrite H' in Heq; econstructor...
+      Unshelve. all: eauto.
+Qed.
+
+Lemma lookup_ST_sub : forall A B l A',
+    subTarget B A ->
+    Tlookup l A = Some A' -> exists B', Tlookup l B = Some B' /\ subTarget B' A' /\ subTarget A' B'.
+Proof.
+  introv HSA HLA. gen l A'.
+  induction* HSA; intros; unify_lookup; intuition eauto.
+Qed.
+
+Lemma lookup_ST_eq_some : forall A B l A',
+    subTarget A B -> subTarget B A ->
+    Tlookup l A = Some A' -> exists B', Tlookup l B = Some B' /\
+                                          subTarget A' B' /\ subTarget B' A'.
+Proof.
+  intros. forwards* (?&?&?): lookup_ST_sub A B.
+Qed.
+
+Lemma lookup_eq : forall A B,
+    subTarget A B -> subTarget B A -> forall l, Tlookup l A = None -> Tlookup l B = None.
+Proof.
+  introv HS HR.
+  induction* HS.
+  - introv HL. remember (Tlookup l At). destruct* o.
+    forwards* (?&?&?): H1 l. rewrite HL in H2. discriminate.
+Qed.
+
+Ltac lookup_eq l HE :=
+  match type of HE with
+  | subTarget ?A ?B => let Heq1 := fresh "Heq1" in
+                       let Heq2 := fresh "Heq2" in
+                            match goal with
+                            | H: Tlookup l A = Some _ |- _ =>
+                                forwards (?&?&Heq1&Heq2): lookup_ST_eq_some HE H
+                            | H: Tlookup l A = None |- _ =>
+                                forwards: lookup_ST_eq_some HE H
+                            end
+  end.
+
+(* Width Subtyping *)
+Lemma ST_trans: forall A B C, subTarget A B -> subTarget B C -> subTarget A C.
+Proof with try simpl in *; discriminate.
+  introv HA HB.
+  indTypSize (size_ttyp A + size_ttyp B + size_ttyp C).
+  destruct* HA; inverts* HB; try solve [inverts H]; try solve [inverts H0].
+  - econstructor; eauto. all: applys* IH; elia.
+  - applys~ ST_rcd. intros.
+    forwards~ (?&?&?&?): H4 H5. forwards~ (?&?&?&?): H1 H6.
+    exists x0. splits*.  all: applys* IH; elia.
+Qed.
+
+Lemma ST_arrow_inv : forall x A B,
+    subTarget x (ttyp_arrow A B) -> exists C D, x = ttyp_arrow C D /\
+                                                  subTarget A C /\ subTarget C A /\
+                                                  subTarget B D /\ subTarget D B.
+Proof.
+  introv HS. inverts* HS. inverts H.
+Qed.
+
+Lemma subTarget_rec_typ : forall A B,
+    subTarget A B -> rec_typ A -> rec_typ B.
+Proof.
+  introv HS HR. induction~ HS. inverts HR.
+Qed.
+
+Lemma ST_rcd_inv : forall A B,
+    subTarget A B -> rec_typ A ->
+    forall l Ct, Tlookup l B = Some Ct ->
+                 exists Ct', Tlookup l A = Some Ct' /\ subTarget Ct' Ct /\ subTarget Ct Ct'.
+Proof.
+  introv HS HA. forwards* HB: subTarget_rec_typ HA. inverts* HS.
+  - introv HL. forwards*: H1 HL.
+Qed.
+
+Lemma ST_rcd_2 : forall A B C D l, subTarget A B -> subTarget B A -> subTarget C D -> subTarget D C
+                                 -> rec_typ C -> rec_typ D
+                                 -> subTarget (ttyp_rcd l A C) (ttyp_rcd l B D).
+Proof with unify_lookup; intuition eauto.
+  introv HSa HSb HSc HSd HRc HRd. applys* ST_rcd.
+  introv HL. simpl. case_if*.
+  - subst*. exists. split*. simpl in HL. case_if.
+    inverts* HL.
+  - simpl in HL. case_if. forwards*: ST_rcd_inv HSc.
+Qed.
+
+Lemma ST_top_inv : forall A, subTarget ttyp_top A -> A = ttyp_top.
+Proof.
+  introv HS. inverts* HS.
+  destruct* H.
+  forwards* (?&?&?): H1 l.
+  simpl in H2. discriminate.
+Qed.
+
+Lemma ST_refl : forall A, subTarget A A.
+Proof.
+  introv. induction* A.
+Qed.
+
+
+Lemma ST_top_2: forall A, rec_typ A -> subTarget A ttyp_top.
+Proof with simpl in *; discriminate.
+  introv HR. applys* ST_rcd.
+  intros...
+Qed.
+
+Lemma split_toplike_l : forall A1 A2 B,
+    spl B A1 A2 -> toplike B -> toplike A1.
+Proof.
+  introv HC HT. induction* HC; inverts~ HT.
+Qed.
+
+
+Lemma split_toplike_r : forall A1 A2 B,
+    spl B A1 A2 -> toplike B -> toplike A2.
+Proof.
+  introv HC HT. induction* HC; inverts~ HT.
+Qed.
+
+Lemma lookup_concat_both : forall At Bt Ct A B l,
+    concat_typ At Bt Ct -> Tlookup l At = Some A -> Tlookup l Bt = Some B -> subTarget A B /\ subTarget B A.
+Proof.
+  introv HC HLa HLb. gen Bt A B Ct.
+  induction At; intros; simpl in HC; try solve [inverts HLa].
+  - simpl in HLa. case_if.
+    + subst*. inverts HLa. inverts HC. intuition eauto; unify_lookup; eauto.
+    + inverts HC. forwards*: IHAt2.
+Qed.
+
+Lemma concat_typ_exists : forall A B,
+    rec_typ A -> rec_typ B -> wf_typ A -> wf_typ B ->
+    (forall l A' B', Tlookup l A = Some A' -> Tlookup l B = Some B' -> subTarget A' B' /\ subTarget B' A') ->
+    concat_typ A B (ttyp_concat_simpl A B).
+Proof with intuition eauto using ST_trans.
+  introv HRa HRb. gen B.
+  induction HRa; intros; try solve [simpl; intuition eauto].
+  simpl. case_lookup l B.
+  + forwards(?&?): H1 l H2. simpl. case_if*.
+    assert ((forall (l : String.string) (A' B' : ttyp),
+                Tlookup l Bt = Some A' -> Tlookup l B = Some B' -> subTarget A' B' /\ subTarget B' A')). {
+      intros. case_eq (string_eq_dec l l0); intros; subst.
+      - forwards: H1 l0. simpl. case_if*. eauto. inverts H. destruct H15; unify_lookup...
+      - forwards: H1 l0. simpl. case_if*. eauto. eauto.
+    }
+    econstructor... applys IHHRa...
+    inverts~ H.
+   + assert ((forall (l : String.string) (A' B' : ttyp),
+                Tlookup l Bt = Some A' -> Tlookup l B = Some B' -> subTarget A' B' /\ subTarget B' A')). {
+      intros. case_eq (string_eq_dec l l0); intros; subst.
+      - forwards: H1 l0. simpl. case_if*. eauto. inverts H. destruct H13; unify_lookup...
+      - forwards: H1 l0. simpl. case_if*. eauto. eauto.
+     }
+     econstructor... applys IHHRa...
+     inverts~ H.
+     Unshelve. all: eauto.
+Qed.
+
+Lemma ST_concat : forall At Bt Ct At' Bt',
+    concat_typ At Bt Ct -> subTarget At At' -> subTarget At' At -> subTarget Bt Bt' -> subTarget Bt' Bt ->
+    wf_typ At' -> wf_typ Bt' ->
+    exists Ct', concat_typ At' Bt' Ct' /\ subTarget Ct Ct' /\ subTarget Ct' Ct.
+Proof with eauto using ST_trans, subTarget_rec_typ, rcd_typ_concat_1, rcd_typ_concat_2, rcd_typ_concat_3.
+  introv HC HSa HSa' HSb HSb' Wa Wb.
+  forwards HRa: rcd_typ_concat_1 HC. forwards HRb: rcd_typ_concat_2 HC.
+  forwards: concat_typ_exists At' Bt'...
+  - intros. forwards (?&?&?): ST_rcd_inv HSa... forwards (?&?&?): ST_rcd_inv HSa'...
+    forwards (?&?&?): ST_rcd_inv HSb... forwards (?&?&?): ST_rcd_inv HSb'... unify_lookup.
+    forwards (?&?): lookup_concat_both l HC... split...
+  - exists. splits*.
+    { applys ST_rcd... introv HL.
+    case_lookup l At'.
+    + forwards*: lookup_concat_typ H. rewrite H1 in HL. rewrite H0 in HL. inverts HL.
+    forwards (?&?&?): ST_rcd_inv HSa...
+    forwards*: lookup_concat_typ HC. rewrite H2 in H4.
+    exists. split*.
+    + forwards*: lookup_concat_typ_none H. rewrite H1 in HL.
+    forwards (?&?&?): ST_rcd_inv HSb...
+    case_lookup l At.
+    * forwards*: lookup_concat_both HC.
+      forwards*: lookup_concat_typ HC. rewrite H4 in H6.
+      exists. split. eauto. intuition eauto...
+    * forwards*: lookup_concat_typ_none HC. rewrite H2 in H5.
+      exists. split*... }
+        { applys ST_rcd... introv HL.
+    case_lookup l At.
+    + forwards*: lookup_concat_typ HC. rewrite H1 in HL. rewrite H0 in HL. inverts HL.
+    forwards (?&?&?): ST_rcd_inv HSa'...
+    forwards*: lookup_concat_typ H. rewrite H2 in H4.
+    exists. split*.
+    + forwards*: lookup_concat_typ_none HC. rewrite H1 in HL.
+    forwards (?&?&?): ST_rcd_inv HSb'...
+    case_lookup l At'.
+    * forwards*: lookup_concat_both H.
+      forwards*: lookup_concat_typ H. rewrite H4 in H6.
+      exists. split. eauto. intuition eauto...
+    * forwards*: lookup_concat_typ_none H. rewrite H2 in H5.
+      exists. split*... }
+Qed.
 
 (* Standard properties of typing *)
 
@@ -70,7 +431,6 @@ Proof with eauto using target_typing_wf_2, target_context_binds_wf.
   - instantiate_cofinites...
   - instantiate_cofinites...
   - inverts* IHHtyp1.
-  - intuition eauto using wf_typ_look_up_wf.
   - applys* wf_rcd_concat H.
 Qed.
 
@@ -232,13 +592,12 @@ Proof.
     lets HW: target_typing_wf_2 HT. inverts* HW.
 Qed.
 
-#[local] Hint Resolve ST_top ST_andl ST_andr : core.
 
 
 Lemma substitution_preserves_typing_relax : forall E F t u S S' T z,
     target_typing (F ++ [(z,S)] ++ E) t T ->
     target_typing E u S' -> subTarget S S' -> subTarget S' S ->
-    exists T', subTarget T T' /\ subTarget T' T /\target_typing (F ++ E) ([z ~>> u] t) T'.
+    exists T', subTarget T T' /\ subTarget T' T /\ target_typing (F ++ E) ([z ~>> u] t) T'.
 Proof with eauto using target_context_binds_wf, context_wf_inv_1, context_wf_inv_2, subTarget_rec_typ.
   introv Typ1 Typ2 Eq1 Eq2.
   lets T1: Typ1. inductions T1.
@@ -286,7 +645,7 @@ Proof with eauto using target_context_binds_wf, context_wf_inv_1, context_wf_inv
   - (* cons *)
     forwards* (? & ? & He & HT1): IHT1_1. forwards* (? & ? & ? & HT2): IHT1_2.
     destruct* H0.
-    + forwards* (?&?&?&Heq): lookup_ST_eq_some Bt x0.
+    + forwards* (?&?&?&Heq): lookup_ST_sub Bt x0.
       exists. splits. 3: econstructor; try apply HT1; try apply HT2...
       1,2: applys~ ST_rcd_2...
       left. splits... 1-2: intuition eauto using ST_trans.
