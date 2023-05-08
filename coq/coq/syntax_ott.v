@@ -48,6 +48,52 @@ Section tindex_ind'.
 
 End tindex_ind'.
 
+(*
+Section tindex_ind''.
+
+  Variable P : tindex -> Prop.
+
+  Hypothesis ti_bot_case : P ti_bot.
+
+  Hypothesis ti_base_case : P ti_base.
+
+  Hypothesis ti_arrow_case : forall (ti1 ti2 : tindex),
+      P ti1 -> P ti2 -> P (ti_arrow ti1 ti2).
+
+  Hypothesis ti_rcd_case : forall (l : label) (ti : tindex),
+      P ti -> P (ti_rcd l ti).
+
+  Hypothesis ti_list_nil_case : P (ti_list nil).
+
+  Hypothesis ti_list_cons_case : forall (c : tindex) (ls : list tindex),
+      P c -> P (ti_list ls) -> P (ti_list (c::ls)).
+
+  Fixpoint tindex_ind'' (ti : tindex) : P ti :=
+    match ti with
+    | ti_bot => ti_bot_case
+    | ti_base => ti_base_case
+    | ti_arrow ti1 ti2 => ti_arrow_case ti1 ti2 (tindex_ind'' ti1) (tindex_ind'' ti2)
+    | ti_rcd l ti => ti_rcd_case l ti (tindex_ind'' ti)
+    | ti_list ls => ti_list_ind ls
+    end
+  with ti_list_ind (l : list tindex) : P (ti_list l) :=
+           match l with
+           | nil => ti_list_nil_case
+           (* | c::nil => ti_list_cons_case c nil  (tindex_ind'' c) ti_list_nil_case *)
+           | c::ls => ti_list_cons_case c ls (tindex_ind'' c) (ti_list_ind ls)
+           end.
+
+End tindex_ind''. *)
+
+Lemma ti_list_ind : forall (P: tindex -> Prop),
+    P (ti_list nil) ->
+    (forall c ls, P c -> P (ti_list ls) -> P (ti_list (c::ls))) ->
+    (forall ls, Forall P ls -> P (ti_list ls)).
+Proof.
+  introv IP1 IP2 IH. induction* ls.
+  - inverts IH. applys* IP2.
+Qed.
+
 Section All.
   Context {T : Set}.
   Variable P : T -> Set.
@@ -108,8 +154,7 @@ Inductive ttyp : Set :=  (*r types *)
 Fixpoint check_toplike (A : typ) :=
   match A with
   | typ_top => true
-  | typ_bot => false
-  | typ_base => false
+  | typ_bot => false  | typ_base => false
   | typ_arrow _ B => check_toplike B
   | typ_rcd l B => check_toplike B
   | typ_and A B => (check_toplike A) && (check_toplike B)
@@ -151,9 +196,6 @@ Qed.
 
 Lemma tindex_dec : forall t1 t2 : tindex, {t1 = t2} + {t1 <> t2}.
 Proof.
-  introv.
-  assert (SizeInd: exists i:nat, (size_tindex t1 + size_tindex t2)  < i) by eauto.
-  Restart.
   remember ( fun (t:tindex) => forall t2 : tindex, {t = t2} + {t <> t2} ) as P.
   cut (forall t, P t). { intros HP. subst*. }
   applys~ tindex_rec' P; subst; intros; destruct* t2.
@@ -171,6 +213,8 @@ Defined.
 
 From Coq Require Import String Ascii Arith.
 From Coq Require Import OrderedType OrderedTypeEx.
+From StructTact Require Import StructTactics.
+
 
 Inductive lex_lt: string -> string -> Prop :=
 | lex_lt_lt : forall (c1 c2 : ascii) (s1 s2 : string),
@@ -199,25 +243,36 @@ Inductive ti_lex_lt: tindex -> tindex -> Prop :=
     ti_lex_lt ti_base (ti_list s)
 | ti_lex_lt_arrow_arrow : forall (t1_1 t1_2 t2_1 t2_2 : tindex),
     ti_lex_lt t1_1 t2_1 ->
-    ti_lex_lt t1_2 t2_2 ->
     ti_lex_lt (ti_arrow t1_1 t1_2) (ti_arrow t2_1 t2_2)
+| ti_lex_lt_arrow_eql : forall (t_1 t1_2 t2_2 : tindex),
+    ti_lex_lt t1_2 t2_2 ->
+    ti_lex_lt (ti_arrow t_1 t1_2) (ti_arrow t_1 t2_2)
+(* | ti_lex_lt_arrow_eqr : forall (t1_1 t2_1 t_2 : tindex),
+    ti_lex_lt t1_1 t2_1 ->
+    ti_lex_lt (ti_arrow t1_1 t_2) (ti_arrow t2_1 t_2) *)
 | ti_lex_lt_arrow_rcd : forall (ti1 ti2 : tindex) (l : label) (ti : tindex),
     ti_lex_lt (ti_arrow ti1 ti2) (ti_rcd l ti)
 | ti_lex_lt_arrow_list : forall (ti1 ti2 : tindex) (s : list tindex),
     ti_lex_lt (ti_arrow ti1 ti2) (ti_list s)
 | ti_lex_lt_rcd_rcd : forall (l1 l2 : label) (t1 t2 : tindex),
     lex_lt l1 l2 ->
-    ti_lex_lt t1 t2 ->
     ti_lex_lt (ti_rcd l1 t1) (ti_rcd l2 t2)
+| ti_lex_lt_rcd_eql : forall (l : label) (t1 t2 : tindex),
+    ti_lex_lt t1 t2 ->
+    ti_lex_lt (ti_rcd l t1) (ti_rcd l t2)
+(* | ti_lex_lt_rcd_eqr : forall (l1 l2 : label) (t : tindex),
+    lex_lt l1 l2 ->
+    ti_lex_lt (ti_rcd l1 t) (ti_rcd l2 t) *)
 | ti_lex_lt_rcd_list : forall (l : label) (ti : tindex) (s : list tindex),
     ti_lex_lt (ti_rcd l ti) (ti_list s)
-| ti_lex_lt_eq : forall (ti : tindex),
-    ti_lex_lt ti ti
+| ti_lex_lt_ls_head : forall (c1 c2 : tindex) (s1 s2 : list tindex),
+    ti_lex_lt c1 c2 ->
+    ti_lex_lt (ti_list (c1::s1)) (ti_list (c2::s2))
 | ti_lex_lt_ls_eq : forall (c : tindex) (s1 s2 : list tindex),
     ti_lex_lt (ti_list s1) (ti_list s2) ->
     ti_lex_lt (ti_list (c::s1)) (ti_list (c::s2))
-| ti_lex_lt_ls_empty : forall (s : list tindex),
-    ti_lex_lt (ti_list nil) (ti_list s).
+| ti_lex_lt_ls_empty : forall (c:tindex) (s : list tindex),
+    ti_lex_lt (ti_list nil) (ti_list (c::s)).
 
 Theorem lex_lt_trans : forall s0 s1 s2,
     lex_lt s0 s1 -> lex_lt s1 s2 -> lex_lt s0 s2.
@@ -243,10 +298,10 @@ Qed.
 Theorem ti_lex_lt_trans : forall s0 s1 s2,
     ti_lex_lt s0 s1 -> ti_lex_lt s1 s2 -> ti_lex_lt s0 s2.
 Proof.
-Admitted.
-
-
-From StructTact Require Import StructTactics.
+  introv HA HB. gen s2.
+  induction* HA; intros; try solve [inverts~ HB; econstructor; eauto];
+    inductions HB; try solve [econstructor; eauto using lex_lt_trans].
+Qed.
 
 Theorem lex_lt_not_eq : forall s0 s1,
     lex_lt s0 s1 -> s0 <> s1.
@@ -271,8 +326,21 @@ Qed.
 
 Theorem ti_lex_lt_not_eq : forall s0 s1,
     ti_lex_lt s0 s1 -> s0 <> s1.
-Admitted.
-
+Proof.
+  induction s0 using tindex_ind'; intros;
+    try solve [inverts H; intro HF; inverts* HF].
+  - (* rcd *) inverts H; try solve [intro HF; inverts* HF].
+    forwards*: lex_lt_not_eq H3.
+    intro HF. find_injection.
+    applys* H.
+  - applys~ ti_list_ind H.
+    + introv HL; inverts HL; try solve [intro HF; inverts* HF].
+    + introv HP1 HP2 HL.
+      destruct s0; try solve [intro HF; inverts* HF].
+      destruct a; try solve [intro HF; inverts* HF].
+      intro HF; find_injection; subst.
+      inverts* HL.
+Qed.
 
 Lemma nat_of_ascii_injective:
   forall c1 c2, nat_of_ascii c1 = nat_of_ascii c2 -> c1 = c2.
@@ -329,6 +397,27 @@ Defined.
 
 
 Fixpoint tindex_compare_lex_compat (s0 s1 : tindex) : Compare ti_lex_lt eq s0 s1.
+refine
+  (match s0 as ss0, s1 as ss1 return (_ = ss0 -> _ = ss1 -> _) with
+   | ti_bot, ti_bot => fun H_eq H_eq' => EQ _
+   | ti_bot, _  => fun H_eq H_eq' => LT _
+   | ti_base, ti_bot  => fun H_eq H_eq' => GT _
+   | ti_base, ti_base  => fun H_eq H_eq' => EQ _
+   | ti_base, _  => fun H_eq H_eq' => LT _
+   | ti_arrow _ _, ti_bot => fun H_eq H_eq' => GT _
+   | ti_arrow _ _, ti_base => fun H_eq H_eq' => GT _
+   | ti_arrow A1 B1, ti_arrow A2 B2 => fun H_eq H_eq' =>
+     match tindex_compare_lex_compat A1 B1 with
+     | LT H_lt =>
+     | EQ H_eq_lex =>
+     | GT
+       | LT H_lt => LT _
+       | EQ H_eq_lex => EQ _
+       | GT H_gt => GT _
+       end
+     | Gt => fun H_eq_cmp => GT _
+     end (refl_equal _)
+   end (refl_equal _) (refl_equal _)); try (rewrite H_eq; rewrite H_eq'); auto.
 Admitted.
 
 Module tindex_lex_as_OT_compat <: UsualOrderedType.
