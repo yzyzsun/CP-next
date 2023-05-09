@@ -395,6 +395,145 @@ refine
   auto with arith.
 Defined.
 
+Fixpoint sum (ls : list nat) : nat :=
+  match ls with
+    | nil => O
+    | cons h t => plus h (sum t)
+  end.
+
+Fixpoint tindexSize (t : tindex) : nat :=
+  match t with
+  | ti_list l => S (sum (map tindexSize l))
+  | _ => 1
+  end.
+
+From Coq Require Import List.
+Import ListNotations.
+Set Implicit Arguments.
+
+Definition tindexOrder (t1 t2 : tindex) :=
+  tindexSize t1 < tindexSize t2.
+
+Search Acc.
+Hint Constructors Acc.
+
+
+Theorem tindexOrder_wf : well_founded tindexOrder.
+  red; intro. induction a using tindex_ind'.
+  all: try solve [ applys Acc_intro; introv H';
+                   unfolds in H'; destruct y; simpl in H';
+                   lia ].
+  - applys~ ti_list_ind.
+    + applys Acc_intro; introv H';
+      unfolds in H'; destruct y; simpl in H';
+        lia.
+    + introv IH1 IH2.
+      applys Acc_intro; introv H'; unfolds in H'; simpl in H'.
+Abort.
+
+Fixpoint tindexSize' (t : tindex) : nat :=
+  match t with
+  | ti_list l => length l
+  | _ => 0
+  end.
+
+Definition tindexOrder' (t1 t2 : tindex) :=
+  tindexSize' t1 < tindexSize' t2.
+
+Theorem tindexOrder_wf : well_founded tindexOrder'.
+  red; intro. induction a using tindex_ind'.
+  all: try solve [ applys Acc_intro; introv H';
+                   unfolds in H'; destruct y; simpl in H';
+                   lia ].
+  - applys~ ti_list_ind.
+    + applys Acc_intro; introv H';
+      unfolds in H'; destruct y; simpl in H';
+        lia.
+    + introv IH1 IH2.
+      applys Acc_intro; introv H'.
+      destruct y.
+      all: try solve [ applys Acc_intro; introv H'';
+                       unfolds in H''; destruct y; simpl in H'';
+                       lia ].
+      inverts H'.
+      * applys Acc_intro. introv H''.
+        destruct y.
+        all: try solve [ applys Acc_intro; introv H''';
+                       unfolds in H'''; destruct y; simpl in H''';
+                         lia ].
+        applys Acc_inv IH2. unfolds. simpl.
+        unfolds in H''. simpl in H''. rewrite H1 in H''.
+        lia.
+      * applys Acc_intro. introv H''.
+        destruct y.
+        all: try solve [ applys Acc_intro; introv H''';
+                       unfolds in H'''; destruct y; simpl in H''';
+                         lia ].
+        applys Acc_inv IH2. unfolds. simpl.
+        unfolds in H''. simpl in H''.
+        simpl in H1. lia.
+Defined.
+
+Fixpoint tindexSize'' (t : tindex) : nat :=
+  match t with
+  | ti_arrow A B => tindexSize'' A + tindexSize'' B
+  | ti_rcd l A => S (tindexSize'' A)
+  | ti_list l => S (sum (map tindexSize'' l))
+  | _ => 1
+  end.
+
+Program Fixpoint tindex_compare_lex_compat (s0 s1 : tindex) { measure (tindexSize'' s0 + tindexSize'' s1) }: Compare ti_lex_lt eq s0 s1 :=
+  match s0 as ss0, s1 as ss1 return (_ = ss0 -> _ = ss1 -> _) with
+   | ti_bot, ti_bot => fun H_eq H_eq' => EQ _
+   | ti_bot, _  => fun H_eq H_eq' => LT _
+   | ti_base, ti_bot => fun H_eq H_eq' => GT _
+   | ti_base, ti_base => fun H_eq H_eq' => EQ _
+   | ti_base, _  => fun H_eq H_eq' => LT _
+   | ti_arrow _ _, ti_bot => fun H_eq H_eq' => GT _
+   | ti_arrow _ _, ti_base => fun H_eq H_eq' => GT _
+   | ti_arrow A1 B1, ti_arrow A2 B2 => fun H_eq H_eq' =>
+     match tindex_compare_lex_compat A1 A2 with
+     | LT H_lt => LT _
+     | EQ H_eq_lex => match tindex_compare_lex_compat B1 B2 with
+                      | LT H_lt => LT _
+                      | EQ H_eq_lex => EQ _
+                      | GT H_gt => GT _
+                      end
+     | GT H_gt => GT _
+     end
+   | ti_arrow _ _, _ => fun H_eq H_eq' => LT _
+   | ti_rcd _ _, ti_bot => fun H_eq H_eq' => GT _
+   | ti_rcd _ _, ti_base => fun H_eq H_eq' => GT _
+   | ti_rcd _ _, ti_arrow _ _ => fun H_eq H_eq' => GT _
+   | ti_rcd l A, ti_rcd r B => fun H_eq H_eq' =>
+     match string_compare_lex_compat l r with
+     | LT H_lt => LT _
+     | EQ H_eq_lex => match tindex_compare_lex_compat A B with
+                      | LT H_lt => LT _
+                      | EQ H_eq_lex => EQ _
+                      | GT H_gt => GT _
+                      end
+     | GT H_gt => GT _
+     end
+  | ti_rcd _ _, _ => fun H_eq H_eq' => LT _
+  | ti_list nil, ti_list nil => fun H_eq H_eq' => EQ _
+   | ti_list nil, ti_list _ => fun H_eq H_eq' => LT _
+   | ti_list (c1::l1), ti_list (c2::l2) =>
+     match tindex_compare_lex_compat c1 c2 with
+     | LT H_lt => fun H_eq H_eq' => LT _
+     | EQ H_eq_lex => fun H_eq H_eq' =>
+         match tindex_compare_lex_compat (ti_list l1) (ti_list l2) with
+         | LT H_lt => LT _
+         | EQ H_eq_lex => EQ _
+         | GT H_gt => GT _
+         end
+     | GT H_gt => fun H_eq H_eq' => GT _
+     end
+  | ti_list _, _ => fun H_eq H_eq' => GT _
+  end (refl_equal _) (refl_equal _).
+Solve All Obligations with
+  try solve [try find_injection; subst; econstructor; eauto].
+Next Obligation.
 
 Fixpoint tindex_compare_lex_compat (s0 s1 : tindex) : Compare ti_lex_lt eq s0 s1.
 refine
