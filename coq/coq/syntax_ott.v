@@ -401,24 +401,73 @@ refine
   (match s0 as ss0, s1 as ss1 return (_ = ss0 -> _ = ss1 -> _) with
    | ti_bot, ti_bot => fun H_eq H_eq' => EQ _
    | ti_bot, _  => fun H_eq H_eq' => LT _
-   | ti_base, ti_bot  => fun H_eq H_eq' => GT _
-   | ti_base, ti_base  => fun H_eq H_eq' => EQ _
+   | ti_base, ti_bot => fun H_eq H_eq' => GT _
+   | ti_base, ti_base => fun H_eq H_eq' => EQ _
    | ti_base, _  => fun H_eq H_eq' => LT _
    | ti_arrow _ _, ti_bot => fun H_eq H_eq' => GT _
    | ti_arrow _ _, ti_base => fun H_eq H_eq' => GT _
    | ti_arrow A1 B1, ti_arrow A2 B2 => fun H_eq H_eq' =>
-     match tindex_compare_lex_compat A1 B1 with
-     | LT H_lt =>
+     match tindex_compare_lex_compat A1 A2 with
+     | LT H_lt => LT _
+     | EQ H_eq_lex => match tindex_compare_lex_compat B1 B2 with
+                      | LT H_lt => LT _
+                      | EQ H_eq_lex => EQ _
+                      | GT H_gt => GT _
+                      end
+     | GT H_gt => GT _
+     end
+   | ti_arrow _ _, _ => fun H_eq H_eq' => LT _
+   | ti_rcd _ _, ti_bot => fun H_eq H_eq' => GT _
+   | ti_rcd _ _, ti_base => fun H_eq H_eq' => GT _
+   | ti_rcd _ _, ti_arrow _ _ => fun H_eq H_eq' => GT _
+   | ti_rcd l A, ti_rcd r B => fun H_eq H_eq' =>
+     match string_compare_lex_compat l r with
+     | LT H_lt => LT _
+     | EQ H_eq_lex => match tindex_compare_lex_compat A B with
+                      | LT H_lt => LT _
+                      | EQ H_eq_lex => EQ _
+                      | GT H_gt => GT _
+                      end
+     | GT H_gt => GT _
+     end
+   | ti_rcd _ _, _ => fun H_eq H_eq' => LT _
+   | ti_list _, ti_list _ =>
+                                           (*
+   | ti_list nil, ti_list nil => fun H_eq H_eq' => EQ _
+   | ti_list nil, ti_list _ => fun H_eq H_eq' => LT _
+   | ti_list (c1::l1), ti_list (c2::l2) =>
+     match tindex_compare_lex_compat c1 c2 with
+     | LT H_lt => fun H_eq H_eq' => LT _
      | EQ H_eq_lex =>
-     | GT
-       | LT H_lt => LT _
-       | EQ H_eq_lex => EQ _
-       | GT H_gt => GT _
-       end
-     | Gt => fun H_eq_cmp => GT _
-     end (refl_equal _)
-   end (refl_equal _) (refl_equal _)); try (rewrite H_eq; rewrite H_eq'); auto.
-Admitted.
+                                            *)
+       (fix tindex_list_compare_lex_compact (l1 l2: list tindex) : Compare ti_lex_lt eq (ti_list l1) (ti_list l2) :=
+          match l1 as ll1, l2 as ll2 return (_ = ll1 -> _ = ll2 -> _) with
+          | nil, nil => fun H_eq H_eq' => EQ _
+          | nil, _ => fun H_eq H_eq' => LT _
+          | _, nil => fun H_eq H_eq' => GT _
+          | (c1::l1'), (c2::l2') =>
+              match tindex_compare_lex_compat c1 c2 with
+              | LT H_lt => fun H_eq H_eq' => LT _
+              | EQ H_eq_lex => fun H_eq H_eq' =>
+                                 match tindex_list_compare_lex_compact l1 l2 with
+                                 | LT H_lt => LT _
+                                 | EQ H_eq_lex => EQ _
+                                 | GT H_gt => GT _
+                                 end
+(*
+                      | LT H_lt => fun H_eq H_eq' => LT _
+                      | EQ H_eq_lex => fun H_eq H_eq' => EQ _
+                      | GT H_gt => fun H_eq H_eq' => GT _
+                      end *)
+              | GT H_gt => fun H_eq H_eq' => GT _
+              end
+          end (refl_equal _) (refl_equal _) )
+   | ti_list _, _ => fun H_eq H_eq' => GT _
+   end (refl_equal _) (refl_equal _));
+  try solve [try find_injection; subst; econstructor; eauto].
+Defined.
+applys ti_lex_lt_arrow_arrow.
+Check nat_compare_eq.
 
 Module tindex_lex_as_OT_compat <: UsualOrderedType.
   Definition t := tindex.
