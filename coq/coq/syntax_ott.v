@@ -8,14 +8,16 @@ Require Import Metalib.Metatheory.
 Definition lit : Set := nat.
 Definition label : Set := string.
 
+Unset Elimination Schemes.
 Inductive tindex : Set :=  (*r type index *)
  | ti_bot : tindex (*r bottom type *)
  | ti_base : tindex (*r base type *)
  | ti_arrow (A:tindex) (B:tindex) (*r function types *)
  | ti_rcd (l:label) (A:tindex) (*r record *)
- | ti_list (a:list tindex).
+| ti_list (a:list tindex).
+Set Elimination Schemes.
 
-Section tindex_ind'.
+Section tindex_ind.
 
   Variable P : tindex -> Prop.
 
@@ -32,21 +34,21 @@ Section tindex_ind'.
   Hypothesis ti_list_case : forall (ls : list tindex),
       Forall P ls -> P (ti_list ls).
 
-  Fixpoint tindex_ind' (ti : tindex) : P ti :=
+  Fixpoint tindex_ind (ti : tindex) : P ti :=
     match ti with
     | ti_bot => ti_bot_case
     | ti_base => ti_base_case
-    | ti_arrow ti1 ti2 => ti_arrow_case ti1 ti2 (tindex_ind' ti1) (tindex_ind' ti2)
-    | ti_rcd l ti => ti_rcd_case l ti (tindex_ind' ti)
+    | ti_arrow ti1 ti2 => ti_arrow_case ti1 ti2 (tindex_ind ti1) (tindex_ind ti2)
+    | ti_rcd l ti => ti_rcd_case l ti (tindex_ind ti)
     | ti_list ls => ti_list_case ls
                       ((fix list_ti_list_ind (ls : list tindex) : Forall P ls :=
                           match ls with
                           | nil => Forall_nil _
-                          | cons ti ls => Forall_cons _ (tindex_ind' ti) (list_ti_list_ind ls)
+                          | cons ti ls => Forall_cons _ (tindex_ind ti) (list_ti_list_ind ls)
                           end) ls)
     end.
 
-End tindex_ind'.
+End tindex_ind.
 
 (*
 Section tindex_ind''.
@@ -168,7 +170,7 @@ Fixpoint size_tindex (A1 : tindex) {struct A1} : nat :=
   | ti_base => 1
   | ti_arrow A2 B1 => 1 + (size_tindex A2) + (size_tindex B1)
   | ti_rcd l1 A2 => 1 + (size_tindex A2)
-  | ti_list a => fold_left Nat.add (map size_tindex a) 1
+  | ti_list a => 1 + fold_left Nat.add (map size_tindex a) 0
   end.
 
 Lemma size_foldl_add : forall l n,
@@ -182,17 +184,43 @@ Qed.
 Lemma size_tindex_min : forall t, 1 <= size_tindex t.
 Proof.
   introv. induction* t; simpl; try lia.
-  pose proof (size_foldl_add (map size_tindex a) 1). lia.
 Qed.
 
 Lemma size_list_decrease : forall a l,
-    size_tindex (ti_list l) < size_tindex (ti_list (a::l)).
+    size_tindex (ti_list (a::l)) = size_tindex a + size_tindex (ti_list l).
 Proof.
   introv. simpl.
-  rewrite size_foldl_add.
-  rewrite (size_foldl_add _ (S (size_tindex a))).
-  pose proof size_tindex_min a. lia.
+  rewrite size_foldl_add. lia.
 Qed.
+
+Ltac apply_to_every t f :=
+  repeat progress lazymatch goal with
+    | [ h : t |- _ ] => generalize dependent h
+    end;
+  repeat progress lazymatch goal with
+    | [ |- forall _ : t,  _ ] => let T:= fresh "T" in intro T; f T
+    | _ => intro
+    end.
+
+Ltac apply_size_tindex_list_min :=
+  apply_to_every tindex ltac:(fun x => forwards: size_tindex_min x).
+
+Ltac elia :=
+  try solve [ apply_size_tindex_list_min;
+              repeat rewrite size_list_decrease in *;
+              simpl in *; simpl;
+              try lia ].
+
+  Ltac solve_by_inverts n :=
+  match goal with | H : ?T |- _ =>
+  match type of T with Prop =>
+    solve [
+      inversion H;
+      match n with S (S (?n')) => subst; solve_by_inverts (S n') end ]
+  end end.
+
+Ltac solve_by_invert :=
+  solve_by_inverts 1.
 
 Lemma tindex_dec : forall t1 t2 : tindex, {t1 = t2} + {t1 <> t2}.
 Proof.
@@ -327,7 +355,7 @@ Qed.
 Theorem ti_lex_lt_not_eq : forall s0 s1,
     ti_lex_lt s0 s1 -> s0 <> s1.
 Proof.
-  induction s0 using tindex_ind'; intros;
+  induction s0 using tindex_ind; intros;
     try solve [inverts H; intro HF; inverts* HF].
   - (* rcd *) inverts H; try solve [intro HF; inverts* HF].
     forwards*: lex_lt_not_eq H3.
@@ -419,7 +447,7 @@ Hint Constructors Acc.
 
 
 Theorem tindexOrder_wf : well_founded tindexOrder.
-  red; intro. induction a using tindex_ind'.
+  red; intro. induction a.
   all: try solve [ applys Acc_intro; introv H';
                    unfolds in H'; destruct y; simpl in H';
                    lia ].
@@ -441,7 +469,7 @@ Definition tindexOrder' (t1 t2 : tindex) :=
   tindexSize' t1 < tindexSize' t2.
 
 Theorem tindexOrder_wf : well_founded tindexOrder'.
-  red; intro. induction a using tindex_ind'.
+  red; intro. induction a using tindex_ind.
   all: try solve [ applys Acc_intro; introv H';
                    unfolds in H'; destruct y; simpl in H';
                    lia ].
@@ -482,16 +510,18 @@ Fixpoint tindexSize'' (t : tindex) : nat :=
   | _ => 1
   end.
 
-Program Fixpoint tindex_compare_lex_compat (s0 s1 : tindex) { measure (tindexSize'' s0 + tindexSize'' s1) }: Compare ti_lex_lt eq s0 s1 :=
-  match s0 as ss0, s1 as ss1 return (_ = ss0 -> _ = ss1 -> _) with
-   | ti_bot, ti_bot => fun H_eq H_eq' => EQ _
-   | ti_bot, _  => fun H_eq H_eq' => LT _
-   | ti_base, ti_bot => fun H_eq H_eq' => GT _
-   | ti_base, ti_base => fun H_eq H_eq' => EQ _
-   | ti_base, _  => fun H_eq H_eq' => LT _
-   | ti_arrow _ _, ti_bot => fun H_eq H_eq' => GT _
-   | ti_arrow _ _, ti_base => fun H_eq H_eq' => GT _
-   | ti_arrow A1 B1, ti_arrow A2 B2 => fun H_eq H_eq' =>
+Fixpoint tindex_compare_lex_compat (s0 s1 : tindex) : Compare ti_lex_lt eq s0 s1.
+Proof.
+  refine (
+  match s0 as ss0, s1 as ss1 return (s0 = ss0 -> s1 = ss1 -> _) with
+  | ti_bot, ti_bot => fun _ _  => EQ _
+  | ti_bot, _  => fun H_eq : s0 = ti_bot => fun H_eq' : s1 = _ => LT _
+  | ti_base, ti_bot => fun H_eq : s0 = ti_base => fun H_eq' => GT _
+  | ti_base, ti_base => fun H_eq : s0 = ti_base => fun H_eq' => EQ _
+  | ti_base, _  => fun H_eq : s0 = ti_base => fun H_eq' => LT _
+  | ti_arrow _ _, ti_bot => fun H_eq H_eq' => GT _
+  | ti_arrow _ _, ti_base => fun H_eq H_eq' => GT _
+  | ti_arrow A1 B1, ti_arrow A2 B2 => fun H_eq H_eq' =>
      match tindex_compare_lex_compat A1 A2 with
      | LT H_lt => LT _
      | EQ H_eq_lex => match tindex_compare_lex_compat B1 B2 with
@@ -530,11 +560,101 @@ Program Fixpoint tindex_compare_lex_compat (s0 s1 : tindex) { measure (tindexSiz
      | GT H_gt => fun H_eq H_eq' => GT _
      end
   | ti_list _, _ => fun H_eq H_eq' => GT _
-  end (refl_equal _) (refl_equal _).
-Solve All Obligations with
-  try solve [try find_injection; subst; econstructor; eauto].
-Next Obligation.
+  end (refl_equal _) (refl_equal _)).
+  all: try solve [clear tindex_compare_lex_compat; try find_injection; subst; try econstructor; eauto].
+Abort.
 
+Program Fixpoint tindex_compare_lex_compat (s0 s1 : tindex) { measure (size_tindex s0 + size_tindex s1) }: Compare ti_lex_lt eq s0 s1 :=
+  match s0 as ss0, s1 as ss1 return (s0 = ss0 -> s1 = ss1 -> _) with
+  | ti_bot, ti_bot => fun _ _ => EQ _
+  | ti_bot, _  => fun H_eq H_eq' => LT _
+  | ti_base, ti_bot => fun H_eq H_eq' => GT _
+  | ti_base, ti_base => fun H_eq H_eq' => EQ _
+  | ti_base, _  => fun H_eq H_eq' => LT _
+  | ti_arrow _ _, ti_bot => fun H_eq H_eq' => GT _
+  | ti_arrow _ _, ti_base => fun H_eq H_eq' => GT _
+  | ti_arrow A1 B1, ti_arrow A2 B2 => fun H_eq H_eq' =>
+     match tindex_compare_lex_compat A1 A2 with
+     | LT H_lt => LT _
+     | EQ H_eq_lex => match tindex_compare_lex_compat B1 B2 with
+                      | LT H_lt => LT _
+                      | EQ H_eq_lex' => EQ _
+                      | GT H_gt => GT _
+                      end
+     | GT H_gt => GT _
+     end
+  | ti_arrow _ _, _ => fun H_eq H_eq' => LT _
+  | ti_rcd _ _, ti_bot => fun H_eq H_eq' => GT _
+  | ti_rcd _ _, ti_base => fun H_eq H_eq' => GT _
+  | ti_rcd _ _, ti_arrow _ _ => fun H_eq H_eq' => GT _
+  | ti_rcd l A, ti_rcd r B => fun H_eq H_eq' =>
+     match string_compare_lex_compat l r with
+     | LT H_lt => LT _
+     | EQ H_eq_lex => match tindex_compare_lex_compat A B with
+                      | LT H_lt => LT _
+                      | EQ H_eq_lex => EQ _
+                      | GT H_gt => GT _
+                      end
+     | GT H_gt => GT _
+     end
+  | ti_rcd _ _, _ => fun H_eq H_eq' => LT _
+  (*
+  | ti_list l1, ti_list l2 => match l1, l2 with
+                              | nil, nil => fun H_eq H_eq' => EQ _
+                              | nil, _ => fun H_eq H_eq' => LT _
+                              | (c1::l1), (c2::l2) => fun H_eq H_eq' =>
+                                  match tindex_compare_lex_compat c1 c2 as cmp1,
+                                          tindex_compare_lex_compat (ti_list l1) (ti_list l2) as cmp2
+                                  with
+                                  | LT H_lt, _ => LT _
+                                  | EQ H_eq_lex, LT H_lt => LT _
+                                  | EQ H_eq_lex, EQ H_eq_lex' => EQ _
+                                  | EQ H_eq_lex, GT H_gt => GT _
+                                  | GT H_gt, _ => GT _
+                                  end
+                              | _, _ => fun H_eq H_eq' => GT _
+                              end
+  | ti_list _, _ => fun H_eq H_eq' => GT _ *)
+
+  | ti_list nil, ti_list nil => fun H_eq H_eq' => EQ _
+  | ti_list nil, ti_list _ => fun H_eq H_eq' => LT _
+  | ti_list (c1::l1), ti_list (c2::l2) => fun H_eq H_eq' =>
+      match tindex_compare_lex_compat c1 c2 as cmp1,
+              tindex_compare_lex_compat (ti_list l1) (ti_list l2) as cmp2
+      with
+      | LT H_lt, _ => LT _
+      | EQ H_eq_lex, LT H_lt => LT _
+      | EQ H_eq_lex, EQ H_eq_lex' => EQ _
+      | EQ H_eq_lex, GT H_gt => GT _
+      | GT H_gt, _ => GT _
+     end
+  | ti_list _, _ => fun H_eq H_eq' => GT _
+  end (refl_equal _) (refl_equal _).
+Obligation Tactic :=
+  intros; subst; elia;
+  try solve [try find_injection; subst; try econstructor; eauto].
+Solve All Obligations.
+Next Obligation.
+  inverts~ H_eq_lex'.
+Defined.
+
+(*
+Fixpoint zipWith (f : tindex->tindex->nat) (s0 s1: list tindex) : list nat :=
+  match s0, s1 with
+  | c1::l1, c2::l2 => (f c1 c2) :: zipWith f l1 l2
+  | _, _ => nil
+  end.
+
+Fixpoint f (s0 s1: tindex) : nat :=
+  match s0, s1 with
+  | ti_list l1, ti_list l2 => fold_left (plus) (zipWith f l1 l2) 0
+  | _ , _ => 1
+  end.
+
+  | ti_list (c1::l1) , ti_list (c2::l2) =>
+      let f' := fun x => f (fst x) (snd x) in
+      fold_left (plus) (map f' (combine l1 l2)) 0
+Print zip.
 Fixpoint tindex_compare_lex_compat (s0 s1 : tindex) : Compare ti_lex_lt eq s0 s1.
 refine
   (match s0 as ss0, s1 as ss1 return (_ = ss0 -> _ = ss1 -> _) with
@@ -571,14 +691,6 @@ refine
      end
    | ti_rcd _ _, _ => fun H_eq H_eq' => LT _
    | ti_list _, ti_list _ =>
-                                           (*
-   | ti_list nil, ti_list nil => fun H_eq H_eq' => EQ _
-   | ti_list nil, ti_list _ => fun H_eq H_eq' => LT _
-   | ti_list (c1::l1), ti_list (c2::l2) =>
-     match tindex_compare_lex_compat c1 c2 with
-     | LT H_lt => fun H_eq H_eq' => LT _
-     | EQ H_eq_lex =>
-                                            *)
        (fix tindex_list_compare_lex_compact (l1 l2: list tindex) : Compare ti_lex_lt eq (ti_list l1) (ti_list l2) :=
           match l1 as ll1, l2 as ll2 return (_ = ll1 -> _ = ll2 -> _) with
           | nil, nil => fun H_eq H_eq' => EQ _
@@ -593,11 +705,6 @@ refine
                                  | EQ H_eq_lex => EQ _
                                  | GT H_gt => GT _
                                  end
-(*
-                      | LT H_lt => fun H_eq H_eq' => LT _
-                      | EQ H_eq_lex => fun H_eq H_eq' => EQ _
-                      | GT H_gt => fun H_eq H_eq' => GT _
-                      end *)
               | GT H_gt => fun H_eq H_eq' => GT _
               end
           end (refl_equal _) (refl_equal _) )
@@ -607,6 +714,7 @@ refine
 Defined.
 applys ti_lex_lt_arrow_arrow.
 Check nat_compare_eq.
+*)
 
 Module tindex_lex_as_OT_compat <: UsualOrderedType.
   Definition t := tindex.
@@ -621,17 +729,322 @@ Module tindex_lex_as_OT_compat <: UsualOrderedType.
   Definition eq_dec := tindex_dec.
 End tindex_lex_as_OT_compat.
 
-Theorem lex_lt_strorder : StrictOrder ti_lex_lt.
-Admitted.
+From Coq Require Import Orders.
 
+Lemma lex_lt_irrefl : Irreflexive ti_lex_lt.
+Proof.
+  intros s0 H_lt.
+  apply ti_lex_lt_not_eq in H_lt.
+  auto.
+Qed.
+
+Theorem lex_lt_strorder : StrictOrder ti_lex_lt.
+Proof.
+  exact (Build_StrictOrder _ lex_lt_irrefl ti_lex_lt_trans).
+Qed.
 
 Theorem lex_lt_lt_compat : Proper (eq ==> eq ==> iff) ti_lex_lt.
 Proof.
-intros s0 s1 H_eq s2 s3 H_eq'.
-split; intro H_imp; subst; auto.
+  intros s0 s1 H_eq s2 s3 H_eq'.
+  split; intro H_imp; subst; auto.
 Qed.
+Fixpoint string_compare_lex (s0 s1 : string) : { cmp : comparison | CompSpec eq lex_lt s0 s1 cmp }.
+refine
+  (match s0 as ss0, s1 as ss1 return (_ = ss0 -> _ = ss1 -> _) with
+   | EmptyString, EmptyString => fun H_eq H_eq' => exist _ Eq _
+   | EmptyString, String c' s'1 => fun H_eq H_eq' => exist _ Lt _
+   | String c s'0, EmptyString => fun H_eq H_eq' => exist _ Gt _
+   | String c s'0, String c' s'1 => fun H_eq H_eq' =>
+     match Nat.compare (nat_of_ascii c) (nat_of_ascii c') as cmp0 return (_ = cmp0 -> _)  with
+     | Lt => fun H_eq_cmp0 => exist _ Lt _
+     | Eq => fun H_eq_cmp0 =>
+       match string_compare_lex s'0 s'1 with
+       | exist _ cmp H_cmp' =>
+         match cmp as cmp1 return (cmp = cmp1 -> _) with
+         | Lt => fun H_eq_cmp1 => exist _ Lt _
+         | Eq => fun H_eq_cmp1 => exist _ Eq _
+         | Gt => fun H_eq_cmp1 => exist _ Gt _
+         end (refl_equal _)
+       end
+     | Gt => fun H_eq_cmp0 => exist _ Gt _
+     end (refl_equal _)
+   end (refl_equal _) (refl_equal _)); try (rewrite H_eq; rewrite H_eq').
+- apply CompEq; auto.
+- apply CompLt.
+  apply lex_lt_empty.
+- apply CompGt.
+  apply lex_lt_empty.
+- apply nat_compare_eq in H_eq_cmp0.
+  apply nat_of_ascii_injective in H_eq_cmp0.
+  rewrite H_eq_cmp1 in H_cmp'.
+  inversion H_cmp'; subst.
+  apply CompEq.
+  reflexivity.
+- apply nat_compare_eq in H_eq_cmp0.
+  apply nat_of_ascii_injective in H_eq_cmp0.
+  rewrite H_eq_cmp1 in H_cmp'.
+  inversion H_cmp'.
+  subst.
+  apply CompLt.
+  apply lex_lt_eq.
+  assumption.
+- apply nat_compare_eq in H_eq_cmp0.
+  apply nat_of_ascii_injective in H_eq_cmp0.
+  rewrite H_eq_cmp1 in H_cmp'.
+  subst.
+  inversion H_cmp'.
+  apply CompGt.
+  apply lex_lt_eq.
+  assumption.
+- apply nat_compare_lt in H_eq_cmp0.
+  apply CompLt.
+  apply lex_lt_lt.
+  assumption.
+- apply nat_compare_gt in H_eq_cmp0.
+  apply CompGt.
+  apply lex_lt_lt.
+  auto with arith.
+Defined.
 
-Module string_lex_as_OT <: UsualOrderedType.
+Program Fixpoint tindex_compare_lex (s0 s1 : tindex) { measure (size_tindex s0 + size_tindex s1) } : { cmp : comparison | CompSpec eq ti_lex_lt s0 s1 cmp } :=
+  match s0 as ss0, s1 as ss1 return (s0 = ss0 -> s1 = ss1 -> _) with
+  | ti_bot, ti_bot => fun H_eq H_eq' => exist _ Eq _
+  | ti_bot, _  => fun H_eq H_eq' => exist _ Lt _
+  | ti_base, ti_bot => fun H_eq H_eq' => exist _ Gt _
+  | ti_base, ti_base => fun H_eq H_eq' => exist _ Eq _
+  | ti_base, _  => fun H_eq H_eq' => exist _ Lt _
+  | ti_arrow _ _, ti_bot => fun H_eq H_eq' => exist _ Gt _
+  | ti_arrow _ _, ti_base => fun H_eq H_eq' => exist _ Gt _
+  | ti_arrow A1 B1, ti_arrow A2 B2 => fun H_eq H_eq' =>
+     match tindex_compare_lex A1 A2 as cmp return (_ = cmp -> _) with
+     | Lt => fun H_eq_cmp => exist _ Lt _
+     | Eq => fun H_eq_cmp => match tindex_compare_lex B1 B2 with
+             | Lt => exist _ Lt _
+             | Eq => exist _ Eq _
+             | Gt => exist _ Gt _
+             end
+     | Gt => fun H_eq_cmp => exist _ Gt _
+     end (refl_equal _)
+  | ti_arrow _ _, _ => fun H_eq H_eq' => exist _ Lt _
+  | ti_rcd _ _, ti_bot => fun H_eq H_eq' => exist _ Gt _
+  | ti_rcd _ _, ti_base => fun H_eq H_eq' => exist _ Gt _
+  | ti_rcd _ _, ti_arrow _ _ => fun H_eq H_eq' => exist _ Gt _
+  | ti_rcd l A, ti_rcd r B => fun H_eq H_eq' =>
+                                match string_compare_lex l r as cmp return (_ = cmp -> _) with
+                                | Lt => fun H_eq_cmp' => exist _ Lt _
+                                | Eq => fun H_eq_cmp => match tindex_compare_lex A B as cmp' return (_ = cmp' -> _) with
+                                                        | Lt => fun H_eq_cmp' => exist _ Lt _
+                                                        | Eq => fun H_eq_cmp' => exist _ Eq _
+                                                        | Gt => fun H_eq_cmp' => exist _ Gt _
+                                                        end (refl_equal _)
+                                | Gt => fun H_eq_cmp =>exist _ Gt _
+                                end (refl_equal _)
+  | ti_rcd _ _, _ => fun H_eq H_eq' => exist _ Lt _
+  | ti_list nil, ti_list nil => fun H_eq H_eq' => exist _ Eq _
+  | ti_list nil, ti_list _ => fun H_eq H_eq' => exist _ Lt _
+  | ti_list (c1::l1), ti_list (c2::l2) => fun H_eq H_eq' =>
+    match tindex_compare_lex c1 c2 as cmp1, tindex_compare_lex (ti_list l1) (ti_list l2) as cmp2
+          return (_ = cmp1 -> _ = cmp2 -> _) with
+    | Lt, _ => fun Hc Hc' => exist _ Lt _
+    | Eq, Lt => fun Hc Hc' => exist _ Lt _
+    | Eq, Eq => fun Hc Hc' => exist _ Eq _
+    | Eq, Gt => fun Hc Hc' => exist _ Gt _
+    | Gt, _ => fun Hc Hc' => exist _ Gt _
+    end (refl_equal _) (refl_equal _)
+   | ti_list _, _ => fun H_eq H_eq' => exist _ Gt _
+   end (refl_equal _) (refl_equal _).
+Obligation Tactic :=
+  intros;
+  try solve [
+      do 2 (
+          lazymatch goal with
+          | [ tindex_compare_lex : forall s0 s1: tindex, _ |- _ ] =>
+                try lazymatch goal with
+                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_rcd ?l ?A) (ti_rcd ?r ?B) cmp) _ => destruct (string_compare_lex l r)
+                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_arrow ?A ?B1) (ti_arrow ?A ?B2) cmp) _ =>
+        destruct (tindex_compare_lex B1 B2)
+                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_arrow ?A1 ?B1) (ti_arrow ?A2 ?B2) cmp) _ =>
+                      destruct (tindex_compare_lex A1 A2)
+          end;
+            try solve [ subst; elia ];
+            try solve [
+                do 5 try lazymatch goal with
+                  | [ h : CompSpec eq _ _ _ _ |- _ ] => inverts h
+                  | [ h : _ = _ |- _ ] => inverts h
+                  end; subst;
+                simpl in *; subst; try solve_by_invert;
+                try solve [ applys CompEq; econstructor; eauto ];
+                try solve [ applys CompLt; econstructor; eauto ];
+                try solve [ applys CompGt; econstructor; eauto ]
+              ]
+          end ) ].
+Solve All Obligations.
+Next Obligation.
+  inverts H_eq_cmp.
+destruct (tindex_compare_lex A1 A2 (tindex_compare_lex_func_obligation_32
+                     tindex_compare_lex H_eq H_eq')).
+  filtered_var := proj1_sig
+                lazymatch goal with
+                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_rcd ?l ?A) (ti_rcd ?r ?B) cmp) _ => destruct (string_compare_lex l r)
+                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_arrow ?A ?B1) (ti_arrow ?A ?B2) cmp) _ =>
+        destruct (tindex_compare_lex B1 B2)
+                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_arrow ?A1 ?B1) (ti_arrow ?A2 ?B2) cmp) _ =>
+                      destruct (tindex_compare_lex A1 A2)
+                  end.
+                    end.
+
+
+            try solve [ subst; elia ];
+            try solve [
+                do 5 try lazymatch goal with
+                  | [ h : CompSpec eq _ _ _ _ |- _ ] => inverts h
+                  | [ h : _ = _ |- _ ] => inverts h
+                  end; subst;
+                simpl in *; subst; try solve_by_invert;
+                try solve [ applys CompEq; econstructor; eauto ];
+                try solve [ applys CompLt; econstructor; eauto ];
+                try solve [ applys CompGt; econstructor; eauto ]
+              ]
+          end ) ].
+Solve All Obligations
+  try lazymatch goal with
+      | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_rcd ?l ?A) (ti_rcd ?r ?B) cmp) _ => destruct (string_compare_lex l r)
+      end.
+    | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_arrow ?A1 ?B1) (ti_arrow ?A2 ?B2) cmp) _ =>
+        destruct (tindex_compare_lex A1 A2);
+        lazymatch goal with
+        | [ h : CompSpec eq _ _ _ _ |- _ ] => inverts h
+        end; subst;
+        destruct (tindex_compare_lex B1 B2)
+  end.
+
+
+      simpl in *; try elia;
+      simpl in *; subst; try solve_by_invert;
+      try solve [ applys CompEq; econstructor; eauto ];
+      try solve [ applys CompLt; econstructor; eauto ];
+    try solve [ applys CompGt; econstructor; eauto ];
+    econstructor; eauto.
+
+  eauto.
+      solve_by_invert.
+      inverts H_eq_cmp.
+
+  Solve All Obligations.
+   try lazymatch goal with
+        | [ l : label, r : label |- _] => destruct (string_compare_lex l r)
+        end.
+      do 6 try (match goal with
+                | [ h : CompSpec eq _ _ _ _ |- _ ] => inverts h
+                | [ h : _ = _ |- _ ] => inverts h
+                end; simpl in *; subst). simpl in H_eq_cmp'. unfold CompSpec in c. inverts c.
+     applys CompEq; econstructor; eauto.
+      try solve [ applys CompLt; econstructor; eauto ];
+     try solve [ applys CompGt; econstructor; eauto ].
+
+  destruct (string_compare_lex l r). destruct c. subst. admit.
+  inversion Hcmp.
+  inversion filtered_var; try solve_by_invert; subst. rewrite filtered_var in Heq_anonymous. econstructor. eauto.
+  subst. apply string_compare_lex_compat.
+  destruct (string_compare_lex l r). inverts~ c.
+  inversion H_eq_cmp.
+Admitted.
+Next Obligation.
+  intros.
+         do 5 try (lazymatch goal with
+           | [ h : CompSpec eq _ _ _ _ |- _ ] => inverts h
+           | [ h : _ = _ |- _ ] => inverts h
+                            end; subst).
+         try solve [ applys CompEq; econstructor; eauto ];
+         try solve [ applys CompLt; econstructor; eauto ];
+         try solve [ applys CompGt; econstructor; eauto ]
+Defined.
+Check tindex_compare_lex.
+(*
+Fixpoint tindex_compare_lex (s0 s1 : tindex) : { cmp : comparison | CompSpec eq ti_lex_lt s0 s1 cmp }.
+refine
+  (match s0 as ss0, s1 as ss1 return (_ = ss0 -> _ = ss1 -> _) with
+   | ti_bot, ti_bot => fun H_eq H_eq' => exist _ Eq _
+   | ti_bot, _  => fun H_eq H_eq' => exist _ Lt _
+   | ti_base, ti_bot => fun H_eq H_eq' => exist _ Gt _
+   | ti_base, ti_base => fun H_eq H_eq' => exist _ Eq _
+   | ti_base, _  => fun H_eq H_eq' => exist _ Lt _
+   | ti_arrow _ _, ti_bot => fun H_eq H_eq' => exist _ Gt _
+   | ti_arrow _ _, ti_base => fun H_eq H_eq' => exist _ Gt _
+   | ti_arrow A1 B1, ti_arrow A2 B2 => fun H_eq H_eq' =>
+     match tindex_compare_lex A1 A2 with
+     | exist _ cmp H_cmp => match cmp as cmp1 return (cmp = cmp1 -> _) with
+                             | Lt => fun H_eq_cmp1 => exist _ Lt _
+                             | Eq => fun H_eq_cmp1 => match tindex_compare_lex B1 B2 with
+                                    | exist _ cmp' H_cmp' =>
+                                        match cmp' as cmp2
+                                              return (cmp' = cmp2 -> _)
+                                        with
+                                        | Lt => fun H_eq_cmp2 => exist _ Lt _
+                                        | Eq => fun H_eq_cmp2 => exist _ Eq _
+                                        | Gt => fun H_eq_cmp2 => exist _ Gt _
+                                        end (refl_equal _)
+                                    end
+                            | Gt => fun H_eq_cmp1 => exist _ Gt _
+                            end (refl_equal _)
+     end
+  | ti_arrow _ _, _ => fun H_eq H_eq' => exist _ Lt _
+  | ti_rcd _ _, ti_bot => fun H_eq H_eq' => exist _ Gt _
+  | ti_rcd _ _, ti_base => fun H_eq H_eq' => exist _ Gt _
+  | ti_rcd _ _, ti_arrow _ _ => fun H_eq H_eq' => exist _ Gt _
+  | ti_rcd l A, ti_rcd r B => fun H_eq H_eq' =>
+     match string_compare_lex l r with
+     | exist _ cmp H_cmp => match cmp as cmp1 return (cmp = cmp1 -> _) with
+                            | Lt => fun H_eq_cmp1 => exist _ Lt _
+                            | Eq => fun H_eq_cmp1 => match tindex_compare_lex A B with
+                                                     | exist _ cmp' H_cmp' =>
+                                                         match cmp' as cmp2
+                                                               return (cmp' = cmp2 -> _)
+                                                         with
+                                                         | Lt => fun H_eq_cmp2 => exist _ Lt _
+                                                         | Eq => fun H_eq_cmp2 => exist _ Eq _
+                                                         | Gt => fun H_eq_cmp2 => exist _ Gt _
+                                                         end (refl_equal _)
+                                                     end
+                            | Gt => fun H_eq_cmp1 => exist _ Gt _
+                            end (refl_equal _)
+     end
+   | ti_rcd _ _, _ => fun H_eq H_eq' => exist _ Lt _
+   | ti_list nil, ti_list nil => fun H_eq H_eq' => exist _ Eq _
+   | ti_list nil, ti_list _ => fun H_eq H_eq' => exist _ Lt _
+   | ti_list (c1::l1), ti_list (c2::l2) => fun H_eq H_eq' =>
+                                             match tindex_compare_lex c1 c2 with
+                                             | exist _ cmp H_cmp =>
+                                                   match tindex_compare_lex (ti_list l1) (ti_list l2) with
+                                                   | exist _ cmp' H_cmp' =>
+                                                       match cmp as cmp1, cmp' as cmp2
+                                                             return (cmp = cmp1 -> cmp' = cmp2 -> _) with
+                                                       | Lt, _ => fun H_eq_cmp1 H_eq_cmp2 => exist _ Lt _
+                                                       | Eq, Lt => fun H_eq_cmp1 H_eq_cmp2 => exist _ Lt _
+                                                       | Eq, Eq => fun H_eq_cmp1 H_eq_cmp2 => exist _ Eq _
+                                                       | Eq, Gt => fun H_eq_cmp1 H_eq_cmp2 => exist _ Gt _
+                                                       | Gt, _ => fun H_eq_cmp1 H_eq_cmp2 => exist _ Gt _
+                                                       end (refl_equal _) (refl_equal _)
+                                                   end
+                                             end
+   | ti_list _, _ => fun H_eq H_eq' => exist _ Gt _
+
+   end (refl_equal _) (refl_equal _)); try (rewrite H_eq; rewrite H_eq').
+all: try solve [
+         repeat progress (repeat lazymatch goal with
+           | [ h : CompSpec eq _ _ _ _ |- _ ] => inverts h
+           | [ h : _ = _ |- _ ] => inverts h
+                            end; subst);
+         try solve [ applys CompEq; econstructor; eauto ];
+         try solve [ applys CompLt; econstructor; eauto ];
+         try solve [ applys CompGt; econstructor; eauto ] ].
+Defined.
+Obligation Tactic :=
+  intros; subst; elia;
+try solve [try find_injection; subst; try econstructor; eauto].
+*)
+
+Module tindex_lex_as_OT <: UsualOrderedType.
   Definition t := tindex.
   Definition eq := @eq tindex.
   Definition eq_equiv := @eq_equivalence tindex.
@@ -641,7 +1054,7 @@ Module string_lex_as_OT <: UsualOrderedType.
   Definition compare := fun x y => proj1_sig (tindex_compare_lex x y).
   Definition compare_spec := fun x y => proj2_sig (tindex_compare_lex x y).
   Definition eq_dec := string_dec.
-End string_lex_as_OT.
+End tindex_lex_as_OT.
 
 Require Import Sorting.Sorted.
 Require Import Sorting.Mergesort.
