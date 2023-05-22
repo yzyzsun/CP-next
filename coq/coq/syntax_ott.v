@@ -14,7 +14,7 @@ Inductive tindex : Set :=  (*r type index *)
  | ti_base : tindex (*r base type *)
  | ti_arrow (A:tindex) (B:tindex) (*r function types *)
  | ti_rcd (l:label) (A:tindex) (*r record *)
-| ti_list (a:list tindex).
+ | ti_list (a:list tindex).
 Set Elimination Schemes.
 
 Section tindex_ind.
@@ -856,110 +856,71 @@ Program Fixpoint tindex_compare_lex (s0 s1 : tindex) { measure (size_tindex s0 +
 Obligation Tactic :=
   intros;
   try solve [
-      do 2 (
-          lazymatch goal with
-          | [ tindex_compare_lex : forall s0 s1: tindex, _ |- _ ] =>
-                try lazymatch goal with
-                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_rcd ?l ?A) (ti_rcd ?r ?B) cmp) _ => destruct (string_compare_lex l r)
-                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_arrow ?A ?B1) (ti_arrow ?A ?B2) cmp) _ =>
-        destruct (tindex_compare_lex B1 B2)
-                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_arrow ?A1 ?B1) (ti_arrow ?A2 ?B2) cmp) _ =>
-                      destruct (tindex_compare_lex A1 A2)
+      lazymatch goal with
+      | [ tindex_compare_lex : forall s0 s1: tindex, _ |- _ ] =>
+          try lazymatch goal with
+            | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_rcd ?l ?A) (ti_rcd ?r ?B) cmp) _ => destruct (string_compare_lex l r)
+                                                                                                                 (* | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_arrow ?A1 ?B1) (ti_arrow ?A2 ?B2) cmp) _ => *)
+                                                                                                                 (*     let cmp := fresh "cmp" in *)
+                                                                                                                 (*     forwards cmp: (tindex_compare_lex A1 A2); subst; elia; inverts cmp *)
+                                                                                                                 (* | |- CompSpec eq ti_lex_lt (ti_arrow ?A ?B1) (ti_arrow ?A ?B2) Gt => *)
+                                                                                                                 (*     let cmp := fresh "cmp" in *)
+                                                                                                                 (*     forwards cmp: (tindex_compare_lex B1 B2); subst; elia; inverts cmp *)
+            end;
+          try solve [ subst; elia ];
+          try lazymatch goal with
+            | [ h : proj1_sig ?s = _ |- _ ] => let c := fresh "c" in
+                                                 lets c: proj2_sig s;
+                                                 rewrite h in c;
+                                                 inverts c;
+                                                 try clear h
           end;
-            try solve [ subst; elia ];
-            try solve [
-                do 5 try lazymatch goal with
-                  | [ h : CompSpec eq _ _ _ _ |- _ ] => inverts h
-                  | [ h : _ = _ |- _ ] => inverts h
-                  end; subst;
-                simpl in *; subst; try solve_by_invert;
-                try solve [ applys CompEq; econstructor; eauto ];
-                try solve [ applys CompLt; econstructor; eauto ];
-                try solve [ applys CompGt; econstructor; eauto ]
-              ]
-          end ) ].
+          try lazymatch goal with
+            | [ h : proj1_sig ?s = _ |- _ ] => let c := fresh "c" in
+                                                 lets c: proj2_sig s;
+                                                 rewrite h in c;
+                                                 inverts c
+            | [ h : CompSpec eq _ _ _ _ |- _ ] => inversion h; subst
+            | [ h : _ = _ |- _ ] => inverts h
+          end; subst;
+          try lazymatch goal with
+            | [ h := proj1_sig ?s |- _ ] => destruct (proj2_sig s); subst
+          end;
+          simpl in *; subst; try solve_by_invert;
+          try solve [ applys CompEq; econstructor; eauto ];
+          try solve [ applys CompLt; econstructor; eauto ];
+          try solve [ applys CompGt; econstructor; eauto ]
+      end
+    ].
 Solve All Obligations.
 Next Obligation.
-  inverts H_eq_cmp.
-destruct (tindex_compare_lex A1 A2 (tindex_compare_lex_func_obligation_32
-                     tindex_compare_lex H_eq H_eq')).
-  filtered_var := proj1_sig
-                lazymatch goal with
-                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_rcd ?l ?A) (ti_rcd ?r ?B) cmp) _ => destruct (string_compare_lex l r)
-                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_arrow ?A ?B1) (ti_arrow ?A ?B2) cmp) _ =>
-        destruct (tindex_compare_lex B1 B2)
-                  | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_arrow ?A1 ?B1) (ti_arrow ?A2 ?B2) cmp) _ =>
-                      destruct (tindex_compare_lex A1 A2)
-                  end.
-                    end.
-
-
-            try solve [ subst; elia ];
-            try solve [
-                do 5 try lazymatch goal with
-                  | [ h : CompSpec eq _ _ _ _ |- _ ] => inverts h
-                  | [ h : _ = _ |- _ ] => inverts h
-                  end; subst;
-                simpl in *; subst; try solve_by_invert;
-                try solve [ applys CompEq; econstructor; eauto ];
-                try solve [ applys CompLt; econstructor; eauto ];
-                try solve [ applys CompGt; econstructor; eauto ]
-              ]
-          end ) ].
-Solve All Obligations
-  try lazymatch goal with
-      | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_rcd ?l ?A) (ti_rcd ?r ?B) cmp) _ => destruct (string_compare_lex l r)
-      end.
-    | |- (fun cmp : comparison => CompSpec eq ti_lex_lt (ti_arrow ?A1 ?B1) (ti_arrow ?A2 ?B2) cmp) _ =>
-        destruct (tindex_compare_lex A1 A2);
-        lazymatch goal with
-        | [ h : CompSpec eq _ _ _ _ |- _ ] => inverts h
-        end; subst;
-        destruct (tindex_compare_lex B1 B2)
-  end.
-
-
-      simpl in *; try elia;
-      simpl in *; subst; try solve_by_invert;
-      try solve [ applys CompEq; econstructor; eauto ];
-      try solve [ applys CompLt; econstructor; eauto ];
-    try solve [ applys CompGt; econstructor; eauto ];
-    econstructor; eauto.
-
-  eauto.
-      solve_by_invert.
-      inverts H_eq_cmp.
-
-  Solve All Obligations.
-   try lazymatch goal with
-        | [ l : label, r : label |- _] => destruct (string_compare_lex l r)
-        end.
-      do 6 try (match goal with
-                | [ h : CompSpec eq _ _ _ _ |- _ ] => inverts h
-                | [ h : _ = _ |- _ ] => inverts h
-                end; simpl in *; subst). simpl in H_eq_cmp'. unfold CompSpec in c. inverts c.
-     applys CompEq; econstructor; eauto.
-      try solve [ applys CompLt; econstructor; eauto ];
-     try solve [ applys CompGt; econstructor; eauto ].
-
-  destruct (string_compare_lex l r). destruct c. subst. admit.
-  inversion Hcmp.
-  inversion filtered_var; try solve_by_invert; subst. rewrite filtered_var in Heq_anonymous. econstructor. eauto.
-  subst. apply string_compare_lex_compat.
-  destruct (string_compare_lex l r). inverts~ c.
-  inversion H_eq_cmp.
-Admitted.
-Next Obligation.
-  intros.
-         do 5 try (lazymatch goal with
-           | [ h : CompSpec eq _ _ _ _ |- _ ] => inverts h
-           | [ h : _ = _ |- _ ] => inverts h
-                            end; subst).
-         try solve [ applys CompEq; econstructor; eauto ];
-         try solve [ applys CompLt; econstructor; eauto ];
-         try solve [ applys CompGt; econstructor; eauto ]
+  inverts Hc. inverts Hc'. subst.
+  destruct (proj2_sig
+              (tindex_compare_lex c1 c2
+                 (tindex_compare_lex_func_obligation_43 tindex_compare_lex eq_refl eq_refl)));
+    try solve_by_invert.
+  repeat econstructor. auto.
 Defined.
-Check tindex_compare_lex.
+Next Obligation.
+  inverts Hc. inverts Hc'. subst.
+  destruct (proj2_sig
+              (tindex_compare_lex c1 c2
+                 (tindex_compare_lex_func_obligation_43 tindex_compare_lex eq_refl eq_refl)));
+    try solve_by_invert.
+  repeat econstructor. auto.
+Defined.
+Next Obligation.
+  inverts Hc. inverts Hc'. subst.
+  destruct (proj2_sig
+              (tindex_compare_lex c1 c2
+                 (tindex_compare_lex_func_obligation_43 tindex_compare_lex eq_refl eq_refl)));
+    try solve_by_invert; subst.
+  destruct (proj2_sig
+         (tindex_compare_lex (ti_list l1) (ti_list l2)
+            (tindex_compare_lex_func_obligation_44 tindex_compare_lex eq_refl eq_refl)));
+    try find_injection; try solve_by_invert; repeat econstructor.
+Defined.
+
 (*
 Fixpoint tindex_compare_lex (s0 s1 : tindex) : { cmp : comparison | CompSpec eq ti_lex_lt s0 s1 cmp }.
 refine
@@ -1053,7 +1014,7 @@ Module tindex_lex_as_OT <: UsualOrderedType.
   Definition lt_compat := lex_lt_lt_compat.
   Definition compare := fun x y => proj1_sig (tindex_compare_lex x y).
   Definition compare_spec := fun x y => proj2_sig (tindex_compare_lex x y).
-  Definition eq_dec := string_dec.
+  Definition eq_dec := tindex_dec.
 End tindex_lex_as_OT.
 
 Require Import Sorting.Sorted.
@@ -1075,7 +1036,7 @@ Fixpoint styp2tindex (A: typ) : list tindex :=
     | typ_base => [ ti_base ]
     | typ_arrow A1 A2 => [ ti_arrow (ti_list (styp2tindex A1)) (ti_list (styp2tindex A2)) ]
     | typ_rcd l A' => [ ti_rcd  l (ti_list (styp2tindex A')) ]
-    | typ_and A1 A2 => nodup string_dec (merge (styp2tindex A1) (styp2tindex A2))
+    | typ_and A1 A2 => nodup tindex_dec (merge (styp2tindex A1) (styp2tindex A2))
     end.
 
 Inductive texp : Set :=  (*r target term *)
@@ -1284,15 +1245,6 @@ Fixpoint esubst_exp (e_5:exp) (x5:var) (e__6:exp) {struct e__6} : exp :=
   | (exp_proj e l) => exp_proj (esubst_exp e_5 x5 e) l
 end.
 
-Fixpoint check_toplike (A : typ) :=
-  match A with
-  | typ_top => true
-  | typ_bot => false
-  | typ_base => false
-  | typ_arrow _ B => check_toplike B
-  | typ_rcd l B => check_toplike B
-  | typ_and A B => (check_toplike A) && (check_toplike B)
-  end.
 
 Require Import Strings.String.
 Require Import Sorting.Sorted.
