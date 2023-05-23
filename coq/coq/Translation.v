@@ -7,39 +7,77 @@ Require Import Sorting.Sorted.
 Require Import Sorting.Mergesort.
 Require Import List Setoid Permutation Sorted Orders OrdersEx.
 Import IfNotations.
-Require Import StructTact.StringOrders.
+(* Require Import StructTact.StringOrders. *)
 Require Export syntax_ott.
 Require Export Infrastructure.
 Require Import TargetTypeSafety.
 
-(* Assumptions on the translation function *)
+
+Lemma check_toplike_sound_complete : forall A,
+    toplike A <-> check_toplike A = true.
+Proof.
+  split; introv HT.
+  - induction HT; simple*.
+    rewrite IHHT1. rewrite* IHHT2.
+  - induction* A.
+    all: simpl in HT; try discriminate.
+    forwards* (?&?): andb_prop_elim (check_toplike A1) (check_toplike A2).
+    eauto with bool.
+    constructor; intuition eauto using Is_true_eq_true.
+Qed.
+
+Lemma check_toplike_false : forall A,
+    check_toplike A = false -> toplike A -> False.
+Proof.
+  introv HT1 HT2.
+  induction HT2; simpl in *; solve_false.
+  forwards* [?|?]: andb_false_elim HT1.
+Qed.
+
+#[export] Hint Resolve check_toplike_false : FalseHd.
+
+(* Previous assumptions on the translation function *)
 Lemma st_eq_arrow : forall A1 A2 B1 B2,
     check_toplike A2 = false -> check_toplike B2 = false ->
     || (typ_arrow A1 A2) || =  || (typ_arrow B1 B2) || -> || B1 || = || A1 || /\ || B2 || = || A2 ||.
-Admitted.
+Proof.
+  introv HA HB Heq.
+  unfold styp2tindex in Heq. unfold styp2tindex.
+  repeat case_if;
+    try rewrite <- check_toplike_sound_complete in *;
+    try inverts C; try inverts C0; solve_false.
+  inverts* Heq.
+Qed.
 
 Lemma st_eq_rcd : forall A2 B2 l l',
     check_toplike A2 = false -> check_toplike B2 = false ->
     || (typ_rcd l A2) || =  || (typ_rcd l' B2) || -> l = l' /\ || B2 || = || A2 ||.
-Admitted.
+Proof.
+  introv HA HB Heq.
+  unfold styp2tindex in Heq. unfold styp2tindex.
+  repeat case_if;
+    try rewrite <- check_toplike_sound_complete in *;
+    try inverts C; try inverts C0; solve_false.
+  inverts* Heq.
+Qed.
 
 (* merge, sort *)
 Lemma HdRel_relax : forall a l,
-    HdRel lex_lt a l -> HdRel NOTF.le a l.
+    HdRel ti_lex_lt a l -> HdRel NOTF.le a l.
 Proof with eauto.
   introv HS. induction* HS. constructor...
   left*.
 Qed.
 
-Definition sorted := Sorted lex_lt.
+Definition sorted := Sorted ti_lex_lt.
 
-Theorem sorted_unique : forall (l1 l2 : list string),
+Theorem sorted_unique : forall (l1 l2 : list tindex),
     sorted l1 -> sorted l2 -> Permutation l1 l2 -> l1 = l2.
 Proof.
   introv HS1 HS2 HP.
-  applys* Sort_In_eq lex_lt.
-  applys lex_lt_trans.
-  applys lex_lt_not_eq.
+  applys* Sort_In_eq ti_lex_lt.
+  applys ti_lex_lt_trans.
+  applys ti_lex_lt_not_eq.
   split; introv HI;
     eauto using Permutation_sym, Permutation_in.
 Qed.
@@ -71,9 +109,9 @@ Qed.
 
 Lemma merge_cons : forall a l b r,
     merge (a::l) (b::r) =
-      if if proj1_sig (string_compare_lex a b) is Gt then false else true then a :: merge l (b::r) else b :: merge (a::l) r.
+      if if proj1_sig (tindex_compare_lex a b) is Gt then false else true then a :: merge l (b::r) else b :: merge (a::l) r.
 Proof with eauto.
-  introv. induction* l; destruct (proj1_sig (string_compare_lex a b)); autorewrite with merge...
+  introv. induction* l; destruct (proj1_sig (tindex_compare_lex a b)); autorewrite with merge...
 Qed.
 
 #[local] Hint Rewrite merge_cons : merge.
@@ -98,7 +136,7 @@ Proof with eauto using sorted_relax.
   - induction HSr...
     + autorewrite with merge.
       constructor...
-    + destruct (string_compare_lex a a0) eqn:HE. destruct c.
+    + destruct (tindex_compare_lex a a0) eqn:HE. destruct c.
       * subst*. simpl. rewrite HE. simpl...
         econstructor. applys IHHSl...
         econstructor... applys test...
@@ -112,7 +150,7 @@ Proof with eauto using sorted_relax.
 Qed.
 
 Lemma HdRel_nodup : forall a l,
-    Sorted NOTF.le l -> HdRel lex_lt a l -> HdRel lex_lt a (nodup string_dec l).
+    Sorted NOTF.le l -> HdRel ti_lex_lt a l -> HdRel ti_lex_lt a (nodup tindex_dec l).
 Proof with eauto.
   introv HS HR.
   applys In_InfA. introv HI. apply nodup_In in HI.
@@ -123,12 +161,12 @@ Proof with eauto.
     + inverts HS. inverts HR.
       forwards*: IHl.
       inverts* H3. constructor.
-      destruct H0. now applys* lex_lt_trans.
+      destruct H0. now applys* ti_lex_lt_trans.
       now subst*.
 Qed.
 
 Lemma sorted_nodup : forall l,
-    Sorted NOTF.le l -> sorted (nodup string_dec l).
+    Sorted NOTF.le l -> sorted (nodup tindex_dec l).
 Proof with eauto.
   introv HS. induction* l.
   - simpl... econstructor...
@@ -143,7 +181,7 @@ Proof with eauto.
 Qed.
 
 Lemma merge_sorted_dedup: forall l r,
-    sorted l -> sorted r -> sorted (nodup string_dec (merge l r)).
+    sorted l -> sorted r -> sorted (nodup tindex_dec (merge l r)).
 Proof with eauto using sorted_nodup, sorted_relax.
   introv HSl HSr.
   forwards: merge_sorted HSl HSr...
@@ -248,61 +286,49 @@ Qed.
 
 #[local] Hint Resolve ttyp_trans_ord_top : core.
 
-Lemma foldl_append_singleton_list : forall T,
-    list_string_2_string [T] = T.
-Proof.
-  introv. simpl. eauto.
-Qed.
-
-Lemma check_toplike_sound_complete : forall A,
-    toplike A <-> check_toplike A = true.
-Proof.
-  split; introv HT.
-  - induction HT; simple*.
-    rewrite IHHT1. rewrite* IHHT2.
-  - induction* A.
-    all: simpl in HT; try discriminate.
-    forwards* (?&?): andb_prop_elim (check_toplike A1) (check_toplike A2).
-    eauto with bool.
-    constructor; intuition eauto using Is_true_eq_true.
-Qed.
+(* Lemma foldl_append_singleton_list : forall T, *)
+(*     list_string_2_string [T] = T. *)
+(* Proof. *)
+(*   introv. simpl. eauto. *)
+(* Qed. *)
 
 Lemma stype2string_toplike : forall A,
-    check_toplike A = true -> || A || = nil.
+    check_toplike A = true -> (styp2tindex A) = nil.
 Proof with eauto.
   introv HT.
   destruct A; simpl in HT; try discriminate; simpl...
   all: rewrite* HT.
 Qed.
 
-Lemma nodup_nil_rev : forall l : list string,
-    nodup string_dec l = nil -> l = nil.
+Lemma nodup_nil_rev : forall l : list tindex,
+    nodup tindex_dec l = nil -> l = nil.
 Proof.
   introv HE. induction* l.
   - simpl in HE. case_if*. forwards: IHl HE. subst.
     inverts C.
 Qed.
 
-Lemma list_app_nil_inv : forall l1 l2 : list string,
+Lemma list_app_nil_inv : forall l1 l2 : list tindex,
     (l1 ++ l2) %list = nil -> l1 = nil /\ l2 = nil.
 Proof.
   introv HE. destruct l1; destruct* l2; try discriminate.
 Qed.
 
 Lemma stype2string_toplike_inv : forall A,
-    || A || = nil -> check_toplike A = true.
+    (styp2tindex A) = nil -> check_toplike A = true.
 Proof with eauto using Permutation_sym.
   introv HT.
   induction* A;  simpl in HT; try case_if; try discriminate; simpl...
-  - apply nodup_nil_rev in HT.
-    forwards: Permuted_merge (|| A1 ||) (|| A2 ||). rewrite HT in H.
-    forwards: Permutation_nil (|| A1 || ++ || A2 ||)%list...
-    forwards (?&?): list_app_nil_inv H0.
-    forwards*: IHA1. forwards*: IHA2. rewrite H3. rewrite* H4.
+  - inverts HT. apply nodup_nil_rev in H0.
+    forwards: Permuted_merge (styp2tindex A1) (styp2tindex A2). rewrite H0 in H.
+    forwards: Permutation_nil ((styp2tindex A1) ++ (styp2tindex A2))%list...
+    forwards (?&?): list_app_nil_inv H1.
+    forwards*: IHA1. forwards*: IHA2.
+    rewrite H4. rewrite* H5.
 Qed.
 
 Lemma stype2string_and : forall A B : typ,
-    || typ_and A B || = nodup string_dec (merge (stype2string A) (stype2string B)).
+    styp2tindex (typ_and A B) = nodup tindex_dec (merge (styp2tindex A) (styp2tindex B)).
 Proof.
   introv. simpl.
   destruct (check_toplike A) eqn:HA. destruct (check_toplike B) eqn:HB.
@@ -312,33 +338,30 @@ Proof.
 Qed.
 
 Lemma typeindex_sorted: forall A,
-    sorted (|| A ||).
+    sorted (styp2tindex A).
 Proof with eauto.
   introv. induction* A; simpl...
   all: unfolds...
   all: try econstructor...
   - case_if...
-    econstructor...
   - case_if... applys* merge_sorted_dedup.
   - case_if...
-    econstructor...
 Qed.
 
-Lemma NoDup_single : forall (x:string), NoDup [x].
+Lemma NoDup_single : forall (x:tindex), NoDup [x].
 Proof.
-  introv. applys NoDup_count_occ string_dec. intros.
+  introv. applys NoDup_count_occ tindex_dec. intros.
   simpl. case_if*.
 Qed.
 
 Lemma typeindex_nodup: forall A,
-    NoDup (|| A ||).
+    NoDup (styp2tindex A).
 Proof with eauto using NoDup_nil, NoDup_single, NoDup_nodup.
   introv. destruct* A; simpl; try case_if*...
 Qed.
 
-
 Lemma nodup_empty_inv : forall l,
-    nodup string_dec l = nil -> l = nil.
+    nodup tindex_dec l = nil -> l = nil.
 Proof.
   introv HE. induction* l.
   simpl in HE. case_if.
@@ -353,7 +376,7 @@ Proof.
 Qed.
 
 Lemma stype2string_toplike_complete : forall A,
-    || A || = nil -> toplike A.
+    styp2tindex A = nil -> toplike A.
 Proof with eauto.
   introv HT. apply check_toplike_sound_complete.
   induction A; simpl in HT; try discriminate; try case_if; simpl...
@@ -403,13 +426,14 @@ Proof.
   apply in_one_iff in HI. eauto.
 Qed.
 
-Lemma incl_eq : forall (l1 l2 : list string), l1 = l2 -> incl l1 l2.
+Lemma incl_eq : forall (l1 l2 : list tindex), l1 = l2 -> incl l1 l2.
 Proof.
   introv Heq. rewrite Heq. applys* incl_refl.
 Qed.
 
 Lemma incl_eq_tindex: forall A B,
-    incl (||A||) (||B||) -> incl (||B||) (||A||) -> ||A|| = ||B||.
+    incl (styp2tindex A) (styp2tindex B) -> incl (styp2tindex B) (styp2tindex A)
+    -> (styp2tindex A) = (styp2tindex B).
 Proof with eauto using typeindex_nodup, typeindex_sorted.
   introv HA HB.
   forwards: NoDup_Permutation_bis HA...
@@ -418,10 +442,10 @@ Proof with eauto using typeindex_nodup, typeindex_sorted.
 Qed.
 
 Lemma incl_nodup_merge : forall A1 A2,
-    incl ((|| A1 ||) ++ (|| A2 ||)) (nodup string_dec (merge (|| A1 ||) (|| A2 ||))).
+    incl ((styp2tindex A1) ++ (styp2tindex A2)) (nodup tindex_dec (merge (styp2tindex A1) (styp2tindex A2))).
 Proof.
   introv. apply nodup_incl.
-  forwards: Permuted_merge (|| A1 ||) (|| A2 ||).
+  forwards: Permuted_merge (styp2tindex A1) (styp2tindex A2).
   applys incl_Forall_in_iff. applys Forall_forall. introv HI.
   applys Permutation_in H HI.
 Qed.
@@ -434,76 +458,17 @@ Proof.
 Qed.
 
 Lemma incl_nodup_merge_rev : forall A1 A2,
-    incl (nodup string_dec (merge (|| A1 ||) (|| A2 ||))) ((|| A1 ||) ++ (|| A2 ||)).
+    incl (nodup tindex_dec (merge (styp2tindex A1) (styp2tindex A2))) ((styp2tindex A1) ++ (styp2tindex A2)).
 Proof.
-  introv. applys (nodup_incl2 string_dec).
-  forwards: Permuted_merge (|| A1 ||) (|| A2 ||).
+  introv. applys (nodup_incl2 tindex_dec).
+  forwards: Permuted_merge (styp2tindex A1) (styp2tindex A2).
   applys incl_Forall_in_iff. applys Forall_forall. introv HI.
   apply Permutation_sym in H. applys Permutation_in H HI.
 Qed.
 
-Lemma st_eq1 : forall A1 A2 B1 B2,
-    check_toplike A2 = false -> check_toplike B2 = false ->
-    || B1 || ++
-        String (Ascii.Ascii true false true true false true false false)
-          (String (Ascii.Ascii false true true true true true false false) (|| B2 || ++ ")")) =
-        || A1 || ++
-        String (Ascii.Ascii true false true true false true false false)
-        (String (Ascii.Ascii false true true true true true false false) (|| A2 || ++ ")"))
-    -> || B1 || = || A1 ||.
-Proof.
-  intros.
-  forwards*: st_eq_arrow A1 A2 B1 B2.
-  case_if*. case_if*. rewrite* H1.
-Qed.
-
-Lemma st_eq2 : forall A1 A2 B1 B2,
-    check_toplike A2 = false -> check_toplike B2 = false ->
-    || B1 || ++
-        String (Ascii.Ascii true false true true false true false false)
-          (String (Ascii.Ascii false true true true true true false false) (|| B2 || ++ ")")) =
-        || A1 || ++
-        String (Ascii.Ascii true false true true false true false false)
-        (String (Ascii.Ascii false true true true true true false false) (|| A2 || ++ ")"))
-      -> || B2 || = || A2 ||.
-Proof.
-  intros.
-  forwards*: st_eq_arrow A1 A2 B1 B2.
-  case_if*. case_if*. rewrite* H1.
-Qed.
-
-Lemma st_eq3 : forall A B l l0,
-    check_toplike A = false -> check_toplike B = false ->
- l ++
-        String (Ascii.Ascii true false true true true true false false)
-          (String (Ascii.Ascii false true true true true true false false) (|| B || ++ "}")) =
-        l0 ++
-        String (Ascii.Ascii true false true true true true false false)
-        (String (Ascii.Ascii false true true true true true false false) (|| A || ++ "}"))
-        -> || B || = || A ||.
-Proof.
-  intros.
-  forwards*: st_eq_rcd A B l0 l.
-  case_if*. case_if*. rewrite* H1.
-Qed.
-
-Lemma st_eq4: forall A B l l0,
-    check_toplike A = false -> check_toplike B = false ->
- l ++
-        String (Ascii.Ascii true false true true true true false false)
-          (String (Ascii.Ascii false true true true true true false false) (|| B || ++ "}")) =
-        l0 ++
-        String (Ascii.Ascii true false true true true true false false)
-        (String (Ascii.Ascii false true true true true true false false) (|| A || ++ "}"))
-        -> l = l0.
-Proof.
-  intros.
-  forwards*: st_eq_rcd A B l0 l.
-  case_if*. case_if*. rewrite* H1.
-Qed.
 
 Lemma eqIndTyp_complete_alt_gen : forall A B,
-    incl (|| B ||) (|| A ||) -> sub A B.
+    incl (styp2tindex B) (styp2tindex A) -> sub A B.
 Proof with eauto using incl_tran, incl_appl, incl_appr, incl_nil.
   introv HE. indTypSize (size_typ A + size_typ B).
   destruct B; intros; eauto.
@@ -514,12 +479,12 @@ Proof with eauto using incl_tran, incl_appl, incl_appr, incl_nil.
     + case_if.
       forwards Hia: In_incl HE incl_nodup_merge_rev.
       forwards [|]: in_app_or Hia.
-      * assert (incl (||typ_bot||) (||A1||)). {
-         simpl. unfolds. intros. rewrite in_one_iff in H0. subst*.
+      * assert ( incl (styp2tindex typ_bot) (styp2tindex A1) ). {
+          simpl. unfolds. intros. inverts* H0; try solve_by_invert.
         }
         forwards*: IH H0. elia.
-      * assert (incl (||typ_bot||) (||A2||)). {
-         simpl. unfolds. intros. rewrite in_one_iff in H0. subst*.
+      * assert ( incl (styp2tindex typ_bot) (styp2tindex A2) ). {
+          simpl. unfolds. intros. inverts* H0; try solve_by_invert.
         }
         forwards*: IH H0. elia.
   - simpl in HE.
@@ -529,12 +494,12 @@ Proof with eauto using incl_tran, incl_appl, incl_appr, incl_nil.
     + case_if.
       forwards Hia: In_incl HE incl_nodup_merge_rev.
       forwards [|]: in_app_or Hia.
-      * assert (incl (||typ_base||) (||A1||)). {
-         simpl. unfolds. intros. rewrite in_one_iff in H0. subst*.
+      * assert ( incl (styp2tindex typ_base) (styp2tindex A1) ). {
+          simpl. unfolds. intros. inverts* H0; try solve_by_invert.
         }
         forwards*: IH H0. elia.
-      * assert (incl (||typ_base||) (||A2||)). {
-         simpl. unfolds. intros. rewrite in_one_iff in H0. subst*.
+      * assert ( incl (styp2tindex typ_base) (styp2tindex A2) ). {
+          simpl. unfolds. intros. inverts* H0; try solve_by_invert.
         }
         forwards*: IH H0. elia.
   - simpl in HE; try case_if.
@@ -544,12 +509,8 @@ Proof with eauto using incl_tran, incl_appl, incl_appr, incl_nil.
     destruct A; simpl in HE; try solve [try case_if; try destruct HE; try discriminate; intuition eauto; inverts H].
     + (* arrow vs arrow *)
       simpl in HE. case_if.
-      rewrite in_one_iff in HE.
-      injection HE. intro HEq.
-      assert (|| B1 || = || A1 ||) by eauto using st_eq1.
-      assert (|| A2 || = || B2 ||) by eauto using st_eq2.
-      assert (|| A1 || = || B1 ||) by eauto using st_eq1.
-      assert (|| B2 || = || A2 ||) by eauto using st_eq2.
+      inverts* HE; try solve_by_invert.
+      repeat (find_injection; intros).
       forwards: IH B1 A1; eauto using incl_eq. elia.
       forwards: IH A1 B1; eauto using incl_eq. elia.
       forwards: IH A2 B2; eauto using incl_eq. elia.
@@ -557,19 +518,19 @@ Proof with eauto using incl_tran, incl_appl, incl_appr, incl_nil.
     + case_if.
       forwards Hia: In_incl HE incl_nodup_merge_rev.
       forwards [|]: in_app_or Hia.
-      * assert (incl (||typ_arrow B1 B2||) (||A1||)). {
-         simpl. unfolds. intros. case_if. rewrite in_one_iff in H0. subst*.
+      * assert ( incl (styp2tindex (typ_arrow B1 B2)) (styp2tindex A1) ). {
+          simpl. unfolds. intros. case_if. inverts* H0; try solve_by_invert.
         }
         forwards*: IH H0. elia.
-      * assert (incl (||typ_arrow B1 B2||) (||A2||)). {
-         simpl. unfolds. intros. case_if. rewrite in_one_iff in H0. subst*.
+      * assert ( incl (styp2tindex (typ_arrow B1 B2)) (styp2tindex A2) ). {
+          simpl. unfolds. intros. case_if. inverts* H0; try solve_by_invert.
         }
         forwards*: IH H0. elia.
-  - assert (incl (|| B1 ||)(|| typ_and B1 B2 ||)). {
+  - assert (incl (styp2tindex B1) (styp2tindex (typ_and B1 B2))). {
       simpl. case_if. { forwards (?&?): andb_prop C. rewrite* stype2string_toplike. eauto...  }
       applys incl_tran. 2: applys incl_nodup_merge. applys incl_appl. applys incl_refl.
     }
-    assert (incl (|| B2 ||)(|| typ_and B1 B2 ||)). {
+    assert (incl (styp2tindex B2) (styp2tindex (typ_and B1 B2))). {
       simpl. case_if. { forwards (?&?): andb_prop C. rewrite* stype2string_toplike. eauto...  }
       applys incl_tran. 2: applys incl_nodup_merge. applys incl_appr. applys incl_refl.
     }
@@ -583,25 +544,22 @@ Proof with eauto using incl_tran, incl_appl, incl_appr, incl_nil.
     + case_if.
       forwards Hia: In_incl HE incl_nodup_merge_rev.
       forwards [|]: in_app_or Hia.
-      * assert (incl (||typ_rcd l B||) (||A1||)). {
-         simpl. unfolds. intros. case_if. rewrite in_one_iff in H0. subst*.
+      * assert (incl (styp2tindex (typ_rcd l B)) (styp2tindex A1)). {
+         simpl. unfolds. intros. case_if. inverts* H0; try solve_by_invert.
         }
         forwards*: IH H0. elia.
-      * assert (incl (||typ_rcd l B||) (||A2||)). {
-         simpl. unfolds. intros. case_if. rewrite in_one_iff in H0. subst*.
+      * assert (incl (styp2tindex (typ_rcd l B)) (styp2tindex A2)). {
+         simpl. unfolds. intros. case_if. inverts* H0; try solve_by_invert.
         }
         forwards*: IH H0. elia.
-    + simpl in HE. case_if.
-      rewrite in_one_iff in HE.
-      injection HE. intro HEq.
-      assert (|| B || = || A ||) by eauto using st_eq3. assert (|| A || = || B ||) by eauto using st_eq3.
-      assert (l = l0) by eauto using st_eq4. subst.
+    + simpl in HE. case_if. inverts* HE; try solve_by_invert.
+      repeat (find_injection; intros). subst.
       forwards: IH B A; eauto using incl_eq. elia.
       forwards*: IH A B; eauto using incl_eq. elia.
-  Qed.
+Qed.
 
 Corollary eqIndTyp_complete : forall A B,
-    (|| A ||) = (|| B ||) -> sub A B /\ sub B A.
+    styp2tindex A = styp2tindex B -> sub A B /\ sub B A.
 Proof with eauto using incl_refl.
   introv HE.
   split; applys eqIndTyp_complete_alt_gen.
@@ -609,7 +567,7 @@ Proof with eauto using incl_refl.
 Qed.
 
 Lemma eqIndTyp_sound_alt_gen : forall A B,
-    sub A B -> incl (|| B ||) (|| A ||).
+    sub A B -> incl (styp2tindex B) (styp2tindex A).
 Proof with eauto using incl_nil, incl_nodup_merge, NoDup_nodup, merge_sorted_dedup, check_toplike_sound_complete.
   introv HS.
   induction HS; try solve [simpl; eauto using incl_refl].
@@ -648,7 +606,7 @@ Proof with eauto using incl_nil, incl_nodup_merge, NoDup_nodup, merge_sorted_ded
 Qed.
 
 Corollary eqIndTyp_sound_alt : forall B A,
-    sub B A -> sub A B -> (|| B ||) = (|| A ||).
+    sub B A -> sub A B -> styp2tindex B = styp2tindex A.
 Proof.
   introv HS1 HS2.
   apply eqIndTyp_sound_alt_gen in HS1.
@@ -657,7 +615,6 @@ Proof.
 Qed.
 
 (* sub target for eq index target *)
-
 
 Lemma and_inversion : forall A B C,
     sub A (typ_and B C) -> sub A B /\ sub A C.
@@ -717,11 +674,8 @@ Proof with try rewrite* <- check_toplike_sound_complete; simpl in *; try case_if
     rewrite C0 in HB.
     induction B...
     + forwards (?&?): Tlookup_eq HB. inverts H0. rewrite <- H1.
-      inverts H.
-      assert (HE1: || A1 || = || B1 ||) by eauto using st_eq1.
-      assert (HE2: || A2 || = || B2 ||) by eauto using st_eq2.
-      (* assert (HS: forall A B, sub A B -> subTarget |[A]| |[B]|) by admit. *)
-      forwards (HS1&HS2): eqIndTyp_complete HE1. forwards (HS3&HS4): eqIndTyp_complete HE2.
+      inverts H. subst.
+      forwards (HS1&HS2): eqIndTyp_complete H2. forwards (HS3&HS4): eqIndTyp_complete H3.
       forwards~ (_&HS1'): IH A1 B1. elia. forwards~: HS1'.
       forwards~ (_&HS2'): IH B1 A1. elia. forwards~: HS2'.
       forwards~ (_&HS3'): IH A2 B2. elia. forwards~: HS3'.
@@ -735,9 +689,7 @@ Proof with try rewrite* <- check_toplike_sound_complete; simpl in *; try case_if
     + destruct_lookup HB. forwards*: IHB1. elia. forwards*: IHB2. elia.
     + forwards (?&?): Tlookup_eq HB. inverts H0. rewrite <- H1.
       inverts H.
-      assert (HE1: || A || = || B ||) by eauto using st_eq3.
-      (* assert (HS: forall A B, sub A B -> subTarget |[A]| |[B]|) by admit. *)
-      forwards (HS1&HS2): eqIndTyp_complete HE1.
+      forwards (HS1&HS2): eqIndTyp_complete H3.
       forwards* (_&HS1'): IH A B. elia.
   }
 
@@ -794,7 +746,7 @@ Qed.
 
 (* same label means same type in any translation *)
 Lemma lookup_sub : forall A B l T T',
-  Tlookup l (|[ A ]|) = Some T -> Tlookup l (|[ B ]|) = Some T' -> subTarget T T'.
+    Tlookup l (|[ A ]|) = Some T -> Tlookup l (|[ B ]|) = Some T' -> subTarget T T'.
 Proof.
   introv. forwards (?&_): sub_source2target_aux. applys H.
 Qed.

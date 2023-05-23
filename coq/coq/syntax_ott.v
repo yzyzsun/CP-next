@@ -442,24 +442,9 @@ Set Implicit Arguments.
 Definition tindexOrder (t1 t2 : tindex) :=
   tindexSize t1 < tindexSize t2.
 
-Search Acc.
-Hint Constructors Acc.
+#[local] Hint Constructors Acc : core.
 
-
-Theorem tindexOrder_wf : well_founded tindexOrder.
-  red; intro. induction a.
-  all: try solve [ applys Acc_intro; introv H';
-                   unfolds in H'; destruct y; simpl in H';
-                   lia ].
-  - applys~ ti_list_ind.
-    + applys Acc_intro; introv H';
-      unfolds in H'; destruct y; simpl in H';
-        lia.
-    + introv IH1 IH2.
-      applys Acc_intro; introv H'; unfolds in H'; simpl in H'.
-Abort.
-
-Fixpoint tindexSize' (t : tindex) : nat :=
+Definition tindexSize' (t : tindex) : nat :=
   match t with
   | ti_list l => length l
   | _ => 0
@@ -509,60 +494,6 @@ Fixpoint tindexSize'' (t : tindex) : nat :=
   | ti_list l => S (sum (map tindexSize'' l))
   | _ => 1
   end.
-
-Fixpoint tindex_compare_lex_compat (s0 s1 : tindex) : Compare ti_lex_lt eq s0 s1.
-Proof.
-  refine (
-  match s0 as ss0, s1 as ss1 return (s0 = ss0 -> s1 = ss1 -> _) with
-  | ti_bot, ti_bot => fun _ _  => EQ _
-  | ti_bot, _  => fun H_eq : s0 = ti_bot => fun H_eq' : s1 = _ => LT _
-  | ti_base, ti_bot => fun H_eq : s0 = ti_base => fun H_eq' => GT _
-  | ti_base, ti_base => fun H_eq : s0 = ti_base => fun H_eq' => EQ _
-  | ti_base, _  => fun H_eq : s0 = ti_base => fun H_eq' => LT _
-  | ti_arrow _ _, ti_bot => fun H_eq H_eq' => GT _
-  | ti_arrow _ _, ti_base => fun H_eq H_eq' => GT _
-  | ti_arrow A1 B1, ti_arrow A2 B2 => fun H_eq H_eq' =>
-     match tindex_compare_lex_compat A1 A2 with
-     | LT H_lt => LT _
-     | EQ H_eq_lex => match tindex_compare_lex_compat B1 B2 with
-                      | LT H_lt => LT _
-                      | EQ H_eq_lex => EQ _
-                      | GT H_gt => GT _
-                      end
-     | GT H_gt => GT _
-     end
-   | ti_arrow _ _, _ => fun H_eq H_eq' => LT _
-   | ti_rcd _ _, ti_bot => fun H_eq H_eq' => GT _
-   | ti_rcd _ _, ti_base => fun H_eq H_eq' => GT _
-   | ti_rcd _ _, ti_arrow _ _ => fun H_eq H_eq' => GT _
-   | ti_rcd l A, ti_rcd r B => fun H_eq H_eq' =>
-     match string_compare_lex_compat l r with
-     | LT H_lt => LT _
-     | EQ H_eq_lex => match tindex_compare_lex_compat A B with
-                      | LT H_lt => LT _
-                      | EQ H_eq_lex => EQ _
-                      | GT H_gt => GT _
-                      end
-     | GT H_gt => GT _
-     end
-  | ti_rcd _ _, _ => fun H_eq H_eq' => LT _
-  | ti_list nil, ti_list nil => fun H_eq H_eq' => EQ _
-   | ti_list nil, ti_list _ => fun H_eq H_eq' => LT _
-   | ti_list (c1::l1), ti_list (c2::l2) =>
-     match tindex_compare_lex_compat c1 c2 with
-     | LT H_lt => fun H_eq H_eq' => LT _
-     | EQ H_eq_lex => fun H_eq H_eq' =>
-         match tindex_compare_lex_compat (ti_list l1) (ti_list l2) with
-         | LT H_lt => LT _
-         | EQ H_eq_lex => EQ _
-         | GT H_gt => GT _
-         end
-     | GT H_gt => fun H_eq H_eq' => GT _
-     end
-  | ti_list _, _ => fun H_eq H_eq' => GT _
-  end (refl_equal _) (refl_equal _)).
-  all: try solve [clear tindex_compare_lex_compat; try find_injection; subst; try econstructor; eauto].
-Abort.
 
 Program Fixpoint tindex_compare_lex_compat (s0 s1 : tindex) { measure (size_tindex s0 + size_tindex s1) }: Compare ti_lex_lt eq s0 s1 :=
   match s0 as ss0, s1 as ss1 return (s0 = ss0 -> s1 = ss1 -> _) with
@@ -1026,7 +957,6 @@ Module NTTLB := OTF_to_TTLB NOTF.
 Module Export NSort := Sort NTTLB.
 
 Open Scope string_scope.
-Check merge.
 Fixpoint styp2tindex (A: typ) : list tindex :=
   if (check_toplike A) then nil
   else

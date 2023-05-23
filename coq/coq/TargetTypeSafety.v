@@ -258,7 +258,7 @@ Lemma ST_top_inv : forall A, subTarget ttyp_top A -> A = ttyp_top.
 Proof.
   introv HS. inverts* HS.
   destruct* H.
-  forwards* (?&?&?): H1 l.
+  forwards* (?&?&?): H1 ll.
   simpl in H2. discriminate.
 Qed.
 
@@ -304,21 +304,21 @@ Lemma concat_typ_exists : forall A B,
 Proof with intuition eauto using ST_trans.
   introv HRa HRb. gen B.
   induction HRa; intros; try solve [simpl; intuition eauto].
-  simpl. case_lookup l B.
-  + forwards(?&?): H1 l H2. simpl. case_if*.
-    assert ((forall (l : String.string) (A' B' : ttyp),
+  simpl. case_lookup ll B.
+  + forwards(?&?): H1 ll H2. simpl. case_if*.
+    assert ((forall (l : tindex) (A' B' : ttyp),
                 Tlookup l Bt = Some A' -> Tlookup l B = Some B' -> subTarget A' B' /\ subTarget B' A')). {
-      intros. case_eq (string_eq_dec l l0); intros; subst.
-      - forwards: H1 l0. simpl. case_if*. eauto. inverts H. destruct H15; unify_lookup...
-      - forwards: H1 l0. simpl. case_if*. eauto. eauto.
+      intros. case_eq (tindex_dec ll l); intros; subst.
+      - forwards: H1 l. simpl. case_if*. eauto. inverts H. destruct H15; unify_lookup...
+      - forwards: H1 l. simpl. case_if*. eauto. eauto.
     }
     econstructor... applys IHHRa...
     inverts~ H.
-   + assert ((forall (l : String.string) (A' B' : ttyp),
+   + assert ((forall (l : tindex) (A' B' : ttyp),
                 Tlookup l Bt = Some A' -> Tlookup l B = Some B' -> subTarget A' B' /\ subTarget B' A')). {
-      intros. case_eq (string_eq_dec l l0); intros; subst.
-      - forwards: H1 l0. simpl. case_if*. eauto. inverts H. destruct H13; unify_lookup...
-      - forwards: H1 l0. simpl. case_if*. eauto. eauto.
+      intros. case_eq (tindex_dec ll l); intros; subst.
+      - forwards: H1 l. simpl. case_if*. eauto. inverts H. destruct H13; unify_lookup...
+      - forwards: H1 l. simpl. case_if*. eauto. eauto.
      }
      econstructor... applys IHHRa...
      inverts~ H.
@@ -706,20 +706,20 @@ Proof with intuition eauto using target_context_binds_wf, context_wf_inv_1, cont
         3: applys* TTyping_RcdCons H2 Typ2.
         all: intuition eauto using ST_rcd_2, ST_refl, ST_trans.
     + forwards* (?&?&?&?): IHTyp2. destruct H0 as [(?&?)|?].
-      * forwards* (?&?&?&?): lookup_ST_eq_some l H0.
+      * forwards* (?&?&?&?): lookup_ST_eq_some ll H0.
         exists. splits.
         3: applys* TTyping_RcdCons Typ1 H3. 4: left; splits*.
         1-2: applys ST_rcd_2.
         4,7,9: auto... all: intuition eauto using ST_rcd_2, ST_refl, ST_trans.
         all: auto...
-      * forwards* Heq: lookup_eq l H0.
+      * forwards* Heq: lookup_eq ll H0.
         exists. splits.
         3: applys* TTyping_RcdCons Typ1 H3...
         all: applys ST_rcd_2; intuition eauto using ST_rcd_2, ST_refl, ST_trans...
   - (* proj *)
     inverts* Red.
     + forwards* (?&?&?): IHTyp.
-      forwards* (?&?&?): lookup_ST_eq_some l H0.
+      forwards* (?&?&?): lookup_ST_eq_some ll H0.
     + exists; eauto.
       forwards* (?&?&?): lookup_field_in_value H.
       assert (x=t'). {

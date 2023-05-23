@@ -15,6 +15,18 @@ Require Export syntax_ott.
 (* *********************************************************************** *)
 (** * Induction principles for nonterminals *)
 
+Scheme tindex_ind' := Induction for tindex Sort Prop.
+
+Definition tindex_mutind :=
+  fun H1 =>
+  tindex_ind' H1.
+
+Scheme tindex_rec' := Induction for tindex Sort Set.
+
+Definition tindex_mutrec :=
+  fun H1 =>
+  tindex_rec' H1.
+
 Scheme ttyp_ind' := Induction for ttyp Sort Prop.
 
 Definition ttyp_mutind :=
@@ -52,8 +64,8 @@ Fixpoint close_texp_wrt_texp_rec (n1 : nat) (x1 : var) (t1 : texp) {struct t1} :
     | texp_fixpoint t2 => texp_fixpoint (close_texp_wrt_texp_rec (S n1) x1 t2)
     | texp_app t2 t3 => texp_app (close_texp_wrt_texp_rec n1 x1 t2) (close_texp_wrt_texp_rec n1 x1 t3)
     | texp_nil => texp_nil
-    | texp_cons l1 t2 t3 => texp_cons l1 (close_texp_wrt_texp_rec n1 x1 t2) (close_texp_wrt_texp_rec n1 x1 t3)
-    | texp_proj t2 l1 => texp_proj (close_texp_wrt_texp_rec n1 x1 t2) l1
+    | texp_cons ll1 t2 t3 => texp_cons ll1 (close_texp_wrt_texp_rec n1 x1 t2) (close_texp_wrt_texp_rec n1 x1 t3)
+    | texp_proj t2 ll1 => texp_proj (close_texp_wrt_texp_rec n1 x1 t2) ll1
     | texp_concat t2 t3 => texp_concat (close_texp_wrt_texp_rec n1 x1 t2) (close_texp_wrt_texp_rec n1 x1 t3)
   end.
 
@@ -69,7 +81,7 @@ Fixpoint size_ttyp (At1 : ttyp) {struct At1} : nat :=
     | ttyp_bot => 1
     | ttyp_base => 1
     | ttyp_arrow At2 Bt1 => 1 + (size_ttyp At2) + (size_ttyp Bt1)
-    | ttyp_rcd l1 At2 Bt1 => 1 + (size_ttyp At2) + (size_ttyp Bt1)
+    | ttyp_rcd ll1 At2 Bt1 => 1 + (size_tindex ll1) + (size_ttyp At2) + (size_ttyp Bt1)
   end.
 
 Fixpoint size_texp (t1 : texp) {struct t1} : nat :=
@@ -81,8 +93,8 @@ Fixpoint size_texp (t1 : texp) {struct t1} : nat :=
     | texp_fixpoint t2 => 1 + (size_texp t2)
     | texp_app t2 t3 => 1 + (size_texp t2) + (size_texp t3)
     | texp_nil => 1
-    | texp_cons l1 t2 t3 => 1 + (size_texp t2) + (size_texp t3)
-    | texp_proj t2 l1 => 1 + (size_texp t2)
+    | texp_cons ll1 t2 t3 => 1 + (size_tindex ll1) + (size_texp t2) + (size_texp t3)
+    | texp_proj t2 ll1 => 1 + (size_texp t2) + (size_tindex ll1)
     | texp_concat t2 t3 => 1 + (size_texp t2) + (size_texp t3)
   end.
 
@@ -112,13 +124,13 @@ Inductive degree_texp_wrt_texp : nat -> texp -> Prop :=
     degree_texp_wrt_texp n1 (texp_app t1 t2)
   | degree_wrt_texp_texp_nil : forall n1,
     degree_texp_wrt_texp n1 (texp_nil)
-  | degree_wrt_texp_texp_cons : forall n1 l1 t1 t2,
+  | degree_wrt_texp_texp_cons : forall n1 ll1 t1 t2,
     degree_texp_wrt_texp n1 t1 ->
     degree_texp_wrt_texp n1 t2 ->
-    degree_texp_wrt_texp n1 (texp_cons l1 t1 t2)
-  | degree_wrt_texp_texp_proj : forall n1 t1 l1,
+    degree_texp_wrt_texp n1 (texp_cons ll1 t1 t2)
+  | degree_wrt_texp_texp_proj : forall n1 t1 ll1,
     degree_texp_wrt_texp n1 t1 ->
-    degree_texp_wrt_texp n1 (texp_proj t1 l1)
+    degree_texp_wrt_texp n1 (texp_proj t1 ll1)
   | degree_wrt_texp_texp_concat : forall n1 t1 t2,
     degree_texp_wrt_texp n1 t1 ->
     degree_texp_wrt_texp n1 t2 ->
@@ -153,13 +165,13 @@ Inductive lc_set_texp : texp -> Set :=
     lc_set_texp (texp_app t1 t2)
   | lc_set_texp_nil :
     lc_set_texp (texp_nil)
-  | lc_set_texp_cons : forall l1 t1 t2,
+  | lc_set_texp_cons : forall ll1 t1 t2,
     lc_set_texp t1 ->
     lc_set_texp t2 ->
-    lc_set_texp (texp_cons l1 t1 t2)
-  | lc_set_texp_proj : forall t1 l1,
+    lc_set_texp (texp_cons ll1 t1 t2)
+  | lc_set_texp_proj : forall t1 ll1,
     lc_set_texp t1 ->
-    lc_set_texp (texp_proj t1 l1)
+    lc_set_texp (texp_proj t1 ll1)
   | lc_set_texp_concat : forall t1 t2,
     lc_set_texp t1 ->
     lc_set_texp t2 ->
@@ -218,6 +230,25 @@ Ltac default_case_split ::=
 
 Ltac default_auto ::= auto with arith lngen; tauto.
 Ltac default_autorewrite ::= fail.
+
+(* begin hide *)
+
+Lemma size_tindex_min_mutual :
+(forall ll1, 1 <= size_tindex ll1).
+Proof.
+apply_mutual_ind tindex_mutind;
+default_simp.
+Qed.
+
+(* end hide *)
+
+Lemma size_tindex_min :
+forall ll1, 1 <= size_tindex ll1.
+Proof.
+pose proof size_tindex_min_mutual as H; intuition eauto.
+Qed.
+
+Hint Resolve size_tindex_min : lngen.
 
 (* begin hide *)
 
@@ -796,6 +827,12 @@ Qed.
 
 Hint Resolve lc_texp_of_degree : lngen.
 
+Ltac tindex_lc_exists_tac :=
+  repeat (match goal with
+            | H : _ |- _ =>
+              fail 1
+          end).
+
 Ltac ttyp_lc_exists_tac :=
   repeat (match goal with
             | H : _ |- _ =>
@@ -928,7 +965,8 @@ default_simp;
 try solve [assert False by default_simp; tauto];
 (* non-trivial cases *)
 constructor; default_simp;
-try first [apply lc_set_texp_of_lc_texp];
+try first [apply lc_set_tindex_of_lc_tindex
+ | apply lc_set_texp_of_lc_texp];
 default_simp; eapply_first_lt_hyp;
 (* instantiate the size *)
 match goal with
