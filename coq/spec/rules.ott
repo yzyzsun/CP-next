@@ -153,12 +153,12 @@ formula :: 'formula_' ::=
   | e1 --> i e2               :: M :: multistep
     {{ coq (star exp step)[[i]][[e1]][[e2]] }}
     {{ tex [[e1]]~[[-->]][[i]]~[[e2]] }}
-  | lookup l tv => t         :: M :: lookupLabel
-    {{ coq tlookup [[l]] [[tv]] = Some [[t]] }}
-  | lookup l At => Bt        :: M :: lookupLabelTyp
-    {{ coq Tlookup [[l]] [[At]] = Some [[Bt]] }}
-  | lookup l At =/>          :: M :: lookupLabelTypNone
-    {{ coq Tlookup [[l]] [[At]] = None }}
+  | lookup ll tv => t         :: M :: lookupLabel
+    {{ coq tlookup [[ll]] [[tv]] = Some [[t]] }}
+  | lookup ll At => Bt        :: M :: lookupLabelTyp
+    {{ coq Tlookup [[ll]] [[At]] = Some [[Bt]] }}
+  | lookup ll At =/>          :: M :: lookupLabelTypNone
+    {{ coq Tlookup [[ll]] [[At]] = None }}
   | x : At in Gt              ::   :: inGt
     {{ coq binds [[x]][[At]][[Gt]] }}
   | uniq Gt                   ::   :: uniqGt

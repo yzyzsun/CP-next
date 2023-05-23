@@ -14,13 +14,16 @@
 
 grammar
 
+tindex, ll :: 'ti_' ::= {{ com type index }}
+  | | A |            :: M:: stype_trans {{ tex |[[A]]| }}  {{ coq (styp2typeindex ([[A]])) }}
+  
 ttyp, At, Bt, Ct :: 'ttyp_' ::= {{ com types }}
   | Top              ::  :: top    {{ com top type }} {{ tex \top }}
   | Bot              ::  :: bot    {{ com bottom type }} {{ tex \bot }}
   | Base             ::  :: base   {{ com base type }} {{ tex \mathbb{B} }}
   | At -> Bt         ::  :: arrow   {{ com function types }}
-  | l : At , Bt     ::  :: rcd     {{ com record }} {{ tex \{ [[ll]] [[:]] [[At]] [[,]] [[Bt]]  \} }}
-  | { l : At }      :: M:: single_rcd {{ coq (ttyp_rcd [[ll]] [[At]] ttyp_top) }}
+  | ll : At , Bt     ::  :: rcd     {{ com record }} {{ tex \{ [[ll]] [[:]] [[At]] [[,]] [[Bt]]  \} }}
+  | { ll : At }      :: M:: single_rcd {{ coq (ttyp_rcd [[ll]] [[At]] ttyp_top) }}
   % | At & Bt          ::  :: and     {{ com intersection }}
   | ( At )           :: S:: paren   {{ coq [[At]] }}
   | || A ||          :: M:: stype_trans {{ tex ||[[A]]|| }}  {{ coq (styp2ttyp ([[A]])) }}
@@ -36,12 +39,12 @@ texp, t, te, tp, tv, tu :: 'texp_' ::=              {{ com target term  }}
                                                         {{ com fixpoint }}
   | t1 t2                             :: :: app     {{ com applications }}
   | { }                               ::  :: nil    {{ com empty record }} {{ tex \{ \} }}
-  | l => t1' , t2                     ::  :: cons   {{ tex \{ [[ll]] [[=>]] [[t1']] [[,]] [[t2]]  \} }}
-  | { l => t1' }                      :: S:: single_rec {{ coq (texp_cons [[ll]] [[t1']] texp_nil) }}
-  | | A | => t1' , t2                 :: M:: lcons   {{ coq (texp_cons (stype2string [[A]]) [[t1']] [[t2]]) }}
-  | { | A | => t1' }                  :: M:: lsingle_rec {{ coq (texp_cons (stype2string [[A]]) [[t1']] texp_nil) }}
-  | t1 . l                            ::  :: proj     {{ com projection }}
-  | t1 . | A |                        :: M:: lproj    {{ coq (texp_proj [[t1]] (stype2string [[A]])) }}
+  | ll => t1' , t2                    ::  :: cons   {{ tex \{ [[ll]] [[=>]] [[t1']] [[,]] [[t2]]  \} }}
+  | { ll => t1' }                     :: S:: single_rec {{ coq (texp_cons [[ll]] [[t1']] texp_nil) }}
+  | t1 . ll                           ::  :: proj     {{ com projection }}
+  % | | A | => t1' , t2                 :: M:: lcons   {{ coq (texp_cons (stype2string [[A]]) [[t1']] [[t2]]) }}
+  % | { | A | => t1' }                  :: M:: lsingle_rec {{ coq (texp_cons (stype2string [[A]]) [[t1']] texp_nil) }}
+  % | t1 . | A |                        :: M:: lproj    {{ coq (texp_proj [[t1]] (stype2string [[A]])) }}
   | t1 ; t2                           ::  :: concat   {{ com concatenation }}
   | ( t )                             :: S:: paren    {{ coq [[t]] }}
   | t1 [ x ~>> t2 ]                   :: M:: tsubst   {{ coq (open_texp_wrt_texp [[x t1]][[t2]]) }}
@@ -123,7 +126,7 @@ Values :: '' ::=
   value tv1
   value tv2
   ----------------------- :: merge
-  value l => tv1 , tv2
+  value ll => tv1 , tv2
 
 
 defns
@@ -137,7 +140,7 @@ TargetStep   :: '' ::=
 
   t >-> t'
   -------------------- :: Proj1
-  t . l >-> t' . l
+  t . ll >-> t' . ll
   
   t >-> t'
   -------------------- :: AppL
@@ -159,12 +162,12 @@ TargetStep   :: '' ::=
 
   t >-> t'
   --------------------------------- :: RcdHead
-  l => t , t2 >-> l => t' , t2
+  ll => t , t2 >-> ll => t' , t2
 
   value tv
   t >-> t'
   --------------------------------- :: RcdTail
-  l => tv , t >-> l => tv , t'
+  ll => tv , t >-> ll => tv , t'
 
   value tv
   -------------------- :: MergeEmpty
@@ -174,12 +177,12 @@ TargetStep   :: '' ::=
   value tv2
   value tv3
   --------------------------------------------------- :: MergeRcd
-  (l => tv1 , tv2) ; tv3 >-> l => tv1 , (tv2 ; tv3)
+  (ll => tv1 , tv2) ; tv3 >-> ll => tv1 , (tv2 ; tv3)
 
   value tv
-  lookup l tv => t
+  lookup ll tv => t
   --------------------------------------------------- :: ProjRcd
-  tv . l >-> t
+  tv . ll >-> t
   
   ----------------------------- :: AppAbs
   (\ x . t)  tv  >-> t [x~>>tv]
@@ -203,7 +206,7 @@ RecordTypes   :: '' ::=
 
   recTyp Bt
   -------------------- :: Rcd
-  recTyp l : At , Bt
+  recTyp ll : At , Bt
 
 
 % defns
@@ -239,27 +242,27 @@ RecordTypes   :: '' ::=
 
 %   recTyp Ct
 %   recTyp Ct'
-%   (lookup l Ct => At' and At' ~= At) or lookup l Ct =/> 
-%   (lookup l Ct' => Bt' and Bt' ~= Bt) or lookup l Ct' =/> 
+%   (lookup ll Ct => At' and At' ~= At) or lookup ll Ct =/> 
+%   (lookup ll Ct' => Bt' and Bt' ~= Bt) or lookup ll Ct' =/> 
 %   At ~= Bt
 %   Ct ~= Ct'
 %   ------------------------- :: rcd
-%   l:At, Ct ~= l:Bt, Ct'
+%   ll:At, Ct ~= ll:Bt, Ct'
 
 %   recTyp Ct
-%   (lookup l1 Ct => At' and At' ~= At) or lookup l1 Ct =/> 
-%   (lookup l2 Ct => Bt' and Bt' ~= Bt) or lookup l2 Ct =/> 
-%   l1 != l2
-%   l2:Bt, (l1:At, Ct) ~= Ct'
+%   (lookup ll1 Ct => At' and At' ~= At) or lookup ll1 Ct =/> 
+%   (lookup ll2 Ct => Bt' and Bt' ~= Bt) or lookup ll2 Ct =/> 
+%   ll1 != ll2
+%   ll2:Bt, (l1:At, Ct) ~= Ct'
 %   ---------------------------------------------- :: comm
-%   l1:At, (l2:Bt, Ct) ~= Ct'
+%   ll1:At, (l2:Bt, Ct) ~= Ct'
 
 %   % recTyp Ct
-%   % (lookup l Ct => At' and At' ~= At) or lookup l Ct =/> 
+%   % (lookup ll Ct => At' and At' ~= At) or lookup ll Ct =/> 
 %   % At ~= Bt
-%   % l:Bt, (l:At, Ct) ~= Ct'
+%   % ll:Bt, (l:At, Ct) ~= Ct'
 %   % ---------------------------------------------- :: dup
-%   % l:At, (l:Bt, Ct) ~= Ct'
+%   % ll:At, (l:Bt, Ct) ~= Ct'
 
 %   % --------------- :: comm
 %   % At&Bt ~= Bt&At
@@ -289,26 +292,26 @@ ConcatTypes   :: '' ::=
   Top & Bt => Bt
 
 
-  (lookup l Bt2 => At' and At' ~= At) or lookup l Bt2 =/>
+  (lookup ll Bt2 => At' and At' ~= At) or lookup ll Bt2 =/>
   Bt1 & Bt2 => Ct
   ---------------------------------------- :: Rcd
-  (l : At , Bt1) & Bt2 => l : At , Ct
+  (ll : At , Bt1) & Bt2 => ll : At , Ct
 
 defns
 ContainedByRecTyp   :: '' ::=
 
   defn
-  At |> l : Bt
+  At |> ll : Bt
   :: :: contained_by_rec_typ :: 'CRT_'
   {{ com non-deterministic lookup }}
   by
 
   ------------------------------- :: Head
-  (l1 : At , Bt) |> l1 : At
+  (ll1 : At , Bt) |> ll1 : At
 
-  Bt |> l2 : Ct
+  Bt |> ll2 : Ct
   ------------------------------- :: Tail
-  (l1 : At , Bt) |> l2 : Ct
+  (ll1 : At , Bt) |> ll2 : Ct
 
 
 
@@ -330,7 +333,7 @@ ContainedByRecTyp   :: '' ::=
 
 %   Bt < Ct
 %   --------------- :: wide
-%   l:At, Bt < Ct
+%   ll:At, Bt < Ct
 
 
 defns
@@ -354,9 +357,9 @@ WelformedTypes   :: '' ::=
   |- At
   |- Bt
   recTyp Bt
-  (lookup l Bt => At' and At' ~= At) or lookup l Bt =/>
+  (lookup ll Bt => At' and At' ~= At) or lookup ll Bt =/>
   ----------------------------------------- :: Rcd
-  |- l : At , Bt
+  |- ll : At , Bt
 
   |- At
   |- Bt
@@ -404,13 +407,13 @@ TargetSubtype :: '' ::=
   At1->Bt1 < At2->Bt2
 
   recTyp Ct'
-  lookup l Ct => Bt
+  lookup ll Ct => Bt
   Bt < At
   % if we use Bt < At, we wil need At < At for general At
-  (lookup l Ct' => At' and At' ~= At) or lookup l Ct' =/>
+  (lookup ll Ct' => At' and At' ~= At) or lookup ll Ct' =/>
   Ct < Ct'
   --------------- :: rcd
-  Ct < l:At, Ct'
+  Ct < ll:At, Ct'
   
 defns
 TargetTyping :: '' ::=
@@ -453,16 +456,16 @@ TargetTyping :: '' ::=
   Gt |- { } : Top
 
   recTyp Bt
-  (lookup l Bt => At' and At' ~= At) or lookup l Bt =/>
+  (lookup ll Bt => At' and At' ~= At) or lookup ll Bt =/>
   Gt |- t1 : At
   Gt |- t2 : Bt
   ----------------------------------------- :: RcdCons
-  Gt |- (l => t1 , t2) :  (l : At, Bt)
+  Gt |- (ll => t1 , t2) :  (ll : At, Bt)
 
   Gt |- t : At
-  lookup l At => Bt
+  lookup ll At => Bt
   ----------------------------------------- :: RcdProj
-  Gt |- t.l : Bt
+  Gt |- t.ll : Bt
 
   recTyp At
   recTyp Bt
@@ -552,21 +555,21 @@ TargetTyping :: '' ::=
 %   Gt |- t <= Top
   
 %   Gt |- t : At
-%   lookup l At => Bt
+%   lookup ll At => Bt
 %   % Bt <<: Ct
 %   --------------------------- :: Part
-%   Gt |- t <= { l : Bt }
+%   Gt |- t <= { ll : Bt }
 
-%   Gt |- t <= { l : At }
+%   Gt |- t <= { ll : At }
 %   Gt |- t <= Bt
 %   --------------------------- :: Cons
-%   Gt |- t <= l : At , Bt
+%   Gt |- t <= ll : At , Bt
 
 %   Gt |- t <= At
 %   At ~= Bt
 %   --------------------------- :: Sim
 %   Gt |- t <= Bt
 
-%   % Gt |- t <= { l : At }
+%   % Gt |- t <= { ll : At }
 %   % --------------------------- :: Proj
 %   % Gt |- t.l <= At
