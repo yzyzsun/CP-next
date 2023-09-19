@@ -82,6 +82,7 @@ terminals :: 'terminals_' ::=
   | |->          ::  :: red        {{ tex \longmapsto }}
   | <=           ::  :: check      {{ tex \Leftarrow }}
   | =>           ::  :: infer      {{ tex \Rightarrow }}
+  | =/>          ::  :: nrarrow    {{ tex \nRightarrow }}
   | |-           ::  :: turnstile  {{ tex \vdash }}
   | |=           ::  :: dash2      {{ tex \models }}
   | T            ::  :: t          {{ tex \top }}
