@@ -1,0 +1,185 @@
+\documentclass{article}
+
+\usepackage{amsmath,amssymb}
+\usepackage[margin=1in]{geometry}
+\usepackage{multicol}
+\usepackage{ottalt}
+\usepackage{xcolor}
+\usepackage{xspace}
+
+\inputott{ott}
+
+\newcommand\calculus{$\mathsf{F}_i^+$\xspace}
+
+\title{Compiling from \calculus to JavaScript}
+\author{Yaozhu Sun}
+
+\begin{document}
+
+\maketitle
+
+\section*{Syntax of \calculus}
+\begin{align*}
+  &\text{Types}       &A,B,C ::=&~ [[Top]] ~|~ [[Bot]] ~|~ [[Base]] ~|~ [[X]] ~|~ [[A -> B]] ~|~ [[Forall X*A. B]] ~|~ [[{l : A}]] ~|~ [[A & B]] \\
+  &\text{Type indices}&[[T]] ::=&~ [[Base]] ~|~ [[->T]] ~|~ [[\-/T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
+  &\text{Expressions} &    e ::=&~ [[{}]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[/\X*A. e:B]] ~|~ [[e A]] ~|~ [[{l = e}]] ~|~ [[e.l]] \\
+  &                   &        |&~ [[e1 ,, e2]] ~|~ [[e : A]] \\
+  &\text{Values}      &    v ::=&~ [[{}]] ~|~ [[b]] ~|~ [[\x:A. e:B]] ~|~ [[/\X*A. e:B]] ~|~ [[{l = v}]] ~|~ [[v1 ,, v2]] \\
+\end{align*}
+
+\boxed{[[|A|]] = [[T]]} \hfill \textit{(Type translation)}
+\begin{mathpar}
+\inferrule{}{ [[|Base|]] = [[Base]] }
+\and
+\inferrule{}{ [[|X|]] = X }
+\and
+\inferrule{}{ [[|Forall X*A. B|]] = [[\-/|B|]] }
+\and
+\inferrule{}{ [[|A->B|]] = [[->|B|]] }
+\and
+\inferrule{}{ [[|{l:A}|]] = [[{l:|A|}]] }
+\and
+\inferrule{}{ [[|A&B|]] = [[|A|&|B|]] }
+\end{mathpar}
+
+\bigskip\bigskip
+
+\ottdefntoplike
+
+\ottdefnordinary
+
+\newpage
+\ottdefncompile
+\bigskip\bigskip\bigskip
+
+\begin{multicols}{3}
+\begin{verbatim}
+/* S0 */
+var z = {};  J;
+
+/* S1 */
+z[T] = b;
+
+/* S2 */
+Object.assign(z, x());
+
+/* S3 */
+var z = x();
+
+/* S4 */
+var x = () => z;  J;
+
+/* S5 */
+z[T] = x => {
+  J;  return y;
+};
+
+/* S6 */
+J1;
+var y0 = () => {
+  J2; return y;
+};
+J3;
+
+/* S7 */
+z[T] = X => {
+  J;  return y;
+};
+
+/* S8 */
+z[T] = () => {
+  J;  return y;
+};
+\end{verbatim}
+\end{multicols}
+
+\vfill
+\ottdefndistapp
+
+\begin{multicols}{3}
+\begin{verbatim}
+/* S9 */
+Object.assign(z, x[T](y));
+
+/* S9' */
+Object.assign(z, x[T1](T2));
+
+/* S9'' */
+Object.assign(z, x[T]());
+\end{verbatim}
+\end{multicols}
+
+\newpage
+\ottdefncosub
+
+\begin{multicols}{3}
+\begin{verbatim}
+/* S10 */
+y[T] = x[T];
+
+/* S11 */
+y[T2] = p => {
+  var x2 = x[T1](p);
+  var y2 = {};  J2;
+  return y2;
+};
+
+/* S12 */
+y[T2] = X => {
+  var x2 = x[T1](X);
+  var y2 = {};  J2;
+  return y2;
+};
+
+/* S13 */
+y[T2] = () => {
+  var x0 = x[T1]();
+  var y0 = {};  J;
+  return y0;
+}
+
+/* S14 */
+var y1 = {};  J1;
+var y2 = {};  J2;
+J3;
+\end{verbatim}
+\end{multicols}
+
+\newpage
+\ottdefncomerge
+
+\begin{multicols}{3}
+\begin{verbatim}
+/* S15 */
+Object.assign(z, x, y);
+
+/* S16 */
+z[T] = p => {
+  var y1 = x1[T1](p);
+  var y2 = x2[T2](p);
+  var y = {};  J;
+  return y;
+};
+
+
+/* S17 */
+z[T] = X => {
+  var y1 = x1[T1](X);
+  var y2 = x2[T2](X);
+  var y = {};  J;
+  return y;
+};
+
+
+
+/* S18 */
+z[T] = () => {
+  var y1 = x1[T1]();
+  var y2 = x2[T2]();
+  var y = {};  J;
+  return y;
+};
+\end{verbatim}
+\end{multicols}
+
+\end{document}

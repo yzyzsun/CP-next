@@ -106,6 +106,7 @@ formula :: 'formula_' ::=
   | v1 ~ v2               :: M:: consistentSpec
   | fresh x               :: M:: fresh_evar {{ tex \mathsf{fresh} [[x]] }}
   | fresh X               :: M:: fresh_tvar {{ tex \mathsf{fresh} [[X]] }}
+  | t >->* t'             ::  :: steps
 
 parsing
   t_arrow <= t_and

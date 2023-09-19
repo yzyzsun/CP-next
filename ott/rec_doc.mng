@@ -21,26 +21,95 @@
 \maketitle
 
 \section{Notes}
+\paragraph{Properties (to prove)}
+0) Type-safety in the target calculus \\
+1) Any well-typed source expression is translated into a well-typed target expression \\
+2) For type index generated from (source) types, define an equivalence relations
+on types (\texttt{A~=B}). \texttt{|A|=|B| iff A\~=B} \\
+
+A & B ~= B & A
+
+A ~~ Top
+---------------
+A & B ~= B
+
+A ~= B
+B ~= C
+---------------
+A ~= C
+
+
+Do you also need to define some ordering on types
+Currently the ordering uses the sort function on JS Strings; I wonder if it can be reimplemented in Coq
+
+| A1 & A2 |
+
+we should look for a property about consistency instead
+
+3) One source type corresponds to one target type, and it must be a legal record
+type. Define a translation function for it.\\
+4) it can be used to prove the soundness of coercive subtyping as it converts target terms
+
 \paragraph{Questions}
 0) Why $[[Top]]$ and $[[Bot]]$ corresponds to no type index?
-
-\paragraph{Problems}
-0) Duplicated labels in records are unsafe in the target calculus.
+1) Duplicated labels in records are unsafe in the target calculus.
 How to compile $1:Int\&Int$? \\
-1) Subtyping does not produce unique coercion so coherence is a problem.
+
+
+---------------------- CP problems ---------------------
+Besides the known issue of distributive subtyping, I found two more significant inefficiency issues <-- Ok, good. We should definitely discuss those.
+
+Here’s the compiled JS code for (fix r:{x:Int}. {x = 1; y = r.x}).y
+
+
+function main() {
+    var $1 = {};
+    var $2 = {};
+    var $r = function () {
+        return $2;
+    };
+    $2[`rcd_x:Int`] = function () {
+        var $10 = {};
+        $10[`Int`] = 1.0;
+        return $10;
+    };
+    $2[`rcd_y:Int`] = function () {
+        var $11 = {};
+        var $12 = $r();
+        var $13 = {};
+        $13[`rcd_x:Int`] = function () {
+            var $14 = $12[`rcd_x:Int`]();
+            var $15 = {};
+            $15[`Int`] = $14[`Int`];
+            return $15;
+        };
+        Object.assign($11, $13[`rcd_x:Int`]());
+        return $11;
+    };
+    var $16 = {};
+    $16[`rcd_y:Int`] = function () {
+        var $17 = $2[`rcd_y:Int`]();
+        var $18 = {};
+        $18[`Int`] = $17[`Int`];
+        return $18;
+    };
+    Object.assign($1, $16[`rcd_y:Int`]());
+    return $1;
+};
+
+
+
+
+
+
+
+
+
 
 
 \paragraph{Changes in \reccal}
-0) Use first-class labels\\
-1) Unify the abstractions in expressions
-2) Refine the syntax and related rules of records and projections as the label
-could be an expression
+0) Simplify the system, drop polymorphism, and use simple labels\\
 
-
-\paragraph{Changes in elaboration}
-0) Add distributive application and revise the related typing rules\\
-1) Pass terms to coercive subtyping instead of generating coercions \\
-2) Update coercion rules for arrows
 
 \newpage
 
