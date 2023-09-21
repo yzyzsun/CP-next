@@ -16,11 +16,11 @@
   "license": "Apache-2.0",
   "homepage": "https://plground.org",
   "devDependencies": {
+    "@vscode/vsce": "^2.16.0",
     "codemirror": "^6.0.1",
     "lezer-loader": "^0.3.0",
     "purescript": "^0.15.0",
-    "spago": "^0.20.8",
-    "@vscode/vsce": "^2.16.0",
+    "spago": "^0.21.0",
     "webpack": "^5.0.0",
     "webpack-cli": "^5.0.0"
   },
