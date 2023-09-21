@@ -27,11 +27,12 @@ import Language.CP (compile, deserialize, importDefs, inferType, interpret, seri
 import Language.CP.Context (Mode(..), REPLState, clearEnv, fromState, initState, mergeStates, runChecking, runTyping)
 import Language.CP.Util (unsafeFromJust)
 import Node.Encoding (Encoding(..))
-import Node.FS.Stats (Stats(..), isDirectory)
+import Node.EventEmitter (on_)
+import Node.FS.Stats (isDirectory, modifiedTime)
 import Node.FS.Sync as Sync
 import Node.Path (FilePath, concat, dirname, sep)
 import Node.Process (cwd, exit)
-import Node.ReadLine (Completer, Interface, createConsoleInterface, noCompletion, prompt, setLineHandler, setPrompt)
+import Node.ReadLine (Completer, Interface, createConsoleInterface, lineH, noCompletion, prompt, setPrompt)
 
 foreign import require :: forall a. String -> (a -> Effect Unit) -> Effect Unit
 
@@ -150,16 +151,16 @@ compileFile file ref = do
         _, _ -> pure Nothing
     loadHeader :: FilePath -> Effect (Maybe REPLState)
     loadHeader f = do
-      Stats cp <- Sync.stat f
+      cp <- Sync.stat f
       header <- try $ Sync.stat (extHeader f)
       case header of
-        Right (Stats h) -> if cp.mtime <= h.mtime then do
-                             text <- readTextFile (extHeader f)
-                             text' <- includeHeaders text
-                             case deserialize text' of
-                               Left err -> fatal (showParseError err text') $> Nothing
-                               Right st -> pure $ Just st
-                           else compileJS f *> loadHeader f
+        Right h -> if modifiedTime cp <= modifiedTime h then do
+                     text <- readTextFile (extHeader f)
+                     text' <- includeHeaders text
+                     case deserialize text' of
+                       Left err -> fatal (showParseError err text') $> Nothing
+                       Right st -> pure $ Just st
+                   else compileJS f *> loadHeader f
         Left _ -> compileJS f *> loadHeader f
     includeHeaders :: String -> Effect String
     includeHeaders code = case match includeRegex code of
@@ -206,7 +207,7 @@ mayTime cmd arg ref = do
 -- command dispatcher
 dispatch :: Cmd
 dispatch input = ifMatchesAny (":?" : ":h" : ":help" : Nil) printHelp $
-  ifMatchesAny (":q" : ":quit" : ":exit" : Nil) (\_ -> \_ -> exit 0) $
+  ifMatchesAny (":q" : ":quit" : ":exit" : Nil) (\_ _ -> exit) $
   ifMatches ":mode" showOrSetMode $
   ifMatches ":timing" setTiming $
   ifMatches ":env" showOrClearEnv $
@@ -298,7 +299,7 @@ repl = do
   setPrompt "> " interface
   prompt interface
   ref <- new initState
-  setLineHandler (handler interface ref) interface
+  on_ lineH (handler interface ref) interface
 
 -- helpers
 
