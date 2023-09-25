@@ -6,6 +6,7 @@
 - Support `x ,, y` as an alias to `x , y` for compatibility.
 - In a trait definition, `implements` and `inherits` clauses can be written in any order.
 - Change the notation of record updates from `{ rcd | x = 1 }` (Elm-style) to `{ rcd with x = 1 }` (OCaml-style).
+- If a self-reference is declared without a type annotation, e.g. `trait [self] implements Sig`, the type of `self` defaults to `Sig` instead of `Top`.
 
 ## 0.1.3
 
