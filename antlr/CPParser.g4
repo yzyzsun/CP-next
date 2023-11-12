@@ -32,6 +32,7 @@ type
     |   <assoc=left> type Backslash type
     |   <assoc=right> type Arrow type
     |   ForAll typeParam+ Dot type
+    |   Mu typeNameDecl Dot type
     |   TraitType Less type (FatArrow type)? Greater
     |   btype btype*
     ;
@@ -67,7 +68,7 @@ expression
 
 opexpr
     :   lexpr                       
-    |   (Minus | Not | Length) opexpr
+    |   (Minus | Not | Length | Sqrt) opexpr
     |   <assoc=left> opexpr Index opexpr
     |   <assoc=left> opexpr (Asterisk | Slash | Modulo) opexpr
     |   <assoc=left> opexpr (Plus | Minus) opexpr

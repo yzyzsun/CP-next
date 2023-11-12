@@ -84,6 +84,8 @@ export default class CPVisitor extends CPParserVisitor {
       return new AST.TyArrow(this.visitType(ctx.type(0)), this.visitType(ctx.type(1)));
     } else if (ctx.Backslash()) {
       return new AST.TyDiff(this.visitType(ctx.type(0)), this.visitType(ctx.type(1)));
+    } else if (ctx.Mu()) {
+      return new AST.TyRec(this.visitTypeNameDecl(ctx.typeNameDecl()), this.visitType(ctx.type(0)));
     } else if (ctx.ForAll()) {
       return new AST.TyForall(
         this.listify(ctx.typeParam().map(this.visitTypeParam, this)),
@@ -211,6 +213,9 @@ export default class CPVisitor extends CPParserVisitor {
             break;
           case CPParser.Length:
             op = OP.Len.value;
+            break;
+          case CPParser.Sqrt:
+            op = OP.Sqrt.value;
             break;
           default:
             console.error("Error at Unary Opexpr");

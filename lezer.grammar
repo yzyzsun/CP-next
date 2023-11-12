@@ -36,6 +36,7 @@ type {
   type !diff TypeOp<"\\"> type |
   type !intersect TypeOp<"&"> type |
   kw<"forall"> typeParam+ "." type |
+  kw<"mu"> TypeNameDecl "." type |
   kW<"Trait"> angles<sort> |
   btype btype*
 }
@@ -54,7 +55,8 @@ RecordType { braces<sepEndBySemi<LabelDecl "?"? ":" type>> }
 expression { opexpr ~conflict (":" type)? }
 
 opexpr {
-  lexpr | minus opexpr | LogicOp<"!"> opexpr | LengthOp opexpr |
+  lexpr | minus opexpr | LogicOp<"!"> opexpr |
+  LengthOp opexpr | SqrtOp opexpr |
   opexpr !index IndexOp opexpr |
   opexpr !times ArithOp<"*" | "/" | "%"> opexpr |
   opexpr !plus (ArithOp<"+"> | minus) opexpr |
@@ -184,6 +186,7 @@ Label { lowerid | upperid }
   ForwardOp { "^" }
   IndexOp { "!!" }
   LengthOp { "#" }
+  SqrtOp { "√" }
 
   minus[@name=ArithOp] { "-" }
 

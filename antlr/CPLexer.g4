@@ -51,6 +51,10 @@ ForAll
     :   'forall'
     ;
 
+Mu
+    :   'mu'
+    ;
+
 Int
     :   'Int'
     ;
@@ -236,6 +240,10 @@ Slash
 
 Modulo
     :   '%'
+    ;
+
+Sqrt
+    :   '√'
     ;
 
 Not
