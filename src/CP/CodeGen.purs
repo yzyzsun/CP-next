@@ -280,17 +280,16 @@ infer (C.TmToString e) z = do
   let ast = j <> [ addProp (JSVar z) (toIndex C.TyString)
     (JSApp (JSAccessor "toString" (JSIndexer (toIndex t) (JSVar y))) []) ]
   pure { ast, typ: C.TyString }
-infer (C.TmLet x e1 e2 global) z = do
+infer (C.TmDef x e1 e2) z = do
   order <- asks (_.evalOrder)
   case order of
     CBV -> do { ast: j1, typ: t1 } <- infer e1 (variable x)
               { ast: j2, typ: t2 } <- addTmBind x t1 $ infer e2 z
-              pure { ast: [export $ initialize $ variable x] <> j1 <> j2, typ: t2 }
+              pure { ast: [JSExport $ initialize $ variable x] <> j1 <> j2, typ: t2 }
     CBN -> do { ast: j1, typ: t1, var: y } <- infer' e1
               { ast: j2, typ: t2 } <- addTmBind x t1 $ infer e2 z
               let def = JSVariableIntroduction (variable x) $ Just $ lazyObj y j1
-              pure { ast: [export def] <> j2, typ: t2 }
-  where export = if global then JSExport else identity
+              pure { ast: [JSExport def] <> j2, typ: t2 }
 infer (C.TmMain e) _ = do
   z <- freshVarName
   { ast: j , typ } <- infer e z

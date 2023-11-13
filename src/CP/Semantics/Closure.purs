@@ -64,7 +64,7 @@ step (TmOptPrj e1 l t e2)
 step (TmTApp e t) | isValue e = paraApp e <<< TyArg <$> expand t
                   | otherwise = TmTApp <$> step e <@> t
 step tabs@(TmTAbs _ _ _ _ _) = closure tabs
-step (TmLet x e1 e2 _) = closureWithTmBind x e1 e2
+step (TmDef x e1 e2) = closureWithTmBind x e1 e2
 step (TmFold t e) = TmFold t <$> step e
 step (TmUnfold t e) | isTopLike t = pure TmUnit
                     | TmFold _ e' <- e = pure $ TmAnno e' (unfold t)

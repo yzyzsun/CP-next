@@ -69,7 +69,7 @@ step (TmOptPrj e1 l t e2)
 step (TmTApp e t)
   | isValue e = computation "PTApp" $> paraApp e (TyArg t)
   | otherwise = congruence  "TApp"  $> TmTApp <*> step e <@> t
-step (TmLet x e1 e2 _) = computation "Let" $> tmSubst x e1 e2
+step (TmDef x e1 e2) = computation "Def" $> tmSubst x e1 e2
 step (TmFold t e) = congruence "Fold" $> TmFold t <*> step e
 step (TmUnfold t e)
   | isTopLike t = computation "UnfoldTop" $> TmUnit

@@ -77,7 +77,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       t' <- expand t
       go $ paraApp e' (TyArg t')
     go e@(TmTAbs _ _ _ _ _) = closure e
-    go (TmLet x e1 e2 _) = do
+    go (TmDef x e1 e2) = do
       e1' <- closure e1
       local (\env -> insert x (TmBind (TmRef (ref e1'))) env) (go e2)
     go (TmFold t e) = TmFold t <$> go e
