@@ -43,7 +43,7 @@ function interpret(callback) {
         return;
       }
       const arr = lib.split('/');
-      const user = arr.length == 1 ? namespace : arr[0];
+      const user = arr.length == 1 ? namespace : arr[0].toLowerCase();
       const name = arr.slice(-1)[0];
       fetchDocJson(name, user).then(json => {
         if (json.mode != 'library') libErr(`'${lib}' is not a library.`);
@@ -60,7 +60,7 @@ function preprocess(code) {
   if (!found) {
     return new Promise((resolve, reject) => resolve(code));
   } else {
-    const user = found[1] || namespace;
+    const user = found[1] ? found[1].toLowerCase() : namespace;
     const name = found[2];
     return fetchDocText(name, user).then(doc =>
       preprocess(code.replace(regexp,
