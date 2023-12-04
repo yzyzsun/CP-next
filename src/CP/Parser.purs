@@ -249,12 +249,13 @@ document p = position >>= \pos -> TmPos pos <<< TmDoc <$> do
     command = do
       pos <- position
       cmd <- identifier
+      targs <- many tyArg
       args <- many $ choice [ parensWithoutTrailingSpace p
                             , bracesWithoutTrailingSpace recordArg
                             , bracketsWithoutConsumingSpace $ document p
                             ]
       let f = if isCapitalized cmd then TmNew else identity
-      pure $ TmPos pos (f (foldl TmApp (TmVar cmd) args))
+      pure $ TmPos pos (f (foldl TmApp (foldl TmTApp (TmVar cmd) targs) args))
     recordArg = TmRcd <$> sepEndBySemi (recordField p false)
     interpolation = newStr <<< TmToString <$> parensWithoutTrailingSpace p
     newline = char '\\' $> newEndl
