@@ -2,7 +2,7 @@ export function require(file) {
   return function (callback) {
       return function () {
         // bypass module caching to enable hot reloading
-        import(file + '?version=' + Date.now())
+        import(file + '?t=' + Date.now())
           .then(module => callback(module.main())());
       };
   };

@@ -6,6 +6,7 @@ import Ansi.Codes (Color(..))
 import Ansi.Output (foreground, withGraphics)
 import Data.Array (filter)
 import Data.Array.NonEmpty (NonEmptyArray, foldl1, fromArray, (!!))
+import Data.DateTime.Instant (unInstant)
 import Data.Either (Either(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
@@ -21,7 +22,7 @@ import Effect (Effect)
 import Effect.Class.Console (error)
 import Effect.Console (log)
 import Effect.Exception (message, try)
-import Effect.Now (nowTime)
+import Effect.Now (now, nowTime)
 import Effect.Ref (Ref, modify_, new, read, write)
 import Language.CP (compile, deserialize, importDefs, inferType, interpret, serialize, showParseError)
 import Language.CP.Context (Mode(..), REPLState, clearEnv, fromState, initState, mergeStates, runChecking, runTyping)
@@ -173,18 +174,20 @@ compileFile file ref = do
     includeRegex = unsafeRegex """include\s+"([^"]+)"\s*;""" noFlags
     importLibs :: String -> Effect String
     importLibs code = matchOpen dir code pure \n f -> do
+      instant <- now
+      let Milliseconds t = unInstant instant
       workDir <- cwd
       let f' = concat [workDir, f]
-      importLibs $ replace openRegex (preludeAll n f') code
-    preludeAll :: String -> FilePath -> String
-    preludeAll n f = "{-# PRELUDE H\n"
-                  <> "include " <> show (extHeader f) <> ";\n"
-                  <> "#-}\n"
-                  <> "{-# PRELUDE CP\n"
-                  <> "import * as " <> n <> " from " <> show (extJS f) <> ";\n"
-                  <> "for (var [key, value] of Object.entries(" <> n <> ")) "
-                  <> "{ global[key] = value; }\n"
-                  <> "#-}\n"
+      importLibs $ replace openRegex (preludeAll n f' t) code
+    preludeAll :: String -> FilePath -> Number -> String
+    preludeAll n f t = "{-# PRELUDE H\n"
+                    <> "include " <> show (extHeader f) <> ";\n"
+                    <> "#-}\n"
+                    <> "{-# PRELUDE CP\n"
+                    <> "import * as " <> n <> " from " <> show (extJS f <> "?t=" <> show t) <> ";\n"
+                    <> "for (var [key, value] of Object.entries(" <> n <> ")) "
+                    <> "{ global[key] = value; }\n"
+                    <> "#-}\n"
     dir = dirname file
     extHeader = (_ <> ".h")
     extJS = (_ <> ".mjs")
