@@ -298,7 +298,7 @@ repl = do
   interface <- createConsoleInterface completer
   setPrompt "> " interface
   prompt interface
-  ref <- new initState
+  ref <- new initState { forbidDup = false }
   on_ lineH (handler interface ref) interface
 
 -- helpers

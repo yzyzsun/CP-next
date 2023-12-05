@@ -11,7 +11,6 @@ import Data.Generic.Rep (class Generic)
 import Data.List (List(..), null, singleton)
 import Data.Map (Map, empty, fromFoldable, insert, lookup)
 import Data.Maybe (Maybe(..))
-import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.Tuple (fst)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -26,7 +25,6 @@ type Ctx = { tmBindEnv  :: Map Name C.Ty -- typing
            , tyBindEnv  :: Map Name C.Ty -- disjointness
            , tyAliasEnv :: Map Name S.Ty -- synonym
            , sortEnv    :: Map Name Name -- distinguishing
-           , letVars :: Set.Set Name
            , pos :: Pos
            }
 
@@ -38,7 +36,6 @@ emptyCtx =  { tmBindEnv  : empty
             , tyBindEnv  : empty
             , tyAliasEnv : empty
             , sortEnv    : empty
-            , letVars    : Set.empty
             , pos        : UnknownPos
             }
 
@@ -77,15 +74,6 @@ addTyAlias = addToEnv \f r -> r { tyAliasEnv = f r.tyAliasEnv }
 
 addSort :: forall a. Name -> Name -> Typing a -> Typing a
 addSort = addToEnv \f r -> r { sortEnv = f r.sortEnv }
-
-memberLetVars :: Name -> Typing Boolean
-memberLetVars name = Set.member name <$> asks (_.letVars)
-
-addLetVar :: forall a. Name -> Typing a -> Typing a
-addLetVar name = local \r -> r { letVars = Set.insert name r.letVars }
-
-clearLetVars :: forall a. Typing a -> Typing a
-clearLetVars = local \r -> r { letVars = Set.empty :: Set.Set Name }
 
 localPos :: forall a. (Pos -> Pos) -> Typing a -> Typing a
 localPos f = local \r -> r { pos = f r.pos }
@@ -126,6 +114,7 @@ type REPLState =  { mode       :: Mode
                   , timing     :: Boolean
                   , tmBindings :: TmBindings
                   , tyAliases  :: TyAliases
+                  , forbidDup  :: Boolean
                   }
 
 initState :: REPLState
@@ -133,6 +122,7 @@ initState = { mode       : HOAS
             , timing     : false
             , tmBindings : Nil
             , tyAliases  : Nil
+            , forbidDup  : true
             }
 
 mergeStates :: REPLState -> REPLState -> Either (List Name) REPLState
@@ -160,7 +150,6 @@ fromState b = { tmBindEnv  : fromFoldable $ rmap fst <$> b.tmBindings
               , tyAliasEnv : fromFoldable b.tyAliases
               , tyBindEnv  : empty
               , sortEnv    : empty
-              , letVars    : Set.fromFoldable $ fst <$> b.tmBindings
               , pos        : UnknownPos
               }
 

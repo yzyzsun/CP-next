@@ -14,7 +14,7 @@ import Data.Set as Set
 import Data.Traversable (for, traverse)
 import Data.Tuple (fst, uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
-import Language.CP.Context (Checking, Pos(..), TypeError(..), Typing, addLetVar, addSort, addTmBind, addTyBind, clearLetVars, fromState, localPos, lookupTmBind, lookupTyBind, memberLetVars, runTyping, throwTypeError)
+import Language.CP.Context (Checking, Pos(..), TypeError(..), Typing, addSort, addTmBind, addTyBind, fromState, localPos, lookupTmBind, lookupTyBind, runTyping, throwTypeError)
 import Language.CP.Desugar (deMP, desugar)
 import Language.CP.Subtyping (isTopLike, (<:), (===))
 import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
@@ -128,7 +128,7 @@ infer (S.TmApp e1 e2) = do
         app _ _ = Nothing
 infer (S.TmAbs (S.TmParam x (Just targ) : Nil) e) = do
   targ' <- transform targ
-  e' /\ tret <- addTmBind x targ' $ clearLetVars $ infer e
+  e' /\ tret <- addTmBind x targ' $ infer e
   pure $ C.TmAbs x e' targ' tret false /\ C.TyArrow targ' tret false
 infer (S.TmAbs (S.TmParam x Nothing : Nil) _) = throwTypeError $
   "lambda parameter" <+> show x <+> "should be annotated with a type"
@@ -165,7 +165,7 @@ infer (S.TmMerge S.Leftist e1 e2) =
 infer (S.TmMerge S.Rightist e1 e2) =
   infer $ S.TmMerge S.Neutral (S.TmDiff e1 e2) e2
 infer (S.TmRcd (S.RcdField _ l Nil (Left e) : Nil)) = do
-  e' /\ t <- clearLetVars $ infer e
+  e' /\ t <- infer e
   pure $ C.TmRcd l t e' /\ C.TyRcd l t false
 infer (S.TmPrj e l) = do
   e' /\ t <- infer e
@@ -187,20 +187,16 @@ infer (S.TmTApp e ta) = do
   pure $ C.TmTApp e' ta' /\ t 
 infer (S.TmTAbs ((a /\ Just td) : Nil) e) = do
   td' <- transform td
-  e' /\ t <- addTyBind a td' $ clearLetVars $ infer e
+  e' /\ t <- addTyBind a td' $ infer e
   pure $ C.TmTAbs a td' e' t false /\ C.TyForall a td' t
 infer (S.TmLet x Nil Nil e1 e2) = do
-  b <- memberLetVars x
-  if b then throwTypeError $ show x <+> "has already been defined"
-  else do e1' /\ t1 <- infer e1
-          e2' /\ t2 <- addTmBind x t1 $ addLetVar x $ infer e2
-          pure $ letIn x e1' t1 e2' t2 /\ t2
+  e1' /\ t1 <- infer e1
+  e2' /\ t2 <- addTmBind x t1 $ infer e2
+  pure $ letIn x e1' t1 e2' t2 /\ t2
 infer (S.TmLetrec x Nil Nil t e1 e2) = do
-  b <- memberLetVars x
-  if b then throwTypeError $ show x <+> "has already been defined"
-  else do e1' /\ t1 <- inferRec x e1 t
-          e2' /\ t2 <- addTmBind x t1 $ addLetVar x $ infer e2
-          pure $ letIn x (C.TmFix x e1' t1) t1 e2' t2 /\ t2
+  e1' /\ t1 <- inferRec x e1 t
+  e2' /\ t2 <- addTmBind x t1 $ infer e2
+  pure $ letIn x (C.TmFix x e1' t1) t1 e2' t2 /\ t2
 -- TODO: find a more efficient algorithm
 infer (S.TmOpen e1 e2) = do
   e1' /\ t1 <- infer e1
@@ -474,8 +470,9 @@ inferRec x e t = do
 
 checkDef :: S.Def -> Checking Unit
 checkDef (S.TyDef def a sorts params t) = do
+  forbidDup <- gets (_.forbidDup)
   aliases <- gets (_.tyAliases)
-  if isJust $ lookup a aliases then
+  if forbidDup && isJust (lookup a aliases) then
     throwError $ TypeError ("type" <+> show a <+> "has already been defined") UnknownPos
   else case def of
     S.TypeAlias -> do
@@ -508,8 +505,9 @@ checkDef (S.TyDef def a sorts params t) = do
     withParams :: S.Ty -> S.Ty
     withParams t' = foldl (S.TyApp >>> (S.TyVar >>> _)) t' params
 checkDef (S.TmDef x Nil Nil mt e) = do
+  forbidDup <- gets (_.forbidDup)
   bindings <- gets (_.tmBindings)
-  if isJust $ lookup x bindings then
+  if forbidDup && isJust (lookup x bindings) then
     throwError $ TypeError ("term" <+> show x <+> "has already been defined") UnknownPos
   else do
     ctx <- gets fromState
