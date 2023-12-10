@@ -33,15 +33,18 @@ type CodeGen = RWST Ctx Unit Int (Except String)
 type Ctx = { tmBindEnv :: Map Name C.Ty
            , tyBindEnv :: Map Name C.Ty
            , evalOrder :: EvalOrder
+           , inTrait   :: Boolean
            }
 
 data EvalOrder = CBV -- call by value
                | CBN -- call by need
+derive instance Eq EvalOrder
 
 emptyCtx :: Ctx
 emptyCtx = { tmBindEnv: empty
            , tyBindEnv: empty
            , evalOrder: CBN
+           , inTrait: false
            }
 
 fromState :: REPLState -> Ctx
@@ -207,27 +210,28 @@ infer (C.TmFix x e typ) z = do
   j <- addTmBind x typ $ check e typ z
   let ast = [ JSVariableIntroduction (variable x) $ Just (JSVar z) ] <> j
   pure { ast, typ }
-infer (C.TmAbs x e targ tret _) z
+infer (C.TmAbs x e targ tret _ isTrait) z
   | isTopLike tret = infer C.TmUnit z
   | otherwise = do
       y <- freshVarName
-      j <- addTmBind x targ $ check e tret y
-      let typ = C.TyArrow targ tret false
+      j <- addTmBind x targ $ setInTrait isTrait $ check e tret y
+      let typ = C.TyArrow targ tret isTrait
           fun = JSFunction Nothing [variable x, y] $ JSBlock j
           ast = [ addProp (JSVar z) (toIndex typ) fun ]
       pure { ast, typ }
-infer (C.TmApp e1 e2 _) z = do
+infer (C.TmApp e1 e2 _ lazy) z = do
   { ast: j1, typ: t1, var: x } <- infer' e1
   order <- asks (_.evalOrder)
-  case order of
-    CBV -> do { ast: j2, typ: t2, var: y } <- infer' e2
-              { ast: j3, typ: t3 } <- distapp t1 x (TmArg y t2) z
-              pure { ast: j1 <> j2 <> j3, typ: t3 }
-    CBN -> do y' <- freshVarName
-              { ast: j2, typ: t2 } <- infer e2 "this"
-              { ast: j3, typ: t3 } <- distapp t1 x (TmArg y' t2) z
-              let j2' = addGettersForIndices y' t2 j2
-              pure { ast: j1 <> j2' <> j3, typ: t3 }
+  if order == CBV || not lazy then do
+    { ast: j2, typ: t2, var: y } <- infer' e2
+    { ast: j3, typ: t3 } <- distapp t1 x (TmArg y t2) z false
+    pure { ast: j1 <> j2 <> j3, typ: t3 }
+  else do
+    y' <- freshVarName
+    { ast: j2, typ: t2 } <- infer e2 "this"
+    { ast: j3, typ: t3 } <- distapp t1 x (TmArg y' t2) z lazy
+    let j2' = addGettersForIndices y' t2 j2
+    pure { ast: j1 <> j2' <> j3, typ: t3 }
 infer (C.TmTAbs a td e t _) z
   | isTopLike t = infer C.TmUnit z
   | otherwise = do
@@ -239,16 +243,17 @@ infer (C.TmTAbs a td e t _) z
       pure { ast, typ }
 infer (C.TmTApp e t) z = do
   { ast: j1, typ: tf, var: y } <- infer' e
-  { ast: j2, typ: tbody } <- distapp tf y (TyArg t) z
+  { ast: j2, typ: tbody } <- distapp tf y (TyArg t) z false
   pure { ast: j1 <> j2, typ: tbody }
 infer (C.TmRcd l t e) z
   | isTopLike t = infer C.TmUnit z
   | otherwise = do
       { ast: j, var: y } <- check' e t
       order <- asks (_.evalOrder)
-      let ast = case order of
-            CBV -> j <> [ addProp (JSVar z) (toIndex typ) (JSVar y) ]
-            CBN -> [ addGetter (JSVar z) (toIndex typ) j y ]
+      inTrait <- asks (_.inTrait)
+      let ast = if order == CBV || not inTrait
+                then j <> [ addProp (JSVar z) (toIndex typ) (JSVar y) ]
+                else [ addGetter (JSVar z) (toIndex typ) j y ]
           typ = C.TyRcd l t false
       pure { ast, typ }
 infer (C.TmPrj e l) z = do
@@ -314,30 +319,30 @@ check' e t = do
 
 data Arg = TmArg Name C.Ty | TyArg C.Ty
 
-distapp :: C.Ty -> Name -> Arg -> Name -> CodeGen { ast :: AST, typ :: C.Ty }
-distapp t _ _ _ | isTopLike t = pure { ast: [], typ: C.TyTop }
-distapp (C.TyAnd ta tb) x arg z = do
-  { ast: j1, typ: t1 } <- distapp ta x arg z
-  { ast: j2, typ: t2 } <- distapp tb x arg z
+distapp :: C.Ty -> Name -> Arg -> Name -> Boolean -> CodeGen { ast :: AST, typ :: C.Ty }
+distapp t _ _ _ _ | isTopLike t = pure { ast: [], typ: C.TyTop }
+distapp (C.TyAnd ta tb) x arg z lazy = do
+  { ast: j1, typ: t1 } <- distapp ta x arg z lazy
+  { ast: j2, typ: t2 } <- distapp tb x arg z lazy
   pure { ast: j1 <> j2, typ: C.TyAnd t1 t2 }
-distapp t@(C.TyArrow targ tret _) x (TmArg y t') z =
+distapp t@(C.TyArrow targ tret _) x (TmArg y t') z lazy =
   let app var = JSApp (JSIndexer (toIndex t) (JSVar x)) [JSVar var, JSVar z] in
   if targ .=. t' then pure { ast: [ app y ], typ: tret }
   else do
-    order <- asks (_.evalOrder)
-    ast <- case order of
-      CBV -> do y0 <- freshVarName
-                j <- subtype t' targ y y0 true
-                pure $ [ initialize y0 ] <> j <> [ app y0 ]
-      CBN -> do j <- subtype t' targ y "this" true
-                y' <- freshVarName
-                pure $ addGettersForIndices y' targ j <> [ app y' ]
+    ast <- if lazy then do
+             j <- subtype t' targ y "this" true
+             y' <- freshVarName
+             pure $ addGettersForIndices y' targ j <> [ app y' ]
+           else do
+             y0 <- freshVarName
+             j <- subtype t' targ y y0 true
+             pure $ [ initialize y0 ] <> j <> [ app y0 ]
     pure { ast, typ: tret }
-distapp t@(C.TyForall a _ tbody) x (TyArg t') z =
+distapp t@(C.TyForall a _ tbody) x (TyArg t') z _ =
   pure { ast: [ JSApp (JSIndexer (toIndex t) (JSVar x)) [toIndices t', JSVar z] ]
        , typ: C.tySubst a t' tbody
        }
-distapp t _ _ _ = throwError $ "expected an applicable type, but got" <+> show t
+distapp t _ _ _ _ = throwError $ "expected an applicable type, but got" <+> show t
 
 proj :: C.Ty -> Name -> Label -> Name -> AST
 proj t x l z = unsafeFromJust $ go t
@@ -532,6 +537,9 @@ addTmBind x t = local (\ctx -> ctx { tmBindEnv = insert x t ctx.tmBindEnv })
 
 addTyBind :: forall a. Name -> C.Ty -> CodeGen a -> CodeGen a
 addTyBind a t = local (\ctx -> ctx { tyBindEnv = insert a t ctx.tyBindEnv })
+
+setInTrait :: forall a. Boolean -> CodeGen a -> CodeGen a
+setInTrait b = if b then local (\ctx -> ctx { inTrait = b }) else identity
 
 variable :: Name -> Name
 variable = ("$" <> _) <<< replaceAll (Pattern "'") (Replacement "$prime")

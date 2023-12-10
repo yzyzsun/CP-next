@@ -45,10 +45,10 @@ step (TmBinary op e1 e2)
 step (TmIf (TmBool true)  e _) = computation "IfTrue"  $> e
 step (TmIf (TmBool false) _ e) = computation "IfFalse" $> e
 step (TmIf e1 e2 e3) = congruence "If" $> TmIf <*> step e1 <@> e2 <@> e3
-step (TmApp e1 e2 coercive)
+step (TmApp e1 e2 coercive b)
   | isValue e1 = computation "PApp" $>
                   paraApp e1 ((if coercive then TmAnnoArg else TmArg) e2)
-  | otherwise  = congruence  "AppL" $> TmApp <*> step e1 <@> e2 <@> coercive
+  | otherwise  = congruence  "AppL" $> TmApp <*> step e1 <@> e2 <@> coercive <@> b
 step fix@(TmFix x e _) = computation "Fix" $> tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = computation "AnnoAnno" $> TmAnno e t
 step (TmAnno e t)

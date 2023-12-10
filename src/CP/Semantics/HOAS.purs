@@ -37,7 +37,7 @@ eval = runTrampoline <<< go <<< tmHoas
         TmBool false -> go e3
         _ -> unsafeCrashWith $
           "CP.Semantics.HOAS.eval: impossible if " <> show e1' <> " ..."
-    go (TmApp e1 e2 coercive) = do
+    go (TmApp e1 e2 coercive _) = do
       e1' <- go e1
       go $ paraApp e1' ((if coercive then TmAnnoArg else TmArg) e2)
     go e@(TmHAbs _ _ _ _) = pure e

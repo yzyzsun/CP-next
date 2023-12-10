@@ -65,8 +65,8 @@ data Tm = TmInt Int
         | TmBinary BinOp Tm Tm
         | TmIf Tm Tm Tm
         | TmVar Name
-        | TmApp Tm Tm Boolean
-        | TmAbs Name Tm Ty Ty Boolean
+        | TmApp Tm Tm Boolean Boolean
+        | TmAbs Name Tm Ty Ty Boolean Boolean
         | TmFix Name Tm Ty
         | TmAnno Tm Ty
         | TmMerge Tm Tm
@@ -102,8 +102,8 @@ instance Show Tm where
   show (TmIf e1 e2 e3) = parens $
     "if" <+> show e1 <+> "then" <+> show e2 <+> "else" <+> show e3
   show (TmVar x) = x
-  show (TmApp e1 e2 _coercive) = parens $ show e1 <+> show e2
-  show (TmAbs x e targ tret _refined) = parens $
+  show (TmApp e1 e2 _coercive _lazy) = parens $ show e1 <+> show e2
+  show (TmAbs x e targ tret _refined _trait) = parens $
     "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "→" <+> show tret
   show (TmFix x e t) = parens $ "fix" <+> x <+> ":" <+> show t <> "." <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
@@ -161,8 +161,8 @@ tmConvert env (TmIf e1 e2 e3) =
   TmIf (tmConvert env e1) (tmConvert env e2) (tmConvert env e3)
 tmConvert env (TmVar x) = case lookup x env of Just (Left e) -> e
                                                _ -> TmVar x
-tmConvert env (TmApp e1 e2 b) = TmApp (tmConvert env e1) (tmConvert env e2) b
-tmConvert env (TmAbs x e targ tret b) =
+tmConvert env (TmApp e1 e2 b1 b2) = TmApp (tmConvert env e1) (tmConvert env e2) b1 b2
+tmConvert env (TmAbs x e targ tret b _) =
   TmHAbs (\tm -> tmConvert (insert x (Left tm) env) e)
          (tyConvert env targ) (tyConvert env tret) b
 tmConvert env (TmFix x e t) =
@@ -211,9 +211,9 @@ tmSubst x v (TmBinary op e1 e2) = TmBinary op (tmSubst x v e1) (tmSubst x v e2)
 tmSubst x v (TmIf e1 e2 e3) =
   TmIf (tmSubst x v e1) (tmSubst x v e2) (tmSubst x v e3)
 tmSubst x v (TmVar x') | x == x' = v
-tmSubst x v (TmApp e1 e2 b) = TmApp (tmSubst x v e1) (tmSubst x v e2) b
-tmSubst x v (TmAbs x' e targ tret b) | x /= x' =
-  TmAbs x' (tmSubst x v e) targ tret b
+tmSubst x v (TmApp e1 e2 b1 b2) = TmApp (tmSubst x v e1) (tmSubst x v e2) b1 b2
+tmSubst x v (TmAbs x' e targ tret b1 b2) | x /= x' =
+  TmAbs x' (tmSubst x v e) targ tret b1 b2
 tmSubst x v (TmFix x' e t) | x /= x' = TmFix x' (tmSubst x v e) t
 tmSubst x v (TmAnno e t) = TmAnno (tmSubst x v e) t
 tmSubst x v (TmMerge e1 e2) = TmMerge (tmSubst x v e1) (tmSubst x v e2)
@@ -238,9 +238,9 @@ tmTSubst a s (TmBinary op e1 e2) =
   TmBinary op (tmTSubst a s e1) (tmTSubst a s e2)
 tmTSubst a s (TmIf e1 e2 e3) =
   TmIf (tmTSubst a s e1) (tmTSubst a s e2) (tmTSubst a s e3)
-tmTSubst a s (TmApp e1 e2 b) = TmApp (tmTSubst a s e1) (tmTSubst a s e2) b
-tmTSubst a s (TmAbs x e targ tret b) =
-  TmAbs x (tmTSubst a s e) (tySubst a s targ) (tySubst a s tret) b
+tmTSubst a s (TmApp e1 e2 b1 b2) = TmApp (tmTSubst a s e1) (tmTSubst a s e2) b1 b2
+tmTSubst a s (TmAbs x e targ tret b1 b2) =
+  TmAbs x (tmTSubst a s e) (tySubst a s targ) (tySubst a s tret) b1 b2
 tmTSubst a s (TmFix x e t) = TmFix x (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmAnno e t) = TmAnno (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmMerge e1 e2) = TmMerge (tmTSubst a s e1) (tmTSubst a s e2)

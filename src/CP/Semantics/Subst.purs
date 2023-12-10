@@ -24,9 +24,9 @@ step (TmBinary op e1 e2) | isValue e1 && isValue e2 = binop op e1 e2
 step (TmIf (TmBool true)  e _) = e
 step (TmIf (TmBool false) _ e) = e
 step (TmIf e1 e2 e3) = TmIf (step e1) e2 e3
-step (TmApp e1 e2 coercive)
+step (TmApp e1 e2 coercive b)
   | isValue e1 = paraApp e1 ((if coercive then TmAnnoArg else TmArg) e2)
-  | otherwise  = TmApp (step e1) e2 coercive
+  | otherwise  = TmApp (step e1) e2 coercive b
 step fix@(TmFix x e _) = tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = TmAnno e t
 step (TmAnno e t) | isValue e = unsafeFromJust (cast e t)
@@ -70,8 +70,8 @@ cast (TmInt i)    TyInt    = Just $ TmInt i
 cast (TmDouble n) TyDouble = Just $ TmDouble n
 cast (TmString s) TyString = Just $ TmString s
 cast (TmBool b)   TyBool   = Just $ TmBool b
-cast (TmAbs x e targ1 tret1 _) (TyArrow _ tret2 _)
-  | tret1 <: tret2 = Just $ TmAbs x e targ1 tret2 true
+cast (TmAbs x e targ1 tret1 _ b) (TyArrow _ tret2 _)
+  | tret1 <: tret2 = Just $ TmAbs x e targ1 tret2 true b
 cast (TmMerge v1 v2) t = cast v1 t <|> cast v2 t
 cast (TmRcd l t e) (TyRcd l' t' _)
   | l == l' && t <: t' = Just $ TmRcd l t' e
@@ -83,9 +83,9 @@ cast (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 cast _ _ = Nothing
 
 paraApp :: Tm -> Arg -> Tm
-paraApp (TmAbs x e1 _ _ false) (TmArg e2) = tmSubst x e2 e1
-paraApp (TmAbs x e1 _ tret true) (TmArg e2) = TmAnno (tmSubst x e2 e1) tret
-paraApp (TmAbs x e1 targ tret _) (TmAnnoArg e2) =
+paraApp (TmAbs x e1 _ _ false _) (TmArg e2) = tmSubst x e2 e1
+paraApp (TmAbs x e1 _ tret true _) (TmArg e2) = TmAnno (tmSubst x e2 e1) tret
+paraApp (TmAbs x e1 targ tret _ _) (TmAnnoArg e2) =
   TmAnno (tmSubst x (TmAnno e2 targ) e1) tret
 paraApp (TmTAbs a _ e _ false) (TyArg ta) = tmTSubst a ta e
 paraApp (TmTAbs a _ e t true) (TyArg ta) =
@@ -100,7 +100,7 @@ isValue (TmDouble _) = true
 isValue (TmString _) = true
 isValue (TmBool _)   = true
 isValue TmUnit       = true
-isValue (TmAbs _ _ _ _ _) = true
+isValue (TmAbs _ _ _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true
 isValue (TmTAbs _ _ _ _ _) = true

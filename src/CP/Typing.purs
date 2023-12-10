@@ -121,15 +121,15 @@ infer (S.TmVar x) = (C.TmVar x /\ _) <$> lookupTmBind x
 infer (S.TmApp e1 e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- infer e2
-  case app t1 t2 of Just t -> pure $ C.TmApp e1' e2' false /\ t
-                    _ -> (C.TmApp e1' e2' true /\ _) <$> distApp t1 (Left t2)
+  case app t1 t2 of Just t -> pure $ C.TmApp e1' e2' false false /\ t
+                    _ -> (C.TmApp e1' e2' true false /\ _) <$> distApp t1 (Left t2)
   where app :: C.Ty -> C.Ty -> Maybe C.Ty
         app (C.TyArrow targ tret _) t | t === targ = Just tret
         app _ _ = Nothing
 infer (S.TmAbs (S.TmParam x (Just targ) : Nil) e) = do
   targ' <- transform targ
   e' /\ tret <- addTmBind x targ' $ infer e
-  pure $ C.TmAbs x e' targ' tret false /\ C.TyArrow targ' tret false
+  pure $ C.TmAbs x e' targ' tret false false /\ C.TyArrow targ' tret false
 infer (S.TmAbs (S.TmParam x Nothing : Nil) _) = throwTypeError $
   "lambda parameter" <+> show x <+> "should be annotated with a type"
 infer (S.TmAbs (S.WildCard _ : Nil) _) = throwTypeError $
@@ -159,7 +159,7 @@ infer (S.TmMerge S.Neutral e1 e2) = do
     _, _ -> do
       disjoint t1 t2
       pure $ C.TmMerge e1' e2' /\ C.TyAnd t1 t2
-  where appToSelf e = C.TmApp e (C.TmVar "$self") true
+  where appToSelf e = C.TmApp e (C.TmVar "$self") true false
 infer (S.TmMerge S.Leftist e1 e2) =
   infer $ S.TmMerge S.Neutral e1 (S.TmDiff e2 e1)
 infer (S.TmMerge S.Rightist e1 e2) =
@@ -205,7 +205,8 @@ infer (S.TmOpen e1 e2) = do
       b = foldr (\l s -> (l /\ unsafeFromJust (selectLabel tr l false)) : s)
                 Nil (collectLabels tr)
   e2' /\ t2 <- foldr (uncurry addTmBind) (infer e2) b
-  let open (l /\ t) e = letIn l (C.TmPrj (C.TmVar opened) l) t e t2
+  -- `open` is the only place where lazy application is used
+  let open (l /\ t) e = letInLazy l (C.TmPrj (C.TmVar opened) l) t e t2
   pure $ letIn opened r tr (foldr open e2' b) t2 /\ t2
   where opened = "$open"
 infer (S.TmUpdate rcd fields) = do
@@ -240,7 +241,7 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
             let to' = override to e2
             disjoint to' t2
             let tret = C.TyAnd to' t2
-                ret = letIn "super" (C.TmApp e1' (C.TmVar self) true) to
+                ret = letIn "super" (C.TmApp e1' (C.TmVar self) true false) to
                       (C.TmMerge (C.TmAnno (C.TmVar "super") to') e2') tret
             pure $ ret /\ tret
           else throwTypeError $ "self-type" <+> show t <+>
@@ -357,7 +358,7 @@ infer (S.TmNew e) = do
   case t of
     C.TyArrow ti to true ->
       if to <: ti then
-        pure $ C.TmFix "$self" (C.TmApp e' (C.TmVar "$self") true) to /\ to
+        pure $ C.TmFix "$self" (C.TmApp e' (C.TmVar "$self") true false) to /\ to
       else throwTypeError $ "input type is not a supertype of output type in" <+>
                             "Trait<" <+> show ti <+> "=>" <+> show to <+> ">"
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
@@ -366,7 +367,7 @@ infer (S.TmForward e1 e2) = do
   e2' /\ t2 <- infer e2
   case t1 of
     C.TyArrow ti to true ->
-      if t2 <: ti then pure $ C.TmApp e1' e2' true /\ to
+      if t2 <: ti then pure $ C.TmApp e1' e2' true false /\ to
       else throwTypeError $ "expected to forward to a subtype of" <+> show ti <>
                             ", but got" <+> show t2
     _ -> throwTypeError $ "expected to forward from a trait, but got" <+> show t1
@@ -399,7 +400,7 @@ infer (S.TmDiff e1 e2) = do
   case t1, t2 of
     C.TyArrow ti to1 true, C.TyArrow _ to2 true -> do
       d <- tyDiff to1 to2
-      pure $ trait "$self" (C.TmAnno (C.TmApp e1' (C.TmVar "$self") true) d) ti d
+      pure $ trait "$self" (C.TmAnno (C.TmApp e1' (C.TmVar "$self") true false) d) ti d
     _, _ -> do
       d <- tyDiff t1 t2
       pure $ C.TmAnno e1' d /\ d
@@ -575,10 +576,14 @@ disjointTyBind a1 t1 a2 t2 td = addTyBind freshName td $
         freshVar = C.TyVar freshName
 
 letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
-letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false) e1 false
+letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false false) e1 false false
+
+letInLazy :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
+letInLazy x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false false) e1 false true
 
 trait :: Name -> C.Tm -> C.Ty -> C.Ty -> C.Tm /\ C.Ty
-trait x e targ tret = C.TmAbs x e targ tret false /\ C.TyArrow targ tret true
+trait x e targ tret = C.TmAbs x e targ tret false isTrait /\ C.TyArrow targ tret true
+  where isTrait = not $ isTopLike targ  -- skip traits whose self-type is top-like 
 
 transformTyRec :: S.Ty -> Typing C.Ty
 transformTyRec t = do

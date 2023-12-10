@@ -40,10 +40,10 @@ step (TmIf e1 e2 e3) = TmIf <$> step e1 <@> e2 <@> e3
 step (TmVar x) = ask >>= \env -> case lookup x env of
   Just (TmBind e) -> pure e
   m -> unsafeCrashWith $ "CP.Semantics.Closure.step: " <> x <> " is " <> show m
-step (TmApp e1 e2 coercive) | isValue e1 = paraApp e1 <<< arg <$> closure e2
-                            where arg = if coercive then TmAnnoArg else TmArg
-                            | otherwise = TmApp <$> step e1 <@> e2 <@> coercive
-step abs@(TmAbs _ _ _ _ _) = closure abs
+step (TmApp e1 e2 coercive b) | isValue e1 = paraApp e1 <<< arg <$> closure e2
+                              where arg = if coercive then TmAnnoArg else TmArg
+                              | otherwise = TmApp <$> step e1 <@> e2 <@> coercive <@> b
+step abs@(TmAbs _ _ _ _ _ _) = closure abs
 step fix@(TmFix x e _) = closureWithTmBind x fix e
 step (TmAnno (TmAnno e _) t) = pure $ TmAnno e t
 step (TmAnno e t) | isValue e = unsafeFromJust <$> (cast e =<< expand t)
@@ -105,10 +105,10 @@ cast tm ty = runMaybeT $ go tm ty
       t1' <- lift $ local (const env) $ expand t1
       if l1 == l2 && t1' <: t2 then pure $ TmClosure env (TmRcd l2 t2 e)
                                else empty
-    go (TmClosure env (TmAbs x e targ1 tret1 _)) (TyArrow _ tret2 _) = do
+    go (TmClosure env (TmAbs x e targ1 tret1 _ b)) (TyArrow _ tret2 _) = do
       targ1' <- lift $ local (const env) $ expand targ1
       tret1' <- lift $ local (const env) $ expand tret1
-      if tret1' <: tret2 then pure $ TmClosure env (TmAbs x e targ1' tret2 true)
+      if tret1' <: tret2 then pure $ TmClosure env (TmAbs x e targ1' tret2 true b)
                          else empty
     go (TmClosure env (TmTAbs a1 td1 e t1 _)) (TyForall a2 td2 t2) = do
       td1' <- lift $ local (const env) $ expand td1
@@ -125,11 +125,11 @@ cast tm ty = runMaybeT $ go tm ty
     go _ _ = empty
 
 paraApp :: Tm -> Arg -> Tm
-paraApp (TmClosure env (TmAbs x e1 _ _ false)) (TmArg e2) =
+paraApp (TmClosure env (TmAbs x e1 _ _ false _)) (TmArg e2) =
   TmClosure (insert x (TmBind e2) env) e1
-paraApp (TmClosure env (TmAbs x e1 _ tret true)) (TmArg e2) =
+paraApp (TmClosure env (TmAbs x e1 _ tret true _)) (TmArg e2) =
   TmClosure (insert x (TmBind e2) env) (TmAnno e1 tret)
-paraApp (TmClosure env (TmAbs x e1 targ tret _)) (TmAnnoArg e2) =
+paraApp (TmClosure env (TmAbs x e1 targ tret _ _)) (TmAnnoArg e2) =
   TmClosure (insert x (TmBind (TmAnno e2 targ)) env) (TmAnno e1 tret)
 paraApp (TmClosure env (TmTAbs a _ e _ false)) (TyArg ta) =
   TmClosure (insert a (TyBind (Just ta)) env) e
@@ -189,7 +189,7 @@ isValue TmUnit       = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmFold _ e) = isValue e
 isValue (TmClosure _ (TmRcd _ _ _)) = true
-isValue (TmClosure _ (TmAbs _ _ _ _ _)) = true
+isValue (TmClosure _ (TmAbs _ _ _ _ _ _)) = true
 isValue (TmClosure _ (TmTAbs _ _ _ _ _)) = true
 isValue (TmClosure _ (TmArray _ _)) = true
 isValue _ = false
