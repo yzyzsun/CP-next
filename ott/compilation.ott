@@ -67,8 +67,8 @@ G |- x => A ~~> code | z-
 
 
 x : A in G
-------------------------- :: VarGen
-G |- x => A ~~> code | z+
+---------------------------- :: VarGen
+G |- x => A ~~> nothing | z+
 
 
 G, x:A |- e <= A ~~> J | z-
@@ -83,8 +83,9 @@ G |- \x:A. e:B => A->B ~~> code | z-
 
 
 G |- e1 => A ~~> J1 | x+
-G |- e2 => B ~~> J2 | y+
+G |- e2 => B ~~> J2 | this-
 G |- x : A $ y0 : B ~~> J3 | z : C
+Ts = itoa |B|
 ---------------------------------- :: App
 G |- e1 e2 => C ~~> code | z-
 
@@ -125,7 +126,7 @@ G |- e <= A ~~> J | z pm
 G |- e:A => A ~~> J | z pm
 
 
-G |- e1 => A ~~> J1 | y+
+G |- e1 => A ~~> J1 | x-
 G, x:A |- e2 => B ~~> J2 | z-
 ---------------------------------- :: Def
 G |- x = e1; e2 => B ~~> code | z-
@@ -155,9 +156,16 @@ toplike A
 G |- x : A $ p ~~> nothing | z : Top
 
 
+y : C <:+ this : A ~~> J
 T = ->|B|
-y1 : C <:+ y2 : A ~~> J
+Ts = itoa |A|
 ---------------------------------------- :: Arrow
+G |- x : A -> B $ y : C ~~> code | z : B
+
+
+A .=. C
+T = ->|B|
+---------------------------------------- :: ArrowEquiv
 G |- x : A -> B $ y : C ~~> code | z : B
 
 
@@ -210,6 +218,11 @@ x : A <: pm y : B ~~> J :: :: cosub :: S_
 by
 
 
+A .=. B
+------------------------ :: Equiv
+x : A <:+ y : B ~~> code
+
+
 toplike B
 ---------------------------- :: Top
 x : A <:pm y : B ~~> nothing
@@ -220,9 +233,12 @@ T = |A|
 x : Bot <:pm y : A ~~> code
 
 
-A .=. B
------------------------- :: Equiv
-x : A <:+ y : B ~~> code
+split B B1 B2
+y1 : B1 |> z : B <| y2 : B2 ~~> J3
+x : A <:pm y1 : B1 ~~> J1
+x : A <:pm y2 : B2 ~~> J2
+---------------------------------- :: Split
+x : A <:pm z : B ~~> code
 
 
 T = |Base|
@@ -236,7 +252,8 @@ x : X <:pm y : X ~~> code
 
 T1 = ->|A2|
 T2 = ->|B2|
-x1 : B1 <:+ y1 : A1 ~~> J1
+Ts = itoa |A1|
+x1 : B1 <:+ this : A1 ~~> J1
 x2 : A2 <:+ y2 : B2 ~~> J2
 --------------------------------------- :: Arrow
 x : A1 -> A2 <:pm y : B1 -> B2 ~~> code
@@ -265,14 +282,6 @@ x : A & B <:pm y : C ~~> J
 x : B <:- y : C ~~> J
 -------------------------- :: AndR
 x : A & B <:pm y : C ~~> J
-
-
-split B B1 B2
-y1 : B1 |> z : B <| y2 : B2 ~~> J3
-x : A <:pm y1 : B1 ~~> J1
-x : A <:pm y2 : B2 ~~> J2
----------------------------------- :: Split
-x : A <:pm z : B ~~> code
 
 
 

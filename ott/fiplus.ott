@@ -1,5 +1,5 @@
 metavar tvar, X, Y, Z ::= {{ com type variable name }}
-metavar var, x, y, z ::= {{ com variable name }}
+metavar var, x, y, z, this ::= {{ com variable name }}
 metavar label, l {{ tex \ell }} ::= {{ com label name }}
 
 grammar
@@ -39,7 +39,7 @@ exp, e :: 'e_' ::= {{ com expressions }}
   | e . l            ::  :: proj   {{ com projection }}
   | e1 ,, e2         ::  :: merge  {{ com merging }} {{ tex [[e1]]\bbcomma[[e2]] }}
   | e : A            ::  :: anno   {{ com casting }}
-  | x = e1; e2       ::  :: def
+  | x = e1; e2       ::  :: def    {{ com definition }}
   | e1 [ x ~> e2 ]   :: M:: subst
   | e  [ X ~> A ]    :: M:: tsubst
   | ( e )            :: S:: paren
@@ -97,7 +97,7 @@ formula :: 'formula_' ::=
   | formula1 or formula2  :: M:: or        {{ tex [[formula1]] \lor [[formula2]] }}
   | formula1 and formula2 :: M:: and       {{ tex [[formula1]] \land [[formula2]] }}
   | ( formula )           :: M:: brackets  {{ tex ([[formula]]) }}
-  | < formula >           :: M:: highlight {{ tex \colorbox{lightgray}{$[[formula]]$} }}
+  | << formula >>         :: M:: highlight {{ tex \colorbox{lightgray}{$[[formula]]$} }}
   | [ formula ]           :: M:: hide      {{ tex }}
   | uniq G                ::  :: uniqG     {{ tex }}
   | x : A in G            ::  :: inG

@@ -31,6 +31,7 @@
   &\text{JavaScript code}&[[J]] ::=&~ [[nothing]] ~|~ [[J1;J2]] ~|~ [[code]]
 \end{align*}
 
+\bigskip
 \ottdefncompile
 
 \begin{multicols}{3}
@@ -42,52 +43,60 @@ var z = {};  J;
 z[T] = n;
 
 /* J-Var */
-Object.assign(z, x.get);
-
-/* J-VarGen */
-var z = x.get;
+copy(z, x);
 
 /* J-Fix */
-var x = { get: z };
-J;
-
-
-/* J-App */
-J1;
-var y0 = {
-  get get() {
-    J2;
-    delete this.get;
-    return this.get = y;
-  }
-};  J3;
+var x = z;  J;
 
 /* J-Abs */
 z[T] = (x, y) => { J };
 
+/* J-App */
+J1;
+var y0 = {};
+for (const T of Ts)
+  y0.__defineGetter__(T,
+    () => {
+      for (const T of Ts)
+        delete this[T];
+      J2;
+      return this[T];
+    });
+J3;
+
 /* J-TAbs */
 z[T] = (X, y) => { J };
 
-
 /* J-Rcd */
-z[T] = {
-  get get() {
-    J;
-    delete this.get;
-    return this.get = y;
-  }
-};
+z.__defineGetter__(T, () => {
+  J;
+  delete this[T];
+  return this[T] = y;
+});
 
 /* J-Def */
-export var x = {
-  get get() {
-    J1;
-    delete this.get;
-    return this.get = y;
-  }
-};  J2;
+export var x = {};
+J1;
+J2;
 \end{verbatim}
 \end{multicols}
+
+\vfill
+\paragraph{Copying properties} n.b. there seems to be some alternatives:
+\begin{itemize}
+  \item \texttt{Object.assign(z, x)} does not properly copy getters;
+  \item \texttt{Object.defineProperties(z, Object.getOwnPropertyDescriptors(x))} is proper but slow;
+  \item \texttt{Object.setPrototypeOf(z, x)} does the prototype trick but is even slower.
+\end{itemize}
+\begin{verbatim}
+function copy(z, x) {
+  for (const prop in x) {
+    var getter = x.__lookupGetter__(prop);
+    if (getter) z.__defineGetter__(prop, getter);
+    else z[prop] = x[prop];
+  }
+}
+\end{verbatim}
 
 \newpage
 \ottdefndistapp
@@ -95,20 +104,21 @@ export var x = {
 \begin{multicols}{2}
 \begin{verbatim}
 /* A-Arrow */
-x[T]({
-  get get() {
-    var y1 = y.get;
-    var y2 = {};  J;
-    delete this.get;
-    return this.get = y2;
-  }
-}, z);
+var y0 = {};
+for (const T of Ts)
+  y0.__defineGetter__(T, () => {
+    for (const T of Ts)
+      delete this[T];
+    J;
+    return this[T];
+  });
+x[T](y0, z);
+
+/* A-ArrowEquiv */
+x[T](y, z);
 
 /* A-All */
 x[T](Ts, z);
-
-
-
 
 
 
@@ -120,8 +130,8 @@ x[T](Ts, z);
 \ottdefndistproj
 
 \begin{verbatim}
-/* P-Rcd */
-Object.assign(z, x[T].get);
+/* P-RcdEq */
+copy(z, x[T]);
 \end{verbatim}
 
 \newpage
@@ -129,31 +139,36 @@ Object.assign(z, x[T].get);
 
 \begin{multicols}{3}
 \begin{verbatim}
+/* S-Equiv */
+copy(y, x);
+
 /* S-Bot */
 y[T] = null;
 
-/* S-Eq */
-Object.assign(y, x);
+/* S-Split */
+var y1 = {}; // if y1 != z
+var y2 = {}; // if y2 != z
+J1;  J2;  J3;
 
 /* S-Int */
 y[T] = x[T];
 
 /* S-Var */
-for (var T of X) {
-  y[T] = x[T];
-}
+copy(y, x);
 
 /* S-Arrow */
-y[T2] = (p, y2) => {
+y[T2] = (x1, y2) => {
+  var y1 = {};
+  for (const T of Ts)
+    y1.__defineGetter__(T,
+      () => {
+        for (const T of Ts)
+          delete this[T];
+        J1;
+        return this[T];
+      });
   var x2 = {};
-  x[T1]({
-    get get() {
-      var x1 = p.get;
-      var y1 = {};  J1;
-      delete this.get;
-      return this.get = y1;
-    }
-  }, x2);
+  x[T1](y1, x2);
   J2;
 };
 
@@ -165,19 +180,12 @@ y[T2] = (X, y0) => {
 };
 
 /* S-Rcd */
-y[T2] = {
-  get get() {
-    var x0 = x[T1].get;
-    var y0 = {};  J;
-    delete this.get;
-    return this.get = y0;
-  }
-}
-
-/* S-Split */
-var y1 = {}; // if y1 != z
-var y2 = {}; // if y2 != z
-J1;  J2;  J3;
+y.__defineGetter__(T2, () => {
+  var x0 = x[T1];
+  var y0 = {};  J;
+  delete this[T];
+  return this[T] = y0;
+});
 \end{verbatim}
 \end{multicols}
 
@@ -213,18 +221,16 @@ z[T] = (X, y) => {
 
 
 /* M-Rcd */
-z[T] = {
-  get get() {
-    var y = {};
-    var y1 = {}; // if y1 != y
-    var y2 = {}; // if y2 != y
-    Object.assign(y1, x1[T1].get);
-    Object.assign(y2, x2[T2].get);
-    J;
-    delete this.get
-    return this.get = y;
-  }
-};
+z.__defineGetter__(T, () => {
+  var y = {};
+  var y1 = {}; // if y1 != y
+  var y2 = {}; // if y2 != y
+  copy(y1, x1[T1]);
+  copy(y2, x2[T2]);
+  J;
+  delete this[T];
+  return this[T] = y;
+});
 \end{verbatim}
 \end{multicols}
 
