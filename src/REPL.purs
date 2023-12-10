@@ -45,7 +45,7 @@ printHelp _ _ = log $ stripMargin
   """
   |Avaiable commands:
   |  :mode
-  |  :mode SmallStep|StepTrace|BigStep|HOAS|Closure
+  |  :mode SmallStep|StepTrace|Elaborate|BigStep|HOAS|Closure
   |  :timing
   |  :env
   |  :env clear
@@ -62,6 +62,7 @@ showOrSetMode arg ref = case arg of
     log $ show st.mode
   "SmallStep" -> set SmallStep
   "StepTrace" -> set StepTrace
+  "Elaborate" -> set Elaborate
   "BigStep"   -> set BigStep
   "HOAS"      -> set HOAS
   "Closure"   -> set Closure
@@ -122,7 +123,8 @@ compileFile file ref = do
     else pure unit
     workDir <- cwd
     let file' = concat [workDir, extJS file]
-    require file' \_ -> do
+    require file' \res -> do
+      log res
       endTime <- nowTime
       if st.timing then let seconds = showSeconds $ diff endTime compileTime in
         info $ "Run time: " <> seconds
@@ -283,6 +285,7 @@ completer = makeCompleter $ unsafeFromJust $ fromArray
   , ConstSyntax ":mode"
   , ConstSyntax ":mode SmallStep"
   , ConstSyntax ":mode StepTrace"
+  , ConstSyntax ":mode Elaborate"
   , ConstSyntax ":mode BigStep"
   , ConstSyntax ":mode HOAS"
   , ConstSyntax ":mode Closure"

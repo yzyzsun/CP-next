@@ -64,6 +64,8 @@ evalProg prog = do
     SmallStep -> show (SmallStep.eval e)
     StepTrace -> let _ /\ s = StepTrace.eval e in
       show prog <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s ""
+    Elaborate ->
+      show prog <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> show e
     BigStep -> show (BigStep.eval e)
     HOAS -> show (HOAS.eval e)
     Closure -> show (Closure.eval e)

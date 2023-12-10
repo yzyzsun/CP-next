@@ -102,7 +102,7 @@ throwTypeError msg = TypeError msg <$> askPos >>= throwError
 
 type Checking = StateT REPLState (Except TypeError)
 
-data Mode = SmallStep | StepTrace | BigStep | HOAS | Closure
+data Mode = SmallStep | StepTrace | Elaborate | BigStep | HOAS | Closure
 
 derive instance Generic Mode _
 instance Show Mode where show = genericShow
