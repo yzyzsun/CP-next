@@ -40,9 +40,9 @@ step (TmIf e1 e2 e3) = TmIf <$> step e1 <@> e2 <@> e3
 step (TmVar x) = ask >>= \env -> case lookup x env of
   Just (TmBind e) -> pure e
   m -> unsafeCrashWith $ "CP.Semantics.Closure.step: " <> x <> " is " <> show m
-step (TmApp e1 e2 coercive b) | isValue e1 = paraApp e1 <<< arg <$> closure e2
-                              where arg = if coercive then TmAnnoArg else TmArg
-                              | otherwise = TmApp <$> step e1 <@> e2 <@> coercive <@> b
+step (TmApp e1 e2 coercive) | isValue e1 = paraApp e1 <<< arg <$> closure e2
+                            where arg = if coercive then TmAnnoArg else TmArg
+                            | otherwise = TmApp <$> step e1 <@> e2 <@> coercive
 step abs@(TmAbs _ _ _ _ _ _) = closure abs
 step fix@(TmFix x e _) = closureWithTmBind x fix e
 step (TmAnno (TmAnno e _) t) = pure $ TmAnno e t
@@ -64,7 +64,7 @@ step (TmOptPrj e1 l t e2)
 step (TmTApp e t) | isValue e = paraApp e <<< TyArg <$> expand t
                   | otherwise = TmTApp <$> step e <@> t
 step tabs@(TmTAbs _ _ _ _ _) = closure tabs
-step (TmDef x e1 e2) = closureWithTmBind x e1 e2
+step (TmDef x e1 e2 _) = closureWithTmBind x e1 e2
 step (TmFold t e) = TmFold t <$> step e
 step (TmUnfold t e) | isTopLike t = pure TmUnit
                     | TmFold _ e' <- e = pure $ TmAnno e' (unfold t)

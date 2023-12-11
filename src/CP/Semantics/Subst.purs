@@ -24,9 +24,9 @@ step (TmBinary op e1 e2) | isValue e1 && isValue e2 = binop op e1 e2
 step (TmIf (TmBool true)  e _) = e
 step (TmIf (TmBool false) _ e) = e
 step (TmIf e1 e2 e3) = TmIf (step e1) e2 e3
-step (TmApp e1 e2 coercive b)
+step (TmApp e1 e2 coercive)
   | isValue e1 = paraApp e1 ((if coercive then TmAnnoArg else TmArg) e2)
-  | otherwise  = TmApp (step e1) e2 coercive b
+  | otherwise  = TmApp (step e1) e2 coercive
 step fix@(TmFix x e _) = tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = TmAnno e t
 step (TmAnno e t) | isValue e = unsafeFromJust (cast e t)
@@ -42,7 +42,7 @@ step (TmOptPrj e1 l t e2)
   | otherwise  = TmOptPrj (step e1) l t e2
 step (TmTApp e t) | isValue e = paraApp e (TyArg t)
                   | otherwise = TmTApp (step e) t
-step (TmDef x e1 e2) = tmSubst x e1 e2
+step (TmDef x e1 e2 _) = tmSubst x e1 e2
 step (TmFold t e) = TmFold t (step e)
 step (TmUnfold t e) | isTopLike t = TmUnit
                     | TmFold _ e' <- e = TmAnno e' (unfold t)

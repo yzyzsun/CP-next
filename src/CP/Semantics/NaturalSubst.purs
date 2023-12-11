@@ -36,7 +36,7 @@ eval = runTrampoline <<< go
         TmBool false -> go e3
         _ -> unsafeCrashWith $ "CP.Semantics.NaturalSubst.eval: " <>
                                "impossible if " <> show e1' <> " ..."
-    go (TmApp e1 e2 coercive _) = do
+    go (TmApp e1 e2 coercive) = do
       e1' <- go e1
       let arg = if coercive then TmAnnoArg else TmArg
       go $ paraApp e1' (arg (TmRef (ref e2)))
@@ -64,7 +64,7 @@ eval = runTrampoline <<< go
         Nothing -> go e2
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmTAbs _ _ _ _ _) = pure e
-    go (TmDef x e1 e2) = go $ tmSubst x (TmRef (ref e1)) e2
+    go (TmDef x e1 e2 _) = go $ tmSubst x (TmRef (ref e1)) e2
     go (TmFold t e) = TmFold t <$> go e
     go (TmUnfold t e) = if isTopLike t then pure TmUnit else go e >>= go'
       where go' :: Tm -> Eval Tm

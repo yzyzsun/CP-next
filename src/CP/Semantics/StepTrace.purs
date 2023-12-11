@@ -45,10 +45,10 @@ step (TmBinary op e1 e2)
 step (TmIf (TmBool true)  e _) = computation "IfTrue"  $> e
 step (TmIf (TmBool false) _ e) = computation "IfFalse" $> e
 step (TmIf e1 e2 e3) = congruence "If" $> TmIf <*> step e1 <@> e2 <@> e3
-step (TmApp e1 e2 coercive b)
+step (TmApp e1 e2 coercive)
   | isValue e1 = computation "PApp" $>
                   paraApp e1 ((if coercive then TmAnnoArg else TmArg) e2)
-  | otherwise  = congruence  "AppL" $> TmApp <*> step e1 <@> e2 <@> coercive <@> b
+  | otherwise  = congruence  "AppL" $> TmApp <*> step e1 <@> e2 <@> coercive
 step fix@(TmFix x e _) = computation "Fix" $> tmSubst x fix e
 step (TmAnno (TmAnno e _) t) = computation "AnnoAnno" $> TmAnno e t
 step (TmAnno e t)
@@ -69,7 +69,7 @@ step (TmOptPrj e1 l t e2)
 step (TmTApp e t)
   | isValue e = computation "PTApp" $> paraApp e (TyArg t)
   | otherwise = congruence  "TApp"  $> TmTApp <*> step e <@> t
-step (TmDef x e1 e2) = computation "Def" $> tmSubst x e1 e2
+step (TmDef x e1 e2 _) = computation "Def" $> tmSubst x e1 e2
 step (TmFold t e) = congruence "Fold" $> TmFold t <*> step e
 step (TmUnfold t e)
   | isTopLike t = computation "UnfoldTop" $> TmUnit

@@ -65,7 +65,7 @@ data Tm = TmInt Int
         | TmBinary BinOp Tm Tm
         | TmIf Tm Tm Tm
         | TmVar Name
-        | TmApp Tm Tm Boolean Boolean
+        | TmApp Tm Tm Boolean
         | TmAbs Name Tm Ty Ty Boolean Boolean
         | TmFix Name Tm Ty
         | TmAnno Tm Ty
@@ -75,7 +75,7 @@ data Tm = TmInt Int
         | TmOptPrj Tm Label Ty Tm
         | TmTApp Tm Ty
         | TmTAbs Name Ty Tm Ty Boolean
-        | TmDef Name Tm Tm
+        | TmDef Name Tm Tm Boolean -- laziness flag is only used for CodeGen
         | TmFold Ty Tm
         | TmUnfold Ty Tm
         | TmToString Tm
@@ -102,7 +102,7 @@ instance Show Tm where
   show (TmIf e1 e2 e3) = parens $
     "if" <+> show e1 <+> "then" <+> show e2 <+> "else" <+> show e3
   show (TmVar x) = x
-  show (TmApp e1 e2 _coercive _lazy) = parens $ show e1 <+> show e2
+  show (TmApp e1 e2 _coercive) = parens $ show e1 <+> show e2
   show (TmAbs x e targ tret _refined _trait) = parens $
     "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "→" <+> show tret
   show (TmFix x e t) = parens $ "fix" <+> x <+> ":" <+> show t <> "." <+> show e
@@ -115,7 +115,8 @@ instance Show Tm where
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs a td e t _refined) = parens $ "Λ" <> a <> "." <+> show e <+>
     ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
-  show (TmDef x e1 e2) = x <+> "=" <+> show e1 <> ";\n" <> show e2
+  show (TmDef x e1 e2 lazy) = if not lazy then x <+> "=" <+> show e1 <> ";\n" <> show e2
+                              else "let" <+> x <+> "=" <+> show e1 <+> "in" <+> show e2
   show (TmFold t e) = parens $ "fold @" <> show t <+> show e
   show (TmUnfold t e) = parens $ "unfold @" <> show t <+> show e
   show (TmToString e) = parens $ "toString" <+> show e
@@ -161,7 +162,7 @@ tmConvert env (TmIf e1 e2 e3) =
   TmIf (tmConvert env e1) (tmConvert env e2) (tmConvert env e3)
 tmConvert env (TmVar x) = case lookup x env of Just (Left e) -> e
                                                _ -> TmVar x
-tmConvert env (TmApp e1 e2 b1 b2) = TmApp (tmConvert env e1) (tmConvert env e2) b1 b2
+tmConvert env (TmApp e1 e2 b) = TmApp (tmConvert env e1) (tmConvert env e2) b
 tmConvert env (TmAbs x e targ tret b _) =
   TmHAbs (\tm -> tmConvert (insert x (Left tm) env) e)
          (tyConvert env targ) (tyConvert env tret) b
@@ -176,7 +177,7 @@ tmConvert env (TmTApp e t) = TmTApp (tmConvert env e) (tyConvert env t)
 tmConvert env (TmTAbs a td e t b) =
   TmHTAbs (\ty -> tmConvert (insert a (Right ty) env) e)
           (tyConvert env td) (tyHoas' env a t) b
-tmConvert env (TmDef x e1 e2) = tmConvert (insert x (Left tm) env) e2
+tmConvert env (TmDef x e1 e2 _) = tmConvert (insert x (Left tm) env) e2
   where tm = TmRef $ ref $ tmConvert env e1
 tmConvert env (TmFold t e) = TmFold (tyConvert env t) (tmConvert env e)
 tmConvert env (TmUnfold t e) = TmUnfold (tyConvert env t) (tmConvert env e)
@@ -211,7 +212,7 @@ tmSubst x v (TmBinary op e1 e2) = TmBinary op (tmSubst x v e1) (tmSubst x v e2)
 tmSubst x v (TmIf e1 e2 e3) =
   TmIf (tmSubst x v e1) (tmSubst x v e2) (tmSubst x v e3)
 tmSubst x v (TmVar x') | x == x' = v
-tmSubst x v (TmApp e1 e2 b1 b2) = TmApp (tmSubst x v e1) (tmSubst x v e2) b1 b2
+tmSubst x v (TmApp e1 e2 b) = TmApp (tmSubst x v e1) (tmSubst x v e2) b
 tmSubst x v (TmAbs x' e targ tret b1 b2) | x /= x' =
   TmAbs x' (tmSubst x v e) targ tret b1 b2
 tmSubst x v (TmFix x' e t) | x /= x' = TmFix x' (tmSubst x v e) t
@@ -223,8 +224,8 @@ tmSubst x v (TmOptPrj e1 l t e2) =
   TmOptPrj (tmSubst x v e1) l t (tmSubst x v e2)
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
 tmSubst x v (TmTAbs a td e t b) = TmTAbs a td (tmSubst x v e) t b
-tmSubst x v (TmDef x' e1 e2) =
-  TmDef x' (tmSubst x v e1) (if x == x' then e2 else tmSubst x v e2)
+tmSubst x v (TmDef x' e1 e2 b) =
+  TmDef x' (tmSubst x v e1) (if x == x' then e2 else tmSubst x v e2) b
 tmSubst x v (TmFold t e) = TmFold t (tmSubst x v e)
 tmSubst x v (TmUnfold t e) = TmUnfold t (tmSubst x v e)
 tmSubst x v (TmToString e) = TmToString (tmSubst x v e)
@@ -238,7 +239,7 @@ tmTSubst a s (TmBinary op e1 e2) =
   TmBinary op (tmTSubst a s e1) (tmTSubst a s e2)
 tmTSubst a s (TmIf e1 e2 e3) =
   TmIf (tmTSubst a s e1) (tmTSubst a s e2) (tmTSubst a s e3)
-tmTSubst a s (TmApp e1 e2 b1 b2) = TmApp (tmTSubst a s e1) (tmTSubst a s e2) b1 b2
+tmTSubst a s (TmApp e1 e2 b) = TmApp (tmTSubst a s e1) (tmTSubst a s e2) b
 tmTSubst a s (TmAbs x e targ tret b1 b2) =
   TmAbs x (tmTSubst a s e) (tySubst a s targ) (tySubst a s tret) b1 b2
 tmTSubst a s (TmFix x e t) = TmFix x (tmTSubst a s e) (tySubst a s t)
@@ -252,7 +253,7 @@ tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmTAbs a' td e t b) =
   if a == a' then tabs e t b else tabs (tmTSubst a s e) (tySubst a s t) b
   where tabs = TmTAbs a' (tySubst a s td)
-tmTSubst a s (TmDef x e1 e2) = TmDef x (tmTSubst a s e1) (tmTSubst a s e2)
+tmTSubst a s (TmDef x e1 e2 b) = TmDef x (tmTSubst a s e1) (tmTSubst a s e2) b
 tmTSubst a s (TmFold t e) = TmFold (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmUnfold t e) = TmUnfold (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmToString e) = TmToString (tmTSubst a s e)

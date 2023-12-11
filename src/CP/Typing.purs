@@ -121,8 +121,8 @@ infer (S.TmVar x) = (C.TmVar x /\ _) <$> lookupTmBind x
 infer (S.TmApp e1 e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- infer e2
-  case app t1 t2 of Just t -> pure $ C.TmApp e1' e2' false false /\ t
-                    _ -> (C.TmApp e1' e2' true false /\ _) <$> distApp t1 (Left t2)
+  case app t1 t2 of Just t -> pure $ C.TmApp e1' e2' false /\ t
+                    _ -> (C.TmApp e1' e2' true /\ _) <$> distApp t1 (Left t2)
   where app :: C.Ty -> C.Ty -> Maybe C.Ty
         app (C.TyArrow targ tret _) t | t === targ = Just tret
         app _ _ = Nothing
@@ -159,7 +159,7 @@ infer (S.TmMerge S.Neutral e1 e2) = do
     _, _ -> do
       disjoint t1 t2
       pure $ C.TmMerge e1' e2' /\ C.TyAnd t1 t2
-  where appToSelf e = C.TmApp e (C.TmVar "$self") true false
+  where appToSelf e = C.TmApp e (C.TmVar "$self") true
 infer (S.TmMerge S.Leftist e1 e2) =
   infer $ S.TmMerge S.Neutral e1 (S.TmDiff e2 e1)
 infer (S.TmMerge S.Rightist e1 e2) =
@@ -205,8 +205,8 @@ infer (S.TmOpen e1 e2) = do
       b = foldr (\l s -> (l /\ unsafeFromJust (selectLabel tr l false)) : s)
                 Nil (collectLabels tr)
   e2' /\ t2 <- foldr (uncurry addTmBind) (infer e2) b
-  -- `open` is the only place where lazy application is used
-  let open (l /\ t) e = letInLazy l (C.TmPrj (C.TmVar opened) l) t e t2
+  -- `open` is the only construct that elaborates to a lazy definition
+  let open (l /\ _) e = C.TmDef l (C.TmPrj (C.TmVar opened) l) e true
   pure $ letIn opened r tr (foldr open e2' b) t2 /\ t2
   where opened = "$open"
 infer (S.TmUpdate rcd fields) = do
@@ -241,7 +241,7 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
             let to' = override to e2
             disjoint to' t2
             let tret = C.TyAnd to' t2
-                ret = letIn "super" (C.TmApp e1' (C.TmVar self) true false) to
+                ret = letIn "super" (C.TmApp e1' (C.TmVar self) true) to
                       (C.TmMerge (C.TmAnno (C.TmVar "super") to') e2') tret
             pure $ ret /\ tret
           else throwTypeError $ "self-type" <+> show t <+>
@@ -358,7 +358,7 @@ infer (S.TmNew e) = do
   case t of
     C.TyArrow ti to true ->
       if to <: ti then
-        pure $ C.TmFix "$self" (C.TmApp e' (C.TmVar "$self") true false) to /\ to
+        pure $ C.TmFix "$self" (C.TmApp e' (C.TmVar "$self") true) to /\ to
       else throwTypeError $ "input type is not a supertype of output type in" <+>
                             "Trait<" <+> show ti <+> "=>" <+> show to <+> ">"
     _ -> throwTypeError $ "new expected a trait, but got" <+> show t
@@ -367,7 +367,7 @@ infer (S.TmForward e1 e2) = do
   e2' /\ t2 <- infer e2
   case t1 of
     C.TyArrow ti to true ->
-      if t2 <: ti then pure $ C.TmApp e1' e2' true false /\ to
+      if t2 <: ti then pure $ C.TmApp e1' e2' true /\ to
       else throwTypeError $ "expected to forward to a subtype of" <+> show ti <>
                             ", but got" <+> show t2
     _ -> throwTypeError $ "expected to forward from a trait, but got" <+> show t1
@@ -400,7 +400,7 @@ infer (S.TmDiff e1 e2) = do
   case t1, t2 of
     C.TyArrow ti to1 true, C.TyArrow _ to2 true -> do
       d <- tyDiff to1 to2
-      pure $ trait "$self" (C.TmAnno (C.TmApp e1' (C.TmVar "$self") true false) d) ti d
+      pure $ trait "$self" (C.TmAnno (C.TmApp e1' (C.TmVar "$self") true) d) ti d
     _, _ -> do
       d <- tyDiff t1 t2
       pure $ C.TmAnno e1' d /\ d
@@ -518,7 +518,7 @@ checkDef (S.TmDef x Nil Nil mt e) = do
       Left err -> throwError err
       Right (e' /\ t') ->
         let e1 = if isJust mt then C.TmFix x e' t' else e'
-            f e2 = C.TmDef x e1 e2 in
+            f e2 = C.TmDef x e1 e2 false in
         modify_ \st -> st { tmBindings = (x /\ t' /\ f) : st.tmBindings }
 checkDef d = throwError $ TypeError ("expected a desugared def, but got" <+> show d) UnknownPos
 
@@ -576,10 +576,7 @@ disjointTyBind a1 t1 a2 t2 td = addTyBind freshName td $
         freshVar = C.TyVar freshName
 
 letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
-letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false false) e1 false false
-
-letInLazy :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
-letInLazy x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false false) e1 false true
+letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false false) e1 false
 
 trait :: Name -> C.Tm -> C.Ty -> C.Ty -> C.Tm /\ C.Ty
 trait x e targ tret = C.TmAbs x e targ tret false isTrait /\ C.TyArrow targ tret true

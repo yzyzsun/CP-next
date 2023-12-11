@@ -44,7 +44,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
         Just (TmBind e) -> go e
         m -> unsafeCrashWith $ "CP.Semantics.NaturalClosure.eval: " <>
                                "variable " <> show x <> " is " <> show m
-    go (TmApp e1 e2 coercive _) = do
+    go (TmApp e1 e2 coercive) = do
       e1' <- go e1
       e2' <- closure e2
       let arg = if coercive then TmAnnoArg else TmArg
@@ -77,7 +77,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       t' <- expand t
       go $ paraApp e' (TyArg t')
     go e@(TmTAbs _ _ _ _ _) = closure e
-    go (TmDef x e1 e2) = do
+    go (TmDef x e1 e2 _) = do
       e1' <- closure e1
       local (\env -> insert x (TmBind (TmRef (ref e1'))) env) (go e2)
     go (TmFold t e) = TmFold t <$> go e
