@@ -115,6 +115,7 @@ type REPLState =  { mode       :: Mode
                   , tmBindings :: TmBindings
                   , tyAliases  :: TyAliases
                   , forbidDup  :: Boolean
+                  , runJS      :: Boolean
                   }
 
 initState :: REPLState
@@ -123,6 +124,7 @@ initState = { mode       : HOAS
             , tmBindings : Nil
             , tyAliases  : Nil
             , forbidDup  : true
+            , runJS      : false
             }
 
 mergeStates :: REPLState -> REPLState -> Either (List Name) REPLState

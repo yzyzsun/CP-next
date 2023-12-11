@@ -118,17 +118,21 @@ compileFile file ref = do
   if success then do
     compileTime <- nowTime
     st <- read ref
-    if st.timing then let seconds = showSeconds $ diff compileTime beginTime in
-      info $ "Compile time: " <> seconds
-    else pure unit
-    workDir <- cwd
-    let file' = concat [workDir, extJS file]
-    require file' \res -> do
-      log res
-      endTime <- nowTime
-      if st.timing then let seconds = showSeconds $ diff endTime compileTime in
-        info $ "Run time: " <> seconds
+    let compileSeconds = showSeconds $ diff compileTime beginTime
+    if st.runJS then do
+      if st.timing then
+        info $ "Compile time: " <> compileSeconds
       else pure unit
+      workDir <- cwd
+      let file' = concat [workDir, extJS file]
+      require file' \res -> do
+        log res
+        endTime <- nowTime
+        let runSeconds = showSeconds $ diff endTime compileTime
+        if st.timing then
+          info $ "Run time: " <> runSeconds
+        else pure unit
+    else info $ file <> " compiled in " <> compileSeconds
   else pure unit
   where
     compileJS :: FilePath -> Effect Boolean
@@ -304,7 +308,7 @@ repl = do
   interface <- createConsoleInterface completer
   setPrompt "> " interface
   prompt interface
-  ref <- new initState { forbidDup = false }
+  ref <- new initState { forbidDup = false, runJS = true }
   on_ lineH (handler interface ref) interface
 
 -- helpers
