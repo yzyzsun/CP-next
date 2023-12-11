@@ -353,7 +353,10 @@ proj t x l z = unsafeFromJust $ go t
 subtype :: C.Ty -> C.Ty -> Name -> Name -> Boolean -> CodeGen AST
 subtype _ t _ _ _ | isTopLike t = pure []
 subtype C.TyBot t _ y _ = pure [ JSAssignment (JSIndexer (toIndex t) (JSVar y)) JSNullLiteral ]
-subtype ta tb x y true | ta .=. tb = pure [ assignObj y (JSVar x) ]
+subtype ta tb x y true | ta .=. tb =
+  case ta of C.TyAnd _ _ -> pure [ assignObj y (JSVar x) ]
+             _ -> pure [ JSAssignment (JSIndexer (toIndex tb) (JSVar y))
+                                      (JSIndexer (toIndex ta) (JSVar x)) ]
 subtype ta tb x z b | Just (tb1 /\ tb2) <- split tb =
   if isTopLike tb1 then subtype ta tb2 x z b
   else if isTopLike tb2 then subtype ta tb1 x z b
@@ -399,7 +402,6 @@ subtype a1@(C.TyArray t1) a2@(C.TyArray t2) x y _ = do
        , JSForOf x0 (JSIndexer (toIndex a1) (JSVar x)) $ JSBlock block
        ]
 subtype (C.TyAnd ta tb) tc x y _ = subtype ta tc x y false <|> subtype tb tc x y false
-subtype (C.TyVar a) (C.TyVar a') x y _ | a == a' = pure [ assignObj y (JSVar x) ]
 subtype ta tb x y _
   | ta == tb = pure [ JSAssignment (JSIndexer (toIndex tb) (JSVar y))
                                    (JSIndexer (toIndex ta) (JSVar x)) ]
