@@ -36,6 +36,7 @@ If you want to run CP programs locally using a CLI, you can follow the procedure
 - Then execute `npm install` to get all of the dev dependencies.
 - After installation, you can choose either of the following npm scripts:
   - `npm start` to run a REPL;
+  - `npm run compiler "*.cp"` to compile CP files to JavaScript;
   - `npm test` to run a test suite checking `examples/*.cp`.
 
 If you want to start a PLGround server locally, take the first two steps above and then:

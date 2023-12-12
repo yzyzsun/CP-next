@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "start": "spago run",
+    "compiler": "spago run --node-args",
     "test": "spago test",
     "vscode": "cd vscode && vsce package",
     "antlr": "antlr -visitor -no-listener antlr/*.g4",
