@@ -5,14 +5,14 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.RWS (RWST, asks, evalRWST, local, modify)
-import Data.Array (all, concat, find, foldl, length, notElem, (!!))
+import Data.Array (concat, foldl, length, notElem, (!!))
 import Data.Array as A
 import Data.Bifunctor (bimap, lmap, rmap)
 import Data.Either (Either)
 import Data.Int (toNumber)
 import Data.List (List(..), elem, (:))
 import Data.Map (Map, empty, fromFoldable, insert, lookup)
-import Data.Maybe (Maybe(..), isJust)
+import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll, stripPrefix, stripSuffix, toLower)
 import Data.Traversable (traverse)
 import Data.Tuple (fst)
@@ -185,9 +185,9 @@ infer (C.TmBinary Op.Index e1 e2) z = do
   { ast: j2, typ: t2, var: y } <- infer' e2
   case t1, t2 of
     t@(C.TyArray typ), C.TyInt ->
-      let ast = j1 <> j2 <> assignObj z
+      let ast = j1 <> j2 <> [ assignObj z
             (JSIndexer (JSIndexer (toIndex C.TyInt) (JSVar y))
-                       (JSIndexer (toIndex t) (JSVar x))) in
+                       (JSIndexer (toIndex t) (JSVar x))) ] in
       pure { ast, typ }
     _, _ -> throwError $
       "Index is not defined between" <+> show t1 <+> "and" <+> show t2
@@ -205,7 +205,7 @@ infer (C.TmIf e1 e2 e3) z = do
   else throwError $ "if-condition expected Bool, but got" <+> show t1
 infer (C.TmVar x) z = do
   typ <- lookupTmBind x
-  pure { ast: assignObj z (JSVar (variable x)), typ }
+  pure { ast: [ assignObj z (JSVar (variable x)) ], typ }
 infer (C.TmFix x e typ) z = do
   j <- addTmBind x typ $ check e typ z
   let ast = [ JSVariableIntroduction (variable x) $ Just (JSVar z) ] <> j
@@ -313,11 +313,9 @@ check e t y = do
 check' :: C.Tm -> C.Ty -> CodeGen { ast :: AST, var :: Name }
 check' e t = do
   { ast: j1, typ, var: x } <- infer' e
-  if t .=. typ then pure { ast: j1, var: x }
-  else do
-    y <- freshVarName
-    j2 <- subtype typ t x y true
-    pure { ast: j1 <> [ initialize y ] <> j2, var: y }
+  y <- freshVarName
+  j2 <- subtype typ t x y true
+  pure { ast: j1 <> [ initialize y ] <> j2, var: y }
 
 data Arg = TmArg Name C.Ty | TyArg C.Ty
 
@@ -350,17 +348,13 @@ proj t x l z = unsafeFromJust $ go t
                                Just j1, Nothing -> Just j1
                                Just j1, Just j2 -> Just $ j1 <> j2
         go t'@(C.TyRcd l' _ _) | l == l' =
-          Just $ assignObj z (JSIndexer (toIndex t') (JSVar x))
+          Just [ assignObj z (JSIndexer (toIndex t') (JSVar x)) ]
         go _  = Nothing
 
 subtype :: C.Ty -> C.Ty -> Name -> Name -> Boolean -> CodeGen AST
 subtype _ t _ _ _ | isTopLike t = pure []
 subtype _ (C.TyRcd _ _ true) _ _ _ = pure []
 subtype C.TyBot t _ y _ = pure [ JSAssignment (JSIndexer (toIndex t) (JSVar y)) JSNullLiteral ]
-subtype ta tb x y true | ta .=. tb =
-  case ta of C.TyAnd _ _ -> pure $ assignObj y (JSVar x)
-             _ -> pure [ JSAssignment (JSIndexer (toIndex tb) (JSVar y))
-                                      (JSIndexer (toIndex ta) (JSVar x)) ]
 subtype ta tb x z b | Just (tb1 /\ tb2) <- split tb =
   if isTopLike tb1 then subtype ta tb2 x z b
   else if isTopLike tb2 then subtype ta tb1 x z b
@@ -406,6 +400,7 @@ subtype a1@(C.TyArray t1) a2@(C.TyArray t2) x y _ = do
        , JSForOf x0 (JSIndexer (toIndex a1) (JSVar x)) $ JSBlock block
        ]
 subtype (C.TyAnd ta tb) tc x y _ = subtype ta tc x y false <|> subtype tb tc x y false
+subtype (C.TyVar a) (C.TyVar a') x y _ | a == a' = pure [ assignObj y (JSVar x) ]
 subtype ta tb x y _
   | ta == tb = pure [ JSAssignment (JSIndexer (toIndex tb) (JSVar y))
                                    (JSIndexer (toIndex ta) (JSVar x)) ]
@@ -446,8 +441,8 @@ unsplit { z, tx: r1@(C.TyRcd _ t1 _), ty: r2@(C.TyRcd _ t2 _), tz: r@(C.TyRcd _ 
   let j' = [ initialize y ]
         <> (if y1 == y then [] else [initialize y1])
         <> (if y2 == y then [] else [initialize y2])
-        <> assignObj y1 (JSIndexer (toIndex r1) (JSVar x1))
-        <> assignObj y2 (JSIndexer (toIndex r2) (JSVar x2))
+        <> [ assignObj y1 (JSIndexer (toIndex r1) (JSVar x1))
+           , assignObj y2 (JSIndexer (toIndex r2) (JSVar x2))]
         <> j
       ast = case order of
         CBV -> j' <> [ addProp (JSVar z) (toIndex r) (JSVar y) ]
@@ -500,19 +495,7 @@ flatten t | isTopLike t = []
           | otherwise   = [t]
 
 equiv :: C.Ty -> C.Ty -> Boolean
-equiv t1 t2 | isTopLike t1 && isTopLike t2 = true
-equiv t1@(C.TyAnd _ _) t2 = let ts1 = flatten t1
-                                ts2 = flatten t2 in
-                            all (\t -> isJust $ find (t .=. _) ts2) ts1 &&
-                            all (\t -> isJust $ find (t .=. _) ts1) ts2
-equiv t1 t2@(C.TyAnd _ _) = equiv t2 t1
-equiv (C.TyArrow t1 t2 _) (C.TyArrow t3 t4 _) = t1 .=. t3 && t2 .=. t4
-equiv (C.TyRcd l1 t1 opt1) (C.TyRcd l2 t2 opt2) = l1 == l2 && t1 .=. t2 && opt1 == opt2
-equiv (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) = td1 .=. td2 && t1 .=. C.tySubst a2 (C.TyVar a1) t2
-equiv (C.TyRec a1 t1) (C.TyRec a2 t2) = t1 .=. C.tySubst a2 (C.TyVar a1) t2
-equiv (C.TyArray t1) (C.TyArray t2) = t1 .=. t2
-equiv t1 t2 | t1 === t2 = true
-            | otherwise = false
+equiv t1 t2 = t1 === t2
 
 infix 4 equiv as .=.
 
@@ -546,18 +529,14 @@ initialize x = JSVariableIntroduction x $ Just $ JSObjectLiteral []
 thunk :: Array JS -> JS
 thunk = JSFunction Nothing [] <<< JSBlock
 
-assignObj :: Name -> JS -> Array JS
-assignObj z arg =
-  [ JSVariableIntroduction that $ Just arg
-  , JSForIn "prop" (JSVar that) $ JSBlock
-      [ JSVariableIntroduction getter $ Just $ JSApp (JSAccessor "__lookupGetter__" (JSVar that)) [JSVar "prop"]
-      , JSIfElse (JSVar getter) (JSBlock [thn]) (Just (JSBlock [els]))
-      ]
+assignObj :: Name -> JS -> JS
+assignObj z arg = JSForIn "prop" arg $ JSBlock
+  [ JSVariableIntroduction getter $ Just $ JSApp (JSAccessor "__lookupGetter__" arg) [JSVar "prop"]
+  , JSIfElse (JSVar getter) (JSBlock [thn]) (Just (JSBlock [els]))
   ]
   where thn = JSApp (JSAccessor "__defineGetter__" (JSVar z)) [JSVar "prop", JSVar getter]
-        els = JSAssignment (JSIndexer (JSVar "prop") (JSVar z)) (JSIndexer (JSVar "prop") (JSVar that))
+        els = JSAssignment (JSIndexer (JSVar "prop") (JSVar z)) (JSIndexer (JSVar "prop") arg)
         getter = "$$getter"
-        that = "$$that"
 
 addProp :: JS -> JS -> JS -> JS
 addProp o x f = JSAssignment (JSIndexer x o) f
