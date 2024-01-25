@@ -68,7 +68,7 @@ G |- x => A ~~> code | z-
 
 x : A in G
 ---------------------------- :: VarGen
-G |- x => A ~~> nothing | z+
+G |- x => A ~~> nothing | x+
 
 
 G, x:A |- e <= A ~~> J | z-
@@ -83,11 +83,10 @@ G |- \x:A. e:B => A->B ~~> code | z-
 
 
 G |- e1 => A ~~> J1 | x+
-G |- e2 => B ~~> J2 | this-
-G |- x : A $ y0 : B ~~> J3 | z : C
-Ts = itoa |B|
----------------------------------- :: App
-G |- e1 e2 => C ~~> code | z-
+G |- e2 => B ~~> J2 | y+
+G |- x : A $ y : B ~~> J3 | z : C
+--------------------------------- :: App
+G |- e1 e2 => C ~~> J1;J2;J3 | z-
 
 
 T = \-/|B|
@@ -156,9 +155,8 @@ toplike A
 G |- x : A $ p ~~> nothing | z : Top
 
 
-y : C <:+ this : A ~~> J
+y : C <:+ y0 : A ~~> J
 T = ->|B|
-Ts = itoa |A|
 ---------------------------------------- :: Arrow
 G |- x : A -> B $ y : C ~~> code | z : B
 
@@ -253,7 +251,7 @@ x : X <:pm y : X ~~> code
 T1 = ->|A2|
 T2 = ->|B2|
 Ts = itoa |A1|
-x1 : B1 <:+ this : A1 ~~> J1
+x1 : B1 <:+ y1 : A1 ~~> J1
 x2 : A2 <:+ y2 : B2 ~~> J2
 --------------------------------------- :: Arrow
 x : A1 -> A2 <:pm y : B1 -> B2 ~~> code

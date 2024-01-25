@@ -37,7 +37,8 @@
 \begin{multicols}{3}
 \begin{verbatim}
 /* J-Gen */
-var z = {};  J;
+var z = {};
+J;
 
 /* J-Int */
 z[T] = n;
@@ -45,27 +46,17 @@ z[T] = n;
 /* J-Var */
 copy(z, x);
 
+
 /* J-Fix */
-var x = z;  J;
+var x = z;
+J;
 
 /* J-Abs */
 z[T] = (x, y) => { J };
 
-/* J-App */
-J1;
-var y0 = {};
-for (const T of Ts)
-  y0.__defineGetter__(T,
-    () => {
-      for (const T of Ts)
-        delete this[T];
-      J2;
-      return this[T];
-    });
-J3;
-
 /* J-TAbs */
 z[T] = (X, y) => { J };
+
 
 /* J-Rcd */
 z.__defineGetter__(T, () => {
@@ -105,13 +96,7 @@ function copy(z, x) {
 \begin{verbatim}
 /* A-Arrow */
 var y0 = {};
-for (const T of Ts)
-  y0.__defineGetter__(T, () => {
-    for (const T of Ts)
-      delete this[T];
-    J;
-    return this[T];
-  });
+J;
 x[T](y0, z);
 
 /* A-ArrowEquiv */
@@ -119,10 +104,6 @@ x[T](y, z);
 
 /* A-All */
 x[T](Ts, z);
-
-
-
-
 \end{verbatim}
 \end{multicols}
 
@@ -158,15 +139,7 @@ copy(y, x);
 
 /* S-Arrow */
 y[T2] = (x1, y2) => {
-  var y1 = {};
-  for (const T of Ts)
-    y1.__defineGetter__(T,
-      () => {
-        for (const T of Ts)
-          delete this[T];
-        J1;
-        return this[T];
-      });
+  var y1 = {};  J1;
   var x2 = {};
   x[T1](y1, x2);
   J2;
