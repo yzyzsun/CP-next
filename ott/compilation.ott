@@ -17,6 +17,11 @@ p :: 'param_' ::= {{ com parameters }}
   | x : A ::  :: term
   | A     ::  :: type
 
+dst :: 'dst_' ::= {{ com destinations }}
+  | nil ::  :: nil
+  | x   ::  :: var
+  | x ? ::  :: opt
+
 pm {{ tex ^\pm }} :: 'pm_' ::= {{ com plus/minus }}
   | + ::  :: plus  {{ tex ^+ }}
   | - ::  :: minus {{ tex ^- }}
@@ -27,157 +32,204 @@ defns
 Compilation :: '' ::=
 
 defn
-G |- e mode A ~~> J | z pm :: :: compile :: J_
+G ; dst |- e mode A ~~> J | z :: :: compile :: J_
 {{ com Type-directed compilation }} % z- means z is provided (input); z+ means z is generated (output)
 by
 
-G |- e mode A ~~> J | z-
---------------------------- :: Gen
-G |- e mode A ~~> code | z+
+G; z |- e mode A ~~> J | z
+------------------------------- :: Nil
+G; nil |- e mode A ~~> code | z
 
 
--------------------------------- :: Top
-G |- {} => Top ~~> nothing | z-
+G; z |- e mode A ~~> J | z
+------------------------------ :: Opt
+G; y? |- e mode A ~~> code | z
+
+
+--------------------------------- :: Top
+G; z |- {} => Top ~~> nothing | z
 
 
 toplike B
---------------------------------------- :: TopAbs
-G |- \x:A. e:B => A->B ~~> nothing | z-
+----------------------------------------- :: TopAbs
+G; z |- \x:A. e:B => A->B ~~> nothing | z
 
 
 toplike B
--------------------------------------------------------- :: TopTAbs
-G |- /\ X * A. e : B => Forall X * A. B ~~> nothing | z-
+---------------------------------------------------------- :: TopTAbs
+G; z |- /\ X * A. e : B => Forall X * A. B ~~> nothing | z
 
 
 G |- e => A
 toplike A
----------------------------------------- :: TopRcd
-G |- {l = e} => {l : A} ~~> nothing | z-
+------------------------------------------ :: TopRcd
+G; z |- {l = e} => {l : A} ~~> nothing | z
 
 
 T = |Base|
----------------------------- :: Int
-G |- b => Base ~~> code | z-
+------------------------------ :: Int
+G; z |- b => Base ~~> code | z
 
 
 x : A in G
-------------------------- :: Var
-G |- x => A ~~> code | z-
+--------------------------- :: Var
+G; z |- x => A ~~> code | z
 
 
 x : A in G
----------------------------- :: VarGen
-G |- x => A ~~> nothing | x+
+---------------------------- :: VarOpt
+G; y? |- x => A ~~> code | z
 
 
-G, x:A |- e <= A ~~> J | z-
----------------------------------- :: Fix
-G |- fix x:A. e => A ~~> code | z-
+x : A in G
+-------------------------------- :: VarNil
+G; nil |- x => A ~~> nothing | x
+
+
+G, x:A; z |- e <= A ~~> J | z
+------------------------------------ :: Fix
+G; z |- fix x:A. e => A ~~> code | z
 
 
 T = ->|B|
-G, x:A |- e <= B ~~> J | y-
------------------------------------- :: Abs
-G |- \x:A. e:B => A->B ~~> code | z-
+G, x:A; y? |- e <= B ~~> J | y0
+-------------------------------------- :: Abs
+G; z |- \x:A. e:B => A->B ~~> code | z
 
 
-G |- e1 => A ~~> J1 | x+
-G |- e2 => B ~~> J2 | y+
-G |- x : A $ y : B ~~> J3 | z : C
---------------------------------- :: App
-G |- e1 e2 => C ~~> J1;J2;J3 | z-
+G; nil |- e1 => A ~~> J1 | x
+G; nil |- e2 => B ~~> J2 | y
+G; dst |- x : A $ y : B ~~> J3 | z : C
+-------------------------------------- :: App
+G; dst |- e1 e2 => C ~~> J1;J2;J3 | z
 
 
 T = \-/|B|
-G , X * A |- e <= B ~~> J | y-
------------------------------------------------------ :: TAbs
-G |- /\ X * A. e : B => Forall X * A. B ~~> code | z-
+G , X * A; y? |- e <= B ~~> J2 | y0
+------------------------------------------------------- :: TAbs
+G; z |- /\ X * A. e : B => Forall X * A. B ~~> code | z
 
 
-G |- e => B ~~> J1 | y+
-G |- y : B $ A ~~> J2 | z : C
------------------------------ :: TApp
-G |- e A => C ~~> J1;J2 | z-
+G; nil |- e => B ~~> J1 | y
+G; dst |- y : B $ A ~~> J2 | z : C
+---------------------------------- :: TApp
+G; dst |- e A => C ~~> J1;J2 | z
 
 
 T = {l : |A|}
-G |- e => A ~~> J | y+
-------------------------------------- :: Rcd
-G |- {l = e} => {l : A} ~~> code | z-
+G; nil |- e => A ~~> J | y
+--------------------------------------- :: Rcd
+G; z |- {l = e} => {l : A} ~~> code | z
 
 
-G |- e => A ~~> J1 | y+
+G; nil |- e => A ~~> J1 | y
 y : A $ {l} ~~> J2 | z : B
----------------------------- :: Proj
-G |- e.l => B ~~> J1;J2 | z-
+------------------------------ :: Proj
+G; z |- e.l => B ~~> J1;J2 | z
 
 
-G |- e1 => A ~~> J1 | z-
-G |- e2 => B ~~> J2 | z-
+G; z |- e1 => A ~~> J1 | z
+G; z |- e2 => B ~~> J2 | z
 G |- A * B
-------------------------------------- :: Merge
-G |- e1 ,, e2 => A & B ~~> J1;J2 | z-
+--------------------------------------- :: Merge
+G; z |- e1 ,, e2 => A & B ~~> J1;J2 | z
 
 
-G |- e <= A ~~> J | z pm
--------------------------- :: Anno
-G |- e:A => A ~~> J | z pm
+G; dst |- e <= A ~~> J | z
+---------------------------- :: Anno
+G; dst |- e:A => A ~~> J | z
 
 
-G |- e1 => A ~~> J1 | x-
-G, x:A |- e2 => B ~~> J2 | z-
----------------------------------- :: Def
-G |- x = e1; e2 => B ~~> code | z-
+G; x |- e1 => A ~~> J1 | x
+G, x:A; z |- e2 => B ~~> J2 | z
+------------------------------------ :: Def
+G; z |- x = e1; e2 => B ~~> code | z
 
 
-G |- e => A ~~> J1 | x+
+G; nil |- e => A ~~> J1 | x
 x : A <:+ y : B ~~> J2
--------------------------- :: Sub
-G |- e <= B ~~> J1;J2 | y-
+---------------------------- :: Sub
+G; y |- e <= B ~~> J1;J2 | y
 
 
 A .=. B
-G |- e => A ~~> J | z pm
------------------------- :: SubEquiv
-G |- e <= B ~~> J | z pm
+G; dst |- e => A ~~> J | z
+-------------------------- :: SubEquiv
+G; dst |- e <= B ~~> J | z
 
 
 
 defn
-G |- x : A $ p ~~> J | z : B :: :: distapp :: A_
+G ; dst |- x : A $ p ~~> J | z : B :: :: distapp :: A_
 {{ com Distributive application }}
 by
 
 
+G; z |- x : A $ p ~~> J | z : B
+------------------------------------ :: Nil
+G; nil |- x : A $ p ~~> code | z : B
+
+
+G; z |- x : A $ p ~~> J | z : B
+----------------------------------- :: Opt
+G; y? |- x : A $ p ~~> code | z : B
+
+
 toplike A
------------------------------------- :: Top
-G |- x : A $ p ~~> nothing | z : Top
+--------------------------------------- :: Top
+G; z |- x : A $ p ~~> nothing | z : Top
 
 
-y : C <:+ y0 : A ~~> J
 T = ->|B|
----------------------------------------- :: Arrow
-G |- x : A -> B $ y : C ~~> code | z : B
+y : C <:+ y0 : A ~~> J1
+G; dst |- x : A -> B $ y0 : A ~~> J2 | z : B
+--------------------------------------------- :: Arrow
+G; dst |- x : A -> B $ y : C ~~> code | z : B
 
 
 A .=. C
 T = ->|B|
----------------------------------------- :: ArrowEquiv
-G |- x : A -> B $ y : C ~~> code | z : B
+------------------------------------------- :: ArrowEquiv
+G; z |- x : A -> B $ y : C ~~> code | z : B
+
+
+A .=. C
+T = ->|B|
+-------------------------------------------- :: ArrowOpt
+G; z0? |- x : A -> B $ y : C ~~> code | z : B
+
+
+A .=. C
+T = ->|B|
+--------------------------------------------- :: ArrowNil
+G; nil |- x : A -> B $ y : C ~~> code | z : B
 
 
 G |- A * C
 T = \-/|B|
 Ts = itoa |C|
--------------------------------------------------- :: All
-G |- x : Forall X*A. B $ C ~~> code | z : B [X~>C]
+----------------------------------------------------- :: All
+G; z |- x : Forall X*A. B $ C ~~> code | z : B [X~>C]
 
 
-G |- x : A $ p ~~> J1 | z : A'
-G |- x : B $ p ~~> J2 | z : B'
--------------------------------------- :: And
-G |- x : A&B $ p ~~> J1;J2 | z : A'&B'
+G |- A * C
+T = \-/|B|
+Ts = itoa |C|
+------------------------------------------------------ :: AllOpt
+G; y? |- x : Forall X*A. B $ C ~~> code | z : B [X~>C]
+
+
+G |- A * C
+T = \-/|B|
+Ts = itoa |C|
+------------------------------------------------------- :: AllNil
+G; nil |- x : Forall X*A. B $ C ~~> code | z : B [X~>C]
+
+
+G; z |- x : A $ p ~~> J1 | z : A'
+G; z |- x : B $ p ~~> J2 | z : B'
+----------------------------------------- :: And
+G; z |- x : A&B $ p ~~> J1;J2 | z : A'&B'
 
 
 

@@ -52,77 +52,104 @@ fromState st = emptyCtx { tmBindEnv = fromFoldable $ rmap fst <$> st.tmBindings 
 
 runCodeGen :: C.Tm -> Ctx -> Either String (Array JS)
 runCodeGen e ctx = do
-  { ast } /\ _ <- runExcept $ evalRWST (infer e "$0") ctx 0
+  { ast } /\ _ <- runExcept $ evalRWST (infer e DstNil) ctx 0
   pure $ [ JSRawCode prelude ] <> ast
 
 prelude :: String
-prelude = """function toIndex(tt) {
+prelude = """function copyObj(dst, src) {
+    if (dst === undefined) return;
+    for (const prop in src) {
+        var getter = src.__lookupGetter__(prop);
+        if (getter) dst.__defineGetter__(prop, getter);
+        else dst[prop] = src[prop];
+    }
+}
+function toIndex(tt) {
     var ts = tt.sort().filter((t, i) => t === 0 || t !== tt[i-1]);
     if (ts.length === 1) return ts[0];
     else return '(' + ts.join('&') + ')';
 }"""
 
 type AST = Array JS
+type InferResult = { ast :: AST, typ :: C.Ty, var :: Name }
+type CheckResult = { ast :: AST, var :: Name }
 
-infer :: C.Tm -> Name -> CodeGen { ast :: AST, typ :: C.Ty }
-infer C.TmUnit _ = pure { ast: [], typ: C.TyTop }
-infer C.TmUndefined _ = pure { ast: [], typ: C.TyBot }
-infer (C.TmInt i) z = pure
+data Destination = DstNil | DstOpt Name | DstVar Name
+
+dstOpt :: Name -> CodeGen CheckResult
+dstOpt y = do
+  var <- freshVarName
+  let init = JSBinary Or (JSVar y) (JSObjectLiteral [])
+  pure { ast: [ JSVariableIntroduction var $ Just init ], var }
+
+dstNil :: CodeGen CheckResult
+dstNil = do
+  var <- freshVarName
+  pure { ast: [ initialize var ], var }
+
+infer :: C.Tm -> Destination -> CodeGen InferResult
+infer C.TmUnit (DstVar z) = pure { ast: [], typ: C.TyTop, var: z }
+infer C.TmUndefined (DstVar z) = pure { ast: [], typ: C.TyBot, var: z }
+infer (C.TmInt i) (DstVar z) = pure
   { ast: [ addProp (JSVar z) (toIndex C.TyInt) (JSNumericLiteral (toNumber i)) ]
   , typ: C.TyInt
+  , var: z
   }
-infer (C.TmDouble d) z = pure
+infer (C.TmDouble d) (DstVar z) = pure
   { ast: [ addProp (JSVar z) (toIndex C.TyDouble) (JSNumericLiteral d) ]
   , typ: C.TyDouble
+  , var: z
   }
-infer (C.TmString s) z = pure
+infer (C.TmString s) (DstVar z) = pure
   { ast: [ addProp (JSVar z) (toIndex C.TyString) (JSStringLiteral s) ]
   , typ: C.TyString
+  , var: z
   }
-infer (C.TmBool b) z = pure
+infer (C.TmBool b) (DstVar z) = pure
   { ast: [ addProp (JSVar z) (toIndex C.TyBool) (JSBooleanLiteral b) ]
   , typ: C.TyBool
+  , var: z
   }
-infer (C.TmArray t arr) z = do
-  arr' <- traverse infer' arr
+infer (C.TmArray t arr) (DstVar z) = do
+  arr' <- traverse (flip infer DstNil) arr
   let js = arr' <#> (_.ast)
       vs = arr' <#> (_.var) >>> JSVar
       ast = concat js <> [ addProp (JSVar z) (toIndex (C.TyArray t)) (JSArrayLiteral vs) ]
-  pure { ast, typ: C.TyArray t }
-infer (C.TmUnary Op.Neg e) z = do
-  { ast: j, typ: t, var: y } <- infer' e
+  pure { ast, typ: C.TyArray t, var: z }
+infer (C.TmUnary Op.Neg e) (DstVar z) = do
+  { ast: j, typ: t, var: y } <- infer e DstNil
   let ast typ = j <> [ addProp (JSVar z) (toIndex typ)
                                (JSUnary Negate (JSIndexer (toIndex typ) (JSVar y))) ]
-  case t of C.TyInt    -> pure { ast: ast C.TyInt,    typ: C.TyInt    }
-            C.TyDouble -> pure { ast: ast C.TyDouble, typ: C.TyDouble }
+  case t of C.TyInt    -> pure { ast: ast C.TyInt,    typ: C.TyInt,    var: z }
+            C.TyDouble -> pure { ast: ast C.TyDouble, typ: C.TyDouble, var: z }
             _ -> throwError $ "Neg is not defined for" <+> show t
-infer (C.TmUnary Op.Not e) z = do
-  { ast: j, typ: t, var: y } <- infer' e
+infer (C.TmUnary Op.Not e) (DstVar z) = do
+  { ast: j, typ: t, var: y } <- infer e DstNil
   let ast = j <> [ addProp (JSVar z) (toIndex C.TyBool)
                            (JSUnary Not (JSIndexer (toIndex C.TyBool) (JSVar y))) ]
-  case t of C.TyBool -> pure { ast, typ: C.TyBool }
+  case t of C.TyBool -> pure { ast, typ: C.TyBool, var: z }
             _ -> throwError $ "Not is not defined for" <+> show t
-infer (C.TmUnary Op.Len e) z = do
-  { ast: j, typ: t, var: y } <- infer' e
+infer (C.TmUnary Op.Len e) (DstVar z) = do
+  { ast: j, typ: t, var: y } <- infer e DstNil
   let ast = j <> [ addProp (JSVar z) (toIndex C.TyInt)
                            (JSAccessor "length" (JSIndexer (toIndex t) (JSVar y))) ]
-  pure { ast, typ: C.TyInt }
-infer (C.TmUnary Op.Sqrt e) z = do
-  { ast: j, typ: t, var: y } <- infer' e
+  pure { ast, typ: C.TyInt, var: z }
+infer (C.TmUnary Op.Sqrt e) (DstVar z) = do
+  { ast: j, typ: t, var: y } <- infer e DstNil
   let ast = j <> [ addProp (JSVar z) (toIndex C.TyDouble)
                            (JSApp (JSAccessor "sqrt" (JSVar "Math"))
                                   [JSIndexer (toIndex C.TyDouble) (JSVar y)]) ]
-  case t of C.TyDouble -> pure { ast, typ: C.TyDouble }
+  case t of C.TyDouble -> pure { ast, typ: C.TyDouble, var: z }
             _ -> throwError $ "Sqrt is not defined for" <+> show t
-infer (C.TmBinary (Op.Arith op) e1 e2) z = do
-  { ast: j1, typ: t1, var: x } <- infer' e1
-  { ast: j2, typ: t2, var: y } <- infer' e2
+infer (C.TmBinary (Op.Arith op) e1 e2) (DstVar z) = do
+  { ast: j1, typ: t1, var: x } <- infer e1 DstNil
+  { ast: j2, typ: t2, var: y } <- infer e2 DstNil
   let ast typ flg = j1 <> j2 <> [ addProp (JSVar z) (toIndex typ)
         (fun (JSBinary (map op) (JSIndexer (toIndex typ) (JSVar x))
                                 (JSIndexer (toIndex typ) (JSVar y)))) ]
         where fun = if flg then trunc else identity
-  case t1, t2 of C.TyInt,    C.TyInt    -> pure { ast: ast C.TyInt (op == Op.Div), typ: C.TyInt    }
-                 C.TyDouble, C.TyDouble -> pure { ast: ast C.TyDouble false,       typ: C.TyDouble }
+  case t1, t2 of C.TyInt,    C.TyInt    -> pure { ast: ast C.TyInt (op == Op.Div), typ: C.TyInt,    var: z }
+                 C.TyDouble, C.TyDouble -> pure { ast: ast C.TyDouble false,       typ: C.TyDouble, var: z }
                  _, _ -> throwError $
                    "ArithOp is not defined between" <+> show t1 <+> "and" <+> show t2
   where map :: Op.ArithOp -> BinaryOperator
@@ -133,16 +160,16 @@ infer (C.TmBinary (Op.Arith op) e1 e2) z = do
         map Op.Mod = Modulus
         trunc :: JS -> JS
         trunc n = JSApp (JSAccessor "trunc" (JSVar "Math")) [n]
-infer (C.TmBinary (Op.Comp op) e1 e2) z = do
-  { ast: j1, typ: t1, var: x } <- infer' e1
-  { ast: j2, typ: t2, var: y } <- infer' e2
+infer (C.TmBinary (Op.Comp op) e1 e2) (DstVar z) = do
+  { ast: j1, typ: t1, var: x } <- infer e1 DstNil
+  { ast: j2, typ: t2, var: y } <- infer e2 DstNil
   let ast typ = j1 <> j2 <> [ addProp (JSVar z) (toIndex C.TyBool)
     (JSBinary (map op) (JSIndexer (toIndex typ) (JSVar x))
                        (JSIndexer (toIndex typ) (JSVar y))) ]
-  case t1, t2 of C.TyInt,    C.TyInt    -> pure { ast: ast C.TyInt,    typ: C.TyBool }
-                 C.TyDouble, C.TyDouble -> pure { ast: ast C.TyDouble, typ: C.TyBool }
-                 C.TyString, C.TyString -> pure { ast: ast C.TyString, typ: C.TyBool }
-                 C.TyBool,   C.TyBool   -> pure { ast: ast C.TyBool,   typ: C.TyBool }
+  case t1, t2 of C.TyInt,    C.TyInt    -> pure { ast: ast C.TyInt,    typ: C.TyBool, var: z }
+                 C.TyDouble, C.TyDouble -> pure { ast: ast C.TyDouble, typ: C.TyBool, var: z }
+                 C.TyString, C.TyString -> pure { ast: ast C.TyString, typ: C.TyBool, var: z }
+                 C.TyBool,   C.TyBool   -> pure { ast: ast C.TyBool,   typ: C.TyBool, var: z }
                  _, _ -> throwError $
                    "CompOp is not defined between" <+> show t1 <+> "and" <+> show t2
   where map :: Op.CompOp -> BinaryOperator
@@ -152,209 +179,257 @@ infer (C.TmBinary (Op.Comp op) e1 e2) z = do
         map Op.Le  = LessThanOrEqualTo
         map Op.Gt  = GreaterThan
         map Op.Ge  = GreaterThanOrEqualTo
-infer (C.TmBinary (Op.Logic op) e1 e2) z = do
-  { ast: j1, typ: t1, var: x } <- infer' e1
-  { ast: j2, typ: t2, var: y } <- infer' e2
+infer (C.TmBinary (Op.Logic op) e1 e2) (DstVar z) = do
+  { ast: j1, typ: t1, var: x } <- infer e1 DstNil
+  { ast: j2, typ: t2, var: y } <- infer e2 DstNil
   let ast = j1 <> j2 <> [ addProp (JSVar z) (toIndex C.TyBool)
     (JSBinary (map op) (JSIndexer (toIndex C.TyBool) (JSVar x))
                        (JSIndexer (toIndex C.TyBool) (JSVar y))) ]
-  case t1, t2 of C.TyBool, C.TyBool -> pure { ast, typ: C.TyBool }
+  case t1, t2 of C.TyBool, C.TyBool -> pure { ast, typ: C.TyBool, var: z }
                  _, _ -> throwError $
                    "LogicOp is not defined between" <+> show t1 <+> "and" <+> show t2
   where map :: Op.LogicOp -> BinaryOperator
         map Op.And = And
         map Op.Or  = Or
-infer (C.TmBinary Op.Append e1 e2) z = do
-  { ast: j1, typ: t1, var: x } <- infer' e1
-  { ast: j2, typ: t2, var: y } <- infer' e2
+infer (C.TmBinary Op.Append e1 e2) (DstVar z) = do
+  { ast: j1, typ: t1, var: x } <- infer e1 DstNil
+  { ast: j2, typ: t2, var: y } <- infer e2 DstNil
   case t1, t2 of
     C.TyString, C.TyString ->
       let ast = j1 <> j2 <> [ addProp (JSVar z) (toIndex C.TyString)
             (JSBinary Add (JSIndexer (toIndex C.TyString) (JSVar x))
                           (JSIndexer (toIndex C.TyString) (JSVar y))) ] in
-      pure { ast, typ: C.TyString }
+      pure { ast, typ: C.TyString, var: z }
     typ@(C.TyArray t), C.TyArray t' | t .=. t' ->
       let ast = j1 <> j2 <> [ addProp (JSVar z) (toIndex typ)
             (JSApp (JSAccessor "concat" (JSIndexer (toIndex typ) (JSVar x)))
                                         [JSIndexer (toIndex typ) (JSVar y)]) ] in
-      pure { ast, typ }
+      pure { ast, typ, var: z }
     _, _ -> throwError $
       "Append is not defined between" <+> show t1 <+> "and" <+> show t2
-infer (C.TmBinary Op.Index e1 e2) z = do
-  { ast: j1, typ: t1, var: x } <- infer' e1
-  { ast: j2, typ: t2, var: y } <- infer' e2
+infer (C.TmBinary Op.Index e1 e2) (DstVar z) = do
+  { ast: j1, typ: t1, var: x } <- infer e1 DstNil
+  { ast: j2, typ: t2, var: y } <- infer e2 DstNil
   case t1, t2 of
     t@(C.TyArray typ), C.TyInt ->
-      let ast = j1 <> j2 <> [ assignObj z
+      let ast = j1 <> j2 <> [ copyObj z
             (JSIndexer (JSIndexer (toIndex C.TyInt) (JSVar y))
                        (JSIndexer (toIndex t) (JSVar x))) ] in
-      pure { ast, typ }
+      pure { ast, typ, var: z }
     _, _ -> throwError $
       "Index is not defined between" <+> show t1 <+> "and" <+> show t2
-infer (C.TmIf e1 e2 e3) z = do
-  { ast: j1, typ: t1, var } <- infer' e1
+infer (C.TmIf e1 e2 e3) dst = do
+  { ast: j1, typ: t1, var } <- infer e1 DstNil
   if t1 == C.TyBool then do
-    { ast: j2, typ: t2 } <- infer e2 z
-    { ast: j3, typ: t3 } <- infer e3 z
+    { ast: j2, typ: t2, var: x } <- infer e2 dst
+    { ast: j3, typ: t3, var: y } <- infer e3 dst
     if t2 .=. t3 then do
-      let ast = j1 <> [ JSIfElse (JSIndexer (toIndex C.TyBool) (JSVar var))
-                                 (JSBlock j2) (Just (JSBlock j3)) ]
-      pure { ast, typ: t2 }
+      let ifElse mz = let f2 = case mz of Nothing -> identity
+                                          Just z -> (_ <> [ JSAssignment (JSVar z) (JSVar x) ])
+                          f3 = case mz of Nothing -> identity
+                                          Just z -> (_ <> [ JSAssignment (JSVar z) (JSVar y) ]) in
+                      JSIfElse (JSIndexer (toIndex C.TyBool) (JSVar var))
+                               (JSBlock (f2 j2)) (Just (JSBlock (f3 j3)))
+      case dst of DstVar z -> pure { ast: j1 <> [ ifElse Nothing ], typ: t2, var: z }
+                  _ -> do z <- freshVarName
+                          pure { ast: j1 <> [ JSVariableIntroduction z Nothing, ifElse (Just z) ], typ: t2, var: z }
     else throwError $ "if-branches expected two equivalent types, but got"
                    <+> show t2 <+> "and" <+> show t3
   else throwError $ "if-condition expected Bool, but got" <+> show t1
-infer (C.TmVar x) z = do
+infer (C.TmVar x) (DstVar z) = do
   typ <- lookupTmBind x
-  pure { ast: [ assignObj z (JSVar (variable x)) ], typ }
-infer (C.TmFix x e typ) z = do
-  j <- addTmBind x typ $ check e typ z
+  pure { ast: [ copyObj z (JSVar (variable x)) ], typ, var: z }
+infer (C.TmFix x e typ) (DstVar z) = do
+  { ast: j } <- addTmBind x typ $ check e typ (DstVar z)
   let ast = [ JSVariableIntroduction (variable x) $ Just (JSVar z) ] <> j
-  pure { ast, typ }
-infer (C.TmAbs x e targ tret _ isTrait) z
-  | isTopLike tret = infer C.TmUnit z
+  pure { ast, typ, var: z }
+infer (C.TmAbs x e targ tret _ isTrait) (DstVar z)
+  | isTopLike tret = infer C.TmUnit (DstVar z)
   | otherwise = do
       y <- freshVarName
-      j <- addTmBind x targ $ setInTrait isTrait $ check e tret y
+      { ast: j, var: y0 } <- addTmBind x targ $ setInTrait isTrait $ check e tret (DstOpt y)
       let typ = C.TyArrow targ tret isTrait
-          fun = JSFunction Nothing [variable x, y] $ JSBlock j
+          fun = JSFunction Nothing [variable x, y] $ JSBlock $ j <> [JSReturn $ JSVar y0]
           ast = [ addProp (JSVar z) (toIndex typ) fun ]
-      pure { ast, typ }
-infer (C.TmApp e1 e2 _) z = do
-  { ast: j1, typ: t1, var: x } <- infer' e1
-  { ast: j2, typ: t2, var: y } <- infer' e2
-  { ast: j3, typ: t3 } <- distapp t1 x (TmArg y t2) z
-  pure { ast: j1 <> j2 <> j3, typ: t3 }
-infer (C.TmTAbs a td e t _) z
-  | isTopLike t = infer C.TmUnit z
+      pure { ast, typ, var: z }
+infer (C.TmApp e1 e2 _) dst = do
+  { ast: j1, typ: t1, var: x } <- infer e1 DstNil
+  { ast: j2, typ: t2, var: y } <- infer e2 DstNil
+  { ast: j3, typ: t3, var: z } <- distapp t1 x (TmArg y t2) dst
+  pure { ast: j1 <> j2 <> j3, typ: t3, var: z }
+infer (C.TmTAbs a td e t _) (DstVar z)
+  | isTopLike t = infer C.TmUnit (DstVar z)
   | otherwise = do
       y <- freshVarName
-      j <- addTyBind a td $ check e t y
+      { ast: j, var: y0 } <- addTyBind a td $ check e t (DstOpt y)
       let typ = C.TyForall a td t
-          fun = JSFunction Nothing [variable a, y] $ JSBlock j
+          fun = JSFunction Nothing [variable a, y] $ JSBlock $ j <> [JSReturn $ JSVar y0]
           ast = [ addProp (JSVar z) (toIndex typ) fun ]
-      pure { ast, typ }
-infer (C.TmTApp e t) z = do
-  { ast: j1, typ: tf, var: y } <- infer' e
-  { ast: j2, typ: tbody } <- distapp tf y (TyArg t) z
-  pure { ast: j1 <> j2, typ: tbody }
-infer (C.TmRcd l t e) z
-  | isTopLike t = infer C.TmUnit z
+      pure { ast, typ, var: z }
+infer (C.TmTApp e t) dst = do
+  { ast: j1, typ: tf, var: y } <- infer e DstNil
+  { ast: j2, typ: tbody, var: z } <- distapp tf y (TyArg t) dst
+  pure { ast: j1 <> j2, typ: tbody, var: z }
+infer (C.TmRcd l t e) (DstVar z)
+  | isTopLike t = infer C.TmUnit (DstVar z)
   | otherwise = do
-      { ast: j, var: y } <- check' e t
+      { ast: j, var: y } <- check e t DstNil
       order <- asks (_.evalOrder)
       inTrait <- asks (_.inTrait)
       let ast = if order == CBV || not inTrait
                 then j <> [ addProp (JSVar z) (toIndex typ) (JSVar y) ]
                 else [ addGetter (JSVar z) (toIndex typ) j y ]
           typ = C.TyRcd l t false
-      pure { ast, typ }
-infer (C.TmPrj e l) z = do
-  { ast: j1, typ: t1, var: y } <- infer' e
+      pure { ast, typ, var: z }
+infer (C.TmPrj e l) dst = do
+  { ast: j1, typ: t1, var: y } <- infer e DstNil
   case selectLabel t1 l false of
+    Just typ@(C.TyAnd _ _) -> do
+      case dst of DstVar z -> do { ast: j2 } <- proj t1 y l (DstVar z)
+                                 pure { ast: j1 <> j2, typ, var: z }
+                  DstOpt z' -> do { ast: j2, var: z } <- dstOpt z'
+                                  { ast: j3 } <- proj t1 y l (DstVar z)
+                                  pure { ast: j1 <> j2 <> j3, typ, var: z }
+                  DstNil -> do { ast: j2, var: z } <- dstNil
+                               { ast: j3 } <- proj t1 y l (DstVar z)
+                               pure { ast: j1 <> j2 <> j3, typ, var: z }
     Just typ -> do
-      let j2 = proj t1 y l z
-      pure $ { ast: j1 <> j2, typ }
+      { ast: j2, var } <- proj t1 y l dst
+      pure { ast: j1 <> j2, typ, var }
     _ -> throwError $ "label" <+> show l <+> "is absent in" <+> show t1
-infer (C.TmMerge e1 e2) z = do
-  { ast: j1, typ: t1 } <- infer e1 z
-  { ast: j2, typ: t2 } <- infer e2 z
-  pure { ast: j1 <> j2, typ: C.TyAnd t1 t2 }
-infer (C.TmAnno e typ) z = do
-  ast <- check (skipAnno e) typ z
-  pure { ast, typ }
+infer (C.TmMerge e1 e2) (DstVar z) = do
+  { ast: j1, typ: t1 } <- infer e1 (DstVar z)
+  { ast: j2, typ: t2 } <- infer e2 (DstVar z)
+  pure { ast: j1 <> j2, typ: C.TyAnd t1 t2, var: z }
+infer (C.TmAnno e typ) (DstVar z) = do
+  { ast } <- check (skipAnno e) typ (DstVar z)
+  pure { ast, typ, var: z }
   where skipAnno :: C.Tm -> C.Tm
         skipAnno (C.TmAnno e' _) = e'
         skipAnno e' = e'
-infer (C.TmToString e) z = do
-  { ast: j, typ: t, var: y } <- infer' e
+infer (C.TmToString e) (DstVar z) = do
+  { ast: j, typ: t, var: y } <- infer e DstNil
   let ast = j <> [ addProp (JSVar z) (toIndex C.TyString)
     (JSApp (JSAccessor "toString" (JSIndexer (toIndex t) (JSVar y))) []) ]
-  pure { ast, typ: C.TyString }
-infer (C.TmDef x e1 e2 lazy) z =
+  pure { ast, typ: C.TyString, var: z }
+infer (C.TmDef x e1 e2 lazy) dst =
   if lazy then do  -- is originally `open` expressions
-    { ast: j1, typ: t1 } <- infer e1 "this"
-    { ast: j2, typ: t2 } <- addTmBind x t1 $ infer e2 z
+    { ast: j1, typ: t1 } <- infer e1 (DstVar "this")
+    { ast: j2, typ: t2, var } <- addTmBind x t1 $ infer e2 dst
     let ast = [initialize varX] <> addGettersForIndices varX t1 j1 <> j2
-    pure { ast, typ: t2 }
+    pure { ast, typ: t2, var }
   else do  -- is originally top-level definitions
-    { ast: j1, typ: t1 } <- infer e1 varX
-    { ast: j2, typ: t2 } <- addTmBind x t1 $ infer e2 z
-    pure { ast: [JSExport $ initialize varX] <> j1 <> j2, typ: t2 }
+    { ast: j1, typ: t1 } <- infer e1 (DstVar varX)
+    { ast: j2, typ: t2, var } <- addTmBind x t1 $ infer e2 dst
+    pure { ast: [JSExport $ initialize varX] <> j1 <> j2, typ: t2, var }
   where varX = variable x
-infer (C.TmMain e) _ = do
-  z <- freshVarName
-  { ast: j , typ } <- infer e z
-  let block = [initialize z] <> j <> [JSReturn $ JSVar z]
+infer (C.TmMain e) DstNil = do
+  { ast: j, typ, var } <- infer e DstNil
+  let block = j <> [JSReturn $ JSVar var]
       ast = [ JSExport $ JSFunction (Just "main") [] $ JSBlock block ]
-  pure { ast, typ }
-infer e _ = unsafeCrashWith $ "FIXME: infer" <+> show e
-
-infer' :: C.Tm -> CodeGen { ast :: AST, typ :: C.Ty, var :: Name }
-infer' (C.TmVar x) = do
+  pure { ast, typ, var }
+infer (C.TmVar x) (DstOpt y) = do
+  z <- freshVarName
+  typ <- lookupTmBind x
+  let ast = [ JSVariableIntroduction z $ Just $ JSVar $ variable x, copyObj y (JSVar z) ]
+  pure { ast, typ, var: variable x }
+infer (C.TmVar x) DstNil = do
   typ <- lookupTmBind x
   pure { ast: [], typ, var: variable x }
-infer' (C.TmAnno e typ) = do
-  { ast, var } <- check' e typ
+infer (C.TmAnno e typ) DstNil = do
+  { ast, var } <- check e typ DstNil
   pure { ast, typ, var }
-infer' e = do
-  var <- freshVarName
-  { ast, typ } <- infer e var
-  pure { ast: [ initialize var ] <> ast, typ, var }
+infer e (DstOpt y) = do
+  { ast: j1, var } <- dstOpt y
+  { ast: j2, typ } <- infer e (DstVar var)
+  pure { ast: j1 <> j2, typ, var }
+infer e DstNil = do
+  { ast: j1, var } <- dstNil
+  { ast: j2, typ } <- infer e (DstVar var)
+  pure { ast: j1 <> j2, typ, var }
+infer e _ = unsafeCrashWith $ "FIXME: infer" <+> show e
 
--- TODO: change (infer' e) to (infer e y) if t .=. typ
-check :: C.Tm -> C.Ty -> Name -> CodeGen AST
-check e t y = do
-  { ast, typ, var: x } <- infer' e
-  (ast <> _) <$> subtype typ t x y true
-
-check' :: C.Tm -> C.Ty -> CodeGen { ast :: AST, var :: Name }
-check' e t = do
-  { ast: j1, typ, var: x } <- infer' e
-  if t .=. typ then pure { ast: j1, var: x }
+check :: C.Tm -> C.Ty -> Destination -> CodeGen CheckResult
+check e t dst = do
+  x <- freshVarName
+  { ast: j1, typ, var } <- infer e (DstOpt x)
+  let j0 = [ JSVariableIntroduction x $ case dst of DstNil -> Nothing
+                                                    DstOpt z -> Just $ JSVar z
+                                                    DstVar z -> Just $ JSVar z ]
+  if t .=. typ then pure { ast: j0 <> j1, var }
   else do
     y <- freshVarName
-    j2 <- subtype typ t x y true
-    pure { ast: j1 <> [ initialize y ] <> j2, var: y }
+    let j2 = [ case dst of DstVar z -> JSVariableIntroduction y $ Just $ JSVar z
+                           DstOpt z -> JSVariableIntroduction y $ Just $ JSBinary Or (JSVar z) (JSObjectLiteral [])
+                           DstNil -> initialize y ]
+    j3 <- subtype typ t var y true
+    pure { ast: j0 <> j1 <> j2 <> j3, var: y }
 
 data Arg = TmArg Name C.Ty | TyArg C.Ty
 
-distapp :: C.Ty -> Name -> Arg -> Name -> CodeGen { ast :: AST, typ :: C.Ty }
-distapp t _ _ _ | isTopLike t = pure { ast: [], typ: C.TyTop }
-distapp (C.TyAnd ta tb) x arg z = do
-  { ast: j1, typ: t1 } <- distapp ta x arg z
-  { ast: j2, typ: t2 } <- distapp tb x arg z
-  pure { ast: j1 <> j2, typ: C.TyAnd t1 t2 }
-distapp t@(C.TyArrow targ tret _) x (TmArg y t') z =
-  let app var = JSApp (JSIndexer (toIndex t) (JSVar x)) [JSVar var, JSVar z] in
-  if targ .=. t' then pure { ast: [ app y ], typ: tret }
-  else do
-    y0 <- freshVarName
-    j <- subtype t' targ y y0 true
-    pure { ast: [ initialize y0 ] <> j <> [ app y0 ], typ: tret }
-distapp t@(C.TyForall a _ tbody) x (TyArg t') z =
-  pure { ast: [ JSApp (JSIndexer (toIndex t) (JSVar x)) [toIndices t', JSVar z] ]
-       , typ: C.tySubst a t' tbody
-       }
+distapp :: C.Ty -> Name -> Arg -> Destination -> CodeGen InferResult
+distapp t _ _ (DstVar z) | isTopLike t = pure { ast: [], typ: C.TyTop, var: z }
+distapp t@(C.TyArrow targ tret _) x (TmArg y t') dst = do
+  y' /\ j1 <- if targ .=. t' then pure $ y /\ []
+              else do y' <- freshVarName
+                      j <- subtype t' targ y y' true
+                      pure $ y' /\ ([ initialize y' ] <> j)
+  let app m1 m2 = let f1 = case m1 of Nothing -> identity
+                                      Just z -> JSVariableIntroduction z <<< Just
+                      f2 = case m2 of Nothing -> identity
+                                      Just z -> (_ <> [JSVar z]) in
+                  f1 (JSApp (JSIndexer (toIndex t) (JSVar x)) (f2 [JSVar y']))
+  case dst of DstNil -> do z <- freshVarName
+                           pure { ast: j1 <> [ app (Just z) Nothing ], typ: tret, var: z }
+              DstOpt z' -> do z <- freshVarName
+                              pure { ast: j1 <> [ app (Just z) (Just z') ], typ: tret, var: z }
+              DstVar z -> pure { ast: j1 <> [ app Nothing (Just z) ], typ: tret, var: z }
+distapp t@(C.TyForall a _ tbody) x (TyArg t') dst =
+  let app m1 m2 = let f1 = case m1 of Nothing -> identity
+                                      Just z -> JSVariableIntroduction z <<< Just
+                      f2 = case m2 of Nothing -> identity
+                                      Just z -> (_ <> [JSVar z]) in
+                  f1 (JSApp (JSIndexer (toIndex t) (JSVar x)) (f2 [toIndices t']))
+      typ = C.tySubst a t' tbody in
+  case dst of DstNil -> do z <- freshVarName
+                           pure { ast: [ app (Just z) Nothing ], typ, var: z }
+              DstOpt z' -> do z <- freshVarName
+                              pure { ast: [ app (Just z) (Just z') ], typ, var: z }
+              DstVar z -> pure { ast: [ app Nothing (Just z) ], typ, var: z }
+distapp (C.TyAnd ta tb) x arg (DstVar z) = do
+  { ast: j1, typ: t1 } <- distapp ta x arg (DstVar z)
+  { ast: j2, typ: t2 } <- distapp tb x arg (DstVar z)
+  pure { ast: j1 <> j2, typ: C.TyAnd t1 t2, var: z }
+distapp t x arg (DstOpt y) = do
+  { ast: j1, var: z } <- dstOpt y
+  { ast: j2, typ, var } <- distapp t x arg (DstVar z)
+  pure { ast: j1 <> j2, typ, var }
+distapp t x arg DstNil = do
+  { ast: j1, var: z } <- dstNil
+  { ast: j2, typ, var } <- distapp t x arg (DstVar z)
+  pure { ast: j1 <> j2, typ, var }
 distapp t _ _ _ = throwError $ "expected an applicable type, but got" <+> show t
 
-proj :: C.Ty -> Name -> Label -> Name -> AST
-proj t x l z = unsafeFromJust $ go t
-  where go :: C.Ty -> Maybe AST
-        go t' | isTopLike t' = Nothing
-        go (C.TyAnd ta tb) =
-          case go ta, go tb of Nothing, Nothing -> Nothing
-                               Nothing, Just j2 -> Just j2
-                               Just j1, Nothing -> Just j1
-                               Just j1, Just j2 -> Just $ j1 <> j2
-        go t'@(C.TyRcd l' _ _) | l == l' =
-          Just [ assignObj z (JSIndexer (toIndex t') (JSVar x)) ]
-        go _  = Nothing
+proj :: C.Ty -> Name -> Label -> Destination -> CodeGen CheckResult
+proj t0 x l dst = case dst of DstVar var -> pure { ast: go t0 var, var }
+                              _ -> freshVarName <#> \var -> { ast: go t0 var, var }
+  where go :: C.Ty -> Name -> AST
+        go t _ | isTopLike t = []
+        go (C.TyAnd ta tb) z = go ta z <> go tb z
+        go t@(C.TyRcd l' _ _) z | l == l' =
+          let field = JSIndexer (toIndex t) (JSVar x)
+              intro = JSVariableIntroduction z $ Just field
+              copy y = copyObj y field in
+          case dst of DstNil -> [ intro ]
+                      DstOpt y -> [ intro, copy y ]
+                      DstVar y -> [ copy y ]
+        go _ _ = []
 
 subtype :: C.Ty -> C.Ty -> Name -> Name -> Boolean -> CodeGen AST
 subtype _ t _ _ _ | isTopLike t = pure []
 subtype C.TyBot t _ y _ = pure [ JSAssignment (JSIndexer (toIndex t) (JSVar y)) JSNullLiteral ]
 subtype ta tb x y true | ta .=. tb =
-  case ta of C.TyAnd _ _ -> pure [ assignObj y (JSVar x) ]
+  case ta of C.TyAnd _ _ -> pure [ copyObj y (JSVar x) ]
              _ -> pure [ JSAssignment (JSIndexer (toIndex tb) (JSVar y))
                                       (JSIndexer (toIndex ta) (JSVar x)) ]
 subtype ta tb x z b | Just (tb1 /\ tb2) <- split tb =
@@ -374,13 +449,15 @@ subtype ta@(C.TyArrow ta1 ta2 _) tb@(C.TyArrow tb1 tb2 _) x y _ = do
   j1 <- subtype tb1 ta1 x1 y1 true
   j2 <- subtype ta2 tb2 x2 y2 true
   let block = [ initialize y1 ] <> j1
-           <> [ initialize x2, JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar y1, JSVar x2] ] <> j2
+           <> [ JSVariableIntroduction x2 $ Just $ JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar y1] ]
+           <> [ JSAssignment (JSVar y2) (JSBinary Or (JSVar y2) (JSObjectLiteral [])) ] <> j2 <> [ JSReturn $ JSVar y2 ]
   pure [ addProp (JSVar y) (toIndex tb) (JSFunction Nothing [x1, y2] (JSBlock block)) ]
 subtype ta@(C.TyForall a _ ta2) tb@(C.TyForall b _ tb2) x y _ = do
   x0 <- freshVarName
   y0 <- freshVarName
   j <- subtype ta2 (C.tySubst b (C.TyVar a) tb2) x0 y0 true
-  let block = [ initialize x0, JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar (variable a), JSVar x0] ] <> j
+  let block = [ JSVariableIntroduction x0 $ Just $ JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar (variable a)] ]
+           <> [ JSAssignment (JSVar y0) (JSBinary Or (JSVar y0) (JSObjectLiteral [])) ] <> j <> [ JSReturn $ JSVar y0 ]
       func = JSFunction Nothing [variable a, y0] (JSBlock block) 
   pure [ addProp (JSVar y) (toIndex tb) func ]
 subtype r1@(C.TyRcd l1 t1 _) r2@(C.TyRcd l2 t2 _) x y _ | l1 == l2 = do
@@ -414,11 +491,12 @@ unsplit { z, tx: f1@(C.TyArrow _ t1 _), ty: f2@(C.TyArrow _ t2 _), tz: f@(C.TyAr
   x2 <- freshVarName
   y <- freshVarName
   { ast: j, x: y1, y: y2 } <- unsplit { z: y, tx: t1, ty: t2, tz: t }
-  let block = (if y1 == y then [] else [initialize y1])
+  let block = [ JSAssignment (JSVar y) (JSBinary Or (JSVar y) (JSObjectLiteral [])) ]
+           <> (if y1 == y then [] else [initialize y1])
            <> (if y2 == y then [] else [initialize y2])
            <> [ JSApp (JSIndexer (toIndex f1) (JSVar x1)) [JSVar "p", JSVar y1]
               , JSApp (JSIndexer (toIndex f2) (JSVar x2)) [JSVar "p", JSVar y2] ]
-           <> j
+           <> j <> [ JSReturn $ JSVar y]
       func = JSFunction Nothing ["p", y] (JSBlock block)
   pure { ast: [ addProp (JSVar z) (toIndex f) func ], x: x1, y: x2 }
 unsplit { z, tx: f1@(C.TyForall _ _ t1), ty: f2@(C.TyForall _ _ t2), tz: f@(C.TyForall a _ t) } = do
@@ -426,11 +504,12 @@ unsplit { z, tx: f1@(C.TyForall _ _ t1), ty: f2@(C.TyForall _ _ t2), tz: f@(C.Ty
   x2 <- freshVarName
   y <- freshVarName
   { ast: j, x: y1, y: y2 } <- unsplit { z: y, tx: t1, ty: t2, tz: t }
-  let block = (if y1 == y then [] else [initialize y1])
+  let block = [ JSAssignment (JSVar y) (JSBinary Or (JSVar y) (JSObjectLiteral [])) ]
+           <> (if y1 == y then [] else [initialize y1])
            <> (if y2 == y then [] else [initialize y2])
            <> [ JSApp (JSIndexer (toIndex f1) (JSVar x1)) [JSVar (variable a), JSVar y1]
               , JSApp (JSIndexer (toIndex f2) (JSVar x2)) [JSVar (variable a), JSVar y2] ]
-           <> j
+           <> j <> [ JSReturn $ JSVar y]
       func = JSFunction Nothing [variable a, y] (JSBlock block)
   pure { ast: [ addProp (JSVar z) (toIndex f) func ], x: x1, y: x2 }
 unsplit { z, tx: r1@(C.TyRcd _ t1 _), ty: r2@(C.TyRcd _ t2 _), tz: r@(C.TyRcd _ t _) } = do
@@ -442,8 +521,8 @@ unsplit { z, tx: r1@(C.TyRcd _ t1 _), ty: r2@(C.TyRcd _ t2 _), tz: r@(C.TyRcd _ 
   let j' = [ initialize y ]
         <> (if y1 == y then [] else [initialize y1])
         <> (if y2 == y then [] else [initialize y2])
-        <> [ assignObj y1 (JSIndexer (toIndex r1) (JSVar x1))
-           , assignObj y2 (JSIndexer (toIndex r2) (JSVar x2))]
+        <> [ copyObj y1 (JSIndexer (toIndex r1) (JSVar x1))
+           , copyObj y2 (JSIndexer (toIndex r2) (JSVar x2))]
         <> j
       ast = case order of
         CBV -> j' <> [ addProp (JSVar z) (toIndex r) (JSVar y) ]
@@ -542,14 +621,8 @@ initialize x = JSVariableIntroduction x $ Just $ JSObjectLiteral []
 thunk :: Array JS -> JS
 thunk = JSFunction Nothing [] <<< JSBlock
 
-assignObj :: Name -> JS -> JS
-assignObj z arg = JSForIn "prop" arg $ JSBlock
-  [ JSVariableIntroduction getter $ Just $ JSApp (JSAccessor "__lookupGetter__" arg) [JSVar "prop"]
-  , JSIfElse (JSVar getter) (JSBlock [thn]) (Just (JSBlock [els]))
-  ]
-  where thn = JSApp (JSAccessor "__defineGetter__" (JSVar z)) [JSVar "prop", JSVar getter]
-        els = JSAssignment (JSIndexer (JSVar "prop") (JSVar z)) (JSIndexer (JSVar "prop") arg)
-        getter = "$$getter"
+copyObj :: Name -> JS -> JS
+copyObj z arg = JSApp (JSVar "copyObj") [JSVar z, arg]
 
 addProp :: JS -> JS -> JS -> JS
 addProp o x f = JSAssignment (JSIndexer x o) f

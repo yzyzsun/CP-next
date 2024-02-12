@@ -28,7 +28,8 @@
   &\text{Expressions}    &    e ::=&~ [[{}]] ~|~ [[b]] ~|~ [[x]] ~|~ [[fix x:A. e]] ~|~ [[\x:A. e:B]] ~|~ [[e1 e2]] ~|~ [[/\X*A. e:B]] ~|~ [[e A]] \\
   &                      &        |&~ [[{l = e}]] ~|~ [[e.l]] ~|~ [[e1 ,, e2]] ~|~ [[e : A]] \\
   &\text{Type indices}   &[[T]] ::=&~ [[Base]] ~|~ [[->T]] ~|~ [[\-/T]] ~|~ [[{l : T}]] ~|~ [[T1 & T2]] \\
-  &\text{JavaScript code}&[[J]] ::=&~ [[nothing]] ~|~ [[J1;J2]] ~|~ [[code]]
+  &\text{JavaScript code}&[[J]] ::=&~ [[nothing]] ~|~ [[J1;J2]] ~|~ [[code]] \\
+  &\text{Destinations}   &  dst ::=&~ [[nil]] ~|~ [[y?]] ~|~ [[z]]
 \end{align*}
 
 \bigskip
@@ -36,8 +37,12 @@
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* J-Gen */
+/* J-Nil */
 var z = {};
+J;
+
+/* J-Opt */
+var z = y || {};
 J;
 
 /* J-Int */
@@ -46,17 +51,23 @@ z[T] = n;
 /* J-Var */
 copy(z, x);
 
+/* J-VarOpt */
+var z = x;
+copy(y, x);
 
 /* J-Fix */
 var x = z;
 J;
 
 /* J-Abs */
-z[T] = (x, y) => { J };
+z[T] = (x, y) => {
+  J;  return y0;
+};
 
 /* J-TAbs */
-z[T] = (X, y) => { J };
-
+z[T] = (X, y) => {
+  J;  return y0;
+};
 
 /* J-Rcd */
 z.__defineGetter__(T, () => {
@@ -67,24 +78,24 @@ z.__defineGetter__(T, () => {
 
 /* J-Def */
 export var x = {};
-J1;
-J2;
+J1;  J2;
 \end{verbatim}
 \end{multicols}
 
 \vfill
 \paragraph{Copying properties} n.b. there seems to be some alternatives:
 \begin{itemize}
-  \item \texttt{Object.assign(z, x)} does not properly copy getters;
-  \item \texttt{Object.defineProperties(z, Object.getOwnPropertyDescriptors(x))} is proper but slow;
-  \item \texttt{Object.setPrototypeOf(z, x)} does the prototype trick but is even slower.
+  \item \texttt{Object.assign(dst, src)} does not properly copy getters;
+  \item \texttt{Object.defineProperties(dst, Object.getOwnPropertyDescriptors(src))} is proper but slow;
+  \item \texttt{Object.setPrototypeOf(dst, src)} does the prototype trick but is even slower.
 \end{itemize}
 \begin{verbatim}
-function copy(z, x) {
-  for (const prop in x) {
-    var getter = x.__lookupGetter__(prop);
-    if (getter) z.__defineGetter__(prop, getter);
-    else z[prop] = x[prop];
+function copy(dst, src) {
+  if (dst === undefined) return;
+  for (const prop in src) {
+    var getter = src.__lookupGetter__(prop);
+    if (getter) dst.__defineGetter__(prop, getter);
+    else dst[prop] = src[prop];
   }
 }
 \end{verbatim}
@@ -92,18 +103,39 @@ function copy(z, x) {
 \newpage
 \ottdefndistapp
 
-\begin{multicols}{2}
+\begin{multicols}{3}
 \begin{verbatim}
+/* A-Nil */
+var z = {};
+J;
+
+/* A-Opt */
+var z = y || {};
+J;
+
 /* A-Arrow */
 var y0 = {};
-J;
-x[T](y0, z);
+J1;  J2;
 
 /* A-ArrowEquiv */
 x[T](y, z);
 
+/* A-ArrowOpt */
+var z = x[T](y, z0);
+
+/* A-ArrowNil */
+var z = x[T](y);
+
+
 /* A-All */
 x[T](Ts, z);
+
+/* A-AllOpt */
+var z = x[T](Ts, y);
+
+/* A-All */
+var z = x[T](Ts);
+
 \end{verbatim}
 \end{multicols}
 
@@ -112,7 +144,7 @@ x[T](Ts, z);
 
 \begin{verbatim}
 /* P-RcdEq */
-copy(z, x[T]);
+var z = x[T];  /* or */  copy(y, x[T]);
 \end{verbatim}
 
 \newpage
@@ -140,16 +172,16 @@ copy(y, x);
 /* S-Arrow */
 y[T2] = (x1, y2) => {
   var y1 = {};  J1;
-  var x2 = {};
-  x[T1](y1, x2);
-  J2;
+  var x2 = x[T1](y1);
+  y2 = y2 || {};
+  J2;  return y2;
 };
 
 /* S-All */
 y[T2] = (X, y0) => {
-  var x0 = {};
-  x[T1](X, x0);
-  J;
+  var x0 = x[T1](X);
+  y0 = y0 || {};
+  J;  return y0;
 };
 
 /* S-Rcd */
@@ -169,26 +201,26 @@ y.__defineGetter__(T2, () => {
 \begin{verbatim}
 /* M-Arrow */
 z[T] = (p, y) => {
+  y = y || {};
   var y1 = {}; // if y1 != y
   var y2 = {}; // if y2 != y
   x1[T1](p, y1);
   x2[T2](p, y2);
-  J;
+  J;  return y;
 };
-
 
 
 
 
 /* M-All */
 z[T] = (X, y) => {
+  y = y || {};
   var y1 = {}; // if y1 != y
   var y2 = {}; // if y2 != y
   x1[T1](X, y1);
   x2[T2](X, y2);
-  J;
+  J;  return y;
 };
-
 
 
 
