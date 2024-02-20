@@ -283,21 +283,9 @@ T = |A|
 x : Bot <:pm y : A ~~> code
 
 
-split B B1 B2
-y1 : B1 |> z : B <| y2 : B2 ~~> J3
-x : A <:pm y1 : B1 ~~> J1
-x : A <:pm y2 : B2 ~~> J2
----------------------------------- :: Split
-x : A <:pm z : B ~~> code
-
-
 T = |Base|
 ------------------------------- :: Int
 x : Base <:pm y : Base ~~> code
-
-
-------------------------- :: Var
-x : X <:pm y : X ~~> code
 
 
 T1 = ->|A2|
@@ -322,6 +310,14 @@ T2 = {l : |B|}
 x0 : A <:+ y0 : B ~~> J
 --------------------------------- :: Rcd
 x : {l:A} <:pm y : {l:B} ~~> code
+
+
+split B B1 B2
+y1 : B1 |> z : B <| y2 : B2 ~~> J3
+x : A <:pm y1 : B1 ~~> J1
+x : A <:pm y2 : B2 ~~> J2
+---------------------------------- :: Split
+x : A <:pm z : B ~~> code
 
 
 x : A <:- y : C ~~> J

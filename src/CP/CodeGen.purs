@@ -57,7 +57,6 @@ runCodeGen e ctx = do
 
 prelude :: String
 prelude = """function copyObj(dst, src) {
-    if (dst === undefined) return;
     for (const prop in src) {
         var getter = src.__lookupGetter__(prop);
         if (getter) dst.__defineGetter__(prop, getter);
@@ -207,15 +206,20 @@ infer (C.TmBinary Op.Append e1 e2) (DstVar z) = do
       pure { ast, typ, var: z }
     _, _ -> throwError $
       "Append is not defined between" <+> show t1 <+> "and" <+> show t2
-infer (C.TmBinary Op.Index e1 e2) (DstVar z) = do
+infer (C.TmBinary Op.Index e1 e2) dst = do
   { ast: j1, typ: t1, var: x } <- infer e1 DstNil
   { ast: j2, typ: t2, var: y } <- infer e2 DstNil
   case t1, t2 of
-    t@(C.TyArray typ), C.TyInt ->
-      let ast = j1 <> j2 <> [ copyObj z
-            (JSIndexer (JSIndexer (toIndex C.TyInt) (JSVar y))
-                       (JSIndexer (toIndex t) (JSVar x))) ] in
-      pure { ast, typ, var: z }
+    t@(C.TyArray typ), C.TyInt -> do
+      let element = JSIndexer (JSIndexer (toIndex C.TyInt) (JSVar y))
+                              (JSIndexer (toIndex t) (JSVar x))
+      j3 /\ z <- case dst of DstVar z -> pure $ [ copyObj z element ] /\ z
+                             DstOpt z' -> do z <- freshVarName
+                                             pure $ [ JSVariableIntroduction z $ Just element
+                                                    , JSIfElse (JSVar z') (copyObj z' element) Nothing ] /\ z
+                             DstNil -> do z <- freshVarName
+                                          pure $ [ JSVariableIntroduction z $ Just element ] /\ z
+      pure { ast: j1 <> j2 <> j3, typ, var: z }
     _, _ -> throwError $
       "Index is not defined between" <+> show t1 <+> "and" <+> show t2
 infer (C.TmIf e1 e2 e3) dst = do
@@ -331,7 +335,9 @@ infer (C.TmMain e) DstNil = do
 infer (C.TmVar x) (DstOpt y) = do
   z <- freshVarName
   typ <- lookupTmBind x
-  let ast = [ JSVariableIntroduction z $ Just $ JSVar $ variable x, copyObj y (JSVar z) ]
+  let ast = [ JSVariableIntroduction z $ Just $ JSVar $ variable x
+            , JSIfElse (JSVar y) (copyObj y (JSVar z)) Nothing
+            ]
   pure { ast, typ, var: variable x }
 infer (C.TmVar x) DstNil = do
   typ <- lookupTmBind x
@@ -418,11 +424,10 @@ proj t0 x l dst = case dst of DstVar var -> pure { ast: go t0 var, var }
         go (C.TyAnd ta tb) z = go ta z <> go tb z
         go t@(C.TyRcd l' _ _) z | l == l' =
           let field = JSIndexer (toIndex t) (JSVar x)
-              intro = JSVariableIntroduction z $ Just field
-              copy y = copyObj y field in
+              intro = JSVariableIntroduction z $ Just field in
           case dst of DstNil -> [ intro ]
-                      DstOpt y -> [ intro, copy y ]
-                      DstVar y -> [ copy y ]
+                      DstOpt y -> [ intro, JSIfElse (JSVar y) (copyObj y field) Nothing ]
+                      DstVar y -> [ copyObj y field ]
         go _ _ = []
 
 subtype :: C.Ty -> C.Ty -> Name -> Name -> Boolean -> CodeGen AST
