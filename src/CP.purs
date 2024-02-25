@@ -88,8 +88,8 @@ evaluate prog = case runChecking (evalProg prog) initState of
   Right (output /\ _) -> pure output
 
 showParseError :: ParseError -> String -> String
-showParseError (ParseError _ pos@(Position { line: l, column: c })) source =
-  show pos <> ": parse error:\n" <>
+showParseError (ParseError _ (Position { line: l, column: c })) source =
+  show l <> ":" <> show c <> ": parse error:\n" <>
   case seek l of Just line -> line <> "\n" <> rep (c-1) " " <> "^"
                  Nothing -> ""
   where

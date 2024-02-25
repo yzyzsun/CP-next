@@ -8,7 +8,7 @@ import Data.Array (filter)
 import Data.Array.NonEmpty (NonEmptyArray, foldl1, fromArray, (!!))
 import Data.DateTime.Instant (unInstant)
 import Data.Either (Either(..))
-import Data.List (List(..), (:))
+import Data.List (List(..), intercalate, (:))
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), drop, lastIndexOf, length, splitAt, stripPrefix, trim)
 import Data.String.Regex (Regex, match, replace)
@@ -154,7 +154,8 @@ compileFile file ref = do
       case mst, mst' of
         Just st, Just st' -> case mergeStates st st' of
           Right st'' -> pure $ Just st''
-          Left names -> fatal (show names <> " in " <> show n <> " have been defined") $> Nothing
+          Left names -> fatal (intercalate ", " names <> " in "
+                            <> show n <> " have been defined") $> Nothing
         _, _ -> pure Nothing
     loadHeader :: FilePath -> Effect (Maybe REPLState)
     loadHeader f = do
@@ -186,14 +187,14 @@ compileFile file ref = do
       let f' = concat [workDir, f]
       importLibs $ replace openRegex (preludeAll n f' t) code
     preludeAll :: String -> FilePath -> Number -> String
-    preludeAll n f t = "{-# PRELUDE H\n"
-                    <> "include " <> show (extHeader f) <> ";\n"
-                    <> "#-}\n"
-                    <> "{-# PRELUDE CP\n"
-                    <> "import * as " <> n <> " from " <> show (extJS f <> "?t=" <> show t) <> ";\n"
+    preludeAll n f t = "{-# PRELUDE H    "
+                    <> "include " <> show (extHeader f) <> ";    "
+                    <> "#-}    "
+                    <> "{-# PRELUDE CP  "
+                    <> "import * as " <> n <> " from " <> show (extJS f <> "?t=" <> show t) <> ";  "
                     <> "for (var [key, value] of Object.entries(" <> n <> ")) "
-                    <> "{ global[key] = value; }\n"
-                    <> "#-}\n"
+                    <> "{ global[key] = value; }    "
+                    <> "#-}"
     dir = dirname file
     extHeader = (_ <> ".h")
     extJS = (_ <> ".mjs")
