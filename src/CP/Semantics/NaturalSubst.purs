@@ -64,7 +64,7 @@ eval = runTrampoline <<< go
         Nothing -> go e2
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmTAbs _ _ _ _ _) = pure e
-    go (TmDef x e1 e2 _) = go $ tmSubst x (TmRef (ref e1)) e2
+    go (TmDef x e1 e2) = go $ tmSubst x (TmRef (ref e1)) e2
     go (TmFold t e) = TmFold t <$> go e
     go (TmUnfold t e) = if isTopLike t then pure TmUnit else go e >>= go'
       where go' :: Tm -> Eval Tm

@@ -42,7 +42,7 @@ step (TmOptPrj e1 l t e2)
   | otherwise  = TmOptPrj (step e1) l t e2
 step (TmTApp e t) | isValue e = paraApp e (TyArg t)
                   | otherwise = TmTApp (step e) t
-step (TmDef x e1 e2 _) = tmSubst x e1 e2
+step (TmDef x e1 e2) = tmSubst x e1 e2
 step (TmFold t e) = TmFold t (step e)
 step (TmUnfold t e) | isTopLike t = TmUnit
                     | TmFold _ e' <- e = TmAnno e' (unfold t)

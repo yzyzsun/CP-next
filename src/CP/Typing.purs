@@ -206,7 +206,7 @@ infer (S.TmOpen e1 e2) = do
                 Nil (collectLabels tr)
   e2' /\ t2 <- foldr (uncurry addTmBind) (infer e2) b
   -- `open` is the only construct that elaborates to a lazy definition
-  let open (l /\ _) e = C.TmDef l (C.TmPrj (C.TmVar opened) l) e true
+  let open (l /\ t) e = letIn l (C.TmPrj (C.TmVar opened) l) t e t2
   pure $ letIn opened r tr (foldr open e2' b) t2 /\ t2
   where opened = "$open"
 infer (S.TmUpdate rcd fields) = do
@@ -407,6 +407,7 @@ infer (S.TmDiff e1 e2) = do
 infer (S.TmRename e old new) = do
   _ /\ t <- infer e
   case t of
+    -- TODO: compiled code does not terminate because (e1^e2) is no more lazy
     C.TyArrow ti _ true ->
       case selectLabel ti old false of
         Just tl -> do
@@ -518,7 +519,7 @@ checkDef (S.TmDef x Nil Nil mt e) = do
       Left err -> throwError err
       Right (e' /\ t') ->
         let e1 = if isJust mt then C.TmFix x e' t' else e'
-            f e2 = C.TmDef x e1 e2 false in
+            f e2 = C.TmDef x e1 e2 in
         modify_ \st -> st { tmBindings = (x /\ t' /\ f) : st.tmBindings }
 checkDef d = throwError $ TypeError ("expected a desugared def, but got" <+> show d) UnknownPos
 

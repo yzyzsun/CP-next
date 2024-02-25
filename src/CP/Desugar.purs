@@ -30,7 +30,7 @@ desugar (TmRcd xs) =
     desugarField def@(DefaultPattern _) = def
 desugar (TmTrait (Just (x /\ t)) sig e1 e2) =
   TmTrait (Just (x /\ (t <|> sig))) (sig <|> Just TyTop)
-          (desugar <$> e1) (TmOpen (TmVar x) (desugar e2))
+          (desugar <$> e1) (desugar e2)
 desugar (TmTrait Nothing sig e1 e2) =
   desugar (TmTrait (Just ("$self" /\ Just TyTop)) sig e1 e2)
 desugar (TmLet x tyParams tmParams e1 e2) =

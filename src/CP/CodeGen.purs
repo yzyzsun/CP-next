@@ -316,16 +316,10 @@ infer (C.TmToString e) (DstVar z) = do
   let ast = j <> [ addProp (JSVar z) (toIndex C.TyString)
     (JSApp (JSAccessor "toString" (JSIndexer (toIndex t) (JSVar y))) []) ]
   pure { ast, typ: C.TyString, var: z }
-infer (C.TmDef x e1 e2 lazy) dst =
-  if lazy then do  -- is originally `open` expressions
-    { ast: j1, typ: t1 } <- infer e1 (DstVar "this")
-    { ast: j2, typ: t2, var } <- addTmBind x t1 $ infer e2 dst
-    let ast = [initialize varX] <> addGettersForIndices varX t1 j1 <> j2
-    pure { ast, typ: t2, var }
-  else do  -- is originally top-level definitions
-    { ast: j1, typ: t1 } <- infer e1 (DstVar varX)
-    { ast: j2, typ: t2, var } <- addTmBind x t1 $ infer e2 dst
-    pure { ast: [JSExport $ initialize varX] <> j1 <> j2, typ: t2, var }
+infer (C.TmDef x e1 e2) dst = do
+  { ast: j1, typ: t1 } <- infer e1 (DstVar varX)
+  { ast: j2, typ: t2, var } <- addTmBind x t1 $ infer e2 dst
+  pure { ast: [JSExport $ initialize varX] <> j1 <> j2, typ: t2, var }
   where varX = variable x
 infer (C.TmMain e) DstNil = do
   { ast: j, typ, var } <- infer e DstNil
