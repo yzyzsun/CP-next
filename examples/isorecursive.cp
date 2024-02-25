@@ -14,19 +14,19 @@ interface Exp {
 exp = trait [self: ExpSig<Exp>] implements ExpSig<Exp> => {
   Lit n = trait => {
     eval  = n;
-    dbl   = Lit (n * 2);
+    dbl   = new self.Lit (n * 2);
     eq e' = e'.eval == n;
   };
   Add e1 e2 = trait => {
     eval  = e1.eval + e2.eval;
-    dbl   = Add e1.dbl e2.dbl;
+    dbl   = new self.Add e1.dbl e2.dbl;
     eq e' = e'.eval == e1.eval + e2.eval;
   };
 };
 
 repo Exp = trait [self: ExpSig<Exp>] => {
-  seven = Lit 7;
-  seven' = Add (Lit 3) (Lit 4);
+  seven = new self.Lit 7;
+  seven' = open self in Add (Lit 3) (Lit 4);
 };
 
 e = new repo @Exp , exp;

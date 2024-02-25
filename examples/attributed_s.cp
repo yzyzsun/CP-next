@@ -47,7 +47,7 @@ printAux = trait implements ExpSig<Print => PrintAux> => {
 };
 
 expAdd Exp = trait [self : ExpSig<Exp>] => {
-  exp = Add (Lit 4) (Lit 8);
+  exp = open self in Add (Lit 4) (Lit 8);
 };
 
 e = new evalNum , printMutual , printAux , expAdd @(Eval&Print&PrintAux);

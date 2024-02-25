@@ -73,9 +73,9 @@ type Base = {
 type Render = { render : HTML };
 type Chart = Base & Render;
 
-baseChart (data : [Data]) = trait implements Base => open factory in {
+baseChart (data : [Data]) = trait implements Base => open factory in open config in {
   data_ = data;
-  xAxis = letrec xAxis' (i:Int) : HTML = open config in let d = (data!!0).d in
+  xAxis = letrec xAxis' (i:Int) : HTML = let d = (data!!0).d in
     let x = margin + (width - margin) * (i*2 + 1) / (#d*2) in let y = height - margin in
     if i == #d then `
       \Line{ x1 = margin; y1 = y; x2 = width; y2 = y }
@@ -84,7 +84,7 @@ baseChart (data : [Data]) = trait implements Base => open factory in {
       \Text{ x = x - 10; y = y + 15 }[\((d!!i).month)]
       \xAxis'(i+1)
     ` in xAxis' 0;
-  yAxis = letrec yAxis' (i:Int) : HTML = open config in
+  yAxis = letrec yAxis' (i:Int) : HTML =
     if i == numY then `` else let y = height - margin - (height - margin*2) * (i+1) / numY in `
       \Line{ x1 = margin; y1 = y; x2 = margin + 5; y2 = y }
       \Text{ x = margin - 22; y = y + 3 }[\(maxY * (i+1) / numY)]
@@ -95,8 +95,8 @@ baseChart (data : [Data]) = trait implements Base => open factory in {
     in `\Text{ x = 50; y = 10 }[\(caption' 0)]`;
 };
 
-lineStrategy = trait [self : Base] implements Render => open factory in {
-  render = letrec lines' (n:Int) (i:Int) : HTML = open config in
+lineStrategy = trait [self : Base] implements Render => open factory in open config in {
+  render = open self in letrec lines' (n:Int) (i:Int) : HTML =
     if n == #data_ then `` else let c = (data_!!n).color in let d = (data_!!n).d in
     if i == #d - 1 then `\lines'(n+1)(0)` else
     let p1 = (d!!i).price in let p2 = (d!!(i+1)).price in `
@@ -111,8 +111,8 @@ lineStrategy = trait [self : Base] implements Render => open factory in {
     ` in let lines = lines' 0 0 in `\xAxis \yAxis \lines \caption`
 };
 
-barStrategy = trait [self : Base] implements Render => open factory in {
-  render = letrec bars' (n:Int) (i:Int) : HTML = open config in
+barStrategy = trait [self : Base] implements Render => open factory in open config in {
+  render = open self in letrec bars' (n:Int) (i:Int) : HTML =
     if n == #data_ then `` else let c = (data_!!n).color in let d = (data_!!n).d in
     if i == #d then `\bars'(n+1)(0)` else let price = (d!!i).price in `
       \Rect{
@@ -127,9 +127,9 @@ barStrategy = trait [self : Base] implements Render => open factory in {
 };
 
 legendDecorator (chart : Trait<Chart>) =
-    trait [self : Chart] implements Chart inherits chart => open factory in {
-  override caption = letrec legends' (n:Int) : HTML = open config in
-    if n == #data_ then `` else let datum = data_ !! n in `
+    trait [self : Chart] implements Chart inherits chart => open factory in open config in {
+  override caption = let data = self.data_ in letrec legends' (n:Int) : HTML =
+    if n == #data then `` else let datum = data !! n in `
       \Rect{ x = margin + 20 + 50*n; y = margin - 20; width = 5; height = 5; color = datum.color }
       \Text{ x = margin + 30 + 50*n; y = margin - 15 }[\(datum.name)]
       \legends'(n+1)
@@ -137,8 +137,8 @@ legendDecorator (chart : Trait<Chart>) =
 };
 
 borderDecorator (chart : Trait<Chart>) =
-    trait [self : Chart] implements Chart inherits chart => open factory in {
-  override render = let sr = super.render in open config in `\sr
+    trait [self : Chart] implements Chart inherits chart => open factory in open config in {
+  override render = let sr = super.render in `\sr
     \Line{ x1 = margin; y1 = margin; x2 = width; y2 = margin }
     \Line{ x1 = margin; y1 = margin; x2 = margin; y2 = height - margin }
     \Line{ x1 = width - 1; y1 = margin; x2 = width - 1; y2 = height - margin }
@@ -146,9 +146,9 @@ borderDecorator (chart : Trait<Chart>) =
 };
 
 dataLabelDecorator (chart : Trait<Chart>) =
-    trait [self : Chart] implements Chart inherits chart => open factory in {
-  override render = letrec labels' (n:Int) (i:Int) : HTML = open config in
-    if n == #data_ then `` else let c = (data_!!n).color in let d = (data_!!n).d in
+    trait [self : Chart] implements Chart inherits chart => open factory in open config in {
+  override render = let data = self.data_ in letrec labels' (n:Int) (i:Int) : HTML =
+    if n == #data then `` else let c = (data!!n).color in let d = (data!!n).d in
     if i == #d then `\labels'(n+1)(0)` else let price = (d!!i).price in `
       \Text{
         x = margin + (width - margin) * (i*2 + 1) / (#d*2) - 6;
@@ -160,11 +160,11 @@ dataLabelDecorator (chart : Trait<Chart>) =
 };
 
 axisLabelDecorator (labels : [String]) (chart : Trait<Chart>) =
-    trait [self : Chart] implements Chart inherits chart => open factory in {
-  override xAxis = let sx = super.xAxis in open config in `\sx
+    trait [self : Chart] implements Chart inherits chart => open factory in open config in {
+  override xAxis = let sx = super.xAxis in `\sx
     \Text{ x = (width + margin) / 2; y = height - margin + 30; color = Gray }[\(labels!!0)]
   `;
-  override yAxis = let sy = super.yAxis in open config in `\sy
+  override yAxis = let sy = super.yAxis in `\sy
     \Text{ x = margin - 30; y = height - margin - 10; color = Gray }[\(labels!!1)]
   `;
 };
@@ -178,7 +178,7 @@ chart = trait implements ChartSig<HTML> => {
 };
 
 doc = trait [self : DocSig<HTML> & GraphicSig<HTML><Hex> & ColorSig<Hex> & ChartSig<HTML>] => {
-  body =
+  body = open self in
     let chart = baseChart [apple; tsmc] in
     let chart = chart , if config.line then lineStrategy else barStrategy in
     let chart = if config.legend then legendDecorator chart else chart in

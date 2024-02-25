@@ -10,8 +10,8 @@ type Version = { version : String };
 
 editor = trait [self : Editor & Version] implements Editor => {
   onKey = \key -> "Pressing " ++ key;
-  doCut = onKey "C-x" ++ " for cutting text";
-  showHelp = "Version " ++ version ++ ": usage...";
+  doCut = self.onKey "C-x" ++ " for cutting text";
+  showHelp = "Version " ++ self.version ++ ": usage...";
 };
 
 version = trait => { version = "0.1" };

@@ -79,8 +79,8 @@ chkEmpty = trait implements RegionSig<IsUniv => IsEmpty> => {
 type Simplify Region = { simplify : Region };
 opt Region = trait [fself : RegionSig<Region>]
              implements RegionSig<IsUniv&IsEmpty&Region => Simplify Region> => {
-  [self].simplify = if self.isUniv then Univ
-                    else if self.isEmpty then Empty
+  [self].simplify = if self.isUniv then new fself.Univ
+                    else if self.isEmpty then new fself.Empty
                     else self
 };
 
@@ -88,21 +88,21 @@ type Eliminate Region = { eliminate : Region; delOutside : Region };
 opt' Region = trait [fself : RegionSig<Region>]
               implements RegionSig<Region => Eliminate Region> => {
   (Outside     a).eliminate = a.delOutside;
-  (Union     a b).eliminate = Union a.eliminate b.eliminate;
-  (Intersect a b).eliminate = Intersect a.eliminate b.eliminate;
-  (Translate v a).eliminate = Translate v a.eliminate;
-  (Scale     v a).eliminate = Scale v a.eliminate;
+  (Union     a b).eliminate = new fself.Union a.eliminate b.eliminate;
+  (Intersect a b).eliminate = new fself.Intersect a.eliminate b.eliminate;
+  (Translate v a).eliminate = new fself.Translate v a.eliminate;
+  (Scale     v a).eliminate = new fself.Scale v a.eliminate;
            [self].eliminate = self;
 
   (Outside a).delOutside = a.eliminate;
-       [self].delOutside = Outside self.eliminate;
+       [self].delOutside = new fself.Outside self.eliminate;
 };
 
 repo Region = trait [self : RegionSig<Region>] => {
-  annulus = Intersect (Outside (Circle 4.0)) (Circle 8.0);
-  ellipse = Scale { x = 4.0; y = 8.0 } (Circle 1.0);
-  universal = Union (Outside Empty) (Circle 1.0);
-  circles = letrec go (n:Int) (offset:Double) : Region =
+  annulus = open self in Intersect (Outside (Circle 4.0)) (Circle 8.0);
+  ellipse = open self in Scale { x = 4.0; y = 8.0 } (Circle 1.0);
+  universal = open self in Union (Outside Empty) (Circle 1.0);
+  circles = open self in letrec go (n:Int) (offset:Double) : Region =
               if n == 0 then Circle 1.0
               else let shared = go (n-1) (offset/2.0)
                    in Union (Translate { x = -offset; y = 0.0 } shared)

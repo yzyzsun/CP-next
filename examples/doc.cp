@@ -3,7 +3,7 @@
 open doc;
 
 doc T = trait [self : DocSig'<T>] => {
-  body = `
+  body = open self in `
     \Section[
       Welcome to \Href("https://plground.org")[PLGround]!
     ]

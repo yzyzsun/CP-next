@@ -20,8 +20,8 @@ eval = trait implements LitSig<Mono> => {
 };
 
 lit Exp = trait [self : LitSig<Exp>] => {
-  int = new $IntLit 48;
-  str = new $StrLit "HKG";
+  int = new self.IntLit 48;
+  str = new self.StrLit "HKG";
 };
 
 l = new eval , lit @Mono;

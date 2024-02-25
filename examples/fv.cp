@@ -79,8 +79,8 @@ idTrait = trait implements Poly => { id = /\A. \(x:A) -> x };
 idPoly = (new idTrait).id @Poly;
 
 repo Exp = trait [self : ExpSig<Exp>] => {
-  num = Add (Lit 4) (Lit 8);
-  var = Let "x" (Lit 4) (Let "y" (Lit 8) (Add (Var "x") (Var "y")));
+  num = open self in Add (Lit 4) (Lit 8);
+  var = open self in Let "x" (Lit 4) (Let "y" (Lit 8) (Add (Var "x") (Var "y")));
 };
 
 exp' = new repo @(Eval Env) ,, evalNum @Env ,, evalVar @Top;

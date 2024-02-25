@@ -26,7 +26,7 @@ toc = trait implements ContentsSig<HTML => TOC> => {
 };
 
 doc T = trait [self : ContentsSig<T>] => {
-  body = `\WithTOC[
+  body = open self in `\WithTOC[
     \Section[Welcome to \Emph[PLGround]!]
       \Href("https://plground.org")[PLGround] provides a wiki-like document repository. \\
       Documents are written in ExT and rendered with an in-browser interpreter.
