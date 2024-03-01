@@ -63,6 +63,11 @@ prelude = """function copyObj(dst, src) {
         else dst[prop] = src[prop];
     }
 }
+function primitive(tt) {
+    var pt = ['int', 'double', 'string', 'bool'];
+    if (tt.length === 1 && pt.includes(tt[0])) return tt[0];
+    else return null;
+}
 function toIndex(tt) {
     var ts = tt.sort().filter((t, i) => t === 0 || t !== tt[i-1]);
     if (ts.length === 1) return ts[0];
@@ -297,7 +302,8 @@ infer (C.TmVar x) DstNil = do
   pure { ast: [], typ, var: variable x }
 infer (C.TmFix x e typ) (DstVar z) = do
   { ast: j } <- addTmBind x typ $ check e typ (DstVar z)
-  let ast = [ JSVariableIntroduction (variable x) $ Just (JSVar z) ] <> j
+  -- TODO: `x` is always `$self` for `new` expressions; should generate fresh names to avoid name conflicts
+  let ast = [ JSBlock $ [ JSConst (variable x) (JSVar z) ] <> j ]
   pure { ast, typ, var: z }
 infer (C.TmAbs x e targ tret _ isTrait) (DstVar z)
   | isTopLike tret = infer C.TmUnit (DstVar z)
@@ -311,7 +317,7 @@ infer (C.TmAbs x e targ tret _ isTrait) (DstVar z)
 infer (C.TmApp e1 e2 _) dst = do
   { ast: j1, typ: t1, var: x } <- infer e1 DstNil
   { ast: j2, typ: t2, var: y } <- infer e2 DstNil
-  { ast: j3, typ: t3, var: z } <- distapp t1 x (TmArg y t2) dst
+  { ast: j3, typ: t3, var: z } <- distapp x t1 (TmArg y t2) dst
   pure { ast: j1 <> j2 <> j3, typ: t3, var: z }
 infer (C.TmTAbs a td e t _) (DstVar z)
   | isTopLike t = infer C.TmUnit (DstVar z)
@@ -324,7 +330,7 @@ infer (C.TmTAbs a td e t _) (DstVar z)
       pure { ast, typ, var: z }
 infer (C.TmTApp e t) dst = do
   { ast: j1, typ: tf, var: y } <- infer e DstNil
-  { ast: j2, typ: tbody, var: z } <- distapp tf y (TyArg t) dst
+  { ast: j2, typ: tbody, var: z } <- distapp y tf (TyArg t) dst
   pure { ast: j1 <> j2, typ: tbody, var: z }
 infer (C.TmRcd l t e) (DstVar z)
   | isTopLike t = infer C.TmUnit (DstVar z)
@@ -334,7 +340,7 @@ infer (C.TmRcd l t e) (DstVar z)
       inTrait <- asks (_.inTrait)
       let ast = if order == CBV || not inTrait
                 then j <> [ addProp (JSVar z) (toIndex typ) (JSVar y) ]
-                else [ addGetter (JSVar z) (toIndex typ) j y ]
+                else [ addGetter (JSVar z) typ j y ]
           typ = C.TyRcd l t false
       pure { ast, typ, var: z }
 infer (C.TmPrj e l) dst = do
@@ -402,18 +408,18 @@ check e t dst = do
   if t .=. typ then pure { ast: j0 <> j1, var }
   else do
     y <- freshVarName
-    j3 <- subtype typ t var y true
     let j2 = [ case dst of DstVar z -> JSVariableIntroduction y $ Just $ JSVar z
                            DstOpt z -> JSVariableIntroduction y $ Just $ JSBinary Or (JSVar z) (JSObjectLiteral [])
                            DstNil -> initialize y ]
-        j4 = convertSingleValue t y
-    pure { ast: j0 <> j1 <> j2 <> j3 <> j4, var: y }
+    j3 <- subtype typ t var y true
+    j4 <- convertPrimitive t y
+    pure { ast: [ JSVariableIntroduction x Nothing ] <> j1 <> j2 <> j3 <> j4, var: y }
 
 data Arg = TmArg Name C.Ty | TyArg C.Ty
 
-distapp :: C.Ty -> Name -> Arg -> Destination -> CodeGen InferResult
-distapp t _ _ (DstVar z) | isTopLike t = pure { ast: [], typ: C.TyTop, var: z }
-distapp t@(C.TyArrow targ tret _) x (TmArg y t') dst = do
+distapp :: Name -> C.Ty -> Arg -> Destination -> CodeGen InferResult
+distapp _ t _ (DstVar z) | isTopLike t = pure { ast: [], typ: C.TyTop, var: z }
+distapp x t@(C.TyArrow targ tret _) (TmArg y t') dst | not (isTopLike tret) = do
   y' /\ j1 <- if targ .=. t' then pure $ y /\ []
               else do y' <- freshVarName
                       j <- subtype t' targ y y' true
@@ -428,7 +434,7 @@ distapp t@(C.TyArrow targ tret _) x (TmArg y t') dst = do
               DstOpt z' -> do z <- freshVarName
                               pure { ast: j1 <> [ app (Just z) (Just z') ], typ: tret, var: z }
               DstVar z -> pure { ast: j1 <> [ app Nothing (Just z) ], typ: tret, var: z }
-distapp t@(C.TyForall a _ tbody) x (TyArg t') dst =
+distapp x t@(C.TyForall a _ tbody) (TyArg t') dst | not (isTopLike tbody) =
   let app m1 m2 = let f1 = case m1 of Nothing -> identity
                                       Just z -> JSVariableIntroduction z <<< Just
                       f2 = case m2 of Nothing -> identity
@@ -440,19 +446,19 @@ distapp t@(C.TyForall a _ tbody) x (TyArg t') dst =
               DstOpt z' -> do z <- freshVarName
                               pure { ast: [ app (Just z) (Just z') ], typ, var: z }
               DstVar z -> pure { ast: [ app Nothing (Just z) ], typ, var: z }
-distapp (C.TyAnd ta tb) x arg (DstVar z) = do
-  { ast: j1, typ: t1 } <- distapp ta x arg (DstVar z)
-  { ast: j2, typ: t2 } <- distapp tb x arg (DstVar z)
+distapp x (C.TyAnd ta tb) arg (DstVar z) = do
+  { ast: j1, typ: t1 } <- distapp x ta arg (DstVar z)
+  { ast: j2, typ: t2 } <- distapp x tb arg (DstVar z)
   pure { ast: j1 <> j2, typ: C.TyAnd t1 t2, var: z }
-distapp t x arg (DstOpt y) = do
+distapp x t arg (DstOpt y) = do
   { ast: j1, var: z } <- dstOpt y
-  { ast: j2, typ, var } <- distapp t x arg (DstVar z)
+  { ast: j2, typ, var } <- distapp x t arg (DstVar z)
   pure { ast: j1 <> j2, typ, var }
-distapp t x arg DstNil = do
+distapp x t arg DstNil = do
   { ast: j1, var: z } <- dstNil
-  { ast: j2, typ, var } <- distapp t x arg (DstVar z)
+  { ast: j2, typ, var } <- distapp x t arg (DstVar z)
   pure { ast: j1 <> j2, typ, var }
-distapp t _ _ _ = throwError $ "expected an applicable type, but got" <+> show t
+distapp _ t _ _ = throwError $ "expected an applicable type, but got" <+> show t
 
 proj :: C.Ty -> Name -> Label -> Destination -> CodeGen CheckResult
 proj t0 x l dst = case dst of DstVar var -> pure { ast: go t0 var, var }
@@ -473,7 +479,9 @@ subtype _ t _ _ _ | isTopLike t = pure []
 subtype C.TyBot t _ y _ = pure [ JSAssignment (JSIndexer (toIndex t) (JSVar y)) JSNullLiteral ]
 subtype ta tb x y true | ta .=. tb =
   case ta of C.TyAnd _ _ -> pure [ copyObj y (JSVar x) ta ]
-             _ -> let f = if isSingleValue tb then identity else JSIndexer (toIndex ta) in
+             -- TODO: a record may contain a getter, but the fix below causes a significant slowdown
+             -- C.TyRcd _ _ _ -> pure [ copyObj y (JSVar x) ta ]
+             _ -> let f = if isPrimitive tb then identity else JSIndexer (toIndex ta) in
                   pure [ JSAssignment (JSIndexer (toIndex tb) (JSVar y)) (f (JSVar x)) ]
 subtype ta tb x z b | Just (tb1 /\ tb2) <- split tb =
   if isTopLike tb1 then subtype ta tb2 x z b
@@ -491,9 +499,9 @@ subtype ta@(C.TyArrow ta1 ta2 _) tb@(C.TyArrow tb1 tb2 _) x y _ = do
   y2 <- freshVarName
   j1 <- subtype tb1 ta1 x1 y1 true
   j2 <- subtype ta2 tb2 x2 y2 true
-  let j1' = convertSingleValue ta1 y1
-      j2' = convertSingleValue tb2 y2
-      block = [ initialize y1 ] <> j1 <> j1'
+  j1' <- convertPrimitive ta1 y1
+  j2' <- convertPrimitive tb2 y2
+  let block = [ initialize y1 ] <> j1 <> j1'
            <> [ JSVariableIntroduction x2 $ Just $ JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar y1] ]
            <> [ JSAssignment (JSVar y2) (JSBinary Or (JSVar y2) (JSObjectLiteral [])) ] <> j2 <> j2'
            <> [ JSReturn $ JSVar y2 ]
@@ -503,8 +511,8 @@ subtype ta@(C.TyForall a _ ta2) tb@(C.TyForall b _ tb2) x y _ = do
   y0 <- freshVarName
   let tb2' = C.tySubst b (C.TyVar a) tb2
   j <- subtype ta2 tb2' x0 y0 true
-  let j' = convertSingleValue tb2' y0
-      block = [ JSVariableIntroduction x0 $ Just $ JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar (variable a)] ]
+  j' <- convertPrimitive tb2' y0
+  let block = [ JSVariableIntroduction x0 $ Just $ JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar (variable a)] ]
            <> [ JSAssignment (JSVar y0) (JSBinary Or (JSVar y0) (JSObjectLiteral [])) ] <> j <> j'
            <> [ JSReturn $ JSVar y0 ]
       func = JSFunction Nothing [variable a, y0] (JSBlock block) 
@@ -513,12 +521,12 @@ subtype r1@(C.TyRcd l1 t1 _) r2@(C.TyRcd l2 t2 _) x y _ | l1 == l2 = do
   x0 <- freshVarName
   y0 <- freshVarName
   j <- subtype t1 t2 x0 y0 true
-  let j' = convertSingleValue t2 y0
-      block = [ JSVariableIntroduction x0 $ Just $ JSIndexer (toIndex r1) (JSVar x), initialize y0 ] <> j <> j'
+  j' <- convertPrimitive t2 y0
+  let block = [ JSVariableIntroduction x0 $ Just $ JSIndexer (toIndex r1) (JSVar x), initialize y0 ] <> j <> j'
   order <- asks (_.evalOrder)
   case order of
     CBV -> pure $ block <> [ addProp (JSVar y) (toIndex r2) (JSVar y0) ]
-    CBN -> pure [ addGetter (JSVar y) (toIndex r2) block y0 ]
+    CBN -> pure [ addGetter (JSVar y) r2 block y0 ]
 subtype a1@(C.TyArray t1) a2@(C.TyArray t2) x y _ = do
   x0 <- freshVarName
   y0 <- freshVarName
@@ -530,7 +538,7 @@ subtype a1@(C.TyArray t1) a2@(C.TyArray t2) x y _ = do
        ]
 subtype (C.TyAnd ta tb) tc x y _ = subtype ta tc x y false <|> subtype tb tc x y false
 subtype ta tb x y notSplit
-  | ta == tb = let f = if notSplit && isSingleValue tb then identity else JSIndexer (toIndex ta) in
+  | ta == tb = let f = if notSplit && isPrimitive tb then identity else JSIndexer (toIndex ta) in
                pure [ JSAssignment (JSIndexer (toIndex tb) (JSVar y)) (f (JSVar x)) ]
   | otherwise = throwError $ show ta <> " is not a subtype of " <> show tb
 
@@ -576,7 +584,7 @@ unsplit { z, tx: r1@(C.TyRcd _ t1 _), ty: r2@(C.TyRcd _ t2 _), tz: r@(C.TyRcd _ 
         <> j
       ast = case order of
         CBV -> j' <> [ addProp (JSVar z) (toIndex r) (JSVar y) ]
-        CBN -> [ addGetter (JSVar z) (toIndex r) j' y ]
+        CBN -> [ addGetter (JSVar z) r j' y ]
   pure { ast, x: x1, y: x2 }
 unsplit s = unsafeCrashWith $ "cannot unsplit" <+> show s
 
@@ -671,11 +679,12 @@ initialize x = JSVariableIntroduction x $ Just $ JSObjectLiteral []
 thunk :: Array JS -> JS
 thunk = JSFunction Nothing [] <<< JSBlock
 
+-- TODO: replace `typeof o === 'object'` with `primitive(a)`; see `convertPrimitive` below
 copyObj :: Name -> JS -> C.Ty -> JS
 copyObj z arg typ =
   case typ of C.TyVar a -> let els = addPropForIndex (first (JSVar (variable a))) in
                            JSIfElse (isObject arg) (JSBlock [app]) (Just (JSBlock [els]))
-              _ | isSingleValue typ -> addPropForIndex (toIndex typ)
+              _ | isPrimitive typ -> addPropForIndex (toIndex typ)
                 | otherwise -> app
   where app = JSApp (JSVar "copyObj") [JSVar z, arg]
         addPropForIndex t = addProp (JSVar z) t arg
@@ -685,10 +694,10 @@ copyObj z arg typ =
 addProp :: JS -> JS -> JS -> JS
 addProp o x f = JSAssignment (JSIndexer x o) f
 
-addGetter :: JS -> JS -> Array JS -> Name -> JS
-addGetter o t j y =  defineGetter o t block
+addGetter :: JS -> C.Ty -> Array JS -> Name -> JS
+addGetter o t j y =  defineGetter o (toIndex t) block
   where block = j <> [ JSApp (JSVar "delete") [field], JSReturn (JSAssignment field (JSVar y)) ]
-        field = JSIndexer t (JSVar "this")
+        field = JSIndexer (toIndex t) (JSVar "this")
 
 addGettersForIndices :: Name -> C.Ty -> Array JS -> Array JS
 addGettersForIndices z t j = [ initialize z, JSForOf index (toIndices t) $ defineGetter (JSVar z) (JSVar index) block ]
@@ -697,17 +706,21 @@ addGettersForIndices z t j = [ initialize z, JSForOf index (toIndices t) $ defin
         index = "$$index"
 
 defineGetter :: JS -> JS -> Array JS -> JS
-defineGetter o t j = JSApp (JSAccessor "__defineGetter__" o) [t, JSFunction Nothing [] (JSBlock j)]
+defineGetter o n j = JSApp (JSAccessor "__defineGetter__" o) [n, JSFunction Nothing [] (JSBlock j)]
 
-isSingleValue :: C.Ty -> Boolean
-isSingleValue C.TyInt = true
-isSingleValue C.TyDouble = true
-isSingleValue C.TyString = true
-isSingleValue C.TyBool = true
-isSingleValue _ = false
+isPrimitive :: C.Ty -> Boolean
+isPrimitive C.TyInt = true
+isPrimitive C.TyDouble = true
+isPrimitive C.TyString = true
+isPrimitive C.TyBool = true
+isPrimitive _ = false
 
-convertSingleValue :: C.Ty -> Name -> AST
-convertSingleValue t z
-  | isSingleValue t = [ JSAssignment (JSVar z) (JSIndexer (toIndex t) (JSVar z)) ]
-  | otherwise = []
-
+convertPrimitive :: C.Ty -> Name -> CodeGen AST
+convertPrimitive (C.TyVar a) z = do
+  t <- freshVarName
+  pure [ JSVariableIntroduction t $ Just $ JSApp (JSVar "primitive") [JSVar (variable a)]
+       , JSIfElse (JSVar t) (JSBlock [ JSAssignment (JSVar z) (JSIndexer (JSVar t) (JSVar z)) ]) Nothing
+       ]
+convertPrimitive t z
+  | isPrimitive t = pure [ JSAssignment (JSVar z) (JSIndexer (toIndex t) (JSVar z)) ]
+  | otherwise = pure []

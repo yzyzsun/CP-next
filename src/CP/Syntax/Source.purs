@@ -167,10 +167,10 @@ showDoc (TmPos _ (TmDoc e)) = "[" <> showDoc e <> "]"
 showDoc (TmPos _ e) = showDoc e
 showDoc (TmNew e) = showDoc e
 showDoc (TmVar "Endl") = "\\\\"
+showDoc (TmVar x) = "\\" <> x
 showDoc (TmApp (TmApp (TmVar "Comp") e1) e2) = showDoc e1 <> showDoc e2
 showDoc (TmApp (TmVar "Str") (TmString s)) = s
 showDoc (TmApp (TmVar "Str") (TmToString s)) = "\\(" <> show s <> ")"
-showDoc (TmApp (TmVar x) e) = "\\" <> x <> showDoc e
 showDoc (TmApp e1 e2) = showDoc e1 <> showDoc e2
 showDoc e = "(" <> show e <> ")"
 
