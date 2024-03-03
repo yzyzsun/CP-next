@@ -34,6 +34,7 @@ type
     |   ForAll typeParam+ Dot type
     |   Mu typeNameDecl Dot type
     |   TraitType Less type (FatArrow type)? Greater
+    |   RefType btype
     |   btype btype*
     ;
 
@@ -68,7 +69,7 @@ expression
 
 opexpr
     :   lexpr                       
-    |   (Minus | Not | Length | Sqrt) opexpr
+    |   (Minus | Length | Sqrt | Deref) opexpr
     |   <assoc=left> opexpr Index opexpr
     |   <assoc=left> opexpr (Asterisk | Slash | Modulo) opexpr
     |   <assoc=left> opexpr (Plus | Minus) opexpr
@@ -78,6 +79,7 @@ opexpr
     |   <assoc=right> opexpr Or opexpr
     |   <assoc=left> opexpr Forward opexpr
     |   <assoc=left> opexpr (Merge | LeftistMerge | RightistMerge | BackslashMinus) opexpr
+    |   opexpr Walrus opexpr
     ;
 
 lexpr
@@ -94,6 +96,7 @@ lexpr
     |   toStr
     |   fold
     |   unfold
+    |   ref
     ;
 
 lambda
@@ -143,6 +146,10 @@ fold
 
 unfold
     :   Unfold typeArg dotexpr
+    ;
+
+ref
+    :   Ref dotexpr
     ;
 
 fexpr

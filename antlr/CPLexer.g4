@@ -87,6 +87,14 @@ Trait
     :   'trait'
     ;
 
+RefType
+    :   'Ref'
+    ;
+
+Ref
+    :   'ref'
+    ;
+
 Implements
     :   'implements'
     ;
@@ -246,8 +254,12 @@ Sqrt
     :   '√'
     ;
 
-Not
+Deref
     :   '!'
+    ;
+
+Walrus
+    :   ':='
     ;
 
 And

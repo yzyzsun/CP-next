@@ -101,6 +101,8 @@ export default class CPVisitor extends CPParserVisitor {
         to = this.visitType(ctx.type(0));
       };
       return new AST.TyTrait(ti, to);
+    } else if (ctx.RefType()) {
+      return new AST.TyRef(this.visitBtype(ctx.btype(0)));
     } else {
       let type = this.visitBtype(ctx.getChild(0));
       for (let i = 1; i < ctx.getChildCount(); i++) {
@@ -208,15 +210,14 @@ export default class CPVisitor extends CPParserVisitor {
           case CPParser.Minus:
             op = OP.Neg.value;
             break;
-          case CPParser.Not:
-            op = OP.Not.value;
-            break;
           case CPParser.Length:
             op = OP.Len.value;
             break;
           case CPParser.Sqrt:
             op = OP.Sqrt.value;
             break;
+          case CPParser.Deref:
+            return new AST.TmDeref(this.visitOpexpr(ctx.opexpr(0)));
           default:
             console.error("Error at Unary Opexpr");
         }
@@ -280,6 +281,8 @@ export default class CPVisitor extends CPParserVisitor {
             return new AST.TmMerge(AST.Rightist.value, opexpr1, opexpr2);
           case CPParser.BackslashMinus:
             return new AST.TmDiff(opexpr1, opexpr2);
+          case CPParser.Walrus:
+            return new AST.TmAssign(opexpr1, opexpr2);
           default:
             console.error("Error at Binary Opexpr");
         }
@@ -317,6 +320,8 @@ export default class CPVisitor extends CPParserVisitor {
         return this.visitFold(ctx.fold());
       case CPParser.RULE_unfold:
         return this.visitUnfold(ctx.unfold());
+      case CPParser.RULE_ref:
+        return this.visitRef(ctx.ref())
       default:
         console.error("Error at Lexpr");
     }
@@ -438,6 +443,12 @@ export default class CPVisitor extends CPParserVisitor {
       this.visitTypeArg(ctx.typeArg()),
       this.visitDotexpr(ctx.dotexpr())
     );
+  }
+
+
+  // Visit a parse tree produced by CPParser#ref.
+  visitRef(ctx) {
+    return new AST.TmRef(this.visitDotexpr(ctx.dotexpr()));
   }
 
 

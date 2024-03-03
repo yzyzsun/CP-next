@@ -8,6 +8,7 @@
   or @right
   forward @left
   merge @left
+  assign @right
   intersect @left
   diff @left
   arrow @right
@@ -38,6 +39,7 @@ type {
   kw<"forall"> typeParam+ "." type |
   kw<"mu"> TypeNameDecl "." type |
   kW<"Trait"> angles<sort> |
+  kW<"Ref"> btype |
   btype btype*
 }
 
@@ -55,7 +57,7 @@ RecordType { braces<sepEndBySemi<LabelDecl "?"? ":" type>> }
 expression { opexpr ~conflict (":" type)? }
 
 opexpr {
-  lexpr | minus opexpr | LogicOp<"!"> opexpr |
+  lexpr | minus opexpr | DerefOp opexpr |
   LengthOp opexpr | SqrtOp opexpr |
   opexpr !index IndexOp opexpr |
   opexpr !times ArithOp<"*" | "/" | "%"> opexpr |
@@ -65,7 +67,8 @@ opexpr {
   opexpr !and LogicOp<"&&"> opexpr |
   opexpr !or LogicOp<"||"> opexpr |
   opexpr !forward ForwardOp opexpr |
-  opexpr !merge MergeOp opexpr
+  opexpr !merge MergeOp opexpr |
+  opexpr !assign AssignOp opexpr
 }
 
 lexpr {
@@ -78,7 +81,8 @@ lexpr {
   Trait { kw<"trait"> SelfAnno? (kw<"implements"> type)? (kw<"inherits"> opexpr)? (kw<"implements"> type)? "=>" opexpr } |
   New { kw<"new"> opexpr } | ToString { kw<"toString"> dotexpr } |
   Fix { kw<"fix"> TermNameDecl ":" type "." opexpr } |
-  kw<"fold"> typeArg dotexpr | kw<"unfold"> typeArg dotexpr
+  Fold { kw<"fold"> typeArg dotexpr } | UnFold { kw<"unfold"> typeArg dotexpr } |
+  Ref { kw<"ref"> dotexpr }
 }
 
 fexpr { excludexpr (excludexpr | typeArg)* }
@@ -185,6 +189,8 @@ Label { lowerid | upperid }
   MergeOp { "," | ",," | "+," | ",+" | "\\-" }
   ForwardOp { "^" }
   IndexOp { "!!" }
+  AssignOp { ":=" }
+  DerefOp { "!" }
   LengthOp { "#" }
   SqrtOp { "√" }
 
