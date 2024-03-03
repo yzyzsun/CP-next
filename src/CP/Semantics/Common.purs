@@ -12,7 +12,6 @@ import Partial.Unsafe (unsafeCrashWith)
 unop :: UnOp -> Tm -> Tm
 unop Neg  (TmInt i)       = TmInt    (negate i)
 unop Neg  (TmDouble n)    = TmDouble (negate n)
-unop Not  (TmBool b)      = TmBool   (not b)
 unop Len  (TmArray _ arr) = TmInt    (length arr)
 unop Sqrt (TmDouble n)    = TmDouble (sqrt n)
 unop op v = unsafeCrashWith $

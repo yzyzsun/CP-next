@@ -90,7 +90,7 @@ opexpr e = buildExprParser operators $ lexpr e
 lexpr :: SParser Tm -> SParser Tm
 lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|> trait <|> new <|>
           ifThenElse <|> letIn <|> letrec <|> open <|> toString <|>
-          fixpoint <|> fold <|> unfold
+          fixpoint <|> fold <|> unfold <|> ref
 
 fexpr :: SParser Tm -> SParser Tm
 fexpr e = do
@@ -240,6 +240,12 @@ unfold = do
   e <- dotexpr expr
   pure $ TmUnfold t e
 
+ref :: SParser Tm
+ref = do
+  reserved "ref"
+  e <- dotexpr expr
+  pure $ TmRef e
+
 document :: SParser Tm -> SParser Tm
 document p = position >>= \pos -> TmPos pos <<< TmDoc <$> do
   docs <- many (backslash <|> plaintext)
@@ -320,9 +326,9 @@ defaultPattern p self = do
 
 operators :: OperatorTable Identity String Tm
 operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
-              , Prefix (reservedOp "!" $> TmUnary Not)
               , Prefix (reservedOp "#" $> TmUnary Len)
               , Prefix (reservedOp "√" $> TmUnary Sqrt)
+              , Prefix (reservedOp "!" $> TmDeref)
               ]
             , [ Infix (reservedOp "!!" $> TmBinary Index) AssocLeft ]
             , [ Infix (reservedOp "*" $> TmBinary (Arith Mul)) AssocLeft
@@ -349,6 +355,7 @@ operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
               , Infix (reservedOp ",+" $> TmMerge Rightist) AssocLeft
               , Infix (reservedOp "\\-" $> TmDiff) AssocLeft
               ]
+            , [ Infix (reservedOp ":=" $> TmAssign) AssocNone ]
             ]
 
 -- Types --
@@ -358,7 +365,7 @@ ty = fix \t -> buildExprParser toperators $ cty t
 
 cty :: SParser Ty -> SParser Ty
 cty t = foldl TyApp <$> bty t <*> many (bty t) <|>
-        forallTy <|> muTy <|> traitTy <|> absTy
+        forallTy <|> muTy <|> refTy <|> traitTy <|> absTy
 
 bty :: SParser Ty -> SParser Ty
 bty t = foldl TyApp <$> aty t <*> many (sortTy t)
@@ -397,6 +404,12 @@ muTy = do
   symbol "."
   t <- ty
   pure $ TyRec x t
+
+refTy :: SParser Ty
+refTy = do
+  reserved "Ref"
+  t <- bty ty
+  pure $ TyRef t
 
 traitTy :: SParser Ty
 traitTy = do
@@ -473,9 +486,9 @@ langDef :: LanguageDef
 langDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "undefined", "if", "then", "else", "toString", "fix"
   , "trait", "implements", "inherits", "override", "new", "fold", "unfold"
-  , "let", "letrec", "open", "in", "with"
+  , "let", "letrec", "open", "in", "with", "ref"
   , "type", "interface", "extends", "forall", "mu"
-  , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait"
+  , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait", "Ref"
   ]
 }
 

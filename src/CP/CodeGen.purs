@@ -143,16 +143,6 @@ infer (C.TmUnary Op.Neg e) dst = do
   case t of C.TyInt    -> pure { ast: j0 <> j1 <> j2 C.TyInt,    typ: C.TyInt,    var }
             C.TyDouble -> pure { ast: j0 <> j1 <> j2 C.TyDouble, typ: C.TyDouble, var }
             _ -> throwError $ "Neg is not defined for" <+> show t
-infer (C.TmUnary Op.Not e) dst = do
-  { ast: j0, typ: t, var: y } <- infer e DstNil
-  var <- freshVarName
-  let j1 = [ JSVariableIntroduction var $ Just $ JSUnary Not (JSVar y) ]
-      assign z = addProp (JSVar z) (toIndex C.TyBool) (JSVar var)
-      j2 = case dst of DstVar z -> [ assign z ]
-                       DstOpt z -> [ JSIfElse (JSVar z) (assign z) Nothing ]
-                       DstNil -> []
-  case t of C.TyBool -> pure { ast: j0 <> j1 <> j2, typ: C.TyBool, var }
-            _ -> throwError $ "Not is not defined for" <+> show t
 infer (C.TmUnary Op.Len e) dst = do
   { ast: j0, typ: t, var: y } <- infer e DstNil
   var <- freshVarName

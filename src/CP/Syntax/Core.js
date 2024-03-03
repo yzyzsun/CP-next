@@ -1,21 +1,21 @@
 "use strict";
 
-export function ref(e) {
+export function alloc(e) {
   return { term: e, done: false };
 }
 
-export function done(ref) {
-  return ref.done;
+export function done(cell) {
+  return cell.done;
 }
 
-export function read(ref) {
-  return ref.term;
+export function read(cell) {
+  return cell.term;
 }
 
 export function write(v) {
-  return function (ref) {
-    ref.term = v;
-    ref.done = true;
+  return function (cell) {
+    cell.term = v;
+    cell.done = true;
     return v;
   };
 }

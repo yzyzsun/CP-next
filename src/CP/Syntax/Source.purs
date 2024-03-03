@@ -27,6 +27,7 @@ data Ty = TyInt
         | TyVar Name
         | TyForall TyParamList Ty
         | TyRec Name Ty
+        | TyRef Ty
         | TyApp Ty Ty
         | TyAbs Name Ty
         | TyTrait (Maybe Ty) Ty
@@ -49,6 +50,7 @@ instance Show Ty where
   show (TyForall xs t) = parens $
     "forall" <+> showTyParams xs <> "." <+> show t
   show (TyRec a t) = parens $ "mu" <+> a <> "." <+> show t
+  show (TyRef t) = parens $ "Ref" <+> show t
   show (TyApp t1 t2) = parens $ show t1 <+> show t2
   show (TyAbs a t) = parens $ "\\" <> a <+> "->" <+> show t
   show (TyTrait ti to) = "Trait" <> angles (showMaybe "" ti " => " <> show to)
@@ -95,6 +97,9 @@ data Tm = TmInt Int
         | TmRename Tm Label Label
         | TmFold Ty Tm
         | TmUnfold Ty Tm
+        | TmRef Tm
+        | TmDeref Tm
+        | TmAssign Tm Tm
         | TmToString Tm
         | TmArray (Array Tm)
         | TmDoc Tm
@@ -156,6 +161,9 @@ instance Show Tm where
   show (TmRename e old new) = parens $ show e <+> brackets (old <+> "<-" <+> new)
   show (TmFold t e) = parens $ "fold @" <> show t <+> show e
   show (TmUnfold t e) = parens $ "unfold @" <> show t <+> show e
+  show (TmRef e) = parens $ "ref" <+> show e
+  show (TmDeref e) = "!" <> show e
+  show (TmAssign e1 e2) = parens $ show e1 <+> ":=" <+> show e2
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
   show (TmDoc e) = show e
@@ -211,6 +219,7 @@ tySubst a s (TyVar a') = if a == a' then s else TyVar a'
 tySubst a s (TyForall xs t) = TyForall (rmap (map (tySubst a s)) <$> xs)
   (if any ((_ == a) <<< fst) xs then t else tySubst a s t)
 tySubst a s (TyRec a' t) = TyRec a' (if a == a' then t else tySubst a s t)
+tySubst a s (TyRef t) = TyRef (tySubst a s t)
 tySubst a s (TyApp t1 t2) = TyApp (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyAbs a' t) = TyAbs a' (if a == a' then t else tySubst a s t)
 tySubst a s (TyTrait ti to) = TyTrait (tySubst a s <$> ti) (tySubst a s to)

@@ -18,11 +18,10 @@ derive instance Eq Kind
 
 -- Operators --
 
-data UnOp = Neg | Not | Len | Sqrt
+data UnOp = Neg | Len | Sqrt
 
 instance Show UnOp where
   show Neg  = "-"
-  show Not  = "!"
   show Len  = "#"
   show Sqrt = "√"
 

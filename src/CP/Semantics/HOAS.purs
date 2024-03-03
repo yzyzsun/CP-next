@@ -9,7 +9,7 @@ import Data.Tuple.Nested ((/\))
 import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Language.CP.Subtyping (isTopLike, split, (<:))
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (Tm(..), Ty(..), done, read, ref, tmHoas, tyHoas, unfold, write)
+import Language.CP.Syntax.Core (Tm(..), Ty(..), alloc, done, read, tmHoas, tyHoas, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = Trampoline
@@ -52,7 +52,7 @@ eval = runTrampoline <<< go <<< tmHoas
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
-    go (TmRcd l t e) = pure $ TmRcd l t (TmRef (ref e))
+    go (TmRcd l t e) = pure $ TmRcd l t (TmCell (alloc e))
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmOptPrj e1 l t e2) = do
       e1' <- go e1
@@ -69,11 +69,11 @@ eval = runTrampoline <<< go <<< tmHoas
             go' e' = unsafeCrashWith $ "CP.Semantics.HOAS.eval: " <>
                                        "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
-    go (TmArray t arr) = pure $ TmArray t (TmRef <<< ref <$> arr)
-    go (TmRef ref) = if done ref then pure e else do
+    go (TmArray t arr) = pure $ TmArray t (TmCell <<< alloc <$> arr)
+    go (TmCell cell) = if done cell then pure e else do
       e' <- go e
-      pure $ write e' ref
-      where e = read ref
+      pure $ write e' cell
+      where e = read cell
     go e = unsafeCrashWith $ "CP.Semantics.HOAS.eval: " <>
       "well-typed programs don't get stuck, but got " <> show e
 
@@ -106,10 +106,10 @@ cast (TmArray t arr) (TyArray t') | t <: t' = Just $ TmArray t' arr
 cast _ _ = Nothing
 
 paraApp :: Tm -> Arg -> Tm
-paraApp (TmHAbs abs _ _ false) (TmArg e) = abs $ TmRef $ ref e
-paraApp (TmHAbs abs _ tret true) (TmArg e) = TmAnno (abs $ TmRef $ ref e) tret
+paraApp (TmHAbs abs _ _ false) (TmArg e) = abs $ TmCell $ alloc e
+paraApp (TmHAbs abs _ tret true) (TmArg e) = TmAnno (abs $ TmCell $ alloc e) tret
 paraApp (TmHAbs abs targ tret _) (TmAnnoArg e) =
-  TmAnno (abs $ TmRef $ ref $ TmAnno e targ) tret
+  TmAnno (abs $ TmCell $ alloc $ TmAnno e targ) tret
 paraApp (TmHTAbs tabs _ _ false) (TyArg ta) = tabs ta
 paraApp (TmHTAbs tabs _ tf true) (TyArg ta) = TmAnno (tabs ta) (tf ta)
 paraApp (TmMerge v1 v2) arg = TmMerge (paraApp v1 arg) (paraApp v2 arg)

@@ -1,5 +1,7 @@
 --> "U contains the origin"
 
+not (x:Bool) = if x then false else true;
+
 pow (b:Double) (n:Int) : Double =
   if n == 0 then 1.0
   else if n > 0 then pow b (n-1) * b
@@ -44,7 +46,7 @@ type RegionSig<Region> = HudakSig<Region> & HoferSig<Region>;
 type Eval = { contains : Vector -> Bool };
 eval = trait implements RegionSig<Eval> => {
   (Circle         r).contains p = pow p.x 2 + pow p.y 2 <= pow r 2;
-  (Outside        a).contains p = !(a.contains p);
+  (Outside        a).contains p = not (a.contains p);
   (Union        a b).contains p = a.contains p || b.contains p;
   (Intersect    a b).contains p = a.contains p && b.contains p;
   (Translate {..} a).contains p = a.contains { x = p.x - x; y = p.y - y };

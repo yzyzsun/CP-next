@@ -9,11 +9,11 @@ import Data.Maybe (Maybe(..))
 import Language.CP.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
 import Language.CP.Util ((<+>))
 
-foreign import data TmRef :: Type
-foreign import ref :: Tm -> TmRef
-foreign import done :: TmRef -> Boolean
-foreign import read :: TmRef -> Tm
-foreign import write :: Tm -> TmRef -> Tm
+foreign import data TmCell :: Type
+foreign import alloc :: Tm -> TmCell
+foreign import done :: TmCell -> Boolean
+foreign import read :: TmCell -> Tm
+foreign import write :: Tm -> TmCell -> Tm
 
 -- Types --
 
@@ -29,6 +29,7 @@ data Ty = TyInt
         | TyVar Name
         | TyForall Name Ty Ty
         | TyRec Name Ty
+        | TyRef Ty
         | TyArray Ty
 
 instance Show Ty where
@@ -49,6 +50,7 @@ instance Show Ty where
   show (TyForall a td t) = parens $
     "forall" <+> a <+> "*" <+> show td <> "." <+> show t
   show (TyRec a t) = parens $ "mu" <+> a <> "." <+> show t
+  show (TyRef t) = parens $ "Ref" <+> show t
   show (TyArray t) = brackets $ show t
 
 derive instance Eq Ty
@@ -78,11 +80,14 @@ data Tm = TmInt Int
         | TmDef Name Tm Tm
         | TmFold Ty Tm
         | TmUnfold Ty Tm
+        | TmRef Tm
+        | TmDeref Tm
+        | TmAssign Tm Tm
         | TmToString Tm
         | TmArray Ty (Array Tm)
         | TmMain Tm
         -- Only used in big-step semantics for call-by-need:
-        | TmRef TmRef
+        | TmCell TmCell
         -- Only used in closure-based semantics for variable capturing:
         | TmClosure EvalEnv Tm
         -- Only used in HOAS-based semantics for variable binding:
@@ -118,11 +123,14 @@ instance Show Tm where
   show (TmDef x e1 e2) = x <+> "=" <+> show e1 <> ";\n" <> show e2
   show (TmFold t e) = parens $ "fold @" <> show t <+> show e
   show (TmUnfold t e) = parens $ "unfold @" <> show t <+> show e
+  show (TmRef e) = parens $ "ref" <+> show e
+  show (TmDeref e) = "!" <> show e
+  show (TmAssign e1 e2) = parens $ show e1 <+> ":=" <+> show e2
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray t arr) = parens $
     brackets (intercalate "; " (show <$> arr)) <+> ":" <+> brackets (show t)
   show (TmMain e) = show e
-  show (TmRef _ref) = angles $ "Ref"
+  show (TmCell _cell) = angles $ "Cell"
   show (TmClosure _env e) = angles $ "Closure" <+> show e
   show (TmHAbs _abs targ tret _refined) = angles $
     "HOAS" <+> show targ <+> "→" <+> show tret
@@ -150,6 +158,7 @@ tyConvert env (TyVar a) = case lookup a env of Just (Right t) -> t
                                                _ -> TyVar a
 tyConvert env (TyForall a td t) = TyForall a (tyConvert env td) (tyConvert env t)
 tyConvert env (TyRec a t) = TyRec a (tyConvert env t)
+tyConvert env (TyRef t) = TyRef (tyConvert env t)
 tyConvert env (TyArray t) = TyArray (tyConvert env t)
 tyConvert _ t = t
 
@@ -177,9 +186,12 @@ tmConvert env (TmTAbs a td e t b) =
   TmHTAbs (\ty -> tmConvert (insert a (Right ty) env) e)
           (tyConvert env td) (tyHoas' env a t) b
 tmConvert env (TmDef x e1 e2) = tmConvert (insert x (Left tm) env) e2
-  where tm = TmRef $ ref $ tmConvert env e1
+  where tm = TmCell $ alloc $ tmConvert env e1
 tmConvert env (TmFold t e) = TmFold (tyConvert env t) (tmConvert env e)
 tmConvert env (TmUnfold t e) = TmUnfold (tyConvert env t) (tmConvert env e)
+tmConvert env (TmRef e) = TmRef (tmConvert env e)
+tmConvert env (TmDeref e) = TmDeref (tmConvert env e)
+tmConvert env (TmAssign e1 e2) = TmAssign (tmConvert env e1) (tmConvert env e2)
 tmConvert env (TmToString e) = TmToString (tmConvert env e)
 tmConvert env (TmArray t arr) = TmArray (tyConvert env t) (tmConvert env <$> arr)
 tmConvert env (TmMain e) = tmConvert env e
@@ -198,6 +210,7 @@ tySubst a s (TyVar a') | a == a' = s
 tySubst a s (TyForall a' td t) =
   TyForall a' (tySubst a s td) (if a == a' then t else tySubst a s t)
 tySubst a s (TyRec a' t) | a /= a' = TyRec a' (tySubst a s t)
+tySubst a s (TyRef t) = TyRef (tySubst a s t)
 tySubst a s (TyArray t) = TyArray (tySubst a s t)
 tySubst _ _ t = t
 
@@ -227,6 +240,9 @@ tmSubst x v (TmDef x' e1 e2) =
   TmDef x' (tmSubst x v e1) (if x == x' then e2 else tmSubst x v e2)
 tmSubst x v (TmFold t e) = TmFold t (tmSubst x v e)
 tmSubst x v (TmUnfold t e) = TmUnfold t (tmSubst x v e)
+tmSubst x v (TmRef e) = TmRef (tmSubst x v e)
+tmSubst x v (TmDeref e) = TmDeref (tmSubst x v e)
+tmSubst x v (TmAssign e1 e2) = TmAssign (tmSubst x v e1) (tmSubst x v e2)
 tmSubst x v (TmToString e) = TmToString (tmSubst x v e)
 tmSubst x v (TmArray t arr) = TmArray t (tmSubst x v <$> arr)
 tmSubst x v (TmMain e) = TmMain (tmSubst x v e)
@@ -255,6 +271,9 @@ tmTSubst a s (TmTAbs a' td e t b) =
 tmTSubst a s (TmDef x e1 e2) = TmDef x (tmTSubst a s e1) (tmTSubst a s e2)
 tmTSubst a s (TmFold t e) = TmFold (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmUnfold t e) = TmUnfold (tySubst a s t) (tmTSubst a s e)
+tmTSubst a s (TmRef e) = TmRef (tmTSubst a s e)
+tmTSubst a s (TmDeref e) = TmDeref (tmTSubst a s e)
+tmTSubst a s (TmAssign e1 e2) = TmAssign (tmTSubst a s e1) (tmTSubst a s e2)
 tmTSubst a s (TmToString e) = TmToString (tmTSubst a s e)
 tmTSubst a s (TmArray t arr) = TmArray (tySubst a s t) (tmTSubst a s <$> arr)
 tmTSubst a s (TmMain e) = TmMain (tmTSubst a s e)

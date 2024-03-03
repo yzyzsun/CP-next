@@ -38,11 +38,6 @@ infer (S.TmUnary Neg e) = do
   if t <: C.TyInt then pure $ core C.TyInt
   else if t <: C.TyDouble then pure $ core C.TyDouble
   else throwTypeError $ "Neg is not defined for" <+> show t
-infer (S.TmUnary Not e) = do
-  e' /\ t <- infer e
-  let core = C.TmUnary Not (C.TmAnno e' C.TyBool) /\ C.TyBool
-  if t <: C.TyBool then pure core
-  else throwTypeError $ "Not is not defined for" <+> show t
 infer (S.TmUnary Len e) = do
   e' /\ t <- infer e
   let core = C.TmUnary Len e' /\ C.TyInt

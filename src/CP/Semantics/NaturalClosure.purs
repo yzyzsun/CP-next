@@ -10,7 +10,7 @@ import Language.CP.Semantics.Closure (EvalT, binop', cast, closure, expand, para
 import Language.CP.Semantics.Common (Arg(..), toString)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (EvalBind(..), Tm(..), Ty(..), done, read, ref, unfold, write)
+import Language.CP.Syntax.Core (EvalBind(..), Tm(..), Ty(..), alloc, done, read, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = EvalT Trampoline
@@ -48,7 +48,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
       e1' <- go e1
       e2' <- closure e2
       let arg = if coercive then TmAnnoArg else TmArg
-      go $ paraApp e1' (arg (TmRef (ref e2')))
+      go $ paraApp e1' (arg (TmCell (alloc e2')))
     go e@(TmAbs _ _ _ _ _ _) = closure e
     go (TmFix x e _) = local (\env -> insert x (TmBind e) env) (go e)
     go (TmAnno e t) = do
@@ -79,7 +79,7 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
     go e@(TmTAbs _ _ _ _ _) = closure e
     go (TmDef x e1 e2) = do
       e1' <- closure e1
-      local (\env -> insert x (TmBind (TmRef (ref e1'))) env) (go e2)
+      local (\env -> insert x (TmBind (TmCell (alloc e1'))) env) (go e2)
     go (TmFold t e) = TmFold t <$> go e
     go (TmUnfold t e) =  if isTopLike t then pure TmUnit else go e >>= go'
       where go' :: Tm -> Eval Tm
@@ -90,10 +90,10 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
     go (TmToString e) = toString <$> go e
     go e@(TmArray _ _) = closure e
     go (TmMain e) = go e
-    go (TmRef ref) = if done ref then pure e else do
+    go (TmCell cell) = if done cell then pure e else do
       e' <- go e
-      pure $ write e' ref
-      where e = read ref
+      pure $ write e' cell
+      where e = read cell
     go e@(TmClosure _ (TmRcd _ _ _)) = pure e
     go e@(TmClosure _ (TmAbs _ _ _ _ _ _)) = pure e
     go e@(TmClosure _ (TmTAbs _ _ _ _ _)) = pure e

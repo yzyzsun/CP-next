@@ -8,7 +8,7 @@ import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop
 import Language.CP.Semantics.Subst (cast, paraApp)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (Tm(..), Ty(..), done, read, ref, tmSubst, unfold, write)
+import Language.CP.Syntax.Core (Tm(..), Ty(..), alloc, done, read, tmSubst, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = Trampoline
@@ -39,11 +39,11 @@ eval = runTrampoline <<< go
     go (TmApp e1 e2 coercive) = do
       e1' <- go e1
       let arg = if coercive then TmAnnoArg else TmArg
-      go $ paraApp e1' (arg (TmRef (ref e2)))
+      go $ paraApp e1' (arg (TmCell (alloc e2)))
     go e@(TmAbs _ _ _ _ _ _) = pure e
     go fix@(TmFix x e _) = do
-      let r = ref fix
-      s <- go $ tmSubst x (TmRef r) e
+      let r = alloc fix
+      s <- go $ tmSubst x (TmCell r) e
       pure $ write s r
     go (TmAnno e t) = do
       e' <- go' e
@@ -55,7 +55,7 @@ eval = runTrampoline <<< go
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
-    go (TmRcd l t e) = pure $ TmRcd l t (TmRef (ref e))
+    go (TmRcd l t e) = pure $ TmRcd l t (TmCell (alloc e))
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmOptPrj e1 l t e2) = do
       e1' <- go e1
@@ -64,7 +64,7 @@ eval = runTrampoline <<< go
         Nothing -> go e2
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmTAbs _ _ _ _ _) = pure e
-    go (TmDef x e1 e2) = go $ tmSubst x (TmRef (ref e1)) e2
+    go (TmDef x e1 e2) = go $ tmSubst x (TmCell (alloc e1)) e2
     go (TmFold t e) = TmFold t <$> go e
     go (TmUnfold t e) = if isTopLike t then pure TmUnit else go e >>= go'
       where go' :: Tm -> Eval Tm
@@ -73,11 +73,11 @@ eval = runTrampoline <<< go
             go' e' = unsafeCrashWith $ "CP.Semantics.NaturalSubst.eval: " <>
                                        "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
-    go (TmArray t arr) = pure $ TmArray t (TmRef <<< ref <$> arr)
+    go (TmArray t arr) = pure $ TmArray t (TmCell <<< alloc <$> arr)
     go (TmMain e) = go e
-    go (TmRef ref) = if done ref then pure e else do
+    go (TmCell cell) = if done cell then pure e else do
       e' <- go e
-      pure $ write e' ref
-      where e = read ref
+      pure $ write e' cell
+      where e = read cell
     go e = unsafeCrashWith $ "CP.Semantics.NaturalSubst.eval: " <>
       "well-typed programs don't get stuck, but got " <> show e

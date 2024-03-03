@@ -7,6 +7,8 @@ lookup (s : String) (env : Map) = env s;
 insert (s : String) (v : Int) (env : Map) =
   \(s': String) -> if s == s' then v else lookup s' env;
 
+not (b : Bool) = if b then false else true;
+
 elem (s : String) (a : [String]) =
   letrec elem' (i : Int) : Bool =
     if i == #a then false
@@ -21,7 +23,7 @@ filter (p : String -> Bool) (a : [String]) =
   in filter' 0;
 
 union (a : [String]) (b : [String]) =
-  a ++ filter (\(x : String) -> !(elem x a)) b;
+  a ++ filter (\(x : String) -> not (elem x a)) b;
 
 delete (x : String) (a : [String]) = filter (\(y : String) -> y != x) a;
 
