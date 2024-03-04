@@ -359,6 +359,29 @@ infer (C.TmAnno e typ) dst = do
   where skipAnno :: C.Tm -> C.Tm
         skipAnno (C.TmAnno e' _) = e'
         skipAnno e' = e'
+infer (C.TmRef e) (DstVar z) = do
+  { ast: j, typ: t, var: y } <- infer e DstNil
+  let typ = C.TyRef t
+      ast = j <> [ addProp (JSVar z) (toIndex typ) (JSVar y) ]
+  pure { ast, typ, var: z }
+infer (C.TmDeref e) dst = do
+  { ast: j, typ: t, var: y } <- infer e DstNil
+  case t of C.TyRef typ -> do
+              var <- freshVarName
+              let value = JSIndexer (toIndex t) (JSVar y)
+                  j' = case dst of DstVar z -> [ copyObj z value typ ]
+                                   DstOpt z -> [ JSVariableIntroduction var $ Just value
+                                               , JSIfElse (JSVar z) (copyObj z value typ) Nothing ]
+                                   DstNil -> [ JSVariableIntroduction var $ Just value ]
+              pure { ast: j <> j', typ, var }
+            _ -> throwError $ "cannot dereference" <+> show t
+infer (C.TmAssign e1 e2) (DstVar z) = do
+  { ast: j1, typ: t1, var: x } <- infer e1 DstNil
+  case t1 of C.TyRef t1' -> do
+               { ast: j2, var: y } <- check e2 t1' DstNil
+               let ast = j1 <> j2 <> [ JSAssignment (JSIndexer (toIndex t1) (JSVar x)) (JSVar y) ]
+               pure { ast, typ: C.TyTop, var: z }
+             _ -> throwError $ "assignment expected a reference type, but got" <+> show t1
 infer (C.TmToString e) dst = do
   { ast: j0, var: y } <- infer e DstNil
   var <- freshVarName
@@ -587,6 +610,7 @@ toIndex = JSTemplateLiteral <<< fst <<< go Nil
     go as (C.TyForall a _ t) = lmap ("forall_" <> _) (go (a:as) t)
     go as (C.TyRcd l t _)    = lmap (("rcd_" <> l <> ":") <> _) (go as t)
     go as (C.TyArray t)      = lmap ("array_" <> _) (go as t)
+    go as (C.TyRef t)        = lmap ("ref_" <> _) (go as t)
     -- TODO: change variable names to De Bruijn indices
     go as (C.TyVar a) | a `elem` as = a /\ false
                       | otherwise = ("${toIndex(" <> variable a <> ")}") /\ true

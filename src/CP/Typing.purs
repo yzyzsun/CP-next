@@ -433,6 +433,20 @@ infer (S.TmUnfold t e) = do
   e' /\ t'' <- infer e
   if t'' <: t' then pure $ C.TmUnfold t' e' /\ C.unfold t'
   else throwTypeError $ "cannot unfold" <+> show e <+> "to" <+> show t
+infer (S.TmRef e) = do
+  e' /\ t <- infer e
+  pure $ C.TmRef e' /\ C.TyRef t
+infer (S.TmDeref e) = do
+  e' /\ t <- infer e
+  case t of C.TyRef t' -> pure $ C.TmDeref e' /\ t'
+            _ -> throwTypeError $ "cannot dereference" <+> show t
+infer (S.TmAssign e1 e2) = do
+  e1' /\ t1 <- infer e1
+  case t1 of C.TyRef t1' -> do e2' /\ t2 <- infer e2
+                               if t2 <: t1' then pure $ C.TmAssign e1' e2' /\ C.TyTop
+                               else throwTypeError $ "assigned type" <+> show t2 <+>
+                                                     "is not a subtype of" <+> show t1'
+             _ -> throwTypeError $ "assignment expected a reference type, but got" <+> show t1
 infer (S.TmToString e) = do
   e' /\ t <- infer e
   if t == C.TyInt || t == C.TyDouble || t == C.TyString || t == C.TyBool

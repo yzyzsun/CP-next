@@ -20,6 +20,7 @@ subtype (TyForall a1 td1 t1) (TyForall a2 td2 t2) =
 subtype (TyRec a1 t1) (TyRec a2 t2) =
   tySubst a1 (TyRcd a1 t1 false) t1 <: tySubst a2 (TyRcd a1 t2' false) t2
   where t2' = tySubst a2 (TyVar a1) t2
+subtype (TyRef t1) (TyRef t2) = t1 <: t2 && t2 <: t1
 subtype (TyArray t1) (TyArray t2) = t1 <: t2
 subtype t1 t2 | t1 == t2  = true
               | otherwise = false
@@ -59,6 +60,7 @@ aeq (TyRcd l1 t1 opt1) (TyRcd l2 t2 opt2) =
 aeq (TyForall a1 td1 t1) (TyForall a2 td2 t2) =
   td1 === td2 && t1 === tySubst a2 (TyVar a1) t2
 aeq (TyRec a1 t1) (TyRec a2 t2) = t1 === tySubst a2 (TyVar a1) t2
+aeq (TyRef t1) (TyRef t2) = t1 === t2
 aeq (TyArray t1) (TyArray t2) = t1 === t2
 aeq t1 t2 | t1 == t2  = true
           | otherwise = false

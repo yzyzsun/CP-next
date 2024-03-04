@@ -49,6 +49,10 @@ tyDiff m s = simplify <$> diff m s
     -- TODO: recursive type difference
     diff (TyRec _ _) _ = throwDiffError
     diff _ (TyRec _ _) = throwDiffError
+    diff (TyRef _) _ = throwDiffError
+    diff _ (TyRef _) = throwDiffError
+    diff (TyArray _) _ = throwDiffError
+    diff _ (TyArray _) = throwDiffError
     diff t1 t2 | t1 == t2  = pure TyTop
                | otherwise = pure t1
     disjointVar :: Name -> Ty -> Typing Boolean
@@ -83,5 +87,6 @@ simplify (TyArrow targ tret b) = TyArrow targ (simplify tret) b
 simplify (TyRcd l t b) = TyRcd l (simplify t) b
 simplify (TyForall a td t) = TyForall a td (simplify t)
 simplify (TyRec a t) = TyRec a (simplify t)
+simplify (TyRef t) = TyRef (simplify t)
 simplify (TyArray t) = TyArray (simplify t)
 simplify t = t

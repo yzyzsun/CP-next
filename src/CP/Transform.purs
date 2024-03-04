@@ -49,6 +49,7 @@ translate (S.TyAnd t1 t2) = C.TyAnd <$> translate t1 <*> translate t2
 translate (S.TyArrow t1 t2) = C.TyArrow <$> translate t1 <*> translate t2 <@> false
 translate (S.TyVar a) = pure $ C.TyVar a
 translate (S.TyRec a t) = C.TyRec a <$> translate t
+translate (S.TyRef t) = C.TyRef <$> translate t
 translate (S.TyTrait Nothing to) = translate to >>= \to' -> pure $ C.TyArrow to' to' true
 translate (S.TyTrait (Just ti) to) =
   C.TyArrow <$> translate ti <*> translate to <@> true
@@ -82,6 +83,7 @@ expand (S.TyForall xs t) =
   S.TyForall <$> traverse (rtraverse (traverse expand)) xs <*>
   foldr (\x s -> addTyBind (fst x) someTy s) (expand t) xs
 expand (S.TyRec a t) = S.TyRec a <$> addTyBind a someTy (expand t)
+expand (S.TyRef t) = S.TyRef <$> expand t
 expand (S.TyApp t1 t2) = do
   t1' <- expand t1
   t2' <- expand t2
@@ -134,6 +136,8 @@ distinguish isCtor isOut (S.TyForall xs t) = S.TyForall <$>
   traverse (rtraverse (traverse (distinguish isCtor isOut))) xs <*>
   distinguish isCtor isOut t
 distinguish isCtor isOut (S.TyRec a t) = S.TyRec a <$> distinguish isCtor isOut t
+-- TODO: `t` in `Ref` should be invariant but `isOut` seems covariant here
+distinguish isCtor isOut (S.TyRef t) = S.TyRef <$> distinguish isCtor isOut t
 distinguish isCtor isOut (S.TyApp t1 t2) =
   S.TyApp <$> distinguish isCtor isOut t1 <*> distinguish isCtor isOut t2
 -- TODO: remove bound variable names from SortEnv
