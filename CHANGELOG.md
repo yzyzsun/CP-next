@@ -1,8 +1,12 @@
 ## Unreleased
 
+- [New] a compiler targeting JavaScript; try `:compile` in the REPL or `npm run compiler` in a terminal.
 - [New] an alternative ANTLR parser, which is faster than purescript-parsing.
-- [New] support type difference (`T1 \ T2`), term difference (`e1 \- e2`), field removal (`e \ l`), and label renaming (`e [ old <- new ]`).
-- [New] support leftist merge (`+,`) and rightist merge (`,+`).
+- [New] type difference (`T1 \ T2`), term difference (`e1 \- e2`), field removal (`e \ l`), and label renaming (`e [ old <- new ]`).
+- [New] leftist merge (`+,`) and rightist merge (`,+`).
+- [Experimental] reference types (`Ref T`), introducing its value (`ref e`), dereference (`!e`), assignment (`e1 := e2`), and sequential composition (`e1 >> e2`); see the [example](examples/ref.cp).
+- The logical not operator `!` is removed because `!` is now for dereference.
+- Implicit `open self in` for traits is removed because `open` is strictly evaluated in compiled code. In other words, `self.` cannot be omitted unless explicitly writing `open self in` at the beginning of a field.
 - Support `x ,, y` as an alias to `x , y` for compatibility.
 - In a trait definition, `implements` and `inherits` clauses can be written in any order.
 - Change the notation of record updates from `{ rcd | x = 1 }` (Elm-style) to `{ rcd with x = 1 }` (OCaml-style).
@@ -10,7 +14,7 @@
 
 ## 0.1.3
 
-- [Experimental] iso-recursive types with nominal unfoldings.
+- [Experimental] iso-recursive types with nominal unfoldings; see examples [here](examples/isorecursive.cp) for implicit foldings and [there](examples/mutype.cp) for explicit ones.
 - [New] polymorphic record updates, e.g. `{ rcd | x = 1; y = 2 }`.
 - [New] default values for record wildcards, e.g. `(Ctor { z = 0; .. }.method = ……`.
 - Implicit self-type annotations (introduced in 0.1.2) are removed. Instead, self-references can be declared without type annotations, e.g. `[self]`, whose type will be inferred.
@@ -29,7 +33,7 @@
 
 - [New] an embedded document DSL, e.g. `"""Zor\Emph[doc]"""`.
 - [New] open directives (currently implemented as C-style `#include`), e.g. `open lib;`.
-- Built-in `List` (a linked list) is replaced by JavaScript-based `Array`.
+- Built-in `List` (a linked list) is replaced by JavaScript-based `Array`; see the [example](examples/array.cp).
 - Implemented call-by-need evaluation via JS FFI.
 
 ## 0.1.0
@@ -48,3 +52,4 @@ Initial version of Next-Gen CP; most functionalities of CP are reimplemented.
 - `number.toString` is now `toString number`.
 - The exclusion operator is changed from a single backslash (`\`) to double backslashes (`\\`), e.g. `e1\\T1 , e2\\T2`.
 - Type annotations have the lowest priority now. For example, the parentheses in `{} , (ctx:Context)` are necessary.
+- The value `()` is no longer typed `Top` but a unit type `()`. An empty record `{}` is now allowed and typed `Top`.

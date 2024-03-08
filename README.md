@@ -4,13 +4,14 @@ CP is a *compositional* programming language, founded on a core calculus named *
 
 ## Language Features
 
-- A typed lambda calculus with six base types (`Int` `Double` `String` `Bool` `Top` `Bot`), built-in arrays (`[1; 2; 3] : [Int]`), and some built-in operations over them;
+- A typed lambda calculus with five base types (`Int` `Double` `String` `Bool` `()`), built-in arrays (`[1; 2; 3] : [Int]`), and some built-in operations over them;
 - The merge operator[^Merge], disjoint intersection types[^λi] and disjoint polymorphism[^Fi];
 - Generalized record operations with type difference[^TypeDiff];
+- Iso-recursive types with nominal unfoldings[^IsoRec];
 - Nested composition and distributive subtyping[^NeColus];
-- *Compositional Programming*[^CP] with first-class traits[^SEDEL];
+- Compositional programming[^CP] with first-class traits[^SEDEL];
 - Type-directed operational semantics for *Fi+*[^Fi+] with {HOAS,substitution,closure}-based {big,small}-step variants;
-- An embedded DSL for document authoring called ExT[^ExT].
+- A compositionally embedded DSL for document authoring called ExT[^ExT].
 
 [^Merge]: Jana Dunfield. [Elaborating Intersection and Union Types](https://research.cs.queensu.ca/home/jana/papers/intcomp-jfp/Dunfield14_elaboration.pdf). In *JFP 2014*.  
 [^λi]: Bruno C. d. S. Oliveira, Zhiyuan Shi, and João Alpuim. [Disjoint Intersection Types](https://i.cs.hku.hk/~bruno/papers/icfp2016.pdf). In *ICFP 2016*.  
@@ -19,6 +20,7 @@ CP is a *compositional* programming language, founded on a core calculus named *
 [^NeColus]: Xuan Bi, Bruno C. d. S. Oliveira, and Tom Schrijvers. [The Essence of Nested Composition](https://i.cs.hku.hk/~bruno/papers/nested.pdf). In *ECOOP 2018*.  
 [^CP]: Weixin Zhang, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Compositional Programming](https://i.cs.hku.hk/~bruno/papers/toplas2021.pdf). In *TOPLAS 2021*.  
 [^Fi+]: Andong Fan, Xuejing Huang, Han Xu, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Direct Foundations for Compositional Programming](https://i.cs.hku.hk/~bruno/papers/ecoop22direct_extended.pdf). In *ECOOP 2022*.  
+[^IsoRec]: Yaoda Zhou, Jinxu Zhao and Bruno C. d. S. Oliveira. [Revisiting Iso-Recursive Subtyping](https://i.cs.hku.hk/~bruno/papers/toplas2022.pdf). In *TOPLAS 2022*.  
 [^ExT]: Yaozhu Sun, Utkarsh Dhandhania, and Bruno C. d. S. Oliveira. [Compositional Embeddings of Domain-Specific Languages](https://i.cs.hku.hk/~bruno/papers/oopsla22extended.pdf). In *OOPSLA 2022*.  
 [^TypeDiff]: Han Xu, Xuejing Huang, and Bruno C. d. S. Oliveira. [Making a Type Difference](https://i.cs.hku.hk/~bruno/papers/popl23making.pdf). In *POPL 2023*.  
 
