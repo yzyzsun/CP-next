@@ -140,6 +140,8 @@ export default class CPVisitor extends CPParserVisitor {
           return AST.TyBool.value;
         case CPParser.String:
           return AST.TyString.value;
+        case CPParser.Unit:
+          return AST.TyUnit.value;
         case CPParser.Top:
           return AST.TyTop.value;
         case CPParser.Bot:
@@ -283,6 +285,8 @@ export default class CPVisitor extends CPParserVisitor {
             return new AST.TmDiff(opexpr1, opexpr2);
           case CPParser.Walrus:
             return new AST.TmAssign(opexpr1, opexpr2);
+          case CPParser.Seq:
+            return new AST.TmSeq(opexpr1, opexpr2);
           default:
             console.error("Error at Binary Opexpr");
         }

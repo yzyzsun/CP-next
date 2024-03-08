@@ -9,6 +9,7 @@
   forward @left
   merge @left
   assign @right
+  seq @left
   intersect @left
   diff @left
   arrow @right
@@ -49,7 +50,7 @@ btype {
 
 atype {
   kW<"Int"> | kW<"Double"> | kW<"String"> | kW<"Bool"> | kW<"Top"> | kW<"Bot"> |
-  TypeName | RecordType | brackets<type> | parens<type>
+  Unit | TypeName | RecordType | brackets<type> | parens<type>
 }
 
 RecordType { braces<sepEndBySemi<LabelDecl "?"? ":" type>> }
@@ -68,7 +69,8 @@ opexpr {
   opexpr !or LogicOp<"||"> opexpr |
   opexpr !forward ForwardOp opexpr |
   opexpr !merge MergeOp opexpr |
-  opexpr !assign AssignOp opexpr
+  opexpr !assign AssignOp opexpr |
+  opexpr !seq SeqOp opexpr
 }
 
 lexpr {
@@ -190,6 +192,7 @@ Label { lowerid | upperid }
   ForwardOp { "^" }
   IndexOp { "!!" }
   AssignOp { ":=" }
+  SeqOp { ">>" }
   DerefOp { "!" }
   LengthOp { "#" }
   SqrtOp { "√" }

@@ -47,6 +47,7 @@ atype
     |   Double
     |   Bool
     |   String
+    |   Unit
     |   Top
     |   Bot
     |   typeName
@@ -80,6 +81,7 @@ opexpr
     |   <assoc=left> opexpr Forward opexpr
     |   <assoc=left> opexpr (Merge | LeftistMerge | RightistMerge | BackslashMinus) opexpr
     |   opexpr Walrus opexpr
+    |   opexpr Seq opexpr
     ;
 
 lexpr
