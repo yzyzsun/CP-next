@@ -29,7 +29,7 @@ infer (S.TmInt i)    = pure $ C.TmInt i /\ C.TyInt
 infer (S.TmDouble d) = pure $ C.TmDouble d /\ C.TyDouble
 infer (S.TmString s) = pure $ C.TmString s /\ C.TyString
 infer (S.TmBool b)   = pure $ C.TmBool b /\ C.TyBool
-infer S.TmUnit       = pure $ C.TmUnit /\ C.TyTop
+infer S.TmUnit       = pure $ C.TmUnit /\ C.TyUnit
 infer S.TmUndefined  = pure $ C.TmUndefined /\ C.TyBot
 -- Int is always prioritized over Double: e.g. -(1.0,2) = -2
 infer (S.TmUnary Neg e) = do
@@ -159,6 +159,7 @@ infer (S.TmMerge S.Leftist e1 e2) =
   infer $ S.TmMerge S.Neutral e1 (S.TmDiff e2 e1)
 infer (S.TmMerge S.Rightist e1 e2) =
   infer $ S.TmMerge S.Neutral (S.TmDiff e1 e2) e2
+infer (S.TmRcd Nil) = pure $ C.TmTop /\ C.TyTop
 infer (S.TmRcd (S.RcdField _ l Nil (Left e) : Nil)) = do
   e' /\ t <- infer e
   pure $ C.TmRcd l t e' /\ C.TyRcd l t false
@@ -443,10 +444,15 @@ infer (S.TmDeref e) = do
 infer (S.TmAssign e1 e2) = do
   e1' /\ t1 <- infer e1
   case t1 of C.TyRef t1' -> do e2' /\ t2 <- infer e2
-                               if t2 <: t1' then pure $ C.TmAssign e1' e2' /\ C.TyTop
+                               if t2 <: t1' then pure $ C.TmAssign e1' e2' /\ C.TyUnit
                                else throwTypeError $ "assigned type" <+> show t2 <+>
                                                      "is not a subtype of" <+> show t1'
              _ -> throwTypeError $ "assignment expected a reference type, but got" <+> show t1
+infer (S.TmSeq e1 e2) = do
+  e1' /\ t1 <- infer e1
+  case t1 of C.TyUnit -> do e2' /\ t2 <- infer e2
+                            pure $ letIn "_" e1' t1 e2' t2 /\ t2
+             _ -> throwTypeError $ "sequencing expected a unit type, but got" <+> show t1
 infer (S.TmToString e) = do
   e' /\ t <- infer e
   if t == C.TyInt || t == C.TyDouble || t == C.TyString || t == C.TyBool

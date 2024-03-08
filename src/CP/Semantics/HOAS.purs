@@ -23,6 +23,7 @@ eval = runTrampoline <<< go <<< tmHoas
     go e@(TmString _) = pure e
     go e@(TmBool _)   = pure e
     go TmUnit = pure TmUnit
+    go TmTop  = pure TmTop
     go (TmUnary op e) = unop op <$> go e
     go (TmBinary op e1 e2) = do
       e1' <- go e1
@@ -62,7 +63,7 @@ eval = runTrampoline <<< go <<< tmHoas
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmHTAbs _ _ _ _) = pure e
     go (TmFold t e) = TmFold t <$> go e
-    go (TmUnfold t e) = if isTopLike t then pure TmUnit else go e >>= go'
+    go (TmUnfold t e) = if isTopLike t then pure TmTop else go e >>= go'
       where go' :: Tm -> Eval Tm
             go' e'@(TmMerge _ _) = go' <=< go $ TmAnno e' t
             go' (TmFold _ v) = go $ TmAnno v (unfold t)
@@ -86,7 +87,7 @@ cast v t | Just (t1 /\ t2) <- split t = do
       v1 = cast v t1
       v2 = cast v t2
   (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
-  where isOptionalRcd (TyRcd _ _ true) = Just TmUnit
+  where isOptionalRcd (TyRcd _ _ true) = Just TmTop
         isOptionalRcd _ = Nothing
 cast _ t | isTopLike t = Just $ genTopLike t
 cast (TmInt i)    TyInt    = Just $ TmInt i
@@ -117,10 +118,10 @@ paraApp v arg = unsafeCrashWith $ "CP.Semantics.HOAS.paraApp: " <>
   "impossible application " <> show v <> " • " <> show arg
 
 genTopLike :: Ty -> Tm
-genTopLike TyTop = TmUnit
-genTopLike (TyArrow _ t _) = TmHAbs (\_ -> TmUnit) TyTop t true
-genTopLike (TyRcd l t _) = TmRcd l t TmUnit
-genTopLike (TyForall a _ t) = TmHTAbs (\_ -> TmUnit) TyTop (tyHoas a t) true
+genTopLike TyTop = TmTop
+genTopLike (TyArrow _ t _) = TmHAbs (\_ -> TmTop) TyTop t true
+genTopLike (TyRcd l t _) = TmRcd l t TmTop
+genTopLike (TyForall a _ t) = TmHTAbs (\_ -> TmTop) TyTop (tyHoas a t) true
 genTopLike (TyRec _ t) = genTopLike t
 genTopLike t = unsafeCrashWith $ "CP.Semantics.HOAS.genTopLike: " <>
   "cannot generate a top-like value of type " <> show t
@@ -131,6 +132,7 @@ isValue (TmDouble _) = true
 isValue (TmString _) = true
 isValue (TmBool _)   = true
 isValue TmUnit       = true
+isValue TmTop        = true
 isValue (TmHAbs _ _ _ _) = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmRcd _ _ _) = true

@@ -18,7 +18,7 @@ desugar (TmAbs xs e) = foldr (\x s -> TmAbs (singleton x) s) (desugar e) xs
 desugar (TmTAbs xs e) =
   foldr (\x s -> TmTAbs (singleton (rmap disjointness x)) s) (desugar e) xs
   where disjointness t = Just (fromMaybe TyTop t)
-desugar (TmRcd Nil) = TmUnit
+desugar (TmRcd Nil) = TmRcd Nil
 desugar (TmRcd xs) =
   foldl1 (TmMerge Neutral) (xs <#> \x -> TmRcd (singleton (desugarField x)))
   where
@@ -65,6 +65,7 @@ desugar (TmUnfold t e) = TmUnfold t (desugar e)
 desugar (TmRef e) = TmRef (desugar e)
 desugar (TmDeref e) = TmDeref (desugar e)
 desugar (TmAssign e1 e2) = TmAssign (desugar e1) (desugar e2)
+desugar (TmSeq e1 e2) = TmSeq (desugar e1) (desugar e2)
 desugar (TmToString e) = TmToString (desugar e)
 desugar (TmArray arr) = TmArray (desugar <$> arr)
 desugar (TmDoc e) = TmDoc (desugar e)

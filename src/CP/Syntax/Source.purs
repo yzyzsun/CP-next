@@ -19,6 +19,7 @@ data Ty = TyInt
         | TyDouble
         | TyString
         | TyBool
+        | TyUnit
         | TyTop
         | TyBot
         | TyArrow Ty Ty
@@ -41,6 +42,7 @@ instance Show Ty where
   show TyDouble = "Double"
   show TyString = "String"
   show TyBool   = "Bool"
+  show TyUnit   = "()"
   show TyTop    = "Top"
   show TyBot    = "Bot"
   show (TyArrow t1 t2) = parens $ show t1 <+> "->" <+> show t2
@@ -100,6 +102,7 @@ data Tm = TmInt Int
         | TmRef Tm
         | TmDeref Tm
         | TmAssign Tm Tm
+        | TmSeq Tm Tm
         | TmToString Tm
         | TmArray (Array Tm)
         | TmDoc Tm
@@ -164,6 +167,7 @@ instance Show Tm where
   show (TmRef e) = parens $ "ref" <+> show e
   show (TmDeref e) = "!" <> show e
   show (TmAssign e1 e2) = parens $ show e1 <+> ":=" <+> show e2
+  show (TmSeq e1 e2) = show e1 <+> ">>" <+> show e2
   show (TmToString e) = parens $ "toString" <+> show e
   show (TmArray arr) = brackets $ intercalate "; " (show <$> arr)
   show (TmDoc e) = show e

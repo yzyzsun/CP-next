@@ -72,7 +72,7 @@ step (TmTApp e t)
 step (TmDef x e1 e2) = computation "Def" $> tmSubst x e1 e2
 step (TmFold t e) = congruence "Fold" $> TmFold t <*> step e
 step (TmUnfold t e)
-  | isTopLike t = computation "UnfoldTop" $> TmUnit
+  | isTopLike t = computation "UnfoldTop" $> TmTop
   | TmFold _ e' <- e = computation "UnfoldFold" $> TmAnno e' <@> unfold t
   | TmMerge _ _ <- e = computation "UnfoldMerge" $> TmUnfold t (TmAnno e t)
   | otherwise = congruence "Unfold" $> TmUnfold t <*> step e

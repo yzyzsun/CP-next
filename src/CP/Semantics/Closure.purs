@@ -66,7 +66,7 @@ step (TmTApp e t) | isValue e = paraApp e <<< TyArg <$> expand t
 step tabs@(TmTAbs _ _ _ _ _) = closure tabs
 step (TmDef x e1 e2) = closureWithTmBind x e1 e2
 step (TmFold t e) = TmFold t <$> step e
-step (TmUnfold t e) | isTopLike t = pure TmUnit
+step (TmUnfold t e) | isTopLike t = pure TmTop
                     | TmFold _ e' <- e = pure $ TmAnno e' (unfold t)
                     | TmMerge _ _ <- e = pure $ TmUnfold t (TmAnno e t)
                     | otherwise = TmUnfold t <$> step e
@@ -92,7 +92,7 @@ cast tm ty = runMaybeT $ go tm ty
           v1 = go v t1
           v2 = go v t2
       (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
-      where isOptionalRcd (TyRcd _ _ true) = pure TmUnit
+      where isOptionalRcd (TyRcd _ _ true) = pure TmTop
             isOptionalRcd _ = empty
     go _ t | isTopLike t = pure $ genTopLike t
     go (TmMerge v1 v2) t = go v1 t <|> go v2 t
@@ -100,6 +100,7 @@ cast tm ty = runMaybeT $ go tm ty
     go (TmDouble n) TyDouble = pure $ TmDouble n
     go (TmString s) TyString = pure $ TmString s
     go (TmBool b)   TyBool   = pure $ TmBool b
+    go TmUnit       TyUnit   = pure TmUnit
     go (TmFold t v) t'@(TyRec _ _) | t <: t' = pure $ TmFold t' v
     go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2 _) = do
       t1' <- lift $ local (const env) $ expand t1
@@ -141,12 +142,12 @@ paraApp v arg = unsafeCrashWith $ "CP.Semantics.Closure.paraApp: " <>
 
 selectLabel :: Tm -> Label -> Tm
 selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUnit, TmUnit -> TmUnit
-  TmUnit, e2' -> e2'
-  e1', TmUnit -> e1'
+  TmTop, TmTop -> TmTop
+  TmTop, e2' -> e2'
+  e1', TmTop -> e1'
   e1', e2' -> TmMerge e1' e2'
 selectLabel (TmClosure env (TmRcd l' t e)) l | l == l' = TmClosure env (TmAnno e t)
-selectLabel _ _ = TmUnit
+selectLabel _ _ = TmTop
 
 unop' :: UnOp -> Tm -> Tm
 unop' Len (TmClosure _ (TmArray _ arr)) = TmInt (length arr)
@@ -186,6 +187,7 @@ isValue (TmDouble _) = true
 isValue (TmString _) = true
 isValue (TmBool _)   = true
 isValue TmUnit       = true
+isValue TmTop        = true
 isValue (TmMerge e1 e2) = isValue e1 && isValue e2
 isValue (TmFold _ e) = isValue e
 isValue (TmClosure _ (TmRcd _ _ _)) = true

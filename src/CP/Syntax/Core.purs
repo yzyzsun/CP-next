@@ -21,6 +21,7 @@ data Ty = TyInt
         | TyDouble
         | TyString
         | TyBool
+        | TyUnit
         | TyTop
         | TyBot
         | TyArrow Ty Ty Boolean
@@ -37,6 +38,7 @@ instance Show Ty where
   show TyDouble = "Double"
   show TyString = "String"
   show TyBool   = "Bool"
+  show TyUnit   = "()"
   show TyTop    = "Top"
   show TyBot    = "Bot"
   show (TyArrow ti to true) = "Trait" <> angles (show ti <+> "=>" <+> show to)
@@ -62,6 +64,7 @@ data Tm = TmInt Int
         | TmString String
         | TmBool Boolean
         | TmUnit
+        | TmTop
         | TmUndefined
         | TmUnary UnOp Tm
         | TmBinary BinOp Tm Tm
@@ -101,6 +104,7 @@ instance Show Tm where
   show (TmString s) = show s
   show (TmBool b)   = show b
   show TmUnit       = "()"
+  show TmTop        = "{}"
   show TmUndefined  = "undefined"
   show (TmUnary op e) = show op <> show e
   show (TmBinary op e1 e2) = parens $ show e1 <+> show op <+> show e2

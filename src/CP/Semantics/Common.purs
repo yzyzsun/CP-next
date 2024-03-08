@@ -90,18 +90,18 @@ toString v = unsafeCrashWith $
 
 selectLabel :: Tm -> Label -> Tm
 selectLabel (TmMerge e1 e2) l = case selectLabel e1 l, selectLabel e2 l of
-  TmUnit, TmUnit -> TmUnit
-  TmUnit, e2' -> e2'
-  e1', TmUnit -> e1'
+  TmTop, TmTop -> TmTop
+  TmTop, e2' -> e2'
+  e1', TmTop -> e1'
   e1', e2' -> TmMerge e1' e2'
 selectLabel (TmRcd l' t e) l | l == l' = TmAnno e t
-selectLabel _ _ = TmUnit
+selectLabel _ _ = TmTop
 
 genTopLike :: Ty -> Tm
-genTopLike TyTop = TmUnit
-genTopLike (TyArrow _ t b) = TmAbs "$top" TmUnit TyTop t true b
-genTopLike (TyRcd l t _) = TmRcd l t TmUnit
-genTopLike (TyForall a _ t) = TmTAbs a TyTop TmUnit t true
+genTopLike TyTop = TmTop
+genTopLike (TyArrow _ t b) = TmAbs "$top" TmTop TyTop t true b
+genTopLike (TyRcd l t _) = TmRcd l t TmTop
+genTopLike (TyForall a _ t) = TmTAbs a TyTop TmTop t true
 genTopLike (TyRec _ t) = genTopLike t
 genTopLike t = unsafeCrashWith $ "CP.Semantics.Common.genTopLike: " <>
   "cannot generate a top-like value of type " <> show t

@@ -22,6 +22,7 @@ eval = runTrampoline <<< go
     go e@(TmString _) = pure e
     go e@(TmBool _)   = pure e
     go TmUnit = pure TmUnit
+    go TmTop  = pure TmTop
     go (TmUnary op e) = unop op <$> go e
     go (TmBinary op e1 e2) = do
       e1' <- go e1
@@ -66,7 +67,7 @@ eval = runTrampoline <<< go
     go e@(TmTAbs _ _ _ _ _) = pure e
     go (TmDef x e1 e2) = go $ tmSubst x (TmCell (alloc e1)) e2
     go (TmFold t e) = TmFold t <$> go e
-    go (TmUnfold t e) = if isTopLike t then pure TmUnit else go e >>= go'
+    go (TmUnfold t e) = if isTopLike t then pure TmTop else go e >>= go'
       where go' :: Tm -> Eval Tm
             go' e'@(TmMerge _ _) = go' <=< go $ TmAnno e' t
             go' (TmFold _ v) = go $ TmAnno v (unfold t)

@@ -356,6 +356,7 @@ operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
               , Infix (reservedOp "\\-" $> TmDiff) AssocLeft
               ]
             , [ Infix (reservedOp ":=" $> TmAssign) AssocNone ]
+            , [ Infix (reservedOp ">>" $> TmSeq)  AssocLeft ]
             ]
 
 -- Types --
@@ -375,6 +376,7 @@ aty t = choice [ reserved "Int"    $> TyInt
                , reserved "Double" $> TyDouble
                , reserved "String" $> TyString
                , reserved "Bool"   $> TyBool
+               , symbol   "()"     $> TyUnit
                , reserved "Top"    $> TyTop
                , reserved "Bot"    $> TyBot
                , upperIdentifier <#> TyVar

@@ -43,6 +43,7 @@ translate S.TyInt    = pure C.TyInt
 translate S.TyDouble = pure C.TyDouble
 translate S.TyString = pure C.TyString
 translate S.TyBool   = pure C.TyBool
+translate S.TyUnit   = pure C.TyUnit
 translate S.TyTop    = pure C.TyTop
 translate S.TyBot    = pure C.TyBot
 translate (S.TyAnd t1 t2) = C.TyAnd <$> translate t1 <*> translate t2

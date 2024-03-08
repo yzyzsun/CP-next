@@ -92,7 +92,8 @@ dstNil = do
   pure { ast: [ initialize var ], var }
 
 infer :: C.Tm -> Destination -> CodeGen InferResult
-infer C.TmUnit (DstVar z) = pure { ast: [], typ: C.TyTop, var: z }
+infer C.TmUnit (DstVar z) = pure { ast: [], typ: C.TyUnit, var: z }
+infer C.TmTop (DstVar z) = pure { ast: [], typ: C.TyTop, var: z }
 infer C.TmUndefined (DstVar z) = pure { ast: [], typ: C.TyBot, var: z }
 infer (C.TmInt i) dst = do
   var <- freshVarName
@@ -296,7 +297,7 @@ infer (C.TmFix x e typ) (DstVar z) = do
   let ast = [ JSBlock $ [ JSConst (variable x) (JSVar z) ] <> j ]
   pure { ast, typ, var: z }
 infer (C.TmAbs x e targ tret _ isTrait) (DstVar z)
-  | isTopLike tret = infer C.TmUnit (DstVar z)
+  | isTopLike tret = infer C.TmTop (DstVar z)
   | otherwise = do
       y <- freshVarName
       { ast: j, var: y0 } <- addTmBind x targ $ setInTrait isTrait $ check e tret (DstOpt y)
@@ -310,7 +311,7 @@ infer (C.TmApp e1 e2 _) dst = do
   { ast: j3, typ: t3, var: z } <- distapp x t1 (TmArg y t2) dst
   pure { ast: j1 <> j2 <> j3, typ: t3, var: z }
 infer (C.TmTAbs a td e t _) (DstVar z)
-  | isTopLike t = infer C.TmUnit (DstVar z)
+  | isTopLike t = infer C.TmTop (DstVar z)
   | otherwise = do
       y <- freshVarName
       { ast: j, var: y0 } <- addTyBind a td $ check e t (DstOpt y)
@@ -323,7 +324,7 @@ infer (C.TmTApp e t) dst = do
   { ast: j2, typ: tbody, var: z } <- distapp y tf (TyArg t) dst
   pure { ast: j1 <> j2, typ: tbody, var: z }
 infer (C.TmRcd l t e) (DstVar z)
-  | isTopLike t = infer C.TmUnit (DstVar z)
+  | isTopLike t = infer C.TmTop (DstVar z)
   | otherwise = do
       { ast: j, var: y } <- check e t DstNil
       order <- asks (_.evalOrder)
@@ -380,7 +381,7 @@ infer (C.TmAssign e1 e2) (DstVar z) = do
   case t1 of C.TyRef t1' -> do
                { ast: j2, var: y } <- check e2 t1' DstNil
                let ast = j1 <> j2 <> [ JSAssignment (JSIndexer (toIndex t1) (JSVar x)) (JSVar y) ]
-               pure { ast, typ: C.TyTop, var: z }
+               pure { ast, typ: C.TyUnit, var: z }
              _ -> throwError $ "assignment expected a reference type, but got" <+> show t1
 infer (C.TmToString e) dst = do
   { ast: j0, var: y } <- infer e DstNil
@@ -489,13 +490,13 @@ proj t0 x l dst = case dst of DstVar var -> pure { ast: go t0 var, var }
 
 subtype :: C.Ty -> C.Ty -> Name -> Name -> Boolean -> CodeGen AST
 subtype _ t _ _ _ | isTopLike t = pure []
-subtype C.TyBot t _ y _ = pure [ JSAssignment (JSIndexer (toIndex t) (JSVar y)) JSNullLiteral ]
+subtype C.TyBot t _ y _ = pure [ addProp (JSVar y) (toIndex t) JSNullLiteral ]
 subtype ta tb x y true | ta .=. tb =
   case ta of C.TyAnd _ _ -> pure [ copyObj y (JSVar x) ta ]
              -- TODO: a record may contain a getter, but the fix below causes a significant slowdown
              -- C.TyRcd _ _ _ -> pure [ copyObj y (JSVar x) ta ]
              _ -> let f = if isPrimitive tb then identity else JSIndexer (toIndex ta) in
-                  pure [ JSAssignment (JSIndexer (toIndex tb) (JSVar y)) (f (JSVar x)) ]
+                  pure [ addProp (JSVar y) (toIndex tb) (f (JSVar x)) ]
 subtype ta tb x z b | Just (tb1 /\ tb2) <- split tb =
   if isTopLike tb1 then subtype ta tb2 x z b
   else if isTopLike tb2 then subtype ta tb1 x z b
@@ -552,7 +553,7 @@ subtype a1@(C.TyArray t1) a2@(C.TyArray t2) x y _ = do
 subtype (C.TyAnd ta tb) tc x y _ = subtype ta tc x y false <|> subtype tb tc x y false
 subtype ta tb x y notSplit
   | ta == tb = let f = if notSplit && isPrimitive tb then identity else JSIndexer (toIndex ta) in
-               pure [ JSAssignment (JSIndexer (toIndex tb) (JSVar y)) (f (JSVar x)) ]
+               pure [ addProp (JSVar y) (toIndex tb) (f (JSVar x)) ]
   | otherwise = throwError $ show ta <> " is not a subtype of " <> show tb
 
 unsplit :: { z :: Name, tx :: C.Ty, ty :: C.Ty, tz :: C.Ty } -> CodeGen { ast :: AST, x :: Name, y :: Name }
@@ -629,6 +630,7 @@ toIndex = JSTemplateLiteral <<< fst <<< go Nil
     isBaseType C.TyInt = true
     isBaseType C.TyDouble = true
     isBaseType C.TyString = true
+    isBaseType C.TyUnit = true
     isBaseType C.TyBot = true
     isBaseType _ = false
     -- this function does sorting and deduplication:
