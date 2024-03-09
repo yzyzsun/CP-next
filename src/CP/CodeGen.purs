@@ -338,18 +338,33 @@ infer (C.TmPrj e l) dst = do
   { ast: j1, typ: t1, var: y } <- infer e DstNil
   case selectLabel t1 l false of
     Just typ@(C.TyAnd _ _) -> do
-      case dst of DstVar z -> do { ast: j2 } <- proj t1 y l (DstVar z)
+      case dst of DstVar z -> do { ast: j2 } <- proj t1 y l (DstVar z) false
                                  pure { ast: j1 <> j2, typ, var: z }
                   DstOpt z' -> do { ast: j2, var: z } <- dstOpt z'
-                                  { ast: j3 } <- proj t1 y l (DstVar z)
+                                  { ast: j3 } <- proj t1 y l (DstVar z) false
                                   pure { ast: j1 <> j2 <> j3, typ, var: z }
                   DstNil -> do { ast: j2, var: z } <- dstNil
-                               { ast: j3 } <- proj t1 y l (DstVar z)
+                               { ast: j3 } <- proj t1 y l (DstVar z) false
                                pure { ast: j1 <> j2 <> j3, typ, var: z }
     Just typ -> do
-      { ast: j2, var } <- proj t1 y l dst
+      { ast: j2, var } <- proj t1 y l dst false
       pure { ast: j1 <> j2, typ, var }
     _ -> throwError $ "label" <+> show l <+> "is absent in" <+> show t1
+infer (C.TmOptPrj e1 l t e2) (DstVar z) = do
+  { ast: j1, typ: t1, var: y } <- infer e1 DstNil
+  { ast: j2 } <- infer e2 (DstVar z)
+  { ast: j3 } <- proj t1 y l (DstVar z) true
+  pure { ast: j1 <> j2 <> j3, typ: t, var: z }
+infer e@(C.TmOptPrj _ _ _ _) (DstOpt y) = do
+  { ast: j1, var } <- dstOpt y
+  { ast: j2, typ } <- infer e (DstVar var)
+  j3 <- convertPrimitive typ var
+  pure { ast: j1 <> j2 <> j3, typ, var }
+infer e@(C.TmOptPrj _ _ _ _) DstNil = do
+  { ast: j1, var } <- dstNil
+  { ast: j2, typ } <- infer e (DstVar var)
+  j3 <- convertPrimitive typ var
+  pure { ast: j1 <> j2 <> j3, typ, var }
 infer (C.TmMerge e1 e2) (DstVar z) = do
   { ast: j1, typ: t1 } <- infer e1 (DstVar z)
   { ast: j2, typ: t2 } <- infer e2 (DstVar z)
@@ -474,22 +489,25 @@ distapp x t arg DstNil = do
   pure { ast: j1 <> j2, typ, var }
 distapp _ t _ _ = throwError $ "expected an applicable type, but got" <+> show t
 
-proj :: C.Ty -> Name -> Label -> Destination -> CodeGen CheckResult
-proj t0 x l dst = case dst of DstVar var -> pure { ast: go t0 var, var }
-                              _ -> freshVarName <#> \var -> { ast: go t0 var, var }
+proj :: C.Ty -> Name -> Label -> Destination -> Boolean -> CodeGen CheckResult
+proj t0 x l dst opt = case dst of DstVar var -> pure { ast: go t0 var, var }
+                                  _ -> freshVarName <#> \var -> { ast: go t0 var, var }
   where go :: C.Ty -> Name -> AST
         go t _ | isTopLike t = []
         go (C.TyAnd ta tb) z = go ta z <> go tb z
         go t@(C.TyRcd l' typ _) z | l == l' =
           let field = JSIndexer (toIndex t) (JSVar x)
-              intro = JSVariableIntroduction z $ Just field in
+              intro = JSVariableIntroduction z $ Just field
+              copy y = (if opt then \j -> JSIfElse field j Nothing else identity)
+                       (copyObj y field typ) in
           case dst of DstNil -> [ intro ]
-                      DstOpt y -> [ intro, JSIfElse (JSVar y) (copyObj y field typ) Nothing ]
-                      DstVar y -> [ copyObj y field typ ]
+                      DstOpt y -> [ intro, JSIfElse (JSVar y) (copy y) Nothing ]
+                      DstVar y -> [ copy y ]
         go _ _ = []
 
 subtype :: C.Ty -> C.Ty -> Name -> Name -> Boolean -> CodeGen AST
 subtype _ t _ _ _ | isTopLike t = pure []
+subtype C.TyTop (C.TyRcd _ _ true) _ _ _ = pure []
 subtype C.TyBot t _ y _ = pure [ addProp (JSVar y) (toIndex t) JSNullLiteral ]
 subtype ta tb x y true | ta .=. tb =
   case ta of C.TyAnd _ _ -> pure [ copyObj y (JSVar x) ta ]
@@ -550,11 +568,13 @@ subtype a1@(C.TyArray t1) a2@(C.TyArray t2) x y _ = do
   pure [ JSAssignment arr (JSArrayLiteral [])
        , JSForOf x0 (JSIndexer (toIndex a1) (JSVar x)) $ JSBlock block
        ]
-subtype (C.TyAnd ta tb) tc x y _ = subtype ta tc x y false <|> subtype tb tc x y false
+subtype (C.TyAnd ta tb) tc x y notSplit =
+  (if notSplit then (_ <|> subtype C.TyTop tc x y false) else identity) -- match optional fields anyway
+  (subtype ta tc x y false <|> subtype tb tc x y false)
 subtype ta tb x y notSplit
   | ta == tb = let f = if notSplit && isPrimitive tb then identity else JSIndexer (toIndex ta) in
                pure [ addProp (JSVar y) (toIndex tb) (f (JSVar x)) ]
-  | otherwise = throwError $ show ta <> " is not a subtype of " <> show tb
+  | otherwise = throwError $ show ta <> " is not a subtype of " <> show tb <> ". "
 
 unsplit :: { z :: Name, tx :: C.Ty, ty :: C.Ty, tz :: C.Ty } -> CodeGen { ast :: AST, x :: Name, y :: Name }
 unsplit { z, tx: _, ty: _, tz: C.TyAnd _ _ } = pure { ast: [], x: z, y: z }
