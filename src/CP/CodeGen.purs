@@ -375,6 +375,12 @@ infer (C.TmAnno e typ) dst = do
   where skipAnno :: C.Tm -> C.Tm
         skipAnno (C.TmAnno e' _) = e'
         skipAnno e' = e'
+infer (C.TmFold t e) dst = do
+  { ast, var } <- infer e dst
+  pure { ast, typ: t, var }
+infer (C.TmUnfold t e) dst = do
+  { ast, var } <- infer e dst
+  pure { ast, typ: C.unfold t, var }
 infer (C.TmRef e) (DstVar z) = do
   { ast: j, typ: t, var: y } <- infer e DstNil
   let typ = C.TyRef t
@@ -635,6 +641,8 @@ toIndex = JSTemplateLiteral <<< fst <<< go Nil
     -- TODO: change variable names to De Bruijn indices
     go as (C.TyVar a) | a `elem` as = a /\ false
                       | otherwise = ("${toIndex(" <> variable a <> ")}") /\ true
+    -- TODO: consider a safer way to handle recursive types
+    go as (C.TyRec a t) = go (a:as) t
     go as t@(C.TyAnd _ _) = let ts /\ b = foldl (\(ts /\ b) t -> bimap (insertIfNotElem ts) (b || _) (go as t))
                                                 ([] /\ false) (flatten t) in
       if b then ("${toIndex(" <> print1 (JSArrayLiteral (transformVar <$> ts)) <> ")}") /\ true
@@ -680,6 +688,7 @@ equiv (C.TyRcd l1 t1 opt1) (C.TyRcd l2 t2 opt2) = l1 == l2 && t1 .=. t2 && opt1 
 equiv (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) = td1 .=. td2 && t1 .=. C.tySubst a2 (C.TyVar a1) t2
 equiv (C.TyRec a1 t1) (C.TyRec a2 t2) = t1 .=. C.tySubst a2 (C.TyVar a1) t2
 equiv (C.TyArray t1) (C.TyArray t2) = t1 .=. t2
+equiv (C.TyRef t1) (C.TyRef t2) = t1 .=. t2
 equiv t1 t2 | t1 === t2 = true
             | otherwise = false
 
