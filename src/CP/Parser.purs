@@ -114,8 +114,12 @@ renamexpr e = dotexpr e >>= \e' -> option e' $ try $ brackets do
   pure $ TmRename e' l1 l2
 
 dotexpr :: SParser Tm -> SParser Tm
-dotexpr e = aexpr e >>= \e' -> foldl (#) e' <$>
+dotexpr e = bangexpr e >>= \e' -> foldl (#) e' <$>
   many (flip TmPrj <$ char '.' <*> identifier)
+
+-- prevent `arr!!i` from being parsed as `arr (!(!i))`
+bangexpr :: SParser Tm -> SParser Tm
+bangexpr e = try (symbol "!" *> aexpr e <#> TmDeref) <|> aexpr e
 
 aexpr :: SParser Tm -> SParser Tm
 aexpr e = choice [ naturalOrFloat <#> fromIntOrNumber
@@ -328,7 +332,6 @@ operators :: OperatorTable Identity String Tm
 operators = [ [ Prefix (reservedOp "-" $> TmUnary Neg)
               , Prefix (reservedOp "#" $> TmUnary Len)
               , Prefix (reservedOp "√" $> TmUnary Sqrt)
-              , Prefix (reservedOp "!" $> TmDeref)
               ]
             , [ Infix (reservedOp "!!" $> TmBinary Index) AssocLeft ]
             , [ Infix (reservedOp "*" $> TmBinary (Arith Mul)) AssocLeft

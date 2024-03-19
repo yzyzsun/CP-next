@@ -17,7 +17,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Context (Checking, Pos(..), TypeError(..), Typing, addSort, addTmBind, addTyBind, fromState, localPos, lookupTmBind, lookupTyBind, runTyping, throwTypeError)
 import Language.CP.Desugar (deMP, desugar)
 import Language.CP.Subtyping (isTopLike, (<:), (===))
-import Language.CP.Syntax.Common (BinOp(..), Label, Name, UnOp(..))
+import Language.CP.Syntax.Common (BinOp(..), CompOp(..), Label, Name, UnOp(..))
 import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
 import Language.CP.Transform (transform, transform', transformTyDef)
@@ -65,8 +65,14 @@ infer (S.TmBinary (Comp op) e1 e2) = do
   else if t1 <: C.TyDouble && t2 <: C.TyDouble then pure $ core C.TyDouble
   else if t1 <: C.TyString && t2 <: C.TyString then pure $ core C.TyString
   else if t1 <: C.TyBool && t2 <: C.TyBool then pure $ core C.TyBool
-  else throwTypeError $
-    "CompOp is not defined between" <+> show t1 <+> "and" <+> show t2
+  else case t1, t2, isEqlOrNeq op of
+    C.TyRef _, C.TyRef _, true -> pure $ C.TmBinary (Comp op) e1' e2' /\ C.TyBool
+    _, _, _ -> throwTypeError $
+      "CompOp is not defined between" <+> show t1 <+> "and" <+> show t2
+  where isEqlOrNeq :: CompOp -> Boolean
+        isEqlOrNeq Eql = true
+        isEqlOrNeq Neq = true
+        isEqlOrNeq _ = false
 infer (S.TmBinary (Logic op) e1 e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- infer e2

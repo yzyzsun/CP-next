@@ -154,15 +154,14 @@ infer (C.TmUnary Op.Len e) dst = do
                        DstNil -> []
   pure { ast: j0 <> j1 <> j2, typ: C.TyInt, var }
 infer (C.TmUnary Op.Sqrt e) dst = do
-  { ast: j0, typ: t, var: y } <- infer e DstNil
+  { ast: j0, var: y } <- infer e DstNil
   var <- freshVarName
   let j1 = [ JSVariableIntroduction var $ Just $ JSApp (JSAccessor "sqrt" (JSVar "Math")) [JSVar y] ]
       assign z = addProp (JSVar z) (toIndex C.TyDouble) (JSVar var)
       j2 = case dst of DstVar z -> [ assign z ]
                        DstOpt z -> [ JSIfElse (JSVar z) (assign z) Nothing ]
                        DstNil -> []
-  case t of C.TyDouble -> pure { ast: j0 <> j1 <> j2, typ: C.TyDouble, var }
-            _ -> throwError $ "Sqrt is not defined for" <+> show t
+  pure { ast: j0 <> j1 <> j2, typ: C.TyDouble, var }
 infer (C.TmBinary (Op.Arith op) e1 e2) dst = do
   { ast: j1, typ: t1, var: x } <- infer e1 DstNil
   { ast: j2, typ: t2, var: y } <- infer e2 DstNil
@@ -188,21 +187,15 @@ infer (C.TmBinary (Op.Arith op) e1 e2) dst = do
         trunc :: JS -> JS
         trunc n = JSApp (JSAccessor "trunc" (JSVar "Math")) [n]
 infer (C.TmBinary (Op.Comp op) e1 e2) dst = do
-  { ast: j1, typ: t1, var: x } <- infer e1 DstNil
-  { ast: j2, typ: t2, var: y } <- infer e2 DstNil
+  { ast: j1, var: x } <- infer e1 DstNil
+  { ast: j2, var: y } <- infer e2 DstNil
   var <- freshVarName
   let j3 = [ JSVariableIntroduction var $ Just $ JSBinary (map op) (JSVar x) (JSVar y) ]
       assign z = addProp (JSVar z) (toIndex C.TyBool) (JSVar z)
       j4 = case dst of DstVar z -> [ assign z ]
                        DstOpt z -> [ JSIfElse (JSVar z) (assign z) Nothing ]
                        DstNil -> []
-      triple = { ast: j1 <> j2 <> j3 <> j4, typ: C.TyBool, var }
-  case t1, t2 of C.TyInt,    C.TyInt    -> pure triple
-                 C.TyDouble, C.TyDouble -> pure triple
-                 C.TyString, C.TyString -> pure triple
-                 C.TyBool,   C.TyBool   -> pure triple
-                 _, _ -> throwError $
-                   "CompOp is not defined between" <+> show t1 <+> "and" <+> show t2
+  pure { ast: j1 <> j2 <> j3 <> j4, typ: C.TyBool, var }
   where map :: Op.CompOp -> BinaryOperator
         map Op.Eql = EqualTo
         map Op.Neq = NotEqualTo
@@ -211,17 +204,15 @@ infer (C.TmBinary (Op.Comp op) e1 e2) dst = do
         map Op.Gt  = GreaterThan
         map Op.Ge  = GreaterThanOrEqualTo
 infer (C.TmBinary (Op.Logic op) e1 e2) dst = do
-  { ast: j1, typ: t1, var: x } <- infer e1 DstNil
-  { ast: j2, typ: t2, var: y } <- infer e2 DstNil
+  { ast: j1, var: x } <- infer e1 DstNil
+  { ast: j2, var: y } <- infer e2 DstNil
   var <- freshVarName
   let j3 = [ JSVariableIntroduction var $ Just $ JSBinary (map op) (JSVar x) (JSVar y) ]
       assign z = addProp (JSVar z) (toIndex C.TyBool) (JSVar var)
       j4 = case dst of DstVar z -> [ assign z ]
                        DstOpt z -> [ JSIfElse (JSVar z) (assign z) Nothing ]
                        DstNil -> []
-  case t1, t2 of C.TyBool, C.TyBool -> pure { ast: j1 <> j2 <> j3 <> j4, typ: C.TyBool, var }
-                 _, _ -> throwError $
-                   "LogicOp is not defined between" <+> show t1 <+> "and" <+> show t2
+  pure { ast: j1 <> j2 <> j3 <> j4, typ: C.TyBool, var }
   where map :: Op.LogicOp -> BinaryOperator
         map Op.And = And
         map Op.Or  = Or
