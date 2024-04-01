@@ -34,6 +34,7 @@ import Language.CP.Transform (translate)
 import Language.CP.Typing (checkProg, infer)
 import Language.CP.Util (unsafeFromJust)
 import Language.JS.Pretty (print)
+import Node.Path (FilePath)
 import Parsing (ParseError(..), Position(..), fail, runParser)
 import Parsing.String (eof)
 
@@ -103,11 +104,11 @@ showParseError (ParseError _ (Position { line: l, column: c })) source =
 type JSProgram = String
 type CPHeader = String
 
-compile :: String -> REPLState -> Either String (JSProgram /\ CPHeader)
-compile code st = case runParser code (whiteSpace *> program <* eof) of
-  Left err -> Left $ showParseError err code
+compile :: String -> FilePath -> REPLState -> Either String (JSProgram /\ CPHeader)
+compile code f st = case runParser code (whiteSpace *> program <* eof) of
+  Left err -> left $ showParseError err code
   Right prog -> case runChecking (elaborateProg (desugarProg prog)) st of
-    Left err -> Left $ show err
+    Left err -> left $ show err
     Right (e /\ st') -> do
       js <- runCodeGen e (fromState st)
       let st'' = initState { tmBindings = takeWhile (\(x /\ _) -> x /= tmHead) st'.tmBindings
@@ -129,6 +130,7 @@ compile code st = case runParser code (whiteSpace *> program <* eof) of
                  else let hd = fst <<< unsafeFromJust $ head st.tmBindings in
                       takeWhile (\(x /\ _ /\ _) -> x /= hd) b
       pure $ wrapUp e diff
+    left err = Left $ f <> ": " <> err
 
 serialize :: REPLState -> CPHeader
 serialize st = foldMap ppTyAlias st.tyAliases <> foldMap ppTmBinding st.tmBindings

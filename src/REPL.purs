@@ -21,7 +21,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Class.Console (error)
 import Effect.Console (log)
-import Effect.Exception (message, try)
+import Effect.Exception (catchException, message, throw, try)
 import Effect.Now (now, nowTime)
 import Effect.Ref (Ref, modify_, new, read, write)
 import Language.CP (compile, deserialize, importDefs, inferType, interpret, serialize, showParseError)
@@ -114,67 +114,60 @@ evalProg code ref = do
 compileFile :: Cmd
 compileFile file ref = do
   beginTime <- nowTime
-  success <- compileJS file
-  if success then do
-    compileTime <- nowTime
-    st <- read ref
-    let compileSeconds = showSeconds $ diff compileTime beginTime
-    if st.runJS then do
+  compileJS file
+  compileTime <- nowTime
+  st <- read ref
+  let compileSeconds = showSeconds $ diff compileTime beginTime
+  if st.runJS then do
+    if st.timing then
+      info $ "Compile time: " <> compileSeconds
+    else pure unit
+    workDir <- cwd
+    let file' = concat [workDir, extJS file]
+    require file' \res -> do
+      log res
+      endTime <- nowTime
+      let runSeconds = showSeconds $ diff endTime compileTime
       if st.timing then
-        info $ "Compile time: " <> compileSeconds
+        info $ "Run time: " <> runSeconds
       else pure unit
-      workDir <- cwd
-      let file' = concat [workDir, extJS file]
-      require file' \res -> do
-        log res
-        endTime <- nowTime
-        let runSeconds = showSeconds $ diff endTime compileTime
-        if st.timing then
-          info $ "Run time: " <> runSeconds
-        else pure unit
-    else info $ file <> " compiled in " <> compileSeconds
-  else pure unit
+  else info $ file <> " compiled in " <> compileSeconds
   where
-    compileJS :: FilePath -> Effect Boolean
+    compileJS :: FilePath -> Effect Unit
     compileJS f = do
-      code <- readTextFile f
-      mst <- loadHeaders code
-      case mst of Just st -> do program <- importLibs code
-                                case compile program st of
-                                  Left err -> fatal err $> false
-                                  Right (js /\ h) -> do
-                                    writeTextFile (extJS f) js
-                                    writeTextFile (extHeader f) h
-                                    pure true
-                  Nothing -> pure false
-    loadHeaders :: String -> Effect (Maybe REPLState)
-    loadHeaders code = matchOpen dir code (const (pure (Just initState))) \n f -> do
-      mst <- loadHeader f
-      mst' <- loadHeaders (replace openRegex "" code)
-      case mst, mst' of
-        Just st, Just st' -> case mergeStates st st' of
-          Right st'' -> pure $ Just st''
-          Left names -> fatal (intercalate ", " names <> " in "
-                            <> show n <> " have been defined") $> Nothing
-        _, _ -> pure Nothing
-    loadHeader :: FilePath -> Effect (Maybe REPLState)
+      code <- Sync.readTextFile UTF8 f
+      st <- loadHeaders code
+      program <- importLibs code
+      case compile program f st of
+        Left err -> throw err
+        Right (js /\ h) -> do
+          Sync.writeTextFile UTF8 (extJS f) js
+          Sync.writeTextFile UTF8 (extHeader f) h
+    loadHeaders :: String -> Effect REPLState
+    loadHeaders code = matchOpen dir code (const (pure initState)) \n f -> do
+      st <- loadHeader f
+      st' <- loadHeaders (replace openRegex "" code)
+      case mergeStates st st' of
+        Right st'' -> pure st''
+        Left names -> throw $ intercalate ", " names <> " in "
+                           <> show n <> " have been defined"
+    loadHeader :: FilePath -> Effect REPLState
     loadHeader f = do
       cp <- Sync.stat f
       header <- try $ Sync.stat (extHeader f)
       case header of
-        Right h -> if modifiedTime cp <= modifiedTime h then do
-                     text <- readTextFile (extHeader f)
-                     text' <- includeHeaders text
-                     case deserialize text' of
-                       Left err -> fatal (showParseError err text') $> Nothing
-                       Right st -> pure $ Just st
-                   else compileJS f *> loadHeader f
-        Left _ -> compileJS f *> loadHeader f
+        Right h | modifiedTime cp <= modifiedTime h -> do
+          text <- Sync.readTextFile UTF8 (extHeader f)
+          text' <- includeHeaders text
+          case deserialize text' of
+            Left err -> throw $ showParseError err text'
+            Right st -> pure st
+        _ -> compileJS f *> loadHeader f
     includeHeaders :: String -> Effect String
     includeHeaders code = case match includeRegex code of
       Just arr -> do
         let f = unsafeFromJust $ unsafeFromJust $ arr !! 1
-        text <- readTextFile f
+        text <- Sync.readTextFile UTF8 f
         includeHeaders $ replace includeRegex text code
       Nothing -> pure code
     includeRegex :: Regex
@@ -238,7 +231,7 @@ dispatch input = ifMatchesAny (":?" : ":h" : ":help" : Nil) printHelp $
 
 handler :: Interface -> Ref REPLState -> String -> Effect Unit
 handler interface ref input = do
-  dispatch (trim input) ref
+  catchException (fatal <<< message) (dispatch (trim input) ref)
   prompt interface
 
 -- completers
@@ -326,21 +319,9 @@ verb msg = log $ withGraphics (foreground BrightBlack) msg
 showSeconds :: Milliseconds -> String
 showSeconds (Milliseconds n) = show (n / 1000.0) <> "s"
 
-readTextFile :: FilePath -> Effect String
-readTextFile f = do
-  result <- try $ Sync.readTextFile UTF8 f
-  case result of Right text -> pure text
-                 Left err -> fatal (message err) $> ""
-
-writeTextFile :: FilePath -> String -> Effect Unit
-writeTextFile f t = do
-  result <- try $ Sync.writeTextFile UTF8 f t
-  case result of Right _ -> pure unit
-                 Left err -> fatal (message err)
-
 preprocess :: FilePath -> String -> Effect String
 preprocess path program = matchOpen path program pure \_ f -> do
-  text <- readTextFile f
+  text <- Sync.readTextFile UTF8 f
   preprocess path $ replace openRegex (replace lineRegex " " text) program
   where lineRegex = unsafeRegex """(--.*)?[\r\n]+""" global
 
@@ -358,5 +339,5 @@ openRegex = unsafeRegex """open\s+(\w+)\s*;""" noFlags
 
 readPreCode :: FilePath -> Effect String
 readPreCode f = do
-  code <- readTextFile f
+  code <- Sync.readTextFile UTF8 f
   preprocess (dirname f) code
