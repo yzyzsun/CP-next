@@ -8,7 +8,7 @@ import Data.Array (filter)
 import Data.Array.NonEmpty (NonEmptyArray, foldl1, fromArray, (!!))
 import Data.DateTime.Instant (unInstant)
 import Data.Either (Either(..))
-import Data.List (List(..), intercalate, (:))
+import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), drop, lastIndexOf, length, splitAt, stripPrefix, trim)
 import Data.String.Regex (Regex, match, replace)
@@ -144,13 +144,10 @@ compileFile file ref = do
           Sync.writeTextFile UTF8 (extJS f) js
           Sync.writeTextFile UTF8 (extHeader f) h
     loadHeaders :: String -> Effect REPLState
-    loadHeaders code = matchOpen dir code (const (pure initState)) \n f -> do
+    loadHeaders code = matchOpen dir code (const (pure initState)) \_ f -> do
       st <- loadHeader f
       st' <- loadHeaders (replace openRegex "" code)
-      case mergeStates st st' of
-        Right st'' -> pure st''
-        Left names -> throw $ intercalate ", " names <> " in "
-                           <> show n <> " have been defined"
+      pure $ mergeStates st st'
     loadHeader :: FilePath -> Effect REPLState
     loadHeader f = do
       cp <- Sync.stat f

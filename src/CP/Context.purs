@@ -6,14 +6,14 @@ import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.Reader (ReaderT, asks, local, runReaderT)
 import Control.Monad.State (StateT, runStateT)
 import Data.Bifunctor (rmap)
-import Data.Either (Either(..))
+import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
-import Data.List (List(..), null, singleton)
+import Data.List (List(..))
 import Data.Map (Map, empty, fromFoldable, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.Tuple (fst)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested (type (/\))
 import Language.CP.Syntax.Common (Name)
 import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
@@ -127,19 +127,11 @@ initState = { mode       : HOAS
             , runJS      : false
             }
 
-mergeStates :: REPLState -> REPLState -> Either (List Name) REPLState
-mergeStates st1 st2 =
-  let dupTms = st1.tmBindings >>= \(x /\ _ /\ _) ->
-                 st2.tmBindings >>= \(y /\ _ /\ _) ->
-                   if x == y then singleton x else Nil
-      dupTys = st1.tyAliases >>= \(x /\ _) ->
-                 st2.tyAliases >>= \(y /\ _) ->
-                   if x == y then singleton x else Nil in
-  if null dupTms && null dupTys
-  then Right $ initState { tmBindings = st1.tmBindings <> st2.tmBindings
-                         , tyAliases = st1.tyAliases <> st2.tyAliases
-                         }
-  else Left $ dupTms <> dupTys
+-- allow duplicate definitions otherwise diamond importing is impossible
+mergeStates :: REPLState -> REPLState -> REPLState
+mergeStates st1 st2 = initState { tmBindings = st1.tmBindings <> st2.tmBindings
+                                , tyAliases = st1.tyAliases <> st2.tyAliases
+                                }
 
 runChecking :: forall a. Checking a -> REPLState -> Either TypeError (a /\ REPLState)
 runChecking m st = runExcept $ runStateT m st
