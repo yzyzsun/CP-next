@@ -449,7 +449,8 @@ distapp x t@(C.TyArrow targ tret _) (TmArg y t') dst | not (isTopLike tret) = do
   y' /\ j1 <- if targ .=. t' then pure $ y /\ []
               else do y' <- freshVarName
                       j <- subtype t' targ y y' true
-                      pure $ y' /\ ([ initialize y' ] <> j)
+                      j' <- convertPrimitive targ y'
+                      pure $ y' /\ ([ initialize y' ] <> j <> j')
   let app m1 m2 = let f1 = case m1 of Nothing -> identity
                                       Just z -> JSVariableIntroduction z <<< Just
                       f2 = case m2 of Nothing -> identity
