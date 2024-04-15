@@ -201,3 +201,17 @@ antlr/CPParserVisitor.js
 
 ### macOS ###
 .DS_Store
+
+
+### Coq ###
+*.vo
+*.vok
+*.vos
+*.glob
+.lia.cache
+CoqSrc.mk
+CoqSrc.mk.conf
+.CoqSrc.mk.d
+Makefile.coq
+Makefile.coq.conf
+.coqdeps.d

@@ -1,6 +1,7 @@
 metavar tvar, X, Y, Z ::= {{ com type variable name }}
 metavar var, x, y, z, this ::= {{ com variable name }}
 metavar label, l {{ tex \ell }} ::= {{ com label name }}
+metavar b ::= {{ com base values }}
 
 grammar
 
@@ -16,6 +17,8 @@ typ, A, B, C :: 't_' ::= {{ com types }}
   | A & B            ::  :: and    {{ com intersection type }}
   | A [ X ~> B ]     :: M:: subst
   | ( A )            :: S:: paren
+  | Int       :: M:: int     {{ com int }} {{ tex \mathsf{Int}  }}
+  | Bool      :: M:: bool    {{ com bool}} {{ tex \mathsf{Bool} }}
 
 ord, Aord {{ tex A^\circ }} , Bord {{ tex B^\circ }}, Cord {{ tex C^\circ }} :: 'ord_' ::= {{ com ordinary types }}
   | Top                 ::  :: top
@@ -45,7 +48,7 @@ exp, e :: 'e_' ::= {{ com expressions }}
   | ( e )            :: S:: paren
 
 val, v :: 'v_' ::= {{ com values }}
-  | {}               ::  :: top
+  | top               ::  :: top
   | b                ::  :: base
   | \ x : A . e : B  ::  :: abs
   | /\ X * A . e : B ::  :: tabs
@@ -71,6 +74,8 @@ terminals :: 'terminals_' ::=
   | /\           ::  :: biglambda  {{ tex \Lambda }}
   | ~>           ::  :: subst      {{ tex \mapsto }}
   | ->           ::  :: arrow      {{ tex \rightarrow }}
+  | >->          ::  :: stepalt    {{ tex \rightarrow }}
+  | >->*         ::  :: stepmul    {{ tex \rightarrow^{*} }}
   | -->          ::  :: longarrow  {{ tex \hookrightarrow }}
   | ==>          ::  :: darrow     {{ tex \Downarrow }}
   | ~~>          ::  :: sarrow     {{ tex \, \rightsquigarrow \, }}
@@ -106,10 +111,16 @@ formula :: 'formula_' ::=
   | l1 <> l2              ::  :: labelNeq  {{ tex [[l1]] \neq [[l2]] }}
   | T1 = T2               ::  :: typEq
   | Ts = itoa | A |       ::  :: itoa      {{ com intersection to array of types }}
+  | t1 = t2               ::  :: target_exp_eq
+  | ST1 = ST2             ::  :: set_eq
   | e1 --> i e2           :: M:: multistep {{ tex [[e1]]~[[-->]][[i]]~[[e2]] }}
+  | t >->* t'             ::  :: steps
   | G |- A * B            :: M:: disjointSpec
   | v1 ~ v2               :: M:: consistentSpec
   | A .=. B               :: M:: equivalent
+  | fresh x               :: M:: fresh_evar {{ tex \mathsf{fresh} [[x]] }}
+  | fresh X               :: M:: fresh_tvar {{ tex \mathsf{fresh} [[X]] }}
+  | t >->* t'             ::  :: steps
 
 parsing
   t_arrow <= t_and
@@ -307,7 +318,7 @@ by
 
 uniq G
 ----------------- :: Top
-G |- {} => Top
+G |- top => Top
 
 
 uniq G
@@ -402,7 +413,11 @@ by
 
 toplike Aord
 --------------------- :: Top
+<<<<<<< HEAD
 v  -->Aord  {}
+=======
+v  -->A  top
+>>>>>>> redef_type_index
 
 
 --------------------- :: Base
@@ -455,7 +470,7 @@ by
 
 
 ----------------- :: Top
-{} ; arg  -->  {}
+top ; arg  -->  top
 
 
 v  -->A  v'
