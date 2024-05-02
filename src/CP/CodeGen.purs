@@ -10,7 +10,7 @@ import Data.Array as A
 import Data.Bifunctor (bimap, lmap, rmap)
 import Data.Either (Either)
 import Data.Int (toNumber)
-import Data.List (List(..), elem, (:))
+import Data.List (List(..), elemIndex, (:))
 import Data.Map (Map, empty, fromFoldable, insert, lookup)
 import Data.Maybe (Maybe(..), isJust)
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll, stripPrefix, stripSuffix, toLower)
@@ -637,9 +637,9 @@ toIndex = JSTemplateLiteral <<< fst <<< go Nil
     go as (C.TyRcd l t _)    = lmap (("rcd_" <> l <> ":") <> _) (go as t)
     go as (C.TyArray t)      = lmap ("array_" <> _) (go as t)
     go as (C.TyRef t)        = lmap ("ref_" <> _) (go as t)
-    -- TODO: change variable names to De Bruijn indices
-    go as (C.TyVar a) | a `elem` as = a /\ false
-                      | otherwise = ("${toIndex(" <> variable a <> ")}") /\ true
+    go as (C.TyVar a) = case a `elemIndex` as of
+                          Just index -> show index /\ false
+                          Nothing -> ("${toIndex(" <> variable a <> ")}") /\ true
     -- TODO: consider a safer way to handle recursive types
     go as (C.TyRec a t) = go (a:as) t
     go as t@(C.TyAnd _ _) = let ts /\ b = foldl (\(ts /\ b) t -> bimap (insertIfNotElem ts) (b || _) (go as t))
