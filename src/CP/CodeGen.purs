@@ -56,12 +56,13 @@ runCodeGen e ctx = do
   pure $ [ JSRawCode prelude ] <> ast
 
 prelude :: String
-prelude = """function copyObj(dst, src) {
-    for (const prop in src) {
-        var getter = src.__lookupGetter__(prop);
-        if (getter) dst.__defineGetter__(prop, getter);
-        else dst[prop] = src[prop];
-    }
+prelude = """function copyProp(dst, src, prop) {
+    var getter = src.__lookupGetter__(prop);
+    if (getter) dst.__defineGetter__(prop, getter);
+    else dst[prop] = src[prop];
+}
+function copyObj(dst, src) {
+    for (const prop in src) copyProp(dst, src, prop);
 }
 function primitive(tt) {
     var pt = ['int', 'double', 'string', 'bool'];
@@ -508,11 +509,14 @@ subtype _ t _ _ _ | isTopLike t = pure []
 subtype C.TyTop (C.TyRcd _ _ true) _ _ _ = pure []
 subtype C.TyBot t _ y _ = pure [ addProp (JSVar y) (toIndex t) JSNullLiteral ]
 subtype ta tb x y true | ta .=. tb =
-  case ta of C.TyAnd _ _ -> pure [ copyObj y (JSVar x) ta ]
-             -- TODO: a record may contain a getter, but the fix below causes a significant slowdown
-             -- C.TyRcd _ _ _ -> pure [ copyObj y (JSVar x) ta ]
-             _ -> let f = if isPrimitive tb then identity else JSIndexer (toIndex ta) in
-                  pure [ addProp (JSVar y) (toIndex tb) (f (JSVar x)) ]
+  if needsCopyObj ta then pure [ copyObj y (JSVar x) ta ]
+  else let f = if isPrimitive tb then identity else JSIndexer (toIndex ta) in
+       pure [ addProp (JSVar y) (toIndex tb) (f (JSVar x)) ]
+  where needsCopyObj :: C.Ty -> Boolean
+        needsCopyObj (C.TyAnd _ _) = true
+        needsCopyObj (C.TyVar _) = true
+        needsCopyObj (C.TyRcd _ _ _) = true
+        needsCopyObj _ = false
 subtype ta tb x z b | Just (tb1 /\ tb2) <- split tb =
   if isTopLike tb1 then subtype ta tb2 x z b
   else if isTopLike tb2 then subtype ta tb1 x z b
@@ -569,6 +573,9 @@ subtype a1@(C.TyArray t1) a2@(C.TyArray t2) x y _ = do
 subtype (C.TyAnd ta tb) tc x y notSplit =
   (if notSplit then (_ <|> subtype C.TyTop tc x y false) else identity) -- match optional fields anyway
   (subtype ta tc x y false <|> subtype tb tc x y false)
+subtype (C.TyVar a) (C.TyVar a') x y _ | a == a' = do
+  index <- freshVarName
+  pure [ JSForOf index (JSVar (variable a)) $ JSBlock [ JSApp (JSVar "copyProp") [JSVar y, JSVar x, JSVar index] ] ]
 subtype ta tb x y notSplit
   | ta == tb = let f = if notSplit && isPrimitive tb then identity else JSIndexer (toIndex ta) in
                pure [ addProp (JSVar y) (toIndex tb) (f (JSVar x)) ]
