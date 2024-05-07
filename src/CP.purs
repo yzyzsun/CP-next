@@ -8,7 +8,7 @@ import Data.Array ((!!))
 import Data.Array.NonEmpty as NEA
 import Data.Bifunctor (lmap, rmap)
 import Data.Either (Either(..))
-import Data.List (List(..), foldMap, foldl, head, many, null, takeWhile, (:))
+import Data.List (List(..), foldMap, foldl, head, many, null, reverse, takeWhile, (:))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.String (Pattern(..), split)
 import Data.String.Regex (match, replace)
@@ -133,7 +133,8 @@ compile code f st = case runParser code (whiteSpace *> program <* eof) of
     left err = Left $ f <> ": " <> err
 
 serialize :: REPLState -> CPHeader
-serialize st = foldMap ppTyAlias st.tyAliases <> foldMap ppTmBinding st.tmBindings
+serialize st = foldMap ppTyAlias (reverse st.tyAliases)
+            <> foldMap ppTmBinding (reverse st.tmBindings)
   where
     ppTyAlias (x /\ t) = "type " <> x <> " = " <> show t <> ";\n"
     ppTmBinding (x /\ t /\ _) = "term " <> x <> " : " <> show t <> ";\n"

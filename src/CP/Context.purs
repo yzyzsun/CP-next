@@ -8,7 +8,7 @@ import Control.Monad.State (StateT, runStateT)
 import Data.Bifunctor (rmap)
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
-import Data.List (List(..))
+import Data.List (List(..), reverse)
 import Data.Map (Map, empty, fromFoldable, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
@@ -140,8 +140,8 @@ clearEnv :: REPLState -> REPLState
 clearEnv st = st { tmBindings = Nil, tyAliases = Nil }
 
 fromState :: REPLState -> Ctx
-fromState b = { tmBindEnv  : fromFoldable $ rmap fst <$> b.tmBindings
-              , tyAliasEnv : fromFoldable b.tyAliases
+fromState b = { tmBindEnv  : fromFoldable $ reverse $ rmap fst <$> b.tmBindings
+              , tyAliasEnv : fromFoldable $ reverse b.tyAliases
               , tyBindEnv  : empty
               , sortEnv    : empty
               , pos        : UnknownPos
