@@ -33,7 +33,7 @@ Compilation :: '' ::=
 
 defn
 G ; dst |- e mode A ~~> J | z :: :: compile :: J_
-{{ com Type-directed compilation }} % z- means z is provided (input); z+ means z is generated (output)
+{{ com Type-directed compilation }}
 by
 
 G; z |- e mode A ~~> J | z
@@ -50,25 +50,18 @@ G; y? |- e mode A ~~> code | z
 G; z |- {} => Top ~~> nothing | z
 
 
-toplike B
------------------------------------------ :: TopAbs
-G; z |- \x:A. e:B => A->B ~~> nothing | z
-
-
-toplike B
----------------------------------------------------------- :: TopTAbs
-G; z |- /\ X * A. e : B => Forall X * A. B ~~> nothing | z
-
-
-G |- e => A
-toplike A
------------------------------------------- :: TopRcd
-G; z |- {l = e} => {l : A} ~~> nothing | z
-
-
 T = |Base|
 ------------------------------ :: Int
 G; z |- b => Base ~~> code | z
+
+
+T = |Base|
+------------------------------- :: IntOpt
+G; y? |- b => Base ~~> code | z
+
+
+-------------------------------- :: IntNil
+G; nil |- b => Base ~~> code | z
 
 
 x : A in G
@@ -91,6 +84,11 @@ G, x:A; z |- e <= A ~~> J | z
 G; z |- fix x:A. e => A ~~> code | z
 
 
+toplike B
+----------------------------------------- :: TopAbs
+G; z |- \x:A. e:B => A->B ~~> nothing | z
+
+
 T = ->|B|
 G, x:A; y? |- e <= B ~~> J | y0
 -------------------------------------- :: Abs
@@ -104,6 +102,11 @@ G; dst |- x : A $ y : B ~~> J3 | z : C
 G; dst |- e1 e2 => C ~~> J1;J2;J3 | z
 
 
+toplike B
+---------------------------------------------------------- :: TopTAbs
+G; z |- /\ X * A. e : B => Forall X * A. B ~~> nothing | z
+
+
 T = \-/|B|
 G , X * A; y? |- e <= B ~~> J2 | y0
 ------------------------------------------------------- :: TAbs
@@ -114,6 +117,12 @@ G; nil |- e => B ~~> J1 | y
 G; dst |- y : B $ A ~~> J2 | z : C
 ---------------------------------- :: TApp
 G; dst |- e A => C ~~> J1;J2 | z
+
+
+G |- e => A
+toplike A
+------------------------------------------ :: TopRcd
+G; z |- {l = e} => {l : A} ~~> nothing | z
 
 
 T = {l : |A|}
@@ -147,7 +156,7 @@ G; z |- x = e1; e2 => B ~~> code | z
 
 
 G; nil |- e => A ~~> J1 | x
-x : A <:+ y : B ~~> J2
+x : A <: y : B ~~> J2
 ---------------------------- :: Sub
 G; y |- e <= B ~~> J1;J2 | y
 
@@ -181,7 +190,7 @@ G; z |- x : A $ p ~~> nothing | z : Top
 
 
 T = ->|B|
-y : C <:+ y0 : A ~~> J1
+y : C <: y0 : A ~~> J1
 G; dst |- x : A -> B $ y0 : A ~~> J2 | z : B
 --------------------------------------------- :: Arrow
 G; dst |- x : A -> B $ y : C ~~> code | z : B
@@ -263,6 +272,30 @@ x : A&B $ {l} ~~> J1;J2 | z : A'&B'
 
 
 defn
+x : A <: y : B ~~> J :: :: cosub0 :: S0_
+{{ com Coercive subtyping }} % x:A <:+ ... means x is exactly of type A (not derive from S-And{L,R})
+by
+
+
+x : A <:+ y : B ~~> J
+---------------------- :: Sub
+x : A <: y : B ~~> J
+
+
+T = |Base|
+x : A <:+ y : Base ~~> J
+-------------------------- :: Int
+x : A <: y : Base ~~> code
+
+
+T = |X|
+x : A <:+ y : X ~~> J
+----------------------- :: Var
+x : A <: y : X ~~> code
+
+
+
+defn
 x : A <: pm y : B ~~> J :: :: cosub :: S_
 {{ com Coercive subtyping }} % x:A <:+ ... means x is exactly of type A (not derive from S-And{L,R})
 by
@@ -283,16 +316,24 @@ T = |A|
 x : Bot <:pm y : A ~~> code
 
 
+------------------------------ :: Int
+x : Base <:+ y : Base ~~> code
+
+
 T = |Base|
-------------------------------- :: Int
-x : Base <:pm y : Base ~~> code
+------------------------------ :: IntAnd
+x : Base <:- y : Base ~~> code
+
+
+------------------------- :: Var
+x : X <:pm y : X ~~> code
 
 
 T1 = ->|A2|
 T2 = ->|B2|
 Ts = itoa |A1|
-x1 : B1 <:+ y1 : A1 ~~> J1
-x2 : A2 <:+ y2 : B2 ~~> J2
+x1 : B1 <: y1 : A1 ~~> J1
+x2 : A2 <: y2 : B2 ~~> J2
 --------------------------------------- :: Arrow
 x : A1 -> A2 <:pm y : B1 -> B2 ~~> code
 
@@ -300,14 +341,14 @@ x : A1 -> A2 <:pm y : B1 -> B2 ~~> code
 T1 = \-/|A2|
 T2 = \-/|B2|
 B1 <: A1
-x0 : A2 <:+ y0 : B2 ~~> J
+x0 : A2 <: y0 : B2 ~~> J
 ----------------------------------------------------- :: All
 x : Forall X*A1. A2 <:pm y : Forall X*B1. B2 ~~> code
 
 
 T1 = {l : |A|}
 T2 = {l : |B|}
-x0 : A <:+ y0 : B ~~> J
+x0 : A <: y0 : B ~~> J
 --------------------------------- :: Rcd
 x : {l:A} <:pm y : {l:B} ~~> code
 
