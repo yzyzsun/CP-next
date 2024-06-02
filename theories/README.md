@@ -1,122 +1,63 @@
-### Prerequisites for building from scratch
+# Coq Formalization
 
-- Coq **8.16.1**. The recommended way to install Coq is via `OPAM`. Refer to
-   [here](https://coq.inria.fr/opam/www/using.html) for detailed steps. Or one could
-   download the pre-built packages for Windows and MacOS via
-   [here](https://github.com/coq/coq/releases/tag/V8.16.1).
+This directory contains the Coq formalization of our compilation scheme.
+The core of the formalization is an elaboration semantics from λ<sub>i</sub><sup>+</sup> to λ<sub>r</sub>.
+We mechanically prove the type safety of the elaboration.
 
-- [Metalib](https://github.com/plclub/metalib) for the locally nameless
-  representation. You can down the code from GitHub and install the library locally.
-  We use the latest verison `4ea92d8`.
+## How to Build?
 
-  ```
-  git clone https://github.com/plclub/metalib
-  cd metalib/Metalib
-  git checkout 4ea92d8
-  make install
-  ```
+The proofs are tested against [Coq 8.16.1](https://github.com/coq/coq/releases/tag/V8.16.1).
+Note that Ott/LNgen may not work on newer versions of Coq.
+The easiest way to install Coq 8.16.1 is using opam:
 
-  Or use [OPAM](https://opam.ocaml.org/doc/Install.html) to install it:
+```
+> opam pin add coq 8.16.1
+```
 
-  ```
-  opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
-  opam install coq-metalib
-  ```
-- [StructTact](https://github.com/uwplse/StructTact) for defining orders on strings.
-   It can be install via [OPAM](https://opam.ocaml.org/doc/Install.html) or download from GitHub.
+[StructTact](https://github.com/uwplse/StructTact), [Metalib](https://github.com/plclub/metalib) and auxiliary files for Ott are required to build our code. You can also install them using opam:
 
-   ```shell
-   opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
-   opam install coq-struct-tact
-   ```
+```
+> opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
+> opam install coq-struct-tact coq-metalib coq-ott
+```
 
-  - [LibTactics.v](https://softwarefoundations.cis.upenn.edu/plf-current/LibTactics.html)
-  by Arthur Chargueraud. The file provides some general tactics. It is included in the artifact.
+After installing Coq and required libraries, you can execute `make` under the `coq/` subdirectory. A successful build would be like:
 
-- [Ott 0.31](https://github.com/ott-lang/ott/releases/tag/0.31) (Ott 0.32 is not
-yet supported by LNgen)
+```
+> cd coq
+> make
+......
+coq_makefile -arg '-w -deprecated,-fragile-hint-constr' -f _CoqProject -o CoqSrc.mk
+COQDEP VFILES
+COQC LibTactics.v
+COQC syntax_ott.v
+COQC source_inf.v
+COQC target_inf.v
+COQC Infrastructure.v
+COQC TargetTypeSafety.v
+COQC Translation.v
+COQC ElaborationSoundness.v
+```
 
-- [LNgen coq-8.10](https://github.com/plclub/lngen/releases/tag/coq-8.10).
+### Sidenote: Locally Nameless
 
-  `Ott` and `LNgen` are used to generate some Coq code from
-  [spec/rules.ott](./spec/rules.ott) and [spec/target.ott](./spec/target.ott)
-   You can run all code without them installed unless you want to modify the
-   Ott definitions and generate the coq files.
+Most locally nameless definitions and proofs are automatically generated.
+The command line tools [Ott](https://github.com/ott-lang/ott) and [LNgen](https://github.com/plclub/lngen) are used to generate `coq/syntax_ott.v` and `coq/{source,target}_inf.v`.
+You can build all Coq proofs without installing Ott/LNgen.
 
-   Ott can be installed via [OPAM](https://opam.ocaml.org/doc/Install.html):
+However, if you modify `ott/{source,target}.ott`, you need to regenerate those Coq files.
+Simply executing `make all` instead of `make` should do the job.
+But note that some manual work is needed to make `coq/syntax_ott.v` compile.
+We apologize that we have not automated the modifications so far.
 
-  ```
-  opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
-  opam install ott.0.31
-  ```
+## Directory Structure
 
-   For LNgen, one option is to use cabal to build and install it:
-
-  ```
-  curl -LJO https://github.com/plclub/lngen/archive/refs/tags/coq-8.10.zip
-  unzip lngen-coq-8.10.zip
-  cd lngen-coq-8.10
-  cabal new-build
-  cabal new-install
-  ```
-
-   Cabal can be installed via [GHCup](https://www.haskell.org/ghcup/). Note that
-   you need to adjust your PATH variable (you can follow the interactive instructions).
-
-   You can also use stack to install LNgen(instruction [here](https://github.com/plclub/lngen)).
-
-### Sanity-testing
-
-To compile the proofs:
-
-1. Enter [coq](./coq) directory.
-
-2. Type `make` in the terminal to build and compile the proofs.
-
-3. You should see something like the following:
-
-   ```sh
-   coq_makefile -arg '-w -variable-collision,-meta-collision,-require-in-module' -f _CoqProject -o CoqSrc.mk
-   COQDEP VFILES
-   COQC LibTactics.v
-   ```
-
-To generate `syntax_ott.v`, `rules_inf.v` and `rules_inf2.v`.
-
-1. Delete the old generated files or
-edit [spec/rules.ott](./spec/rules.ott) or [spec/target.ott](./spec/target.ott).
-They are for the source calculus and the target calculus respectively.
-
-2. Run `make` to generate [coq/syntax.ott](./coq/syntax.ott).
-
-3. Edit [coq/syntax_ott.v](./coq/syntax_ott.v) to manually solve the errors. It will complain
-`rec_typ` is not defined before its first occurrence in `subTarget`. Please move the definition of
-`rec_typ` before the definition of `subTarget`.
-
-4. Run `make` again to generate [coq/rules_inf.v](./coq/rules_inf.v) and [coq/rules_inf2.v](./coq/rules_inf2.v).
-
-
-### Proof Structure
-
-- [spec/](./spec) for the Ott specification (that is used to generate the syntax
-  definition in Coq)
-
+- [ott/](./ott) for the Ott specification, which is used to generate the locally nameless definitions and proofs in Coq.
 - [coq/](./coq) for the Coq formalization.
-
-+  [syntax_ott.v](./coq/syntax_ott.v) contains the definitions.
-
-+  [rules_inf.v](./coq/rules_inf.v) and [coq/rules_inf2.v](./coq/rules_inf2.v)
-are the locally nameless representation related lemmas.
-
-+ [Infrastructure.v](./coq/Infrastructure.v) contains the notation definitions and
-auxiliary tactics.
-
-+  [TargetTypeSafety.v](./coq/TargetTypeSafety.v) contains the proofs in Section 3.1.
-
-+  [Translation.v](./coq/Translation.v) contains the proofs about translation
-functions that is introduced at the beginning of Section 3.2. The two admitted lemmas
-are at the beginning of this file.
-
-+  [ElaborationSoundness.v](./coq/ElaborationSoundness.v) contains the proofs
-about the source type system which elaborates source terms to the target language.
-It corresponds to the last paragraph of Section 3.2.
+  + [LibTactics.v](./coq/LibTactics.v) is borrowed from a chapter of [Software Foundations](https://softwarefoundations.cis.upenn.edu/plf-current/LibTactics.html).
+  + [syntax_ott.v](./coq/syntax_ott.v) contains the locally nameless definitions.
+  + [source_inf.v](./coq/source_inf.v) and [target_inf.v](./coq/target_inf.v) contain the locally nameless lemmas.
+  + [Infrastructure.v](./coq/Infrastructure.v) contains the notation definitions and auxiliary tactics.
+  + [TargetTypeSafety.v](./coq/TargetTypeSafety.v) contains the proofs in Section 5.1.
+  + [Translation.v](./coq/Translation.v) contains the proofs about translation functions at the beginning of Section 5.2.
+  + [ElaborationSoundness.v](./coq/ElaborationSoundness.v) contains the proofs about the type-directed elaboration from the source calculus to the target calculus. It corresponds to the last paragraph of Section 5.2.

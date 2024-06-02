@@ -2,8 +2,8 @@ Require Import LibTactics.
 Require Import Metalib.Metatheory.
 Require Import List. Import ListNotations.
 Require Import Arith Lia.
-Require Export rules_inf.
-Require Export rules_inf2.
+Require Export source_inf.
+Require Export target_inf.
 
 
 Declare Custom Entry stlc.

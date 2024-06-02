@@ -2,8 +2,8 @@
 ElaborationSoundness.v
 Infrastructure.v
 LibTactics.v
-rules_inf2.v
-rules_inf.v
-syntax_ott.v
 TargetTypeSafety.v
 Translation.v
+source_inf.v
+syntax_ott.v
+target_inf.v
