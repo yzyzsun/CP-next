@@ -59,7 +59,6 @@ var z = n;
 copy(z, x);
 
 /* J-VarOpt */
-var z = x;
 if (y) copy(y, x);
 
 /* J-Fix */
@@ -107,85 +106,83 @@ function copy(dst, src) {
 \end{verbatim}
 
 \newpage
-\ottdefndistapp
+\ottdefndapp
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* A-Nil */
+/* JA-Nil */
 var z = {};
 J;
 
-/* A-Opt */
+/* JA-Opt */
 var z = y || {};
 J;
 
-/* A-Arrow */
+/* JA-Arrow */
 var y0 = {};
 J1;  J2;
 
-/* A-ArrowEquiv */
+/* JA-ArrowEquiv */
 x[T](y, z);
 
-/* A-ArrowOpt */
+/* JA-ArrowOpt */
 var z = x[T](y, z0);
 
-/* A-ArrowNil */
+/* JA-ArrowNil */
 var z = x[T](y);
 
-
-/* A-All */
+/* JA-All */
 x[T](Ts, z);
 
-/* A-AllOpt */
+/* JA-AllOpt */
 var z = x[T](Ts, y);
 
-/* A-All */
+/* JA-All */
 var z = x[T](Ts);
 \end{verbatim}
 \end{multicols}
 
 \vfill
-\ottdefndistproj
+\ottdefndproj
 
 \begin{verbatim}
-/* P-RcdEq */
+/* JP-RcdEq */
 var z = x[T];
 \end{verbatim}
 
 \newpage
-\ottdefncosubZero
+\ottdefncsubZero
 
 \begin{multicols}{2}
 \begin{verbatim}
-/* S0-Int */
+/* JS0-Int */
 J;  y = y[T];
 
-/* S0-Var */
+/* JS0-Var */
 J;  if (primitive(X)) y = y[T];
 \end{verbatim}
 \end{multicols}
 
-\vfill
-\ottdefncosub
+\ottdefncsub
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* S-Equiv */
+/* JS-Equiv */
 copy(y, x);
 
-/* S-Bot */
+/* JS-Bot */
 y[T] = null;
 
-/* S-Int */
+/* JS-Int */
 y[T] = x;
 
-/* S-IntAnd */
+/* JS-IntAnd */
 y[T] = x[T];
 
-/* S-Var */
+/* JS-Var */
 copy(y, x);
 
-/* S-Arrow */
+/* JS-Arrow */
 y[T2] = (x1, y2) => {
   var y1 = {};  J1;
   var x2 = x[T1](y1);
@@ -193,14 +190,14 @@ y[T2] = (x1, y2) => {
   J2;  return y2;
 };
 
-/* S-All */
+/* JS-All */
 y[T2] = (X, y0) => {
   var x0 = x[T1](X);
   y0 = y0 || {};
   J;  return y0;
 };
 
-/* S-Rcd */
+/* JS-Rcd */
 y.__defineGetter__(T2, () => {
   var x0 = x[T1];
   var y0 = {};  J;
@@ -208,7 +205,7 @@ y.__defineGetter__(T2, () => {
   return this[T] = y0;
 });
 
-/* S-Split */
+/* JS-Split */
 var y1 = {}; // if y1 != z
 var y2 = {}; // if y2 != z
 J1;  J2;  J3;
@@ -216,11 +213,11 @@ J1;  J2;  J3;
 \end{multicols}
 
 \newpage
-\ottdefncomerge
+\ottdefncmerge
 
 \begin{multicols}{3}
 \begin{verbatim}
-/* M-Arrow */
+/* JM-Arrow */
 z[T] = (p, y) => {
   y = y || {};
   var y1 = {}; // if y1 != y
@@ -230,7 +227,7 @@ z[T] = (p, y) => {
   J;  return y;
 };
 
-/* M-All */
+/* JM-All */
 z[T] = (X, y) => {
   y = y || {};
   var y1 = {}; // if y1 != y
@@ -240,7 +237,7 @@ z[T] = (X, y) => {
   J;  return y;
 };
 
-/* M-Rcd */
+/* JM-Rcd */
 z.__defineGetter__(T, () => {
   var y = {};
   var y1 = {}; // if y1 != y

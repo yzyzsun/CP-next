@@ -71,7 +71,7 @@ G; z |- x => A ~~> code | z
 
 x : A in G
 ---------------------------- :: VarOpt
-G; y? |- x => A ~~> code | z
+G; y? |- x => A ~~> code | x
 
 
 x : A in G
@@ -169,7 +169,7 @@ G; dst |- e <= B ~~> J | z
 
 
 defn
-G ; dst |- x : A $ p ~~> J | z : B :: :: distapp :: A_
+G ; dst |- x : A $ p ~~> J | z : B :: :: dapp :: JA_
 {{ com Distributive application }}
 by
 
@@ -243,7 +243,7 @@ G; z |- x : A&B $ p ~~> J1;J2 | z : A'&B'
 
 
 defn
-x : A $ { l } ~~> J | z : B :: :: distproj :: P_
+x : A $ { l } ~~> J | z : B :: :: dproj :: JP_
 {{ com Distributive projection }}
 by
 
@@ -272,7 +272,7 @@ x : A&B $ {l} ~~> J1;J2 | z : A'&B'
 
 
 defn
-x : A <: y : B ~~> J :: :: cosub0 :: S0_
+x : A <: y : B ~~> J :: :: csub0 :: JS0_
 {{ com Coercive subtyping }} % x:A <:+ ... means x is exactly of type A (not derive from S-And{L,R})
 by
 
@@ -296,7 +296,7 @@ x : A <: y : X ~~> code
 
 
 defn
-x : A <: pm y : B ~~> J :: :: cosub :: S_
+x : A <: pm y : B ~~> J :: :: csub :: JS_
 {{ com Coercive subtyping }} % x:A <:+ ... means x is exactly of type A (not derive from S-And{L,R})
 by
 
@@ -373,7 +373,7 @@ x : A & B <:pm y : C ~~> J
 
 
 defn
-x : A |> z : C <| y : B ~~> J :: :: comerge :: M_
+x : A |> z : C <| y : B ~~> J :: :: cmerge :: JM_
 {{ com Coercive merging }}
 by
 
