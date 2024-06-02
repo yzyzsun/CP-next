@@ -1,10 +1,10 @@
-## Unreleased
+## 0.2.0
 
 - [New] a compiler targeting JavaScript; try `:compile` in the REPL or `npm run compiler` in a terminal.
 - [New] an alternative ANTLR parser, which is faster than purescript-parsing.
 - [New] type difference (`T1 \ T2`), term difference (`e1 \- e2`), field removal (`e \ l`), and label renaming (`e [ old <- new ]`).
 - [New] leftist merge (`+,`) and rightist merge (`,+`).
-- [Experimental] reference types (`Ref T`), introducing its value (`ref e`), dereference (`!e`), assignment (`e1 := e2`), and sequential composition (`e1 >> e2`); see the [example](examples/ref.cp).
+- [Experimental] reference types (`Ref T`), introducing its value (`ref e`), dereference (`!e`), assignment (`e1 := e2`), and sequential composition (`e1 >> e2`); see the [example](examples/ref.cp). Currently only available in the compiler. 
 - The logical not operator `!` is removed because `!` is now for dereference.
 - Implicit `open self in` for traits is removed because `open` is strictly evaluated in compiled code. In other words, `self.` cannot be omitted unless explicitly writing `open self in` at the beginning of a field.
 - Support `x ,, y` as an alias to `x , y` for compatibility.
