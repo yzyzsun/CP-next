@@ -1,0 +1,207 @@
+\documentclass{article}
+
+\usepackage[normalem]{ulem}
+\usepackage{amsmath,amssymb}
+\usepackage[margin=1in]{geometry}
+\usepackage{multicol}
+\usepackage{ottalt}
+\usepackage{xcolor}
+\usepackage{xspace}
+\usepackage{amssymb}
+
+\inputott[ott]{record}
+
+\newcommand\calculus{$\mathsf{F}_i^+$\xspace}
+\newcommand\reccal{$\lambda^{\text{rec}}$\xspace}
+
+\title{Elaborating \calculus to record calculus \reccal}
+\author{Snow}
+
+\begin{document}
+
+\maketitle
+
+
+\paragraph{Changes in \reccal}
+0) Simplify the system, drop polymorphism, and use simple labels\\
+1) Type soundness proved\\
+2) Use list for record types, so the time cost of concatenation can be
+moved to compilation.
+
+\section{Syntax of \reccal}
+
+\ottgrammartabular{
+  \ottttyp
+}
+
+\ottgrammartabular{
+  \otttexp
+}
+
+
+\paragraph{Notes}
+0) Multi-field records are nullable.
+1) The whole program evaluates to a record form.
+3) $l$ stands for a string.
+%% 2) As any expression can be concatenated, all values should have a record form.
+%% For example, we cannot evaluates ${ ->Base => \x.b }.->Base$ in $ [-];{Base=>b} $.
+%% It is hard to express lazy evaluation then.
+%% Our evaluation strategy is eager but when constructing records, each field is
+%% in a thunk so they will not be evaluated until projection.
+
+%% \paragraph{Questions}
+%% (/\ X * Top . \ x : X . x : X)
+
+
+\ottdefnsValues
+
+\ottdefnsTargetStep
+
+\ottdefnsConcatTypes
+
+\ottdefnsRecordTypes
+
+\ottdefnsWelformedTypes
+
+\ottdefnsConcatTypes
+
+\ottdefnsTargetTyping
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Syntax of \calculus}
+
+\ottgrammartabular{
+  \otttyp
+}
+
+\ottgrammartabular{
+  \ottexp
+}
+
+
+\paragraph{Notes}
+0) Fixpoint typing rule updated. \\
+1) Type translation (from source type to string) modeled.\\
+2) Current focus: converting source type to target type.
+
+% \ottdefnsEqIndexType
+
+\subsection{Elaboration rules}
+1) All top-like values are translated into empty lists.
+
+\begin{mathpar}
+  \ottdruleElaXXTop{} \and
+  \ottdruleElaXXTopAbs{} \and
+  \ottdruleElaXXTopRcd{}
+\end{mathpar}
+
+2) All basic values (that are not merges) are translated into single-field records.
+
+\begin{mathpar}
+  \ottdruleElaXXBase{} \and
+  \ottdruleElaXXAbs{} \and
+  \ottdruleElaXXRcd{}
+\end{mathpar}
+
+3) Variables are directly used (unwrap the thunk) and merged terms are simply concatenated,
+with the expectation that $ \cdot   \vdash  \ottnt{e} \, \Rightarrow \, \ottnt{A}  \rightsquigarrow  \ottnt{t}$ implies $\ottnt{t}  \rightarrow^{*}  \ottsym{\{}   | \ottnt{A} |   \Rightarrow  \ottnt{t'}  \ottsym{\}}$
+(or a multi-field record) (i.e. the variable will be substituted
+by a term of this exact type).
+
+\begin{mathpar}
+  \ottdruleElaXXVar{} \and
+  \ottdruleElaXXMerge{}
+\end{mathpar}
+
+4) Projection, application, and type application make use of the property
+that every translated subterms are records. Application is lazy.
+
+\begin{mathpar}
+  \ottdruleElaXXProj{} \and
+  \ottdruleElaXXApp{}
+\end{mathpar}
+
+5) Annotated expressions, like fixpoints, rely on the subsumption rule to
+insert coercions. The coerced expression always evaluates to a record.
+
+\begin{mathpar}
+  \ottdruleElaXXAnno{} \and
+  \ottdruleElaXXFix{} \and
+  \ottdruleElaXXSub{}
+\end{mathpar}
+
+\subsection{Coercions}
+
+\ottdefnsCoSubtyping
+
+\ottdefnsCoMerge
+
+\ottdefnsDistributiveApplication
+
+\subsection{Auxiliary definitions}
+
+%% \boxed{ | \ottnt{A} |  =  \top } \hfill \textit{(Type translation)}
+\begin{mathpar}
+%% \inferrule{}{  |  \mathbb{B}  |  =  \mathbb{B}  }
+%% \and
+%% \inferrule{}{ |A->B| = ->|B| }
+%% \and
+%% \inferrule{}{ |{l:A}| = {l:|A|} }
+%% \and
+\inferrule
+{ A_{k_1} < A_{k_2} < \cdots < A_{k_m} \\ \neg \rceil A_k \lceil }
+{ |A_1\&A_2\&\cdots\&A_n| = |A_{k_1}|\&|A_{k_2}|\&\cdots\&|A_{k_m}| }
+\end{mathpar}
+
+\bigskip\bigskip
+
+\ottdefntoplike
+
+\ottdefnsOrdinaryType
+
+\ottdefnsDisjoint
+
+\ottdefnsSplitType
+
+\ottdefnsTargetSubtype
+
+% \ottdefnsTargetEqIndexType
+
+\begin{verbatim}
+1) type soundness of the target calculus
+
+2) connecting the source to the target
+
+- type translation function (from source type to string):
+intersection types are flattened, their
+toplike parts are filtered, and all the conjuncts are sorted (but no deduplication).
+
+- a relation that characterizes types that corresponds to the same
+string.
+
+3) I need a function that converts source types to target types, to prove that
+elaboration generates well-typed terms. There are 3 problems:
+- Source types and target types are not one-to-one mapped. The typing rule for
+toplike lambda functions does not split types but the subsumption rule does
+(via subtyping)
+\x:Int . x : Top&Top ~> { }
+(\x:Int . x : Int) : Int->Top&Top ~> { ->|Top&Top| => \ x . ... }
+
+
+\end{verbatim}
+
+Lemma eqIndTyp\_sound\_complete: \quad $A ~= B$ iff $|A| = |B|$.\\
+
+Lemma disjoint\_type\_no\_eqInd: \quad if $A ~= B$ and $A * B$ then
+there is a contradiction.\\
+
+Lemma translation from source type to target type is a function \\
+
+Lemma cosub\_well\_typed: \quad if $\ottnt{t_{{\mathrm{1}}}}  :  \ottnt{A}  \ottsym{<:}  \ottnt{B}  \rightsquigarrow  \ottnt{t_{{\mathrm{2}}}}$ and $ G || \vdash t1 <= |[A]|$ then $ G || \vdash t2 : |[B]|$.\\
+
+Theorem elaboration\_well\_typed: \quad if $\Gamma  \vdash  \ottnt{e} \, \ottnt{dirflag} \, \ottnt{A}  \rightsquigarrow  \ottnt{t}$ then
+$|[ G ]|| \vdash t : |[A]|$.\\
+
+\end{document}
