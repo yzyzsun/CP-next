@@ -58,6 +58,19 @@ We apologize that we have not automated the modifications so far.
   + [syntax_ott.v](./coq/syntax_ott.v) contains the locally nameless definitions.
   + [source_inf.v](./coq/source_inf.v) and [target_inf.v](./coq/target_inf.v) contain the locally nameless lemmas.
   + [Infrastructure.v](./coq/Infrastructure.v) contains the notation definitions and auxiliary tactics.
-  + [TargetTypeSafety.v](./coq/TargetTypeSafety.v) contains the proofs in Section 5.1.
+  + [TargetTypeSafety.v](./coq/TargetTypeSafety.v) proves the type soundness of the target calculus in Section 5.1.
   + [Translation.v](./coq/Translation.v) contains the proofs about translation functions at the beginning of Section 5.2.
   + [ElaborationSoundness.v](./coq/ElaborationSoundness.v) contains the proofs about the type-directed elaboration from the source calculus to the target calculus. It corresponds to the last paragraph of Section 5.2.
+
+## Correspondence Guide
+
+| Theorem in Paper                                | File                     | Name in Coq                                                                                          |
+| ----------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Lemma 5.1 (Equivalent types in lookups)         | `TargetTypeSafety.v`     | `lookup_ST_eq_some` / `lookup_eq`                                                                    |
+| Theorem 5.2 (Progress)                          | `TargetTypeSafety.v`     | `progress`                                                                                           |
+| Lemma 5.3 (Substitution preserves typing)       | `TargetTypeSafety.v`     | `substitution_preserves_typing_relax`                                                                |
+| Theorem 5.4 (Type preservation)                 | `TargetTypeSafety.v`     | `preservation`                                                                                       |
+| Lemma 5.7 (Translation)                         | `Translation.v`          | `st_eq_arrow` / `st_eq_rcd`                                                                          |
+| Lemma 5.8 (Equivalent types)                    | `Translation.v`          | `lookup_sub` / `eqIndTyp_sound_alt_gen` / `sub_source2target`                                        |
+| Lemma 5.9 (Well-formedness of translated types) | `Translation.v`          | `ttyp_trans_wf`                                                                                      |
+| Theorem 5.10 (Elaboration soundness)            | `ElaborationSoundness.v` | `cosub_well_typed` / `distapp_well_typed_app` / `distapp_well_typed_proj` / `elaboration_well_typed` |
