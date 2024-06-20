@@ -1,5 +1,0 @@
-<ul>
-  <% docs.sort_by { |d| d.name }.each do |doc| %>
-    <li><%= link_to "#{doc.name} (#{doc.access})", doc.path %></li>
-  <% end %>
-</ul>

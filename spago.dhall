@@ -1,7 +1,6 @@
 { name = "cp-next"
 , dependencies =
-  [ "aff"
-  , "ansi"
+  [ "ansi"
   , "arrays"
   , "bifunctors"
   , "console"
@@ -31,7 +30,6 @@
   , "partial"
   , "prelude"
   , "refs"
-  , "spec"
   , "strings"
   , "stringutils"
   , "transformers"
