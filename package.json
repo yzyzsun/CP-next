@@ -13,6 +13,7 @@
   "homepage": "https://plground.org",
   "devDependencies": {
     "purescript": "^0.15.0",
-    "spago": "^0.21.0"
+    "spago": "^0.21.0",
+    "typescript": "^5.4"
   }
 }
