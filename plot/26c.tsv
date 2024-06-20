@@ -1,0 +1,6 @@
+Benchmark	CP	JavaScript
+fib	2837	2423
+fact	1433	1427
+sieve	1736	1413
+nbody	1704	566
+region⁰	1137	1513
