@@ -16,7 +16,7 @@ function bench {
   cp $1-base $1
 }
 
-for variant in base box dps tyequiv coelim; do
+for variant in base dps nobox tyequiv coelim; do
   bench src/CP/CodeGen.purs $variant
 done
 bench src/CP/Typing.purs projoptim
