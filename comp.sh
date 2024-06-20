@@ -14,12 +14,12 @@ done
 for i in $(seq 0 10); do
   f="comparison/region_$i.ts"
   sed "s/{{i}}/$i/" comparison/region.ts > $f.ts
-  tsc $f.ts
+  npx tsc $f.ts
   node start.mjs $f.js
   rm -f $f.{ts,js}
 done
 
-spago run --node-args "comparison/*.cp"
+npx spago run --node-args "comparison/*.cp"
 if [ $? -eq 0 ]; then
     for i in $(seq 0 10); do
     f="comparison/region_$i.cp.mjs"
