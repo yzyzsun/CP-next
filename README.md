@@ -1,94 +1,55 @@
-# CP - The Next Generation
+# Type-Safe Compilation of Dynamic Inheritance via Merging (Artifact)
 
-CP is a *compositional* programming language, founded on a core calculus named *Fi+*. The next-gen CP is shipped with more features and implemented in [PureScript](https://www.purescript.org) (a Haskell-like language that compiles to JavaScript).
+This is the artifact of the TOPLAS journal-first submission *Type-Safe Compilation of Dynamic Inheritance via Merging*. The artifact consists of three parts:
 
-## Language Features
+- **Coq formalization:** see separate documentation in [theories/](./theories).
+- **Compiler implementation:** the most important code is located at [src/CP/CodeGen.purs](./src/CP/CodeGen.purs), written in PureScript.
+- **Benchmark suite:** [benchmarks/](./benchmarks) and [bench.sh](./bench.sh) for Section 7.1; [comparison/](./comparison) and [comp.sh](./comp.sh) for Section 7.2.
 
-- A typed lambda calculus with five base types (`Int` `Double` `String` `Bool` `()`), built-in arrays (`[1; 2; 3] : [Int]`), and some built-in operations over them;
-- The merge operator[^Merge], disjoint intersection types[^λi] and disjoint polymorphism[^Fi];
-- Generalized record operations with type difference[^TypeDiff];
-- Iso-recursive types with nominal unfoldings[^IsoRec];
-- Nested composition and distributive subtyping[^NeColus];
-- Compositional programming[^CP] with first-class traits[^SEDEL];
-- Type-directed operational semantics for *Fi+*[^Fi+] with {HOAS,substitution,closure}-based {big,small}-step variants;
-- A compositionally embedded DSL for document authoring called ExT[^ExT].
+## How to Build the Compiler?
 
-[^Merge]: Jana Dunfield. [Elaborating Intersection and Union Types](https://research.cs.queensu.ca/home/jana/papers/intcomp-jfp/Dunfield14_elaboration.pdf). In *JFP 2014*.  
-[^λi]: Bruno C. d. S. Oliveira, Zhiyuan Shi, and João Alpuim. [Disjoint Intersection Types](https://i.cs.hku.hk/~bruno/papers/icfp2016.pdf). In *ICFP 2016*.  
-[^Fi]: João Alpuim, Bruno C. d. S. Oliveira, and Zhiyuan Shi. [Disjoint Polymorphism](https://i.cs.hku.hk/~bruno/papers/ESOP2017.pdf). In *ESOP 2017*.  
-[^SEDEL]: Xuan Bi and Bruno C. d. S. Oliveira. [Typed First-Class Traits](https://i.cs.hku.hk/~bruno/papers/traits.pdf). In *ECOOP 2018*.  
-[^NeColus]: Xuan Bi, Bruno C. d. S. Oliveira, and Tom Schrijvers. [The Essence of Nested Composition](https://i.cs.hku.hk/~bruno/papers/nested.pdf). In *ECOOP 2018*.  
-[^CP]: Weixin Zhang, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Compositional Programming](https://i.cs.hku.hk/~bruno/papers/toplas2021.pdf). In *TOPLAS 2021*.  
-[^Fi+]: Andong Fan, Xuejing Huang, Han Xu, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Direct Foundations for Compositional Programming](https://i.cs.hku.hk/~bruno/papers/ecoop22direct_extended.pdf). In *ECOOP 2022*.  
-[^IsoRec]: Yaoda Zhou, Jinxu Zhao and Bruno C. d. S. Oliveira. [Revisiting Iso-Recursive Subtyping](https://i.cs.hku.hk/~bruno/papers/toplas2022.pdf). In *TOPLAS 2022*.  
-[^ExT]: Yaozhu Sun, Utkarsh Dhandhania, and Bruno C. d. S. Oliveira. [Compositional Embeddings of Domain-Specific Languages](https://i.cs.hku.hk/~bruno/papers/oopsla22extended.pdf). In *OOPSLA 2022*.  
-[^TypeDiff]: Han Xu, Xuejing Huang, and Bruno C. d. S. Oliveira. [Making a Type Difference](https://i.cs.hku.hk/~bruno/papers/popl23making.pdf). In *POPL 2023*.  
-
-## Online Demo
-
-[PLGround](https://plground.org) provides an online CP interpreter and a wiki-like document repository. Documents are written in ExT and rendered in your web browser.
-
-Since the frontend code uses the Fetch API, PLGround is expected to work on Chrome 42+, Firefox 39+, Edge 14+, Safari 10.1+, or other modern browsers.
-
-## CLI Setup
-
-If you want to run CP programs locally using a CLI, you can follow the procedure below:
-
-- First of all, you need to install [Node.js](https://nodejs.org).
-- Then execute `npm install` to get all of the dev dependencies.
+- First of all, you need to install [Node.js](https://nodejs.org). Note that our experiments were done using v20.12.2 LTS.
+- Then execute `npm install` to install dev dependencies (i.e. PureScript, Spago, and TypeScript).
 - After installation, you can choose either of the following npm scripts:
-  - `npm start` to run a REPL;
-  - `npm run compiler "*.cp"` to compile CP files to JavaScript;
-  - `npm test` to run a test suite checking `examples/*.cp`.
+  - `npm start` to run a REPL, and then `:compile benchmarks/fib.cp` to compile and run a CP file;
+  - `npm run compiler "benchmarks/*.cp"` to compile CP files to JavaScript.
 
-If you want to start a PLGround server locally, take the first two steps above and then:
+## How to Run the Benchmarks?
 
-- Install [Ruby](https://www.ruby-lang.org).
-- Execute `bundle install` to get [Ruby on Rails](https://rubyonrails.org) and other gems.
-- Execute `npm run build` if you have modified PureScript code, grammar files, or `app.js` (i.e. every file that `plground/app/assets/javascripts/bundle.js` depends on).
-- Execute `npm run server` to start a web server.
+We have automated benchmarks with `bench.sh` and `comp.sh`. Simply running them should show execution time for each benchmark and each variant:
 
-## REPL Example
-
-```
-$ npm start
+```bash
+$ ./bench.sh
+[base]                                     # 1st variant (w/ all optim.) of CP compiler
+[info] Build succeeded.                    # compiler is already built
+benchmarks/color.lib compiled in 0.055s    # compilation time in blue (not used)
 ......
-Next-Gen CP REPL, dev version (default mode: HOAS)
-
-> :mode StepTrace
-> 1+2*3
-
-(1 + (2 * 3))
+benchmarks/chart.cp.mjs: 516ms             # execution time (used in the paper)
 ......
-(1 + 6)
-↓ Step-BinaryV
-7
+[dps]                                      # 2nd variant (w/o DPS) of CP compiler
+[1 of 4] Compiling Language.CP.CodeGen     # rebuilding compiler...
+[2 of 4] Compiling Language.CP
+[3 of 4] Compiling REPL
+[4 of 4] Compiling Main
+[info] Build succeeded.
+......
 
-> :timing
-> :mode HOAS
-> :load examples/bench.cp
-
-125000
-Time: 1.024s
+$ ./comp.sh
+comparison/fib.mjs: 2.423s                 # JavaScript version of fib
+......
+comparison/region_0.mjs: 1.513s            # JavaScript version of region^0
+......
+comparison/region_0.ts.js: 1.575s          # TypeScript version of region^0
+......
+[info] Build succeeded.
+comparison/region_0.cp compiled in 0.117s  # compilation time in blue (not used)
+......
+comparison/region_0.cp.mjs: 1.137s         # CP version of region^0
+......
 ```
 
-## Grammar Maintenance
+For your reference, we also provide original data (in milliseconds) and gnuplot scripts in [plot/](./plot) that are used to draw Fig. 25 and Fig. 26 in the paper.
 
-There are currently four different copies of the CP grammar. If you want to modify the grammar, please remember to change them all:
+## Appendix
 
-1. PureScript parser based on parser combinators, used in REPL ([see the code here](./src/CP/Parser.purs)).
-2. ANTLR-generated LL(*) parser, used in PLGround ([see this directory](./antlr/)).
-3. Lezer-generated incremental parser for the CodeMirror 6 code editor ([see the grammar file](./lezer.grammar)).
-4. TextMate grammar specification for VS Code, mainly keyword highlighting ([see the JSON file](./vscode/CP.tmLanguage.json)).
-
-## VS Code Extension
-
-CP language support can be found on [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=yzyzsun.cp-next).
-
-If you want to build it from scratch, please execute `npm run vscode`. Then a `.vsix` file will be generated in `vscode/`.
-
-## Next-Gen CP versus Original CP
-
-The original CP (hereinafter CP1) is introduced and formalized in our TOPLAS paper *Compositional Programming*. Its reference implementation is included in the [artifact](https://github.com/wxzh/CP). The next-gen CP (hereinafter CP2) polishes the syntax of CP1 and extends it with new features, but their semantics are essentially the same. CP2 has a brand-new implementation that supersedes the original one.
-
-Concerning implementation languages, CP1 is written in Haskell, while CP2 is written in PureScript. Thus, CP2 can easily run in a web browser without losing the ability to run traditionally in a terminal. Concerning the semantics of the core calculus *Fi+*, it is further elaborated to *F-co* in CP1 but has direct operational semantics in CP2. Furthermore, new features recently added and some syntactic differences can be found at [CHANGELOG.md](CHANGELOG.md).
+In the appendix of the paper, we show our compilation scheme from Fi+ to JavaScript. Those inference rules are generated using the [Ott](https://github.com/ott-lang/ott) tool. Please find the source files in [ott/](./ott) if you are interested.
