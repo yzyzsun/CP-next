@@ -2,7 +2,7 @@
 
 This directory contains the Coq formalization of our compilation scheme.
 The core of the formalization is an elaboration semantics from λ<sub>i</sub><sup>+</sup> to λ<sub>r</sub>.
-We mechanically prove the type safety of the elaboration.
+We mechanically prove the type safety of the elaboration, among other theorems.
 
 ## How to Build?
 
@@ -11,21 +11,21 @@ Note that Ott/LNgen may not work on newer versions of Coq.
 The easiest way to install Coq 8.16.1 is using opam:
 
 ```
-> opam pin add coq 8.16.1
+$ opam pin add coq 8.16.1
 ```
 
 [StructTact](https://github.com/uwplse/StructTact), [Metalib](https://github.com/plclub/metalib) and auxiliary files for Ott are required to build our code. You can also install them using opam:
 
 ```
-> opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
-> opam install coq-struct-tact coq-metalib coq-ott
+$ opam repo add coq-extra-dev https://coq.inria.fr/opam/extra-dev
+$ opam install coq-struct-tact coq-metalib coq-ott
 ```
 
-After installing Coq and required libraries, you can execute `make` under the `coq/` subdirectory. A successful build would be like:
+After installing Coq and the required libraries, you can execute `make` under the `coq/` subdirectory. A successful build would be like:
 
 ```
-> cd coq
-> make
+$ cd coq
+$ make
 ......
 coq_makefile -arg '-w -deprecated,-fragile-hint-constr' -f _CoqProject -o CoqSrc.mk
 COQDEP VFILES
@@ -45,9 +45,9 @@ Most locally nameless definitions and proofs are automatically generated.
 The command line tools [Ott](https://github.com/ott-lang/ott) and [LNgen](https://github.com/plclub/lngen) are used to generate `coq/syntax_ott.v` and `coq/{source,target}_inf.v`.
 You can build all Coq proofs without installing Ott/LNgen.
 
-However, if you modify `ott/{source,target}.ott`, you need to regenerate those Coq files.
+However, if you modify `ott/{source,target}.ott`, you may want to regenerate those Coq files.
 Simply executing `make all` instead of `make` should do the job.
-But note that some manual work is needed to make `coq/syntax_ott.v` compile.
+Note that some manual work is needed after regenerating `coq/syntax_ott.v`.
 We apologize that we have not automated the modifications so far.
 
 ## Directory Structure
