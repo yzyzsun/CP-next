@@ -5,6 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
 import Data.Maybe (Maybe(..))
+import Data.Traversable (traverse)
 import Data.Tuple.Nested ((/\))
 import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Language.CP.Subtyping (isTopLike, split, (<:))
@@ -71,6 +72,15 @@ eval = runTrampoline <<< go <<< tmHoas
                                        "impossible unfold " <> show e'
     go (TmToString e) = toString <$> go e
     go (TmArray t arr) = pure $ TmArray t (TmCell <<< alloc <$> arr)
+    go (TmMain e) = go e >>= force
+      where force :: Tm -> Eval Tm
+            force (TmMerge v1 v2) = do
+              v1' <- force v1
+              v2' <- force v2
+              pure $ TmMerge v1' v2'
+            force (TmRcd l t e') = TmRcd l t <$> go e'
+            force (TmArray t arr) = TmArray t <$> traverse go arr
+            force v = pure v
     go (TmCell cell) = if done cell then pure e else do
       e' <- go e
       pure $ write e' cell

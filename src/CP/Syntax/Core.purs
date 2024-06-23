@@ -112,18 +112,16 @@ instance Show Tm where
     "if" <+> show e1 <+> "then" <+> show e2 <+> "else" <+> show e3
   show (TmVar x) = x
   show (TmApp e1 e2 _coercive) = parens $ show e1 <+> show e2
-  show (TmAbs x e targ tret _refined _trait) = parens $
-    "λ" <> x <> "." <+> show e <+> ":" <+> show targ <+> "→" <+> show tret
-  show (TmFix x e t) = parens $ "fix" <+> x <+> ":" <+> show t <> "." <+> show e
+  show (TmAbs x e _targ _tret _refined _trait) = parens $
+    "λ" <> x <> "." <+> show e
+  show (TmFix x e _t) = parens $ "fix" <+> x <> "." <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
-  show (TmRcd l t e) = braces $ l <+> ":" <+> show t <+> "=" <+> show e
+  show (TmRcd l _t e) = braces $ l <+> "=" <+> show e
   show (TmPrj e l) = show e <> "." <> l
-  show (TmOptPrj e1 l t e2) =
-    show e1 <> "." <> l <+> ":" <+> show t <+> "??" <+> show e2
+  show (TmOptPrj e1 l _t e2) = show e1 <> "." <> l <+> "??" <+> show e2
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
-  show (TmTAbs a td e t _refined) = parens $ "Λ" <> a <> "." <+> show e <+>
-    ":" <+> "∀" <> a <+> "*" <+> show td <> "." <+> show t
+  show (TmTAbs a _td e _t _refined) = parens $ "Λ" <> a <> "." <+> show e
   show (TmDef x e1 e2) = x <+> "=" <+> show e1 <> ";\n" <> show e2
   show (TmFold t e) = parens $ "fold @" <> show t <+> show e
   show (TmUnfold t e) = parens $ "unfold @" <> show t <+> show e
@@ -131,10 +129,9 @@ instance Show Tm where
   show (TmDeref e) = "!" <> show e
   show (TmAssign e1 e2) = parens $ show e1 <+> ":=" <+> show e2
   show (TmToString e) = parens $ "toString" <+> show e
-  show (TmArray t arr) = parens $
-    brackets (intercalate "; " (show <$> arr)) <+> ":" <+> brackets (show t)
+  show (TmArray _t arr) = brackets $ intercalate "; " (show <$> arr)
   show (TmMain e) = show e
-  show (TmCell _cell) = angles $ "Cell"
+  show (TmCell cell) = show $ read cell
   show (TmClosure _env e) = angles $ "Closure" <+> show e
   show (TmHAbs _abs targ tret _refined) = angles $
     "HOAS" <+> show targ <+> "→" <+> show tret
@@ -198,7 +195,7 @@ tmConvert env (TmDeref e) = TmDeref (tmConvert env e)
 tmConvert env (TmAssign e1 e2) = TmAssign (tmConvert env e1) (tmConvert env e2)
 tmConvert env (TmToString e) = TmToString (tmConvert env e)
 tmConvert env (TmArray t arr) = TmArray (tyConvert env t) (tmConvert env <$> arr)
-tmConvert env (TmMain e) = tmConvert env e
+tmConvert env (TmMain e) = TmMain (tmConvert env e)
 tmConvert _ e = e
 
 type HoasEnv = Map Name (Either Tm Ty)
