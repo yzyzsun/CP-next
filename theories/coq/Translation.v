@@ -61,6 +61,106 @@ Proof.
   inverts* Heq.
 Qed.
 
+(*
+Lemma nodup_merge_ls_cons : forall a l1 l2,
+    nodup tindex_dec (merge (a::l1) l2) = a :: (nodup tindex_dec (merge l1 l2))
+    \/ nodup tindex_dec (merge (a::l1) l2) = nodup tindex_dec (merge l1 l2).
+Proof.
+  introv. gen a l1. induction l2; intros.
+  - simpl. case_if*.
+    + induction* l1.
+    + induction* l1.
+Abort.
+
+Lemma nodup_merge_ls_inv_1 : forall l1 l2,
+    l1 <> nil -> merge l1 l2 <> nil.
+Proof with eauto.
+  introv HN. destruct l1.
+  - false HN...
+  - destruct l2... unfold merge. case_if*.
+    all: intro HF; false HF.
+Qed.
+
+Lemma nodup_merge_ls_inv_2 : forall l1 l2,
+    l2 <> nil -> merge l1 l2 <> nil.
+Proof with eauto.
+  introv HN. destruct l2.
+  - false HN...
+  - destruct l1...
+    applys nodup_merge_ls_inv_1.
+    intro HF. false HF.
+Qed.
+*)
+
+Lemma merge_cons_1 : forall a l1 l2,
+    exists b ls, merge (a::l1) l2 = b :: ls.
+Proof with eauto.
+  introv.
+  destruct l2; unfold merge...
+  case_if...
+Qed.
+
+Lemma merge_cons_2 : forall a l1 l2,
+    exists b ls, merge l1 (a::l2) = b :: ls.
+Proof with eauto.
+  introv.
+  destruct l1; unfold merge...
+  case_if...
+Qed.
+
+Lemma nodup_cons : forall b l,
+    exists a ls, nodup tindex_dec (b::l) = a :: ls.
+Proof with try solve [exists; jauto].
+  induction l; intros...
+  all: simpl; try case_if...
+  - case_if... destruct C; subst...
+    all: simpl in IHl; case_if*.
+Qed.
+
+
+Lemma nodup_merge_nil_inv : forall A B,
+    nil = nodup tindex_dec (merge (styp2tindex A) (styp2tindex B))
+    -> || A || = ti_list nil /\ || B || = ti_list nil.
+Proof with try solve [ try (let HF := fresh "HF" in intro HF; false HF); jauto ].
+  introv HE.
+  remember (styp2tindex A) as l1.
+  remember (styp2tindex B) as l2.
+  destruct l1; destruct l2...
+  - forwards (?&?&HM): merge_cons_2. rewrite HM in HE.
+    forwards (?&?&HN): nodup_cons. rewrite HN in HE.
+    false.
+  - forwards (?&?&HM): merge_cons_1. rewrite HM in HE.
+    forwards (?&?&HN): nodup_cons. rewrite HN in HE.
+    false.
+  - forwards (?&?&HM): merge_cons_2. rewrite HM in HE.
+    forwards (?&?&HN): nodup_cons. rewrite HN in HE.
+    false.
+Qed.
+
+
+Corollary st_eq_disjoint : forall A B,
+    || A || = || B || -> disjoint A B -> toplike A /\ toplike B.
+Proof with try solve_by_invert.
+  introv HE HD.
+  induction HD; simpl in HE; split*;
+    applys* check_toplike_sound_complete;
+    try induction* A; try solve [simpl in HE; try case_if; inverts* HE].
+  all: simpl in HE; simpl;
+    try destruct (check_toplike A);
+    try destruct (check_toplike A1); try destruct (check_toplike A2); eauto; false.
+
+  all: try solve [ false IHA1;
+                   remember (nodup tindex_dec (merge (styp2tindex A1) (styp2tindex A2))) as l;
+                   destruct l; simpl in HE;
+                   try forwards (?&?): nodup_merge_nil_inv Heql; subst*; solve_by_invert ].
+
+  all: try solve [ false IHA2;
+                   remember (nodup tindex_dec (merge (styp2tindex A1) (styp2tindex A2))) as l;
+                   destruct l; simpl in HE;
+                   try forwards (?&?): nodup_merge_nil_inv Heql; subst*; solve_by_invert ].
+
+  simpl in HE. Abort.
+
 (* merge, sort *)
 Lemma HdRel_relax : forall a l,
     HdRel ti_lex_lt a l -> HdRel NOTF.le a l.
@@ -564,6 +664,89 @@ Proof with eauto using incl_refl.
   introv HE.
   split; applys eqIndTyp_complete_alt_gen.
   rewrite HE... rewrite <- HE...
+Qed.
+
+(* topLike specification eqv *)
+Lemma toplike_super_top: forall A,
+    toplike A <-> sub typ_top A.
+Proof with eauto.
+  split; intros H.
+  - induction A...
+  - inductions H...
+Qed.
+
+Corollary super_top_toplike : forall A,
+    sub typ_top A -> toplike A.
+Proof.
+  intros. apply toplike_super_top.
+  eauto.
+Qed.
+
+(*
+Lemma sub_transtivity : forall A B C,
+    sub A B -> sub B C -> sub A C.
+Proof with eauto.
+  introv S1 S2. gen C.
+  induction* S1; intros; try solve [ induction* S2 ].
+Abort. NO NEED TO PROVE *)
+
+Lemma toplike_covariance : forall A B,
+    toplike A -> sub A B -> toplike B.
+Proof with eauto using toplike_super_top.
+  introv HT HS.
+  induction* HS...
+  all: inverts* HT.
+Qed.
+
+Definition disjointSpec A B :=
+  forall C, sub A C -> sub B C -> toplike C.
+
+Lemma disjoint_andl_inv: forall A1 A2 B,
+    disjoint (typ_and A1 A2) B -> disjoint A1 B /\ disjoint A2 B.
+Proof.
+  introv HD. inductions HD; eauto.
+  - forwards*: IHHD1. forwards*: IHHD2.
+Qed.
+
+Lemma disjoint_andr_inv: forall B A1 A2,
+    disjoint B (typ_and A1 A2) -> disjoint B A1 /\ disjoint B A2.
+Proof.
+  introv HD. inductions HD; eauto.
+  - forwards*: IHHD1. forwards*: IHHD2.
+Qed.
+
+Lemma disjoint_symm: forall A B,
+    disjoint B A -> disjoint A B.
+Proof.
+  introv HD. induction HD; eauto.
+Qed.
+
+
+Lemma disjoint_sub_conflict_1 : forall A B,
+    disjoint A B -> sub A B -> toplike B.
+Proof with try solve_by_invert; eauto using super_top_toplike.
+  introv HD HS. induction HS...
+  all: try solve [ inverts* HD ].
+  - inverts* HD. false* H0.
+  - forwards*: disjoint_andl_inv HD.
+  - forwards*: disjoint_andl_inv HD.
+  - forwards*: disjoint_andr_inv HD.
+Qed.
+
+Lemma disjoint_sub_conflict_2 : forall A B,
+    disjoint B A -> sub A B -> toplike B.
+Proof with eauto using disjoint_symm.
+  introv HD HS.
+  applys disjoint_sub_conflict_1 HS...
+Qed.
+
+Corollary st_eq_disjoint : forall A B,
+    || A || = || B || -> disjoint A B -> toplike A /\ toplike B.
+Proof with try solve_by_invert.
+  introv HE HD.
+  forwards*: eqIndTyp_complete A B.
+  - inverts* HE.
+  - destruct H. split; eauto using disjoint_sub_conflict_1, disjoint_sub_conflict_2.
 Qed.
 
 Lemma eqIndTyp_sound_alt_gen : forall A B,
