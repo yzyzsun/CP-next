@@ -4,8 +4,10 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Foldable (intercalate)
+import Data.List (List)
 import Data.Map (Map, empty, insert, lookup)
 import Data.Maybe (Maybe(..))
+import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Syntax.Common (BinOp, Label, Name, UnOp, angles, braces, brackets, parens)
 import Language.CP.Util ((<+>))
 
@@ -26,6 +28,7 @@ data Ty = TyInt
         | TyBot
         | TyArrow Ty Ty Boolean
         | TyAnd Ty Ty
+        | TyOr Ty Ty
         | TyRcd Label Ty Boolean
         | TyVar Name
         | TyForall Name Ty Ty
@@ -44,6 +47,7 @@ instance Show Ty where
   show (TyArrow ti to true) = "Trait" <> angles (show ti <+> "=>" <+> show to)
   show (TyArrow t1 t2 false) = parens $ show t1 <+> "->" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
+  show (TyOr t1 t2) = parens $ show t1 <+> "|" <+> show t2
   -- Optional record types can be regarded just as Top, but
   -- they can help casting keep corresponding fields if present.
   show (TyRcd l t opt) = braces $
@@ -75,6 +79,7 @@ data Tm = TmInt Int
         | TmFix Name Tm Ty
         | TmAnno Tm Ty
         | TmMerge Tm Tm
+        | TmSwitch Tm Name (List (Ty /\ Tm))
         | TmRcd Label Ty Tm
         | TmPrj Tm Label
         | TmOptPrj Tm Label Ty Tm
@@ -97,6 +102,7 @@ data Tm = TmInt Int
         | TmHAbs (Tm -> Tm) Ty Ty Boolean
         | TmHFix (Tm -> Tm) Ty
         | TmHTAbs (Ty -> Tm) Ty (Ty -> Ty) Boolean
+        | TmHSwitch Tm (List (Ty /\ (Tm -> Tm)))
 
 instance Show Tm where
   show (TmInt i)    = show i
@@ -117,6 +123,9 @@ instance Show Tm where
   show (TmFix x e _t) = parens $ "fix" <+> x <> "." <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge e1 e2) = parens $ show e1 <+> "," <+> show e2
+  show (TmSwitch e x cases) = parens $
+    "switch" <+> show e <+> "as" <+> x <+>
+    intercalate " " (cases <#> \(t /\ e') -> "case" <+> show t <+> "->" <+> show e')
   show (TmRcd l _t e) = braces $ l <+> "=" <+> show e
   show (TmPrj e l) = show e <> "." <> l
   show (TmOptPrj e1 l _t e2) = show e1 <> "." <> l <+> "??" <+> show e2
@@ -137,6 +146,8 @@ instance Show Tm where
     "HOAS" <+> show targ <+> "→" <+> show tret
   show (TmHFix _fix t) = angles $ "HOAS fix" <+> show t
   show (TmHTAbs _tabs td _tf _refined) = angles $ "HOAS ∀*" <+> show td
+  show (TmHSwitch e cases) = parens $ "switch" <+> show e <+>
+    intercalate " " (cases <#> \(t /\ _f) -> "case" <+> show t <+> "-> <HOAS case>")
 
 -- HOAS --
 
@@ -154,6 +165,7 @@ tyHoas' env a t = \ty -> tyConvert (insert a (Right ty) env) t
 tyConvert :: HoasEnv -> Ty -> Ty
 tyConvert env (TyArrow t1 t2 b) = TyArrow (tyConvert env t1) (tyConvert env t2) b
 tyConvert env (TyAnd t1 t2) = TyAnd (tyConvert env t1) (tyConvert env t2)
+tyConvert env (TyOr t1 t2) = TyOr (tyConvert env t1) (tyConvert env t2)
 tyConvert env (TyRcd l t opt) = TyRcd l (tyConvert env t) opt
 tyConvert env (TyVar a) = case lookup a env of Just (Right t) -> t
                                                _ -> TyVar a
@@ -179,6 +191,8 @@ tmConvert env (TmFix x e t) =
   TmHFix (\tm -> tmConvert (insert x (Left tm) env) e) (tyConvert env t)
 tmConvert env (TmAnno e t) = TmAnno (tmConvert env e) (tyConvert env t)
 tmConvert env (TmMerge e1 e2) = TmMerge (tmConvert env e1) (tmConvert env e2)
+tmConvert env (TmSwitch e x cases) = TmHSwitch (tmConvert env e)
+  (cases <#> \(t /\ e') -> tyConvert env t /\ \tm -> tmConvert (insert x (Left tm) env) e')
 tmConvert env (TmRcd l t e) = TmRcd l (tyConvert env t) (tmConvert env e)
 tmConvert env (TmPrj e l) = TmPrj (tmConvert env e) l
 tmConvert env (TmOptPrj e1 l t e2) = TmOptPrj (tmConvert env e1) l t (tmConvert env e2)
@@ -206,6 +220,7 @@ type HoasEnv = Map Name (Either Tm Ty)
 tySubst :: Name -> Ty -> Ty -> Ty
 tySubst a s (TyArrow t1 t2 b) = TyArrow (tySubst a s t1) (tySubst a s t2) b
 tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
+tySubst a s (TyOr t1 t2) = TyOr (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyRcd l t opt) = TyRcd l (tySubst a s t) opt
 tySubst a s (TyVar a') | a == a' = s
 tySubst a s (TyForall a' td t) =
@@ -231,6 +246,8 @@ tmSubst x v (TmAbs x' e targ tret b1 b2) | x /= x' =
 tmSubst x v (TmFix x' e t) | x /= x' = TmFix x' (tmSubst x v e) t
 tmSubst x v (TmAnno e t) = TmAnno (tmSubst x v e) t
 tmSubst x v (TmMerge e1 e2) = TmMerge (tmSubst x v e1) (tmSubst x v e2)
+tmSubst x v (TmSwitch e x' cases) = TmSwitch (tmSubst x v e) x'
+  (if x == x' then cases else cases <#> \(t /\ e') -> t /\ tmSubst x v e')
 tmSubst x v (TmRcd l t e) = TmRcd l t (tmSubst x v e)
 tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
 tmSubst x v (TmOptPrj e1 l t e2) =
@@ -261,6 +278,8 @@ tmTSubst a s (TmAbs x e targ tret b1 b2) =
 tmTSubst a s (TmFix x e t) = TmFix x (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmAnno e t) = TmAnno (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmMerge e1 e2) = TmMerge (tmTSubst a s e1) (tmTSubst a s e2)
+tmTSubst a s (TmSwitch e x cases) = TmSwitch (tmTSubst a s e) x
+  (cases <#> \(t /\ e') -> tySubst a s t /\ tmTSubst a s e')
 tmTSubst a s (TmRcd l t e) = TmRcd l (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmPrj e l) = TmPrj (tmTSubst a s e) l
 tmTSubst a s (TmOptPrj e1 l t e2) =

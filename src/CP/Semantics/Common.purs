@@ -43,6 +43,7 @@ arith Div (TmDouble n1) (TmDouble n2) = TmDouble (n1 / n2)
 arith Mod (TmDouble n1) (TmDouble n2) = TmDouble (n1 % n2)
 arith op v1 v2 = unsafeCrashWithBinop (Arith op) v1 v2
 
+-- TODO: fix the warning `IncompleteExhaustivityCheck`
 comp :: CompOp -> Tm -> Tm -> Tm
 comp Eql (TmInt i1) (TmInt i2) = TmBool (i1 == i2)
 comp Neq (TmInt i1) (TmInt i2) = TmBool (i1 /= i2)

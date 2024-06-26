@@ -70,6 +70,7 @@ cast (TmInt i)    TyInt    = Just $ TmInt i
 cast (TmDouble n) TyDouble = Just $ TmDouble n
 cast (TmString s) TyString = Just $ TmString s
 cast (TmBool b)   TyBool   = Just $ TmBool b
+cast TmUnit       TyUnit   = Just TmUnit
 cast (TmAbs x e targ1 tret1 _ b) (TyArrow _ tret2 _)
   | tret1 <: tret2 = Just $ TmAbs x e targ1 tret2 true b
 cast (TmMerge v1 v2) t = cast v1 t <|> cast v2 t

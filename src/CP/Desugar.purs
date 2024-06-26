@@ -49,6 +49,7 @@ desugar (TmApp e1 e2) = TmApp (desugar e1) (desugar e2)
 desugar (TmFix x e t) = TmFix x (desugar e) t
 desugar (TmAnno e t) = TmAnno (desugar e) t
 desugar (TmMerge bias e1 e2) = TmMerge bias (desugar e1) (desugar e2)
+desugar (TmSwitch e alias cases) = TmSwitch (desugar e) alias (rmap desugar <$> cases)
 desugar (TmPrj e l) = TmPrj (desugar e) l
 desugar (TmOptPrj e1 l e2) = TmOptPrj (desugar e1) l (desugar e2)
 desugar (TmTApp e t) = TmTApp (desugar e) t

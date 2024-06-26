@@ -24,6 +24,7 @@ data Ty = TyInt
         | TyBot
         | TyArrow Ty Ty
         | TyAnd Ty Ty
+        | TyOr Ty Ty
         | TyRcd RcdTyList
         | TyVar Name
         | TyForall TyParamList Ty
@@ -47,6 +48,7 @@ instance Show Ty where
   show TyBot    = "Bot"
   show (TyArrow t1 t2) = parens $ show t1 <+> "->" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
+  show (TyOr t1 t2) = parens $ show t1 <+> "|" <+> show t2
   show (TyRcd xs) = braces $ showRcdTy xs
   show (TyVar a) = a
   show (TyForall xs t) = parens $
@@ -81,6 +83,7 @@ data Tm = TmInt Int
         | TmFix Name Tm Ty
         | TmAnno Tm Ty
         | TmMerge Bias Tm Tm
+        | TmSwitch Tm (Maybe Name) (List (Ty /\ Tm))
         | TmRcd (List RcdField)
         | TmPrj Tm Label
         | TmOptPrj Tm Label Tm
@@ -138,6 +141,9 @@ instance Show Tm where
   show (TmFix x e t) = parens $ "fix" <+> x <+> ":" <+> show t <> "." <+> show e
   show (TmAnno e t) = parens $ show e <+> ":" <+> show t
   show (TmMerge bias e1 e2) = parens $ show e1 <+> show bias <+> show e2
+  show (TmSwitch e alias cases) = parens $
+    "switch" <+> show e <> maybe "" (" as " <> _) alias <+>
+    intercalate " " (cases <#> \(t /\ e') -> "case" <+> show t <+> "->" <+> show e')
   show (TmRcd xs) = braces $ showRcdTm xs
   show (TmPrj e l) = show e <> "." <> l
   show (TmOptPrj e1 l e2) = show e1 <> "." <> l <+> "??" <+> show e2
@@ -217,6 +223,7 @@ instance Show Prog where
 tySubst :: Name -> Ty -> Ty -> Ty
 tySubst a s (TyArrow t1 t2) = TyArrow (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
+tySubst a s (TyOr t1 t2) = TyOr (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyRcd xs) =
   TyRcd (xs <#> \(RcdTy l t opt) -> RcdTy l (tySubst a s t) opt)
 tySubst a s (TyVar a') = if a == a' then s else TyVar a'

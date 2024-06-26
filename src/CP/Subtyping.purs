@@ -10,9 +10,12 @@ subtype :: Ty -> Ty -> Boolean
 subtype TyBot _ = true
 subtype _ t | isTopLike t = true
 subtype t1 t2 | Just (t3 /\ t4) <- split t2 = t1 <: t3 && t1 <: t4
+subtype (TyAnd t1 t2) t3 = t1 <: t3 || t2 <: t3
+-- TODO: add distributive subtyping to unions types
+subtype (TyOr t1 t2) t3 = t1 <: t3 && t2 <: t3
+subtype t1 (TyOr t2 t3) = t1 <: t2 || t1 <: t3
 subtype (TyArrow targ1 tret1 _) (TyArrow targ2 tret2 _) = targ2 <: targ1 &&
                                                           tret1 <: tret2
-subtype (TyAnd t1 t2) t3 = t1 <: t3 || t2 <: t3
 subtype _ (TyRcd _ _ true) = true
 subtype (TyRcd l1 t1 false) (TyRcd l2 t2 false) = l1 == l2 && t1 <: t2
 subtype (TyForall a1 td1 t1) (TyForall a2 td2 t2) =
@@ -41,7 +44,6 @@ isTopLike (TyForall _ _ t) = isTopLike t
 isTopLike (TyRec _ t) = isTopLike t
 isTopLike _ = false
 
--- TODO: add distributive subtyping to recursive types
 split :: Ty -> Maybe (Ty /\ Ty)
 split (TyAnd t1 t2) = Just $ t1 /\ t2
 split (TyArrow targ tret b) = split tret >>= \(tret1 /\ tret2) ->

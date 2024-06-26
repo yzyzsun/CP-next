@@ -90,7 +90,7 @@ opexpr e = buildExprParser operators $ lexpr e
 lexpr :: SParser Tm -> SParser Tm
 lexpr e = fexpr e <|> lambdaAbs <|> tyLambdaAbs <|> trait <|> new <|>
           ifThenElse <|> letIn <|> letrec <|> open <|> toString <|>
-          fixpoint <|> fold <|> unfold <|> ref
+          fixpoint <|> fold <|> unfold <|> ref <|> switch
 
 fexpr :: SParser Tm -> SParser Tm
 fexpr e = do
@@ -249,6 +249,19 @@ ref = do
   reserved "ref"
   e <- dotexpr expr
   pure $ TmRef e
+
+switch :: SParser Tm
+switch = do
+  reserved "switch"
+  e <- expr
+  alias <- optional (reserved "as" *> lowerIdentifier)
+  cases <- some do
+    reserved "case"
+    t <- ty
+    symbol "=>"
+    e' <- expr
+    pure $ Tuple t e'
+  pure $ TmSwitch e alias cases
 
 document :: SParser Tm -> SParser Tm
 document p = position >>= \pos -> TmPos pos <<< TmDoc <$> do
@@ -446,6 +459,7 @@ recordTy = braces $ TyRcd <$> sepEndBySemi do
 
 toperators :: OperatorTable Identity String Ty
 toperators = [ [ Infix (reservedOp "&"  $> TyAnd) AssocLeft  ]
+             , [ Infix (reservedOp "|"  $> TyOr) AssocLeft  ]
              , [ Infix (reservedOp "\\" $> TyDiff) AssocLeft ]
              , [ Infix (reservedOp "->" $> TyArrow) AssocRight ]
              ]
@@ -491,7 +505,7 @@ langDef :: LanguageDef
 langDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "undefined", "if", "then", "else", "toString", "fix"
   , "trait", "implements", "inherits", "override", "new", "fold", "unfold"
-  , "let", "letrec", "open", "in", "with", "ref"
+  , "let", "letrec", "open", "in", "with", "ref", "switch", "as", "case"
   , "type", "interface", "extends", "forall", "mu"
   , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait", "Ref"
   ]

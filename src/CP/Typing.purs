@@ -9,10 +9,10 @@ import Data.Array (all, elem, head, notElem, null, unzip)
 import Data.Either (Either(..))
 import Data.Foldable (foldl, foldr, lookup, traverse_)
 import Data.List (List(..), filter, last, singleton, sort, (:))
-import Data.Maybe (Maybe(..), fromMaybe, isJust)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, maybe)
 import Data.Set as Set
 import Data.Traversable (for, traverse)
-import Data.Tuple (fst, uncurry)
+import Data.Tuple (fst, snd, uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Context (Checking, Pos(..), TypeError(..), Typing, addSort, addTmBind, addTyBind, fromState, localPos, lookupTmBind, lookupTyBind, runTyping, throwTypeError)
 import Language.CP.Desugar (deMP, desugar)
@@ -22,7 +22,7 @@ import Language.CP.Syntax.Core as C
 import Language.CP.Syntax.Source as S
 import Language.CP.Transform (transform, transform', transformTyDef)
 import Language.CP.TypeDiff (tyDiff)
-import Language.CP.Util (foldr1, unsafeFromJust, (<+>))
+import Language.CP.Util (foldl1, foldr1, unsafeFromJust, (<+>))
 
 infer :: S.Tm -> Typing (C.Tm /\ C.Ty)
 infer (S.TmInt i)    = pure $ C.TmInt i /\ C.TyInt
@@ -165,6 +165,30 @@ infer (S.TmMerge S.Leftist e1 e2) =
   infer $ S.TmMerge S.Neutral e1 (S.TmDiff e2 e1)
 infer (S.TmMerge S.Rightist e1 e2) =
   infer $ S.TmMerge S.Neutral (S.TmDiff e1 e2) e2
+-- TODO: make sure case types are disjoint
+infer (S.TmSwitch e alias cases) = do
+  tte <- for cases \(ti /\ ei) -> do
+    ti' <- transform ti
+    ei' /\ to <- maybe identity (\x -> addTmBind x ti') alias $ infer ei
+    pure $ to /\ ti' /\ ei'
+  case maximal (fst <$> tte) of
+    Just to -> do
+      let cases' = snd <$> tte
+          union = foldl1 C.TyOr (fst <$> cases')
+      e' /\ t <- infer e
+      if t <: union then
+        let switch = C.TmSwitch e' (fromMaybe "$alias" alias) cases' in
+        pure $ C.TmAnno switch to /\ to
+      else throwTypeError $ "switch expression expected a subtype of" <+> show union
+                         <> ", but got" <+> show t
+    Nothing -> throwTypeError $ "switch cases have different types"
+  where maximal :: List C.Ty -> Maybe C.Ty
+        maximal Nil = Just C.TyBot
+        maximal (t : ts) = do
+          t' <- maximal ts
+          if t <: t' then Just t'
+          else if t' <: t then Just t
+          else Nothing
 infer (S.TmRcd Nil) = pure $ C.TmTop /\ C.TyTop
 infer (S.TmRcd (S.RcdField _ l Nil (Left e) : Nil)) = do
   e' /\ t <- infer e

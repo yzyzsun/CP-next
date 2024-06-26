@@ -47,6 +47,7 @@ translate S.TyUnit   = pure C.TyUnit
 translate S.TyTop    = pure C.TyTop
 translate S.TyBot    = pure C.TyBot
 translate (S.TyAnd t1 t2) = C.TyAnd <$> translate t1 <*> translate t2
+translate (S.TyOr t1 t2) = C.TyOr <$> translate t1 <*> translate t2
 translate (S.TyArrow t1 t2) = C.TyArrow <$> translate t1 <*> translate t2 <@> false
 translate (S.TyVar a) = pure $ C.TyVar a
 translate (S.TyRec a t) = C.TyRec a <$> translate t
@@ -125,6 +126,8 @@ distinguish isCtor isOut (S.TyArrow t1 t2) =
   S.TyArrow <$> distinguish isCtor (not isOut) t1 <*> distinguish isCtor isOut t2
 distinguish isCtor isOut (S.TyAnd t1 t2) =
   S.TyAnd <$> distinguish isCtor isOut t1 <*> distinguish isCtor isOut t2
+distinguish isCtor isOut (S.TyOr t1 t2) =
+  S.TyOr <$> distinguish isCtor isOut t1 <*> distinguish isCtor isOut t2
 distinguish _ isOut (S.TyRcd xs) = S.TyRcd <$> for xs \(S.RcdTy l t opt) ->
   S.RcdTy l <$> distinguish (isCapitalized l) isOut t <@> opt
 distinguish isCtor true t@(S.TyVar a) = do

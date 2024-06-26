@@ -4,9 +4,10 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Monad.Trampoline (Trampoline, runTrampoline)
+import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse)
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Language.CP.Subtyping (isTopLike, split, (<:))
 import Language.CP.Syntax.Common (BinOp(..))
@@ -27,38 +28,47 @@ eval = runTrampoline <<< go <<< tmHoas
     go TmTop  = pure TmTop
     go (TmUnary op e) = unop op <$> go e
     go (TmBinary op e1 e2) = do
-      e1' <- go e1
-      e2' <- go e2
-      let e = binop op e1' e2'
+      v1 <- go e1
+      v2 <- go e2
+      let e = binop op v1 v2
       case op of Index -> go e
                  _   -> pure e
     go (TmIf e1 e2 e3) = do
-      e1' <- go e1
-      case e1' of
+      v1 <- go e1
+      case v1 of
         TmBool true  -> go e2
         TmBool false -> go e3
         _ -> unsafeCrashWith $
-          "CP.Semantics.HOAS.eval: impossible if " <> show e1' <> " ..."
+          "CP.Semantics.HOAS.eval: impossible if " <> show v1 <> " ..."
     go (TmApp e1 e2 coercive) = do
-      e1' <- go e1
-      go $ paraApp e1' ((if coercive then TmAnnoArg else TmArg) e2)
+      v1 <- go e1
+      go $ paraApp v1 ((if coercive then TmAnnoArg else TmArg) e2)
     go e@(TmHAbs _ _ _ _) = pure e
     go e@(TmHFix fix _) = go $ fix e
     go (TmAnno e t) = do
-      e' <- go' e
-      case cast e' t of
-        Just e'' -> go e''
+      v <- go' e
+      case cast v t of
+        Just v' -> go v'
         Nothing -> unsafeCrashWith $ "CP.Semantics.HOAS.eval: " <>
-                       "impossible casting " <> show e' <> " : " <> show t
+                       "impossible casting " <> show v <> " : " <> show t
       where go' :: Tm -> Eval Tm
             go' (TmAnno e' _) = go' e'
             go' e' = go e'
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
+    go (TmHSwitch e cases) = do
+      v <- go e
+      match v cases
+      where match :: Tm -> List (Ty /\ (Tm -> Tm)) -> Eval Tm
+            match v Nil = unsafeCrashWith $ "CP.Semantics.HOAS.eval: " <>
+                                            "impossible switch " <> show v <> "..."
+            match v ((t /\ f) : cs) = case cast v t of
+              Just e' -> go $ f e'
+              Nothing -> match v cs
     go (TmRcd l t e) = pure $ TmRcd l t (TmCell (alloc e))
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
     go (TmOptPrj e1 l t e2) = do
-      e1' <- go e1
-      case cast e1' (TyRcd l t false) of
+      v1 <- go e1
+      case cast v1 (TyRcd l t false) of
         Just e -> go $ TmPrj e l
         Nothing -> go e2
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
@@ -82,8 +92,8 @@ eval = runTrampoline <<< go <<< tmHoas
             force (TmArray t arr) = TmArray t <$> traverse go arr
             force v = pure v
     go (TmCell cell) = if done cell then pure e else do
-      e' <- go e
-      pure $ write e' cell
+      v <- go e
+      pure $ write v cell
       where e = read cell
     go e = unsafeCrashWith $ "CP.Semantics.HOAS.eval: " <>
       "well-typed programs don't get stuck, but got " <> show e
@@ -99,11 +109,13 @@ cast v t | Just (t1 /\ t2) <- split t = do
   (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
   where isOptionalRcd (TyRcd _ _ true) = Just TmTop
         isOptionalRcd _ = Nothing
+cast v (TyOr t1 t2) = cast v t1 <|> cast v t2
 cast _ t | isTopLike t = Just $ genTopLike t
 cast (TmInt i)    TyInt    = Just $ TmInt i
 cast (TmDouble n) TyDouble = Just $ TmDouble n
 cast (TmString s) TyString = Just $ TmString s
 cast (TmBool b)   TyBool   = Just $ TmBool b
+cast TmUnit       TyUnit   = Just TmUnit
 cast (TmHAbs abs targ1 tret1 _) (TyArrow _ tret2 _)
   | tret1 <: tret2 = Just $ TmHAbs abs targ1 tret2 true
 cast (TmMerge v1 v2) t = cast v1 t <|> cast v2 t
