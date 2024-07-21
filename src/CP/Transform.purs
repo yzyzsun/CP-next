@@ -26,8 +26,9 @@ transform' t = do
 
 translate :: S.Ty -> Typing C.Ty
 translate (S.TyRcd Nil) = pure C.TyTop
-translate (S.TyRcd xs) = foldl1 C.TyAnd <$> for xs \(S.RcdTy l t opt) ->
-  C.TyRcd l <$> translate t <@> opt
+translate (S.TyRcd xs) = foldl1 C.TyAnd <$> for xs \(S.RcdTy l t opt) -> do
+  t' <- translate t
+  pure $ C.TyRcd l $ if opt then C.TyOr t' C.TyUnit else t'
 translate (S.TyForall xs t) =
   foldr (uncurry C.TyForall) <$> translate t <*>
     traverse (rtraverse disjointness) xs

@@ -36,10 +36,6 @@ step (TmMerge e1 e2) | isValue e1 = TmMerge e1 (step e2)
                      | otherwise  = TmMerge (step e1) (step e2)
 step (TmPrj e l) | isValue e = selectLabel e l
                  | otherwise = TmPrj (step e) l
-step (TmOptPrj e1 l t e2)
-  | isValue e1 = case cast e1 (TyRcd l t false) of Just e -> TmPrj e l
-                                                   Nothing -> e2
-  | otherwise  = TmOptPrj (step e1) l t e2
 step (TmTApp e t) | isValue e = paraApp e (TyArg t)
                   | otherwise = TmTApp (step e) t
 step (TmDef x e1 e2) = tmSubst x e1 e2
@@ -57,14 +53,7 @@ step e = unsafeCrashWith $ "CP.Semantics.Subst.step: " <>
 cast :: Tm -> Ty -> Maybe Tm
 cast e _ | not (isValue e) = unsafeCrashWith $
   "CP.Semantics.Subst.cast: " <> show e <> " is not a value"
-cast v t | Just (t1 /\ t2) <- split t = do
-  let m1 = isOptionalRcd t1
-      m2 = isOptionalRcd t2
-      v1 = cast v t1
-      v2 = cast v t2
-  (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
-  where isOptionalRcd (TyRcd _ _ true) = Just TmTop
-        isOptionalRcd _ = Nothing
+cast v t | Just (t1 /\ t2) <- split t = TmMerge <$> cast v t1 <*> cast v t2
 cast _ t | isTopLike t = Just $ genTopLike t
 cast (TmInt i)    TyInt    = Just $ TmInt i
 cast (TmDouble n) TyDouble = Just $ TmDouble n
@@ -74,7 +63,7 @@ cast TmUnit       TyUnit   = Just TmUnit
 cast (TmAbs x e targ1 tret1 _ b) (TyArrow _ tret2 _)
   | tret1 <: tret2 = Just $ TmAbs x e targ1 tret2 true b
 cast (TmMerge v1 v2) t = cast v1 t <|> cast v2 t
-cast (TmRcd l t e) (TyRcd l' t' _)
+cast (TmRcd l t e) (TyRcd l' t')
   | l == l' && t <: t' = Just $ TmRcd l t' e
 cast (TmTAbs a1 td1 e t1 _) (TyForall a2 td2 t2)
   | td2 <: td1 && tySubst a1 (TyVar a2) t1 <: t2

@@ -101,7 +101,7 @@ selectLabel _ _ = TmTop
 genTopLike :: Ty -> Tm
 genTopLike TyTop = TmTop
 genTopLike (TyArrow _ t b) = TmAbs "$top" TmTop TyTop t true b
-genTopLike (TyRcd l t _) = TmRcd l t TmTop
+genTopLike (TyRcd l t) = TmRcd l t TmTop
 genTopLike (TyForall a _ t) = TmTAbs a TyTop TmTop t true
 genTopLike (TyRec _ t) = genTopLike t
 genTopLike t = unsafeCrashWith $ "CP.Semantics.Common.genTopLike: " <>

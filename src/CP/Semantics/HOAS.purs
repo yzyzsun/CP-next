@@ -66,11 +66,6 @@ eval = runTrampoline <<< go <<< tmHoas
               Nothing -> match v cs
     go (TmRcd l t e) = pure $ TmRcd l t (TmCell (alloc e))
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
-    go (TmOptPrj e1 l t e2) = do
-      v1 <- go e1
-      case cast v1 (TyRcd l t false) of
-        Just e -> go $ TmPrj e l
-        Nothing -> go e2
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmHTAbs _ _ _ _) = pure e
     go (TmFold t e) = TmFold t <$> go e
@@ -101,14 +96,7 @@ eval = runTrampoline <<< go <<< tmHoas
 cast :: Tm -> Ty -> Maybe Tm
 cast e _ | not (isValue e) = unsafeCrashWith $
   "CP.Semantics.HOAS.cast: " <> show e <> " is not a value"
-cast v t | Just (t1 /\ t2) <- split t = do
-  let m1 = isOptionalRcd t1
-      m2 = isOptionalRcd t2
-      v1 = cast v t1
-      v2 = cast v t2
-  (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
-  where isOptionalRcd (TyRcd _ _ true) = Just TmTop
-        isOptionalRcd _ = Nothing
+cast v t | Just (t1 /\ t2) <- split t = TmMerge <$> cast v t1 <*> cast v t2
 cast v (TyOr t1 t2) = cast v t1 <|> cast v t2
 cast _ t | isTopLike t = Just $ genTopLike t
 cast (TmInt i)    TyInt    = Just $ TmInt i
@@ -119,7 +107,7 @@ cast TmUnit       TyUnit   = Just TmUnit
 cast (TmHAbs abs targ1 tret1 _) (TyArrow _ tret2 _)
   | tret1 <: tret2 = Just $ TmHAbs abs targ1 tret2 true
 cast (TmMerge v1 v2) t = cast v1 t <|> cast v2 t
-cast (TmRcd l t e) (TyRcd l' t' _)
+cast (TmRcd l t e) (TyRcd l' t')
   | l == l' && t <: t' = Just $ TmRcd l t' e
 cast (TmHTAbs tabs td1 tf1 _) (TyForall a td2 t2)
   | td2 <: td1 && tf1 (TyVar a) <: t2
@@ -142,7 +130,7 @@ paraApp v arg = unsafeCrashWith $ "CP.Semantics.HOAS.paraApp: " <>
 genTopLike :: Ty -> Tm
 genTopLike TyTop = TmTop
 genTopLike (TyArrow _ t _) = TmHAbs (\_ -> TmTop) TyTop t true
-genTopLike (TyRcd l t _) = TmRcd l t TmTop
+genTopLike (TyRcd l t) = TmRcd l t TmTop
 genTopLike (TyForall a _ t) = TmHTAbs (\_ -> TmTop) TyTop (tyHoas a t) true
 genTopLike (TyRec _ t) = genTopLike t
 genTopLike t = unsafeCrashWith $ "CP.Semantics.HOAS.genTopLike: " <>

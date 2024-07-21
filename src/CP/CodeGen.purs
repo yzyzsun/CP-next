@@ -324,11 +324,11 @@ infer (C.TmRcd l t e) (DstVar z)
       let ast = if order == CBV || not inTrait
                 then j <> [ addProp (JSVar z) (toIndex typ) (JSVar y) ]
                 else [ addGetter (JSVar z) typ j y ]
-          typ = C.TyRcd l t false
+          typ = C.TyRcd l t
       pure { ast, typ, var: z }
 infer (C.TmPrj e l) dst = do
   { ast: j1, typ: t1, var: y } <- infer e DstNil
-  case selectLabel t1 l false of
+  case selectLabel t1 l of
     Just typ@(C.TyAnd _ _) -> do
       case dst of DstVar z -> do { ast: j2 } <- proj t1 y l (DstVar z) false
                                  pure { ast: j1 <> j2, typ, var: z }
@@ -342,21 +342,6 @@ infer (C.TmPrj e l) dst = do
       { ast: j2, var } <- proj t1 y l dst false
       pure { ast: j1 <> j2, typ, var }
     _ -> throwError $ "label" <+> show l <+> "is absent in" <+> show t1
-infer (C.TmOptPrj e1 l t e2) (DstVar z) = do
-  { ast: j1, typ: t1, var: y } <- infer e1 DstNil
-  { ast: j2 } <- infer e2 (DstVar z)
-  { ast: j3 } <- proj t1 y l (DstVar z) true
-  pure { ast: j1 <> j2 <> j3, typ: t, var: z }
-infer e@(C.TmOptPrj _ _ _ _) (DstOpt y) = do
-  { ast: j1, var } <- dstOpt y
-  { ast: j2, typ } <- infer e (DstVar var)
-  j3 <- convertPrimitive typ var
-  pure { ast: j1 <> j2 <> j3, typ, var }
-infer e@(C.TmOptPrj _ _ _ _) DstNil = do
-  { ast: j1, var } <- dstNil
-  { ast: j2, typ } <- infer e (DstVar var)
-  j3 <- convertPrimitive typ var
-  pure { ast: j1 <> j2 <> j3, typ, var }
 infer (C.TmMerge e1 e2) (DstVar z) = do
   { ast: j1, typ: t1 } <- infer e1 (DstVar z)
   { ast: j2, typ: t2 } <- infer e2 (DstVar z)
@@ -494,7 +479,7 @@ proj t0 x l dst opt = case dst of DstVar var -> pure { ast: go t0 var, var }
   where go :: C.Ty -> Name -> AST
         go t _ | isTopLike t = []
         go (C.TyAnd ta tb) z = go ta z <> go tb z
-        go t@(C.TyRcd l' typ _) z | l == l' =
+        go t@(C.TyRcd l' typ) z | l == l' =
           let field = JSIndexer (toIndex t) (JSVar x)
               intro = JSVariableIntroduction z $ Just field
               copy y = (if opt then \j -> JSIfElse field j Nothing else identity)
@@ -506,7 +491,6 @@ proj t0 x l dst opt = case dst of DstVar var -> pure { ast: go t0 var, var }
 
 subtype :: C.Ty -> C.Ty -> Name -> Name -> Boolean -> CodeGen AST
 subtype _ t _ _ _ | isTopLike t = pure []
-subtype C.TyTop (C.TyRcd _ _ true) _ _ _ = pure []
 subtype C.TyBot t _ y _ = pure [ addProp (JSVar y) (toIndex t) JSNullLiteral ]
 subtype ta tb x y true | ta .=. tb =
   if needsCopyObj ta then pure [ copyObj y (JSVar x) ta ]
@@ -515,7 +499,7 @@ subtype ta tb x y true | ta .=. tb =
   where needsCopyObj :: C.Ty -> Boolean
         needsCopyObj (C.TyAnd _ _) = true
         needsCopyObj (C.TyVar _) = true
-        needsCopyObj (C.TyRcd _ _ _) = true
+        needsCopyObj (C.TyRcd _ _) = true
         needsCopyObj _ = false
 subtype ta tb x z b | Just (tb1 /\ tb2) <- split tb =
   if isTopLike tb1 then subtype ta tb2 x z b
@@ -551,7 +535,7 @@ subtype ta@(C.TyForall a _ ta2) tb@(C.TyForall b _ tb2) x y _ = do
            <> [ JSReturn $ JSVar y0 ]
       func = JSFunction Nothing [variable a, y0] (JSBlock block) 
   pure [ addProp (JSVar y) (toIndex tb) func ]
-subtype r1@(C.TyRcd l1 t1 _) r2@(C.TyRcd l2 t2 _) x y _ | l1 == l2 = do
+subtype r1@(C.TyRcd l1 t1) r2@(C.TyRcd l2 t2) x y _ | l1 == l2 = do
   x0 <- freshVarName
   y0 <- freshVarName
   j <- subtype t1 t2 x0 y0 true
@@ -609,7 +593,7 @@ unsplit { z, tx: f1@(C.TyForall _ _ t1), ty: f2@(C.TyForall _ _ t2), tz: f@(C.Ty
            <> j <> [ JSReturn $ JSVar y]
       func = JSFunction Nothing [variable a, y] (JSBlock block)
   pure { ast: [ addProp (JSVar z) (toIndex f) func ], x: x1, y: x2 }
-unsplit { z, tx: r1@(C.TyRcd _ t1 _), ty: r2@(C.TyRcd _ t2 _), tz: r@(C.TyRcd _ t _) } = do
+unsplit { z, tx: r1@(C.TyRcd _ t1), ty: r2@(C.TyRcd _ t2), tz: r@(C.TyRcd _ t) } = do
   x1 <- freshVarName
   x2 <- freshVarName
   y <- freshVarName
@@ -634,7 +618,7 @@ toIndex = JSTemplateLiteral <<< fst <<< go Nil
     go _ t | isBaseType t    = toLower (show t) /\ false
     go as (C.TyArrow _ t _)  = lmap ("fun_" <> _) (go as t)
     go as (C.TyForall a _ t) = lmap ("forall_" <> _) (go (a:as) t)
-    go as (C.TyRcd l t _)    = lmap (("rcd_" <> l <> ":") <> _) (go as t)
+    go as (C.TyRcd l t)      = lmap (("rcd_" <> l <> ":") <> _) (go as t)
     go as (C.TyArray t)      = lmap ("array_" <> _) (go as t)
     go as (C.TyRef t)        = lmap ("ref_" <> _) (go as t)
     go as (C.TyVar a) = case a `elemIndex` as of
@@ -683,7 +667,7 @@ equiv t1@(C.TyAnd _ _) t2 = let ts1 = flatten t1
                             all (\t -> isJust $ find (t .=. _) ts1) ts2
 equiv t1 t2@(C.TyAnd _ _) = equiv t2 t1
 equiv (C.TyArrow t1 t2 _) (C.TyArrow t3 t4 _) = t1 .=. t3 && t2 .=. t4
-equiv (C.TyRcd l1 t1 opt1) (C.TyRcd l2 t2 opt2) = l1 == l2 && t1 .=. t2 && opt1 == opt2
+equiv (C.TyRcd l1 t1) (C.TyRcd l2 t2) = l1 == l2 && t1 .=. t2
 equiv (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) = td1 .=. td2 && t1 .=. C.tySubst a2 (C.TyVar a1) t2
 equiv (C.TyRec a1 t1) (C.TyRec a2 t2) = t1 .=. C.tySubst a2 (C.TyVar a1) t2
 equiv (C.TyArray t1) (C.TyArray t2) = t1 .=. t2

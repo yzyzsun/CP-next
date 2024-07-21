@@ -4,14 +4,13 @@ import Prelude
 
 import Control.Monad.Writer (Writer, runWriter, tell)
 import Data.Bifunctor (rmap)
-import Data.Maybe (Maybe(..))
 import Data.Monoid.Endo (Endo(..))
 import Data.Newtype (unwrap)
 import Data.Tuple.Nested (type (/\))
 import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop)
 import Language.CP.Semantics.Subst (cast, isValue, paraApp)
 import Language.CP.Subtyping (isTopLike)
-import Language.CP.Syntax.Core (Tm(..), Ty(..), tmSubst, unfold)
+import Language.CP.Syntax.Core (Tm(..), tmSubst, unfold)
 import Language.CP.Util (unsafeFromJust)
 import Partial.Unsafe (unsafeCrashWith)
 
@@ -61,11 +60,6 @@ step (TmMerge e1 e2)
 step (TmPrj e l)
   | isValue e = computation "PProj" $> selectLabel e l
   | otherwise = congruence  "Proj"  $> TmPrj <*> step e <@> l
-step (TmOptPrj e1 l t e2)
-  | isValue e1 = case cast e1 (TyRcd l t false) of
-                  Just e  -> computation "OptProjL" $> TmPrj e l
-                  Nothing -> computation "OptProjR" $> e2
-  | otherwise = congruence "OptProj" $> TmOptPrj <*> step e1 <@> l <@> t <@> e2
 step (TmTApp e t)
   | isValue e = computation "PTApp" $> paraApp e (TyArg t)
   | otherwise = congruence  "TApp"  $> TmTApp <*> step e <@> t

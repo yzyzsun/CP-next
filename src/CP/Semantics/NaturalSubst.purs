@@ -8,7 +8,7 @@ import Language.CP.Semantics.Common (Arg(..), binop, selectLabel, toString, unop
 import Language.CP.Semantics.Subst (cast, paraApp)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (Tm(..), Ty(..), alloc, done, read, tmSubst, unfold, write)
+import Language.CP.Syntax.Core (Tm(..), alloc, done, read, tmSubst, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = Trampoline
@@ -58,11 +58,6 @@ eval = runTrampoline <<< go
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go (TmRcd l t e) = pure $ TmRcd l t (TmCell (alloc e))
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
-    go (TmOptPrj e1 l t e2) = do
-      e1' <- go e1
-      case cast e1' (TyRcd l t false) of
-        Just e -> go $ TmPrj e l
-        Nothing -> go e2
     go (TmTApp e t) = paraApp <$> go e <@> TyArg t >>= go
     go e@(TmTAbs _ _ _ _ _) = pure e
     go (TmDef x e1 e2) = go $ tmSubst x (TmCell (alloc e1)) e2

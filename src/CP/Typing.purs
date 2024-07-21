@@ -122,11 +122,17 @@ infer (S.TmVar x) = (C.TmVar x /\ _) <$> lookupTmBind x
 infer (S.TmApp e1 e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- infer e2
-  case app t1 t2 of Just t -> pure $ C.TmApp e1' e2' false /\ t
-                    _ -> (C.TmApp e1' e2' true /\ _) <$> distApp t1 (Left t2)
-  where app :: C.Ty -> C.Ty -> Maybe C.Ty
-        app (C.TyArrow targ tret _) t | t === targ = Just tret
-        app _ _ = Nothing
+  case t1 of C.TyArrow targ tret _ | t2 === targ -> pure $ C.TmApp e1' e2' false /\ tret
+                                   | labels@(_:Nil) <- collectOpt targ, t2 `andOpt` labels <: targ ->
+                                       let merge acc l = C.TmMerge acc (C.TmRcd l C.TyUnit C.TmUnit)
+                                           e2'' = foldl merge e2' labels in
+                                       pure $ C.TmApp e1' e2'' false /\ tret
+             _ -> (C.TmApp e1' e2' true /\ _) <$> distApp t1 (Left t2)
+  where collectOpt :: C.Ty -> List Label  -- TODO: collect optional labels in a safer way
+        collectOpt (C.TyAnd t1 t2) = collectOpt t1 <> collectOpt t2
+        collectOpt (C.TyRcd l (C.TyOr _ C.TyUnit)) = singleton l
+        collectOpt _ = Nil
+        andOpt = foldl (\acc l -> C.TyAnd acc (C.TyRcd l C.TyUnit))
 infer (S.TmAbs (S.TmParam x (Just targ) : Nil) e) = do
   targ' <- transform targ
   e' /\ tret <- addTmBind x targ' $ infer e
@@ -192,20 +198,14 @@ infer (S.TmSwitch e alias cases) = do
 infer (S.TmRcd Nil) = pure $ C.TmTop /\ C.TyTop
 infer (S.TmRcd (S.RcdField _ l Nil (Left e) : Nil)) = do
   e' /\ t <- infer e
-  pure $ C.TmRcd l t e' /\ C.TyRcd l t false
+  pure $ C.TmRcd l t e' /\ C.TyRcd l t
 infer (S.TmPrj e l) = do
   e' /\ t <- infer e
   let r /\ tr = case t of C.TyRec _ _ -> C.TmUnfold t e' /\ C.unfold t
                           _ -> e' /\ t
-  case selectLabel tr l false of
+  case selectLabel tr l of
     Just t' -> pure $ C.TmPrj r l /\ t'
     _ -> throwTypeError $ "label" <+> show l <+> "is absent in" <+> show t
-infer (S.TmOptPrj e1 l e2) = do
-  e1' /\ t1 <- infer e1
-  e2' /\ t2 <- infer e2
-  case selectLabel t1 l true of
-    Just t | t2 <: t -> pure $ C.TmOptPrj e1' l t e2' /\ t
-    _ -> throwTypeError $ l <> "'s default value does not match its interface"
 infer (S.TmTApp e ta) = do
   e' /\ tf <- infer e
   ta' <- transform ta
@@ -228,7 +228,7 @@ infer (S.TmOpen e1 e2) = do
   e1' /\ t1 <- infer e1
   let r /\ tr = case t1 of C.TyRec _ _ -> C.TmUnfold t1 e1' /\ C.unfold t1
                            _ -> e1' /\ t1
-      b = foldr (\l s -> (l /\ unsafeFromJust (selectLabel tr l false)) : s)
+      b = foldr (\l s -> (l /\ unsafeFromJust (selectLabel tr l)) : s)
                 Nil (collectLabels tr)
   e2' /\ t2 <- foldr (uncurry addTmBind) (infer e2) b
   -- `open` is the only construct that elaborates to a lazy definition
@@ -248,12 +248,12 @@ infer (S.TmUpdate rcd fields) = do
     pure $ merge updating /\ t
   else throwTypeError $ "cannot safely update the record" <+> show rcd
   where rcdTy :: C.Tm -> C.Ty -> C.Ty
-        rcdTy (C.TmRcd l t _) s = C.TyAnd (C.TyRcd l t false) s
+        rcdTy (C.TmRcd l t _) s = C.TyAnd (C.TyRcd l t) s
         rcdTy _ s = s
 infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
   t' <- transform t
   sig'' /\ sig' <- transform' sig
-  let e2 = inferFromSig sig' ne2
+  e2 <- inferFromSig sig' ne2
   ret /\ tret <- case me1 of
     Just e1 -> do
       -- self may be used in e1 (e.g. trait [self:T] inherits f self => ...)
@@ -280,25 +280,26 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
   else throwTypeError $ "the trait does not implement" <+> show sig
   where
     -- TODO: inference is not complete
-    inferFromSig :: S.Ty -> S.Tm -> S.Tm
+    inferFromSig :: S.Ty -> S.Tm -> Typing S.Tm
     inferFromSig rs@(S.TyAnd _ _) e = inferFromSig (S.TyRcd $ combineRcd rs) e
-    inferFromSig s@(S.TyRec _ ty) e = S.TmFold s (inferFromSig ty e)
-    inferFromSig s (S.TmPos p e) = S.TmPos p (inferFromSig s e)
-    inferFromSig s (S.TmOpen e1 e2) = S.TmOpen e1 (inferFromSig s e2)
+    inferFromSig s@(S.TyRec _ ty) e = S.TmFold s <$> inferFromSig ty e
+    inferFromSig s (S.TmPos p e) = S.TmPos p <$> inferFromSig s e
+    inferFromSig s (S.TmOpen e1 e2) = S.TmOpen e1 <$> inferFromSig s e2
     inferFromSig s (S.TmMerge bias e1 e2) =
-      S.TmMerge bias (inferFromSig s e1) (inferFromSig s e2)
+      S.TmMerge bias <$> inferFromSig s e1 <*> inferFromSig s e2
     inferFromSig (S.TyRcd xs) r@(S.TmRcd (S.RcdField o l Nil (Left e) : Nil)) =
       case last $ filterRcd (_ == l) xs of
-        Just (S.RcdTy _ ty _) ->
-          S.TmRcd (singleton (S.RcdField o l Nil (Left (inferFromSig ty e))))
-        _ -> r
+        Just (S.RcdTy _ ty _) -> do
+          e' <- inferFromSig ty e
+          pure $ S.TmRcd (singleton (S.RcdField o l Nil (Left e')))
+        _ -> pure r
     inferFromSig (S.TyRcd xs)
         (S.TmRcd (S.DefaultPattern pat@(S.MethodPattern _ label _ _) : Nil)) =
-      desugar $ S.TmRcd $ filterRcd (_ `notElem` patterns label) xs <#>
-        \(S.RcdTy l ty _) ->
+      desugar <<< S.TmRcd <$> for (filterRcd (_ `notElem` patterns label) xs)
+        \(S.RcdTy l ty _) -> do
           let params /\ ty' = paramsAndInnerTy ty
-              e = inferFromSig ty' (desugar (deMP pat)) in
-          S.RcdField false l params (Left e)
+          e <- inferFromSig ty' (desugar (deMP pat))
+          pure $ S.RcdField false l params (Left e)
       where patterns :: Label -> Array Label
             patterns l = patternsFromRcd (S.TmMerge S.Neutral (fromMaybe S.TmUnit me1) ne2) l
             patternsFromRcd :: S.Tm -> Label -> Array Label
@@ -322,25 +323,32 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
               (S.TmParam "_" (Just targ) : params) /\ ty
             paramsAndInnerTy ty = Nil /\ ty
     inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.TmParam x mt : Nil) e) =
-      S.TmAbs (singleton (S.TmParam x (mt <|> Just targ))) (inferFromSig tret e)
-    inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.WildCard defaults : Nil) e)
-      -- TODO: better error messages for mismatch
-      | defaults `matchOptional` targ =
-        S.TmAbs (singleton (S.TmParam wildcardName (Just targ)))
-                (open defaults (S.TmOpen wildcardVar (inferFromSig tret e)))
+      S.TmAbs (singleton (S.TmParam x (mt <|> Just targ))) <$> inferFromSig tret e
+    inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.WildCard defaults : Nil) e) =
+      let fields = combineRcd targ in
+      if defaults `matchOptional` fields then do
+        e' <- inferFromSig tret e
+        pure $ S.TmAbs (singleton (S.TmParam wildcardName (Just targ))) (open fields e')
+      else throwTypeError $ "default arguments do not match optional parameters"
       where wildcardName = "$wildcard"
             wildcardVar = S.TmVar wildcardName
             open fields body = foldr letFieldIn body fields
-            letFieldIn (l /\ e1) e2 = S.TmLet l Nil Nil (S.TmOptPrj wildcardVar l e1) e2
-    inferFromSig (S.TyTrait ti to) (S.TmTrait (Just (self' /\ mt)) sig' e1 e2) =
-      let t' = fromMaybe (fromMaybe S.TyTop ti) mt in
-      S.TmTrait (Just (self' /\ Just t')) sig'
-                (inferFromSig to <$> e1) (inferFromSig to e2)
+            letFieldIn (S.RcdTy l tl opt) acc =
+              if opt then let default = unsafeFromJust $ lookup l defaults
+                              cases = (tl /\ S.TmVar l) : (S.TyUnit /\ default) : Nil
+                              switch = S.TmSwitch (S.TmPrj wildcardVar l) (Just l) cases in
+                          S.TmLet l Nil Nil switch acc
+              else S.TmLet l Nil Nil (S.TmPrj wildcardVar l) acc
+    inferFromSig (S.TyTrait ti to) (S.TmTrait (Just (self' /\ mt)) sig' e1 e2) = do
+      let t' = fromMaybe (fromMaybe S.TyTop ti) mt
+      e1' <- traverse (inferFromSig to) e1
+      e2' <- inferFromSig to e2
+      pure $ S.TmTrait (Just (self' /\ Just t')) sig' e1' e2'
     inferFromSig (S.TyForall ((a /\ td) : as) ty) (S.TmTAbs ((a' /\ td') : Nil) e) =
-      S.TmTAbs (singleton (a' /\ (td' <|> td))) (inferFromSig ty' e)
+      S.TmTAbs (singleton (a' /\ (td' <|> td))) <$> inferFromSig ty' e
       where ty' = (if as == Nil then identity else S.TyForall as)
                   (S.tySubst a (S.TyVar a') ty)
-    inferFromSig _ e = e
+    inferFromSig _ e = pure e
     combineRcd :: S.Ty -> S.RcdTyList
     combineRcd (S.TyAnd (S.TyRcd xs) (S.TyRcd ys)) = xs <> ys
     combineRcd (S.TyAnd l (S.TyRcd ys)) = combineRcd l <> ys
@@ -370,13 +378,12 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
                 C.TyTop, _       -> t2'
                 _,       C.TyTop -> t1'
                 _,       _       -> C.TyAnd t1' t2'
-            removeOverride (C.TyRcd l _ _) ls | l `elem` ls = C.TyTop
+            removeOverride (C.TyRcd l _) ls | l `elem` ls = C.TyTop
             removeOverride typ _ = typ
-    matchOptional :: S.DefaultFields -> S.Ty -> Boolean
-    matchOptional def ty = sort labels == sort labels' -- identical up to permutation
+    matchOptional :: S.DefaultFields -> S.RcdTyList -> Boolean
+    matchOptional def rcd = sort labels == sort labels' -- identical up to permutation
       where labels = fst <$> def
-            labels' = foldr (\(S.RcdTy l _ opt) s -> if opt then l : s else s)
-                            Nil (combineRcd ty)
+            labels' = foldr (\(S.RcdTy l _ opt) s -> if opt then l : s else s) Nil rcd
 infer (S.TmTrait (Just (self /\ Nothing)) sig e1 e2) =
   infer $ S.TmTrait (Just (self /\ Just S.TyTop)) sig e1 e2
 infer (S.TmNew e) = do
@@ -402,7 +409,7 @@ infer (S.TmExclude e te) = do
   te' <- transform te
   -- `check` helps to make sure `l` was present in `e` before exclusion,
   -- since the field removal `e \ l` desugars to `e \\ {l : Bot}`
-  let check = case te' of C.TyRcd l C.TyBot false -> checkLabel l
+  let check = case te' of C.TyRcd l C.TyBot -> checkLabel l
                           _ -> const $ pure unit
   case t of
     C.TyArrow ti to true -> do
@@ -416,7 +423,7 @@ infer (S.TmExclude e te) = do
       pure $ C.TmAnno e' d /\ d
   where checkLabel :: Label -> C.Ty -> Typing Unit
         checkLabel l (C.TyAnd t1 t2) = checkLabel l t1 <|> checkLabel l t2
-        checkLabel l (C.TyRcd l' _ _) | l == l' = pure unit
+        checkLabel l (C.TyRcd l' _) | l == l' = pure unit
         checkLabel l _ = throwTypeError $ "label" <+> show l <+> "is absent in" <+> show e
 infer (S.TmRemoval e l) = do
   infer $ S.TmExclude e (S.TyRcd (singleton (S.RcdTy l S.TyBot false)))
@@ -435,14 +442,14 @@ infer (S.TmRename e old new) = do
   case t of
     -- TODO: compiled code does not terminate because (e1^e2) is no more lazy
     C.TyArrow ti _ true ->
-      case selectLabel ti old false of
+      case selectLabel ti old of
         Just tl -> do
           -- e [old <- new] := trait [self] =>
           --   let super = self [new <- old] in
           --   (e ^ super) [old <- new]
           let super = S.TmRename (S.TmVar "$self") new old
               body = S.TmRename (S.TmForward e super) old new
-          tself <- C.TyAnd (C.TyRcd new tl false) <$> tyDiff ti (C.TyRcd old C.TyBot false)
+          tself <- C.TyAnd (C.TyRcd new tl) <$> tyDiff ti (C.TyRcd old C.TyBot)
           ret /\ tret <- addTmBind "$self" tself $ infer body
           pure $ trait "$self" ret tself tret
         Nothing -> do
@@ -594,8 +601,8 @@ disjoint _ t | isTopLike t = pure unit
 disjoint (C.TyArrow _ t1 _) (C.TyArrow _ t2 _) = disjoint t1 t2
 disjoint (C.TyAnd t1 t2) t3 = disjoint t1 t3 *> disjoint t2 t3
 disjoint t1 (C.TyAnd t2 t3) = disjoint (C.TyAnd t2 t3) t1
-disjoint (C.TyRcd l1 t1 _) (C.TyRcd l2 t2 _) | l1 == l2  = disjoint t1 t2
-                                             | otherwise = pure unit
+disjoint (C.TyRcd l1 t1) (C.TyRcd l2 t2) | l1 == l2  = disjoint t1 t2
+                                         | otherwise = pure unit
 disjoint (C.TyVar a) (C.TyVar b) =
   disjointVar a (C.TyVar b) <|> disjointVar b (C.TyVar a)
 disjoint (C.TyVar a) t = disjointVar a t
@@ -637,15 +644,15 @@ transformTyRec t = do
 
 collectLabels :: C.Ty -> Set.Set Label
 collectLabels (C.TyAnd t1 t2) = Set.union (collectLabels t1) (collectLabels t2)
-collectLabels (C.TyRcd l _ false) = Set.singleton l
+collectLabels (C.TyRcd l _) = Set.singleton l
 collectLabels _ = Set.empty
 
-selectLabel :: C.Ty -> Label -> Boolean -> Maybe C.Ty
-selectLabel (C.TyAnd t1 t2) l opt =
-  case selectLabel t1 l opt, selectLabel t2 l opt of
+selectLabel :: C.Ty -> Label -> Maybe C.Ty
+selectLabel (C.TyAnd t1 t2) l =
+  case selectLabel t1 l, selectLabel t2 l of
     Just t1', Just t2' -> Just (C.TyAnd t1' t2')
     Just t1', Nothing  -> Just t1'
     Nothing,  Just t2' -> Just t2'
     Nothing,  Nothing  -> Nothing
-selectLabel (C.TyRcd l' t opt') l opt | l == l' && opt == opt' = Just t
-selectLabel _ _ _ = Nothing
+selectLabel (C.TyRcd l' t) l | l == l' = Just t
+selectLabel _ _ = Nothing

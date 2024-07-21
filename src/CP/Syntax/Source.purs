@@ -86,7 +86,6 @@ data Tm = TmInt Int
         | TmSwitch Tm (Maybe Name) (List (Ty /\ Tm))
         | TmRcd (List RcdField)
         | TmPrj Tm Label
-        | TmOptPrj Tm Label Tm
         | TmTApp Tm Ty
         | TmTAbs TyParamList Tm
         | TmLet Name TyParamList TmParamList Tm Tm
@@ -146,7 +145,6 @@ instance Show Tm where
     intercalate " " (cases <#> \(t /\ e') -> "case" <+> show t <+> "->" <+> show e')
   show (TmRcd xs) = braces $ showRcdTm xs
   show (TmPrj e l) = show e <> "." <> l
-  show (TmOptPrj e1 l e2) = show e1 <> "." <> l <+> "??" <+> show e2
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs xs e) = parens $ "/\\" <> showTyParams xs <> "." <+> show e
   show (TmLet x tyParams tmParams e1 e2) = parens $

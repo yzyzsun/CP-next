@@ -30,8 +30,8 @@ tyDiff m s = simplify <$> diff m s
       else do darg <- diff targ2 targ1
               if isTopLike darg  -- supertype (m :> s)
               then pure $ TyArrow targ1 dret b else throwDiffError
-    diff t@(TyRcd l1 t1 b) (TyRcd l2 t2 _)
-      | l1 == l2  = TyRcd l1 <$> diff t1 t2 <@> b
+    diff t@(TyRcd l1 t1) (TyRcd l2 t2)
+      | l1 == l2  = TyRcd l1 <$> diff t1 t2
       | otherwise = pure t
     diff t@(TyForall a1 td1 t1) (TyForall a2 td2 t2) = do
       d <- diff t1 t2'
@@ -67,9 +67,9 @@ tyMerge (TyAnd _ _) t1 t2 = TyAnd t1 t2
 tyMerge (TyArrow targ tret b) (TyArrow targ1 t1 b1) (TyArrow targ2 t2 b2)
   | targ == targ1 && targ == targ2 && b == b1 && b == b2
   = TyArrow targ (tyMerge tret t1 t2) b
-tyMerge (TyRcd l t b) (TyRcd l1 t1 b1) (TyRcd l2 t2 b2)
-  | l == l1 && l == l2 && b == b1 && b == b2
-  = TyRcd l (tyMerge t t1 t2) b
+tyMerge (TyRcd l t) (TyRcd l1 t1) (TyRcd l2 t2)
+  | l == l1 && l == l2
+  = TyRcd l (tyMerge t t1 t2)
 tyMerge (TyForall a td t) (TyForall a1 td1 t1) (TyForall a2 td2 t2)
   | a == a1 && a == a2 && td == td1 && td == td2
   = TyForall a td (tyMerge t t1 t2)
@@ -84,7 +84,7 @@ simplify t@(TyAnd t1 t2) = case isTopLike t1, isTopLike t2 of
   false, true  -> t1
   false, false -> t
 simplify (TyArrow targ tret b) = TyArrow targ (simplify tret) b
-simplify (TyRcd l t b) = TyRcd l (simplify t) b
+simplify (TyRcd l t) = TyRcd l (simplify t)
 simplify (TyForall a td t) = TyForall a td (simplify t)
 simplify (TyRec a t) = TyRec a (simplify t)
 simplify (TyRef t) = TyRef (simplify t)

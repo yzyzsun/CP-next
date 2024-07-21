@@ -10,7 +10,7 @@ import Language.CP.Semantics.Closure (EvalT, binop', cast, closure, expand, para
 import Language.CP.Semantics.Common (Arg(..), toString)
 import Language.CP.Subtyping (isTopLike)
 import Language.CP.Syntax.Common (BinOp(..))
-import Language.CP.Syntax.Core (EvalBind(..), Tm(..), Ty(..), alloc, done, read, unfold, write)
+import Language.CP.Syntax.Core (EvalBind(..), Tm(..), alloc, done, read, unfold, write)
 import Partial.Unsafe (unsafeCrashWith)
 
 type Eval = EvalT Trampoline
@@ -66,13 +66,6 @@ eval tm = runTrampoline (runReaderT (go tm) empty)
     go (TmMerge e1 e2) = TmMerge <$> go e1 <*> go e2
     go e@(TmRcd _ _ _) = closure e
     go (TmPrj e l) = selectLabel <$> go e <@> l >>= go
-    go (TmOptPrj e1 l t e2) = do
-      e1' <- go e1
-      t' <- expand t
-      s <- cast e1' (TyRcd l t' false)
-      case s of
-        Just e -> go $ TmPrj e l
-        Nothing -> go e2
     go (TmTApp e t) = do
       e' <- go e
       t' <- expand t

@@ -29,7 +29,7 @@ data Ty = TyInt
         | TyArrow Ty Ty Boolean
         | TyAnd Ty Ty
         | TyOr Ty Ty
-        | TyRcd Label Ty Boolean
+        | TyRcd Label Ty
         | TyVar Name
         | TyForall Name Ty Ty
         | TyRec Name Ty
@@ -48,10 +48,7 @@ instance Show Ty where
   show (TyArrow t1 t2 false) = parens $ show t1 <+> "->" <+> show t2
   show (TyAnd t1 t2) = parens $ show t1 <+> "&" <+> show t2
   show (TyOr t1 t2) = parens $ show t1 <+> "|" <+> show t2
-  -- Optional record types can be regarded just as Top, but
-  -- they can help casting keep corresponding fields if present.
-  show (TyRcd l t opt) = braces $
-    l <> (if opt then "?" else "") <+> ":" <+> show t
+  show (TyRcd l t) = braces $ l <+> ":" <+> show t
   show (TyVar a) = a
   show (TyForall a td t) = parens $
     "forall" <+> a <+> "*" <+> show td <> "." <+> show t
@@ -82,7 +79,6 @@ data Tm = TmInt Int
         | TmSwitch Tm Name (List (Ty /\ Tm))
         | TmRcd Label Ty Tm
         | TmPrj Tm Label
-        | TmOptPrj Tm Label Ty Tm
         | TmTApp Tm Ty
         | TmTAbs Name Ty Tm Ty Boolean
         | TmDef Name Tm Tm
@@ -128,7 +124,6 @@ instance Show Tm where
     intercalate " " (cases <#> \(t /\ e') -> "case" <+> show t <+> "->" <+> show e')
   show (TmRcd l _t e) = braces $ l <+> "=" <+> show e
   show (TmPrj e l) = show e <> "." <> l
-  show (TmOptPrj e1 l _t e2) = show e1 <> "." <> l <+> "??" <+> show e2
   show (TmTApp e t) = parens $ show e <+> "@" <> show t
   show (TmTAbs a _td e _t _refined) = parens $ "Λ" <> a <> "." <+> show e
   show (TmDef x e1 e2) = x <+> "=" <+> show e1 <> ";\n" <> show e2
@@ -166,7 +161,7 @@ tyConvert :: HoasEnv -> Ty -> Ty
 tyConvert env (TyArrow t1 t2 b) = TyArrow (tyConvert env t1) (tyConvert env t2) b
 tyConvert env (TyAnd t1 t2) = TyAnd (tyConvert env t1) (tyConvert env t2)
 tyConvert env (TyOr t1 t2) = TyOr (tyConvert env t1) (tyConvert env t2)
-tyConvert env (TyRcd l t opt) = TyRcd l (tyConvert env t) opt
+tyConvert env (TyRcd l t) = TyRcd l (tyConvert env t)
 tyConvert env (TyVar a) = case lookup a env of Just (Right t) -> t
                                                _ -> TyVar a
 tyConvert env (TyForall a td t) = TyForall a (tyConvert env td) (tyConvert env t)
@@ -195,7 +190,6 @@ tmConvert env (TmSwitch e x cases) = TmHSwitch (tmConvert env e)
   (cases <#> \(t /\ e') -> tyConvert env t /\ \tm -> tmConvert (insert x (Left tm) env) e')
 tmConvert env (TmRcd l t e) = TmRcd l (tyConvert env t) (tmConvert env e)
 tmConvert env (TmPrj e l) = TmPrj (tmConvert env e) l
-tmConvert env (TmOptPrj e1 l t e2) = TmOptPrj (tmConvert env e1) l t (tmConvert env e2)
 tmConvert env (TmTApp e t) = TmTApp (tmConvert env e) (tyConvert env t)
 tmConvert env (TmTAbs a td e t b) =
   TmHTAbs (\ty -> tmConvert (insert a (Right ty) env) e)
@@ -221,7 +215,7 @@ tySubst :: Name -> Ty -> Ty -> Ty
 tySubst a s (TyArrow t1 t2 b) = TyArrow (tySubst a s t1) (tySubst a s t2) b
 tySubst a s (TyAnd t1 t2) = TyAnd (tySubst a s t1) (tySubst a s t2)
 tySubst a s (TyOr t1 t2) = TyOr (tySubst a s t1) (tySubst a s t2)
-tySubst a s (TyRcd l t opt) = TyRcd l (tySubst a s t) opt
+tySubst a s (TyRcd l t) = TyRcd l (tySubst a s t)
 tySubst a s (TyVar a') | a == a' = s
 tySubst a s (TyForall a' td t) =
   TyForall a' (tySubst a s td) (if a == a' then t else tySubst a s t)
@@ -250,8 +244,6 @@ tmSubst x v (TmSwitch e x' cases) = TmSwitch (tmSubst x v e) x'
   (if x == x' then cases else cases <#> \(t /\ e') -> t /\ tmSubst x v e')
 tmSubst x v (TmRcd l t e) = TmRcd l t (tmSubst x v e)
 tmSubst x v (TmPrj e l) = TmPrj (tmSubst x v e) l
-tmSubst x v (TmOptPrj e1 l t e2) =
-  TmOptPrj (tmSubst x v e1) l t (tmSubst x v e2)
 tmSubst x v (TmTApp e t) = TmTApp (tmSubst x v e) t
 tmSubst x v (TmTAbs a td e t b) = TmTAbs a td (tmSubst x v e) t b
 tmSubst x v (TmDef x' e1 e2) =
@@ -282,8 +274,6 @@ tmTSubst a s (TmSwitch e x cases) = TmSwitch (tmTSubst a s e) x
   (cases <#> \(t /\ e') -> tySubst a s t /\ tmTSubst a s e')
 tmTSubst a s (TmRcd l t e) = TmRcd l (tySubst a s t) (tmTSubst a s e)
 tmTSubst a s (TmPrj e l) = TmPrj (tmTSubst a s e) l
-tmTSubst a s (TmOptPrj e1 l t e2) =
-  TmOptPrj (tmTSubst a s e1) l (tySubst a s t) (tmTSubst a s e2)
 tmTSubst a s (TmTApp e t) = TmTApp (tmTSubst a s e) (tySubst a s t)
 tmTSubst a s (TmTAbs a' td e t b) =
   if a == a' then tabs e t b else tabs (tmTSubst a s e) (tySubst a s t) b

@@ -54,13 +54,6 @@ step (TmMerge e1 e2) | isValue e1 = TmMerge e1 <$> step e2
 step rcd@(TmRcd _ _ _) = closure rcd
 step (TmPrj e l) | isValue e = pure $ selectLabel e l
                  | otherwise = TmPrj <$> step e <@> l
-step (TmOptPrj e1 l t e2)
-  | isValue e1 = do
-      t' <- expand t
-      s <- cast e1 (TyRcd l t' false)
-      case s of Just e -> pure $ TmPrj e l
-                Nothing -> pure e2
-  | otherwise = TmOptPrj <$> step e1 <@> l <@> t <@> e2
 step (TmTApp e t) | isValue e = paraApp e <<< TyArg <$> expand t
                   | otherwise = TmTApp <$> step e <@> t
 step tabs@(TmTAbs _ _ _ _ _) = closure tabs
@@ -86,14 +79,7 @@ cast tm ty = runMaybeT $ go tm ty
     go :: Tm -> Ty -> MaybeT (EvalT m) Tm
     go e _ | not (isValue e) = unsafeCrashWith $
       "CP.Semantics.Closure.cast: " <> show e <> " is not a value"
-    go v t | Just (t1 /\ t2) <- split t = do
-      let m1 = isOptionalRcd t1
-          m2 = isOptionalRcd t2
-          v1 = go v t1
-          v2 = go v t2
-      (TmMerge <$> v1 <*> v2) <|> (m1 *> v2) <|> (m2 *> v1) <|> (m1 *> m2)
-      where isOptionalRcd (TyRcd _ _ true) = pure TmTop
-            isOptionalRcd _ = empty
+    go v t | Just (t1 /\ t2) <- split t = TmMerge <$> go v t1 <*> go v t2
     go _ t | isTopLike t = pure $ genTopLike t
     go (TmMerge v1 v2) t = go v1 t <|> go v2 t
     go (TmInt i)    TyInt    = pure $ TmInt i
@@ -102,7 +88,7 @@ cast tm ty = runMaybeT $ go tm ty
     go (TmBool b)   TyBool   = pure $ TmBool b
     go TmUnit       TyUnit   = pure TmUnit
     go (TmFold t v) t'@(TyRec _ _) | t <: t' = pure $ TmFold t' v
-    go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2 _) = do
+    go (TmClosure env (TmRcd l1 t1 e)) (TyRcd l2 t2) = do
       t1' <- lift $ local (const env) $ expand t1
       if l1 == l2 && t1' <: t2 then pure $ TmClosure env (TmRcd l2 t2 e)
                                else empty
@@ -166,7 +152,7 @@ binop' op v1 v2 = binop op v1 v2
 expand :: forall m. Monad m => Ty -> EvalT m Ty
 expand (TyArrow t1 t2 isTrait) = TyArrow <$> expand t1 <*> expand t2 <@> isTrait
 expand (TyAnd t1 t2) = TyAnd <$> expand t1 <*> expand t2
-expand (TyRcd l t opt) = TyRcd l <$> expand t <@> opt
+expand (TyRcd l t) = TyRcd l <$> expand t
 expand (TyVar a) = ask >>= \env -> case lookup a env of
   Just (TyBind Nothing) -> pure $ TyVar a
   Just (TyBind (Just t)) -> expand t
