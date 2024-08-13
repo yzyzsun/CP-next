@@ -10,10 +10,10 @@ subtype :: Ty -> Ty -> Boolean
 subtype TyBot _ = true
 subtype _ t | isTopLike t = true
 subtype t1 t2 | Just (t3 /\ t4) <- split t2 = t1 <: t3 && t1 <: t4
-subtype (TyAnd t1 t2) t3 = t1 <: t3 || t2 <: t3
 -- TODO: add distributive subtyping to unions types
 subtype (TyOr t1 t2) t3 = t1 <: t3 && t2 <: t3
 subtype t1 (TyOr t2 t3) = t1 <: t2 || t1 <: t3
+subtype (TyAnd t1 t2) t3 = t1 <: t3 || t2 <: t3
 subtype (TyArrow targ1 tret1 _) (TyArrow targ2 tret2 _) = targ2 <: targ1 &&
                                                           tret1 <: tret2
 subtype (TyRcd l1 t1) (TyRcd l2 t2) = l1 == l2 && t1 <: t2

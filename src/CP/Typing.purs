@@ -123,7 +123,7 @@ infer (S.TmApp e1 e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- infer e2
   case t1 of C.TyArrow targ tret _ | t2 === targ -> pure $ C.TmApp e1' e2' false /\ tret
-                                   | labels@(_:Nil) <- collectOpt targ, t2 `andOpt` labels <: targ ->
+                                   | labels@(_:_) <- collectOpt targ, t2 `andOpt` labels <: targ ->
                                        let merge acc l = C.TmMerge acc (C.TmRcd l C.TyUnit C.TmUnit)
                                            e2'' = foldl merge e2' labels in
                                        pure $ C.TmApp e1' e2'' false /\ tret
