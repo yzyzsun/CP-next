@@ -11,7 +11,6 @@ import Data.String (Pattern(..), codePointFromChar, stripPrefix, takeWhile, trim
 import Data.Traversable (for_)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
-import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Console (log, time, timeEnd)
 import Effect.Exception (throw)
@@ -25,7 +24,7 @@ import REPL (preprocess)
 import Test.Spec (it)
 import Test.Spec.Assertions (expectError, fail, shouldReturn)
 import Test.Spec.Reporter (consoleReporter)
-import Test.Spec.Runner (runSpec)
+import Test.Spec.Runner.Node (runSpecAndExitProcess)
 
 testDir :: FilePath
 testDir = "examples"
@@ -53,7 +52,7 @@ check code = case mexpected of
 main :: Effect Unit
 main = do
   files <- testFiles
-  launchAff_ $ runSpec [consoleReporter] do
+  runSpecAndExitProcess [consoleReporter] do
     for_ files \f -> it f do
       raw <- Aff.readTextFile UTF8 $ concat [testDir, f]
       liftEffect do
