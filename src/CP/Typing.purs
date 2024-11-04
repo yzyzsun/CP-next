@@ -541,7 +541,7 @@ checkDef (S.TyDef def a sorts params t) = do
         Right t' -> modify_ \st -> st { tyAliases = (a /\ sig (S.TyRec a t')) : st.tyAliases }
                                                 -- TODO: S.TyRec a (sig t')
     S.InterfaceExtends super -> do
-      checkDef $ S.TyDef S.Interface (a <> "_") sorts params t
+      checkDef $ S.TyDef S.Interface (a <> "_") sorts params (S.tySubst a (S.TyVar (a <> "_")) t)
       let self = S.TyVar (a <> "_") # withSorts # withParams
       checkDef $ S.TyDef S.TypeAlias a sorts params (S.TyAnd super self)
   where
