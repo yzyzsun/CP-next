@@ -21,8 +21,8 @@ import Parsing (Position(..))
 
 type Typing = ReaderT Ctx (Except TypeError)
 
-type Ctx = { tmBindEnv  :: Map Name C.Ty -- typing
-           , tyBindEnv  :: Map Name C.Ty -- disjointness
+type Ctx = { tmBindEnv  :: Map Name S.Ty -- typing
+           , tyBindEnv  :: Map Name S.Ty -- disjointness
            , tyAliasEnv :: Map Name S.Ty -- synonym
            , sortEnv    :: Map Name Name -- distinguishing
            , pos :: Pos
@@ -42,14 +42,14 @@ emptyCtx =  { tmBindEnv  : empty
 runTyping :: forall a. Typing a -> Ctx -> Either TypeError a
 runTyping m ctx = runExcept $ runReaderT m ctx
 
-lookupTmBind :: Name -> Typing C.Ty
+lookupTmBind :: Name -> Typing S.Ty
 lookupTmBind name = do
   env <- asks (_.tmBindEnv)
   case lookup name env of
     Just t -> pure t
     Nothing -> throwTypeError $ "term variable " <> show name <> " is undefined"
 
-lookupTyBind :: Name -> Typing (Maybe C.Ty)
+lookupTyBind :: Name -> Typing (Maybe S.Ty)
 lookupTyBind name = lookup name <$> asks (_.tyBindEnv)
 
 lookupTyAlias :: Name -> Typing (Maybe S.Ty)
@@ -63,10 +63,10 @@ addToEnv :: forall a b. ((Map Name b -> Map Name b) -> Ctx -> Ctx) ->
 addToEnv map name ty = if name == "_" then identity
                        else local (map (insert name ty))
 
-addTmBind :: forall a. Name -> C.Ty -> Typing a -> Typing a
+addTmBind :: forall a. Name -> S.Ty -> Typing a -> Typing a
 addTmBind = addToEnv \f r -> r { tmBindEnv = f r.tmBindEnv }
 
-addTyBind :: forall a. Name -> C.Ty -> Typing a -> Typing a
+addTyBind :: forall a. Name -> S.Ty -> Typing a -> Typing a
 addTyBind = addToEnv \f r -> r { tyBindEnv = f r.tyBindEnv }
 
 addTyAlias :: forall a. Name -> S.Ty -> Typing a -> Typing a
@@ -107,7 +107,7 @@ data Mode = SmallStep | StepTrace | Elaborate | BigStep | HOAS | Closure
 derive instance Generic Mode _
 instance Show Mode where show = genericShow
 
-type TmBindings = List (Name /\ C.Ty /\ (C.Tm -> C.Tm))
+type TmBindings = List (Name /\ S.Ty /\ (C.Tm -> C.Tm))
 type TyAliases = List (Name /\ S.Ty)
 
 type REPLState =  { mode       :: Mode

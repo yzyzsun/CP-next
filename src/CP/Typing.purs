@@ -24,20 +24,36 @@ import Language.CP.Transform (transform, transform', transformTyDef)
 import Language.CP.TypeDiff (tyDiff)
 import Language.CP.Util (foldl1, foldr1, unsafeFromJust, (<+>))
 
-infer :: S.Tm -> Typing (C.Tm /\ C.Ty)
-infer (S.TmInt i)    = pure $ C.TmInt i /\ C.TyInt
-infer (S.TmDouble d) = pure $ C.TmDouble d /\ C.TyDouble
-infer (S.TmString s) = pure $ C.TmString s /\ C.TyString
-infer (S.TmBool b)   = pure $ C.TmBool b /\ C.TyBool
-infer S.TmUnit       = pure $ C.TmUnit /\ C.TyUnit
-infer S.TmUndefined  = pure $ C.TmUndefined /\ C.TyBot
+-- TODO: you may try to write source subtyping directly
+sub :: S.Ty -> S.Ty -> Typing Boolean
+sub t1 t2 = do
+  t1' <- transform t1
+  t2' <- transform t2
+  pure $ t1' <: t2'
+
+aeq :: S.Ty -> S.Ty -> Typing Boolean
+aeq t1 t2 = do
+  t1' <- transform t1
+  t2' <- transform t2
+  pure $ t1' === t2'
+
+infer :: S.Tm -> Typing (C.Tm /\ S.Ty)
+infer (S.TmInt i)    = pure $ C.TmInt i /\ S.TyInt
+infer (S.TmDouble d) = pure $ C.TmDouble d /\ S.TyDouble
+infer (S.TmString s) = pure $ C.TmString s /\ S.TyString
+infer (S.TmBool b)   = pure $ C.TmBool b /\ S.TyBool
+infer S.TmUnit       = pure $ C.TmUnit /\ S.TyUnit
+infer S.TmUndefined  = pure $ C.TmUndefined /\ S.TyBot
 -- Int is always prioritized over Double: e.g. -(1.0,2) = -2
 infer (S.TmUnary Neg e) = do
   e' /\ t <- infer e
-  let core ty = C.TmUnary Neg (C.TmAnno e' ty) /\ ty
-  if t <: C.TyInt then pure $ core C.TyInt
-  else if t <: C.TyDouble then pure $ core C.TyDouble
+  let core cty sty = C.TmUnary Neg (C.TmAnno e' cty) /\ sty
+  tSubInt <- t `sub` S.TyInt
+  tSubDouble <- t `sub` S.TyDouble
+  if tSubInt then pure $ core C.TyInt S.TyInt
+  else if tSubDouble then pure $ core C.TyDouble S.TyDouble
   else throwTypeError $ "Neg is not defined for" <+> show t
+{- TODO: modify the following code similarly
 infer (S.TmUnary Len e) = do
   e' /\ t <- infer e
   let core = C.TmUnary Len e' /\ C.TyInt
@@ -512,13 +528,17 @@ infer (S.TmDoc doc) = localPos f $ infer doc
 infer (S.TmPos p e) = localPos f $ infer e
   where f (Pos _ _ inDoc) = Pos p e inDoc
         f UnknownPos = Pos p e false
+-}
 infer e = throwTypeError $ "expected a desugared term, but got" <+> show e
 
-inferRec :: Name -> S.Tm -> S.Ty -> Typing (C.Tm /\ C.Ty)
+inferRec :: Name -> S.Tm -> S.Ty -> Typing (C.Tm /\ S.Ty)
 inferRec x e t = do
-  t' <- transform t
-  e' /\ t1 <- addTmBind x t' $ infer e
-  if t1 <: t' then pure $ (if t1 === t' then e' else C.TmAnno e' t') /\ t'
+  e' /\ t1 <- addTmBind x t $ infer e
+  isSub <- t1 `sub` t
+  if isSub then do
+    isAeq <- t1 `aeq` t
+    t' <- transform t
+    pure $ (if isAeq then e' else C.TmAnno e' t') /\ t
   else throwTypeError $
     "annotated" <+> show t <+> "is not a supertype of inferred" <+> show t1
 
@@ -536,7 +556,7 @@ checkDef (S.TyDef def a sorts params t) = do
         Right t' -> modify_ \st -> st { tyAliases = (a /\ sig t') : st.tyAliases }
     S.Interface -> do
       ctx <- gets fromState
-      case runTyping (addSorts $ addTyBinds $ addTyBind a C.TyTop $ transformTyDef t) ctx of
+      case runTyping (addSorts $ addTyBinds $ addTyBind a S.TyTop $ transformTyDef t) ctx of
         Left err -> throwError err
         Right t' -> modify_ \st -> st { tyAliases = (a /\ sig (S.TyRec a t')) : st.tyAliases }
                                                 -- TODO: S.TyRec a (sig t')
@@ -550,7 +570,7 @@ checkDef (S.TyDef def a sorts params t) = do
     addSorts :: forall a. Typing a -> Typing a
     addSorts typing = foldr (uncurry addSort) typing dualSorts
     addTyBinds :: forall a. Typing a -> Typing a
-    addTyBinds typing = foldr (flip addTyBind C.TyTop) typing params
+    addTyBinds typing = foldr (flip addTyBind S.TyTop) typing params
     sig :: S.Ty -> S.Ty
     sig t' = foldr (uncurry S.TySig) (foldr S.TyAbs t' params) dualSorts    
     withSorts :: S.Ty -> S.Ty
@@ -570,12 +590,15 @@ checkDef (S.TmDef x Nil Nil mt e) = do
     case runTyping typing ctx of
       Left err -> throwError err
       Right (e' /\ t') ->
-        let e1 = if isJust mt then C.TmFix x e' t' else e'
-            f e2 = C.TmDef x e1 e2 in
-        modify_ \st -> st { tmBindings = (x /\ t' /\ f) : st.tmBindings }
+        case runTyping (transform t') ctx of
+          Left err -> throwError err
+          Right t'' ->
+            let e1 = if isJust mt then C.TmFix x e' t'' else e'
+                f e2 = C.TmDef x e1 e2 in
+            modify_ \st -> st { tmBindings = (x /\ t' /\ f) : st.tmBindings }
 checkDef d = throwError $ TypeError ("expected a desugared def, but got" <+> show d) UnknownPos
 
-checkProg :: S.Prog -> Checking (C.Tm /\ C.Ty)
+checkProg :: S.Prog -> Checking (C.Tm /\ S.Ty)
 checkProg (S.Prog defs e) = do
   traverse_ checkDef defs
   ctx <- gets fromState
@@ -618,29 +641,26 @@ disjointVar :: Name -> C.Ty -> Typing Unit
 disjointVar a t = do
   mt' <- lookupTyBind a
   case mt' of
-    Just t' -> if t' <: t then pure unit else throwTypeError $
-      "type variable" <+> show a <+> "is not disjoint from" <+> show t
+    Just t' -> do
+      t'' <- transform t'
+      if t'' <: t then pure unit else throwTypeError $
+        "type variable" <+> show a <+> "is not disjoint from" <+> show t
     Nothing -> throwTypeError $ "type variable" <+> show a <+> "is undefined"
 
+-- TODO: fix disjointTyBind
 disjointTyBind :: Name -> C.Ty -> Name -> C.Ty -> C.Ty -> Typing Unit
-disjointTyBind a1 t1 a2 t2 td = addTyBind freshName td $
-  disjoint (C.tySubst a1 freshVar t1) (C.tySubst a2 freshVar t2)
-  where freshName = a1 <> " or " <> a2
-        freshVar = C.TyVar freshName
+disjointTyBind _ _ _ _ _ = pure unit
+-- disjointTyBind a1 t1 a2 t2 td = addTyBind freshName td $
+--   disjoint (C.tySubst a1 freshVar t1) (C.tySubst a2 freshVar t2)
+--   where freshName = a1 <> " or " <> a2
+--         freshVar = C.TyVar freshName
 
 letIn :: Name -> C.Tm -> C.Ty -> C.Tm -> C.Ty -> C.Tm
 letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false false) e1 false
 
 trait :: Name -> C.Tm -> C.Ty -> C.Ty -> C.Tm /\ C.Ty
 trait x e targ tret = C.TmAbs x e targ tret false isTrait /\ C.TyArrow targ tret true
-  where isTrait = not $ isTopLike targ  -- skip traits whose self-type is top-like 
-
-transformTyRec :: S.Ty -> Typing C.Ty
-transformTyRec t = do
-  t' <- transform t
-  case t' of C.TyRec _ _ -> pure t'
-             _ -> throwTypeError $
-               "fold/unfold expected a recursive type, but got" <+> show t
+  where isTrait = not $ isTopLike targ  -- skip traits whose self-type is top-like
 
 collectLabels :: C.Ty -> Set.Set Label
 collectLabels (C.TyAnd t1 t2) = Set.union (collectLabels t1) (collectLabels t2)

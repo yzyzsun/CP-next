@@ -35,10 +35,7 @@ translate (S.TyForall xs t) =
   where disjointness :: Maybe S.Ty -> Typing C.Ty
         disjointness (Just s) = translate s
         disjointness Nothing  = pure C.TyTop
-translate (S.TyDiff t1 t2) = do
-  t1' <- translate t1
-  t2' <- translate t2
-  tyDiff t1' t2'
+translate (S.TyDiff t1 t2) = tyDiff t1 t2 >>= translate
 
 translate S.TyInt    = pure C.TyInt
 translate S.TyDouble = pure C.TyDouble
@@ -63,8 +60,8 @@ translate t = throwTypeError $ "expected an expanded type, but got" <+> show t
 
 -- We don't need to check disjointness in the process of type expansion,
 -- so a placeholder of core types will be added to TyBindEnv.
-someTy :: C.Ty
-someTy = C.TyTop
+someTy :: S.Ty
+someTy = S.TyTop
 
 -- type-level beta-reduction is also done here
 expand :: S.Ty -> Typing S.Ty
