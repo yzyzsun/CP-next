@@ -1252,10 +1252,12 @@ Inductive ord : typ -> Prop :=    (* defn ord *)
 
 (* defns Disjoint *)
 Inductive disjoint : typ -> typ -> Prop :=    (* defn disjoint *)
- | D_topL : forall (A:typ),
-     disjoint typ_top A
- | D_topR : forall (A:typ),
-     disjoint A typ_top
+ | D_topL : forall (A B:typ),
+     toplike A ->
+     disjoint A B
+ | D_topR : forall (B A:typ),
+     toplike A ->
+     disjoint B A
  | D_andL : forall (A1 A2 B:typ),
      disjoint A1 B ->
      disjoint A2 B ->

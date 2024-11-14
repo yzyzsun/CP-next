@@ -667,7 +667,7 @@ Proof with eauto using incl_refl.
 Qed.
 
 (* topLike specification eqv *)
-Lemma toplike_super_top: forall A,
+Theorem toplike_super_top: forall A,
     toplike A <-> sub typ_top A.
 Proof with eauto.
   split; intros H.
@@ -681,14 +681,6 @@ Proof.
   intros. apply toplike_super_top.
   eauto.
 Qed.
-
-(*
-Lemma sub_transtivity : forall A B C,
-    sub A B -> sub B C -> sub A C.
-Proof with eauto.
-  introv S1 S2. gen C.
-  induction* S1; intros; try solve [ induction* S2 ].
-Abort. NO NEED TO PROVE *)
 
 Lemma toplike_covariance : forall A B,
     toplike A -> sub A B -> toplike B.
@@ -705,6 +697,7 @@ Lemma disjoint_andl_inv: forall A1 A2 B,
     disjoint (typ_and A1 A2) B -> disjoint A1 B /\ disjoint A2 B.
 Proof.
   introv HD. inductions HD; eauto.
+  all: try solve [inverts* H].
   - forwards*: IHHD1. forwards*: IHHD2.
 Qed.
 
@@ -712,6 +705,7 @@ Lemma disjoint_andr_inv: forall B A1 A2,
     disjoint B (typ_and A1 A2) -> disjoint B A1 /\ disjoint B A2.
 Proof.
   introv HD. inductions HD; eauto.
+  all: try solve [inverts* H].
   - forwards*: IHHD1. forwards*: IHHD2.
 Qed.
 
@@ -727,7 +721,8 @@ Lemma disjoint_sub_conflict_1 : forall A B,
 Proof with try solve_by_invert; eauto using super_top_toplike.
   introv HD HS. induction HS...
   all: try solve [ inverts* HD ].
-  - inverts* HD. false* H0.
+  all: try solve [ inverts* HD ; inverts* H ].
+  - inverts* HD. inverts* H. false* H0.
   - forwards*: disjoint_andl_inv HD.
   - forwards*: disjoint_andl_inv HD.
   - forwards*: disjoint_andr_inv HD.
@@ -739,6 +734,25 @@ Proof with eauto using disjoint_symm.
   introv HD HS.
   applys disjoint_sub_conflict_1 HS...
 Qed.
+
+Lemma disjoint_covariance : forall A B C,
+    disjoint A B -> sub A C -> disjoint C B.
+Proof with eauto using disjoint_symm.
+  introv HD HS.
+  induction* HS.
+  all: try solve [ forwards* (?&?): disjoint_andl_inv HD ].
+  all: try solve [ inverts* HD ].
+  - inverts HD...
+    + inverts H.
+      apply toplike_super_top in H1.
+      eauto using toplike_covariance.
+    + applys disjoint_sub_conflict_1 HS...
+Qed.
+
+Theorem disjoint2disjointSpec : forall A B,
+    disjoint A B -> disjointSpec A B.
+Proof.
+
 
 Corollary st_eq_disjoint : forall A B,
     || A || = || B || -> disjoint A B -> toplike A /\ toplike B.

@@ -379,13 +379,14 @@ Disjoint :: '' ::=
   {{ com Type Disjointness (Algorithmic) }}
   by
 
-
+  toplike A
   --------------- :: topL
-  Top * A
+  A * B
 
 
+  toplike A
   ------------------ :: topR
-  A * Top
+  B * A
 
 
   A1 * B

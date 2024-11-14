@@ -64,13 +64,17 @@ We apologize that we have not automated the modifications so far.
 
 ## Correspondence Guide
 
-| Theorem in Paper                                | File                     | Name in Coq                                                                                          |
-| ----------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------- |
-| Lemma 5.1 (Equivalent types in lookups)         | `TargetTypeSafety.v`     | `lookup_ST_eq_some` / `lookup_eq`                                                                    |
-| Theorem 5.2 (Progress)                          | `TargetTypeSafety.v`     | `progress`                                                                                           |
-| Lemma 5.3 (Substitution preserves typing)       | `TargetTypeSafety.v`     | `substitution_preserves_typing_relax`                                                                |
-| Theorem 5.4 (Type preservation)                 | `TargetTypeSafety.v`     | `preservation`                                                                                       |
-| Lemma 5.7 (Translation)                         | `Translation.v`          | `st_eq_arrow` / `st_eq_rcd`                                                                          |
-| Lemma 5.8 (Equivalent types)                    | `Translation.v`          | `lookup_sub` / `eqIndTyp_sound_alt_gen` / `sub_source2target`                                        |
-| Lemma 5.9 (Well-formedness of translated types) | `Translation.v`          | `ttyp_trans_wf`                                                                                      |
-| Theorem 5.10 (Elaboration soundness)            | `ElaborationSoundness.v` | `cosub_well_typed` / `distapp_well_typed_app` / `distapp_well_typed_proj` / `elaboration_well_typed` |
+| Theorem in Paper                          | File                 | Name in Coq                           |   |
+|-------------------------------------------|----------------------|---------------------------------------|---|
+| Lemma 5.1 (Equivalent types in lookups)   | `TargetTypeSafety.v` | `lookup_ST_eq_some` / `lookup_eq`     |   |
+| Theorem 5.2 (Progress)                    | `TargetTypeSafety.v` | `progress`                            |   |
+| Lemma 5.3 (Substitution preserves typing) | `TargetTypeSafety.v` | `substitution_preserves_typing_relax` |   |
+| Theorem 5.4 (Type preservation)           | `TargetTypeSafety.v` | `preservation`                        |   |
+| Definition 5.5 (Top-like types)           | `Translation.v`      | `toplike_super_top`           |   |
+| Definition 5.6 (Type disjointness)        | `Translation.v`      | `st_eq_arrow` / `st_eq_rcd`           |   |
+
+
+| Lemma 5.7 (Translation)                         | `Translation.v`          | `st_eq_arrow` / `st_eq_rcd`                                                                          |   |
+| Lemma 5.8 (Equivalent types)                    | `Translation.v`          | `lookup_sub` / `eqIndTyp_sound_alt_gen` / `sub_source2target`                                        |   |
+| Lemma 5.9 (Well-formedness of translated types) | `Translation.v`          | `ttyp_trans_wf`                                                                                      |   |
+| Theorem 5.10 (Elaboration soundness)            | `ElaborationSoundness.v` | `cosub_well_typed` / `distapp_well_typed_app` / `distapp_well_typed_proj` / `elaboration_well_typed` |   |
