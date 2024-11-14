@@ -28,11 +28,10 @@ desugar (TmRcd xs) =
       RcdField o l Nil $ Left $ desugar $ TmAbs p $ either identity deMP f
     -- desugaring of default patterns is done in `inferFromSig`
     desugarField def@(DefaultPattern _) = def
-desugar (TmTrait (Just (x /\ t)) sig e1 e2) =
-  TmTrait (Just (x /\ (t <|> sig))) (sig <|> Just TyTop)
-          (desugar <$> e1) (desugar e2)
-desugar (TmTrait Nothing sig e1 e2) =
-  desugar (TmTrait (Just ("$self" /\ Just TyTop)) sig e1 e2)
+desugar (TmTrait self sig e1 e2) =
+  let xt = case self of Just (x /\ t) -> x /\ (t <|> sig)
+                        Nothing -> "$self" /\ Nothing in
+  TmTrait (Just xt) (sig <|> Just TyTop) (desugar <$> e1) (desugar e2)
 desugar (TmLet x tyParams tmParams e1 e2) =
   TmLet x Nil Nil (desugar (TmTAbs tyParams (TmAbs tmParams e1))) (desugar e2)
 desugar (TmLetrec x tyParams tmParams t e1 e2) =
