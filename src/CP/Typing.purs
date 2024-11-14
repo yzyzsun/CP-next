@@ -610,7 +610,7 @@ disjoint t (C.TyVar a) = disjointVar a t
 disjoint (C.TyForall a1 td1 t1) (C.TyForall a2 td2 t2) =
   disjointTyBind a1 t1 a2 t2 (C.TyAnd td1 td2)
 disjoint (C.TyRec a1 t1) (C.TyRec a2 t2) = disjointTyBind a1 t1 a2 t2 C.TyBot
-disjoint t1 t2 | t1 /= t2  = pure unit
+disjoint t1 t2 | t1 /= t2 && t1 /= C.TyBot && t2 /= C.TyBot = pure unit
                | otherwise = throwTypeError $
   "expected two disjoint types, but got" <+> show t1 <+> "and" <+> show t2
 
