@@ -739,19 +739,43 @@ Lemma disjoint_covariance : forall A B C,
     disjoint A B -> sub A C -> disjoint C B.
 Proof with eauto using disjoint_symm.
   introv HD HS.
-  induction* HS.
-  all: try solve [ forwards* (?&?): disjoint_andl_inv HD ].
-  all: try solve [ inverts* HD ].
-  - inverts HD...
-    + inverts H.
-      apply toplike_super_top in H1.
+  gen A C. induction B; intros...
+  - induction* HS;
+      try forwards* (?&?): disjoint_andl_inv HD.
+    + inverts* HD.
       eauto using toplike_covariance.
-    + applys disjoint_sub_conflict_1 HS...
+    + inverts* HD.
+      eauto using toplike_covariance.
+  - induction* HS;
+      try forwards* (?&?): disjoint_andl_inv HD.
+  - induction* HS;
+      try forwards* (?&?): disjoint_andl_inv HD.
+    inverts* HD.
+    + eauto using toplike_covariance.
+  - forwards* (?&?): disjoint_andr_inv HD.
+  - induction* HS;
+      try forwards* (?&?): disjoint_andl_inv HD.
+    inverts* HD.
+    + eauto using toplike_covariance.
 Qed.
 
-Theorem disjoint2disjointSpec : forall A B,
+Theorem disjoint_soundness : forall A B,
     disjoint A B -> disjointSpec A B.
 Proof.
+  introv HD. unfold disjointSpec.
+  intros.
+  forwards HD1: disjoint_covariance HD H.
+  forwards*: disjoint_sub_conflict_2 HD1.
+Qed.
+
+Theorem disjoint_completeness : forall A B,
+    disjointSpec A B -> disjoint A B.
+Proof.
+  introv HD. unfold disjointSpec in HD.
+  induction* A.
+  - assert (toplike B).
+    applys* HD. Search (sub typ_bot _).
+  induction* B.
 
 
 Corollary st_eq_disjoint : forall A B,
