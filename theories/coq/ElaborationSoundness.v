@@ -244,6 +244,188 @@ Proof.
     eauto using split_toplike.
 Qed.
 
+(** *********************************** *)
+#[local] Hint Constructors esub : core.
+
+Theorem esub_is_term_erased_cosub_1 : forall A B,
+    (exists t1 t2, cosub t1 A B t2) -> esub A B.
+Proof with elia.
+  intros. destruct_conj. gen x x0.
+    indTypSize (size_typ A + size_typ B).
+    destruct* H.
+    + { pick fresh x.
+        forwards* (Hx1&Hx2): H1 x.
+        forwards: IH Hx1... forwards: IH Hx2... applys* ES_Arrow. }
+    + { forwards: IH H1... eauto. }
+    + { forwards: IH H0... eauto. }
+    + { forwards: IH H0... eauto. }
+    + { forwards: IH H0... forwards: IH H1... eauto. }
+Qed.
+
+Lemma comerge_lc_texp : forall t1 A t2 B C t3,
+    comerge t1 A t2 B C t3 -> lc_texp t3.
+Proof with elia.
+  introv HC. gen t1 t2 t3 A B.
+  indTypSize (size_typ C).
+  destruct* HC.
+  - { econstructor. pick fresh x. forwards* Hx: H1 x.
+      forwards: IH Hx...
+      applys* lc_texp_abs_exists. eauto. }
+  - { econstructor. pick fresh x. forwards* Hx: H2 x.
+      forwards: IH Hx...
+      applys* lc_texp_abs_exists. eauto. }
+  - { econstructor. pick fresh x. forwards* Hx: H2 x.
+      forwards: IH Hx...
+      applys* lc_texp_abs_exists. eauto. }
+  - repeat econstructor; forwards~: IH HC...
+  - repeat econstructor; forwards~: IH HC...
+  - repeat econstructor; forwards~: IH HC...
+Qed.
+
+Lemma cosub_lc_texp : forall A B t1 t2,
+    cosub t1 A B t2 -> lc_texp t2.
+Proof with elia.
+  introv HC. gen t1 t2.
+  indTypSize (size_typ A + size_typ B).
+  destruct* HC.
+  2: { econstructor. pick fresh x. forwards* (?& Hx): H1 x.
+       forwards: IH Hx...
+       applys* lc_texp_abs_exists. eauto. }
+  all: repeat econstructor.
+  all: try forwards~: IH HC...
+  eauto using comerge_lc_texp.
+Qed.
+
+Theorem esub_is_term_erased_cosub_2 : forall A B t1,
+    esub A B -> lc_texp t1 -> (exists t2, cosub t1 A B t2).
+Proof with elia.
+  introv HE HC. gen t1.
+  indTypSize (size_typ A + size_typ B).
+  destruct* HE.
+    + exists. applys* S_Bot. pick fresh a. eauto.
+    + exists. applys* S_Arrow.
+      intros x Fr.
+      forwards* (?&?): IH HE1 (texp_var_f x)...
+      forwards: cosub_lc_texp H1.
+      forwards* (?&?): IH HE2 (texp_app (texp_proj t1 (|| typ_arrow A1 A2 ||)) x0)...
+      admit.
+Admitted.
+(*      split. apply H1.
+
+      forwards* (?&?): IH HE1 (texp_var_f x)...
+      forwards: cosub_lc_texp H1.
+      forwards* (?&?): IH HE2 (texp_app (texp_proj t1 (|| typ_arrow A1 A2 ||)) x0)...
+
+    + destruct H1.
+    3: try solve [applys* IH; elia].
+    2: { applys IH. }
+    induction* H.
+*)
+
+(* topLike specification eqv *)
+Definition toplikeSpec A := esub typ_top A.
+
+Theorem ord_or_spl : forall A,
+    ord A \/ exists B C, spl A B C.
+Proof.
+  introv. induction* A.
+  - inverts* IHA2.
+  - inverts* IHA.
+Qed.
+
+Theorem toplike_spl : forall A B C,
+    toplike A -> spl A B C -> toplike B /\ toplike C.
+Proof.
+  intros. gen B C. induction* H; intros; try solve_by_invert.
+  - inverts* H1.
+  - inverts* H0. forwards*: IHtoplike H5.
+  - inverts* H0. forwards*: IHtoplike H5.
+Qed.
+
+
+Theorem toplike_spl_2 : forall A B C,
+    spl A B C -> toplike B -> toplike C -> toplike A.
+Proof.
+  introv HS HT1 HT2. induction* HS.
+  all: inverts HT1; inverts* HT2.
+Qed.
+
+Theorem toplike_spec_sound_and_complete: forall A,
+    toplike A <-> toplikeSpec A.
+Proof with try solve_by_invert; eauto.
+  unfold toplikeSpec; split; intros.
+  - indTypSize (size_typ A).
+    forwards* [?| (?&?&?) ]: ord_or_spl A.
+    forwards~ (?&?): toplike_spl H0.
+    applys ES_Split H0; applys~ IH; elia.
+  - indTypSize (size_typ A).
+    inverts* H.
+    forwards: IH H1. elia. forwards: IH H2. elia.
+    eauto using toplike_spl_2.
+Qed.
+
+Corollary super_top_toplike : forall A,
+    esub typ_top A -> toplike A.
+Proof.
+  intros. apply toplike_spec_sound_and_complete.
+  eauto.
+Qed.
+
+Lemma toplike_covariance : forall A B,
+    toplike A -> esub A B -> toplike B.
+Proof with eauto using toplike_spec_sound_and_complete.
+  introv HT HS.
+  induction* HS...
+  all: inverts* HT.
+  all:  applys toplike_spl_2...
+Qed.
+
+Definition disjointSpec A B :=
+  forall C, esub A C -> esub B C -> toplikeSpec C.
+
+Lemma disjoint_covariance : forall A B C,
+    disjoint A B -> esub A C -> disjoint C B.
+Proof with eauto using disjoint_symm.
+  introv HD HS.
+  gen A C. induction B; intros... (*
+  - induction* HS;
+      try forwards* (?&?): disjoint_andl_inv HD.
+    + inverts* HD.
+      eauto using toplike_covariance.
+    + inverts* HD.
+      eauto using toplike_covariance.
+  - induction* HS;
+      try forwards* (?&?): disjoint_andl_inv HD.
+  - induction* HS;
+      try forwards* (?&?): disjoint_andl_inv HD.
+    inverts* HD.
+    + eauto using toplike_covariance.
+  - forwards* (?&?): disjoint_andr_inv HD.
+  - induction* HS;
+      try forwards* (?&?): disjoint_andl_inv HD.
+    inverts* HD.
+    + eauto using toplike_covariance.
+Qed.
+
+Theorem disjoint_soundness : forall A B,
+    disjoint A B -> disjointSpec A B.
+Proof.
+  introv HD. unfold disjointSpec.
+  intros. unfold toplikeSpec.
+  forwards HD1: disjoint_covariance HD H.
+  forwards*: disjoint_sub_conflict_2 HD1.
+Qed.
+
+Theorem disjoint_completeness : forall A B,
+    disjointSpec A B -> disjoint A B.
+Proof.
+  introv HD. unfold disjointSpec in HD.
+  induction* A.
+  - assert (toplike B).
+    applys* HD. Search (sub typ_bot _).
+    induction* B.
+                                   *)
+
 Lemma cosub_well_typed : forall E t1 A B t2 At,
     cosub t1 A B t2 -> target_typing E t1 At -> subTarget At |[A]| ->
     exists Bt', target_typing E t2 Bt' /\ subTarget Bt' |[B]| /\ subTarget |[B]| Bt'.

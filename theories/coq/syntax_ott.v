@@ -1248,7 +1248,9 @@ Inductive ord : typ -> Prop :=    (* defn ord *)
      ord (typ_arrow A B)
  | O_rcd : forall (l:label) (B:typ),
      ord B ->
-     ord (typ_rcd l B).
+     ord (typ_rcd l B)
+ | O_bot :
+     ord typ_bot.
 
 (* defns Disjoint *)
 Inductive disjoint : typ -> typ -> Prop :=    (* defn disjoint *)
@@ -1375,6 +1377,43 @@ Inductive cosub : texp -> typ -> typ -> texp -> Prop :=    (* defn cosub *)
      cosub t A B2 t2 ->
      comerge t1 B1 B t2 B2 t3 ->
      cosub t A B t3.
+
+(* defns TermErasedCoSubtyping *)
+Inductive esub : typ -> typ -> Prop :=    (* defn esub *)
+| ES_Top : forall (A B:typ),
+    ord B ->
+    toplike B ->
+    esub A B
+| ES_Bot : forall (B:typ),
+    ord B ->
+    not ( toplike B )  ->
+    esub typ_bot B
+| ES_Base :
+  esub typ_base typ_base
+| ES_Arrow : forall (A1 A2 B1 B2:typ),
+    ord B2 ->
+    not ( toplike B2 )  ->
+    esub B1 A1 ->
+    esub A2 B2 ->
+    esub (typ_arrow A1 A2) (typ_arrow B1 B2)
+| ES_Rcd : forall (l:label) (A B:typ),
+    ord B ->
+    not ( toplike B )  ->
+    esub A B ->
+    esub (typ_rcd l A) (typ_rcd l B)
+| ES_AndL : forall (A B C:typ),
+    ord C ->
+    esub A C ->
+    esub (typ_and A B) C
+| ES_AndR : forall (A B C:typ),
+    ord C ->
+    esub B C ->
+    esub (typ_and A B) C
+| ES_Split : forall (A B B1 B2:typ),
+    spl B B1 B2 ->
+    esub A B1 ->
+    esub A B2 ->
+    esub A B.
 
 (* defns Subtyping *)
 Inductive sub : typ -> typ -> Prop :=    (* defn sub *)

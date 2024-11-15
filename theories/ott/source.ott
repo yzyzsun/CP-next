@@ -371,6 +371,10 @@ OrdinaryType :: '' ::=
   ordinary {l:B}
 
 
+  ---------------- :: bot
+  ordinary Bot
+
+
 
 defns
 Disjoint :: '' ::=
@@ -543,6 +547,56 @@ CoSubtyping :: '' ::=
   t1 : B1 |> B <| t2 : B2 ~~> t3
   -------------------------------- :: Split
   t : A <: B ~~> t3
+
+defns
+TermErasedCoSubtyping :: '' ::=
+
+  defn
+  A <<: B :: :: esub :: ES_
+  {{ com subtyping }}
+  by
+
+  ordinary B
+  toplike B
+  -------------------------- :: Top
+  A <<: B
+
+  ordinary B
+  not toplike B
+  ------------------------------------- :: Bot
+  Bot <<: B
+
+  ------------------------------------ :: Base
+  Base <<: Base
+
+  ordinary B2
+  not toplike B2
+  A1 <<: B1 and A2 <<: B2
+  -------------------------------------------------------------------- :: Arrow
+  A1 -> A2 <<: B1 -> B2
+
+  ordinary B
+  not toplike B
+  A <<: B
+  ---------------------------------------------- :: Rcd
+  {l:A} <<: {l:B}
+
+  ordinary C
+  A <<: C
+  ------------------------ :: AndL
+  A & B <<: C
+
+  ordinary C
+  B <<: C
+  ------------------------ :: AndR
+  A & B <<: C
+
+  split B B1 B2
+  A <<: B1
+  A <<: B2
+  B1 |> B <| B2
+  -------------------------------- :: Split
+  A <<: B
 
 defns
 Subtyping :: '' ::=

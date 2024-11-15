@@ -666,7 +666,7 @@ Proof with eauto using incl_refl.
   rewrite HE... rewrite <- HE...
 Qed.
 
-(* topLike specification eqv *)
+(* toplike, disjoint, and width subtyping *)
 Theorem toplike_super_top: forall A,
     toplike A <-> sub typ_top A.
 Proof with eauto.
@@ -690,8 +690,6 @@ Proof with eauto using toplike_super_top.
   all: inverts* HT.
 Qed.
 
-Definition disjointSpec A B :=
-  forall C, sub A C -> sub B C -> toplike C.
 
 Lemma disjoint_andl_inv: forall A1 A2 B,
     disjoint (typ_and A1 A2) B -> disjoint A1 B /\ disjoint A2 B.
@@ -759,6 +757,7 @@ Proof with eauto using disjoint_symm.
     + eauto using toplike_covariance.
 Qed.
 
+(*
 Theorem disjoint_soundness : forall A B,
     disjoint A B -> disjointSpec A B.
 Proof.
@@ -775,7 +774,8 @@ Proof.
   induction* A.
   - assert (toplike B).
     applys* HD. Search (sub typ_bot _).
-  induction* B.
+    induction* B.
+*)
 
 
 Corollary st_eq_disjoint : forall A B,
@@ -1051,6 +1051,7 @@ Proof with eauto using ttyp_trans_wf.
     exists. simpl. case_if. split*. econstructor...
   - simpl in HT. forwards* (?&?&?): IHHO.
     exists. simpl. case_if. split*...
+  - exists. split. simpl... eauto.
 Qed.
 
 Lemma ttyp_trans_base :
