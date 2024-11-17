@@ -1389,7 +1389,7 @@ Inductive esub : typ -> typ -> Prop :=    (* defn esub *)
     not ( toplike B )  ->
     esub typ_bot B
 | ES_Base :
-  esub typ_base typ_base
+    esub typ_base typ_base
 | ES_Arrow : forall (A1 A2 B1 B2:typ),
     ord B2 ->
     not ( toplike B2 )  ->

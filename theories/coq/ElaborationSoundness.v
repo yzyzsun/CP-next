@@ -212,14 +212,14 @@ intuition eauto using target_typing_wf_1, target_typing_wf_2,
     Unshelve. all: eauto.
 Qed.
 
-Lemma check_toplike_false : forall B,
+Lemma check_toplike_false_2 : forall B,
     ~ toplike B -> check_toplike B = false.
 Proof.
   introv TL. remember (check_toplike B). destruct* b.
   exfalso. applys TL. rewrite* check_toplike_sound_complete.
 Qed.
 
-#[local] Hint Resolve check_toplike_false : core.
+#[local] Hint Resolve check_toplike_false_2 : core.
 
 Lemma split_toplike : forall A B C,
     spl A B C -> toplike B -> toplike C -> toplike A.
@@ -381,50 +381,185 @@ Proof with eauto using toplike_spec_sound_and_complete.
 Qed.
 
 Definition disjointSpec A B :=
-  forall C, esub A C -> esub B C -> toplikeSpec C.
+  forall C, esub A C -> esub B C -> toplike C.
 
-Lemma disjoint_covariance : forall A B C,
-    disjoint A B -> esub A C -> disjoint C B.
-Proof with eauto using disjoint_symm.
-  introv HD HS.
-  gen A C. induction B; intros... (*
-  - induction* HS;
-      try forwards* (?&?): disjoint_andl_inv HD.
-    + inverts* HD.
-      eauto using toplike_covariance.
-    + inverts* HD.
-      eauto using toplike_covariance.
-  - induction* HS;
-      try forwards* (?&?): disjoint_andl_inv HD.
-  - induction* HS;
-      try forwards* (?&?): disjoint_andl_inv HD.
-    inverts* HD.
-    + eauto using toplike_covariance.
-  - forwards* (?&?): disjoint_andr_inv HD.
-  - induction* HS;
-      try forwards* (?&?): disjoint_andl_inv HD.
-    inverts* HD.
-    + eauto using toplike_covariance.
-Qed.
-
-Theorem disjoint_soundness : forall A B,
-    disjoint A B -> disjointSpec A B.
+(* split *)
+Lemma split_ord_false : forall T T1 T2,
+    spl T T1 T2 -> ord T -> False.
 Proof.
-  introv HD. unfold disjointSpec.
-  intros. unfold toplikeSpec.
-  forwards HD1: disjoint_covariance HD H.
-  forwards*: disjoint_sub_conflict_2 HD1.
+  introv s o. gen T1 T2.
+  induction o; intros; inverts* s.
 Qed.
 
-Theorem disjoint_completeness : forall A B,
+#[local] Hint Resolve split_ord_false : FalseHd.
+
+Lemma disjoint_rcd: forall A B l,
+    disjoint (typ_rcd l A) (typ_rcd l B) -> disjoint A B.
+Proof.
+  introv H.
+  inverts* H; intuition eauto.
+  all: inverts* H0.
+Qed.
+
+#[export] Hint Immediate disjoint_rcd : core.
+
+Lemma split_unique : forall T A1 A2 B1 B2,
+    spl T A1 B1 -> spl T A2 B2 -> A1 = A2 /\ B1 = B2.
+Proof.
+  introv s1 s2. gen A2 B2.
+  induction s1; intros;
+    inverts* s2;
+    forwards* (eq1&eq2): IHs1; split; congruence.
+Qed.
+
+Ltac split_unify :=
+  repeat match goal with
+  | [ H1: spl ?A _ _ , H2: spl ?A _ _ |- _ ] =>
+           (progress forwards (?&?): split_unique H1 H2;
+            subst; clear H2)
+  | [ H: spl (typ_and _ _) _ _ |- _ ] => inverts H
+  | [ H: spl (typ_arrow _ _) _ _ |- _ ] => inverts H
+  | [ H: spl (typ_rcd _ _) _ _ |- _ ] => inverts H
+         end;
+  auto.
+
+
+Theorem disjoint_soundness: forall A B,
+    disjoint A B -> disjointSpec A B.
+Proof with (solve_false; auto).
+  intros A B Dis C S1 S2.
+  indTypSize (size_typ A + size_typ B + size_typ C).
+
+  forwards [?|(?&?&?)]: ord_or_spl C.
+  - inverts Dis;
+      try solve [applys* toplike_covariance];
+      try solve [inverts S1; inverts S2; solve_false; auto]...
+    + inverts S1...
+      forwards: IH H6 S2; elia...
+      forwards: IH H6 S2; elia...
+    + inverts S2...
+      forwards: IH S1 H6; elia...
+      forwards: IH S1 H6; elia...
+    + inverts S1; inverts S2...
+      apply TL_arr.
+      forwards: IH H0 H7 H12; elia...
+    + inverts S1; inverts S2...
+      apply TL_rcd.
+      forwards: IH H0 H6 H9; elia...
+  -
+    inverts S1; inverts S2...
+    split_unify.
+    applys toplike_spl_2 H; applys* IH Dis; elia.
+Qed.
+
+(* generalize S_top *)
+Lemma toplike_super_any : forall A B,
+    toplike A -> esub B A.
+Proof.
+  introv TL. indTypSize (size_typ A).
+  forwards* [?| (?&?&?) ]: ord_or_spl A.
+  forwards (?&?): toplike_spl TL H.
+  forwards*: IH x; elia.
+  forwards*: IH x0; elia.
+Qed.
+
+(* generalize S_andl *)
+Lemma sub_l_andl : forall A B C, esub A C -> esub (typ_and A B) C.
+Proof.
+  introv s. induction* s.
+Qed.
+
+(* generalize S_andr *)
+Lemma sub_l_andr : forall A B C, esub B C -> esub (typ_and A B) C.
+Proof.
+  introv s. induction* s.
+Qed.
+
+Lemma toplike_dec : forall A, { toplike A } + { ~ toplike A }.
+Proof.
+  introv.
+  remember (check_toplike A) as P. destruct P.
+  - left*. applys* check_toplike_sound_complete.
+  - right*. lets*: check_toplike_false A.
+Qed.
+
+(* generalize S_arr *)
+Lemma sub_fun : forall A B C D,
+    esub B D -> esub C A ->
+    esub (typ_arrow A B) (typ_arrow C D).
+Proof with eauto using toplike_dec.
+  introv s. forwards: toplike_dec D.
+  induction* s...
+  all: destruct* H.
+Qed.
+
+(* generalize S_rcd *)
+Lemma sub_rcd : forall A B l,
+    esub A B -> esub (typ_rcd l A) (typ_rcd l B).
+Proof with eauto using toplike_dec.
+  introv s. forwards: toplike_dec B.
+  induction* s...
+  all: destruct* H.
+Qed.
+
+#[export]
+Hint Immediate toplike_super_any : core.
+#[export]
+Hint Resolve sub_l_andl sub_l_andr sub_fun sub_rcd: core.
+
+
+Lemma sub_refl : forall A,
+    esub A A.
+Proof.
+  introv. induction* A.
+  - forwards* [?|?]: toplike_dec typ_bot.
+Qed.
+
+
+Lemma sub_bot : forall A,
+    esub typ_bot A.
+Proof with eauto using toplike_dec.
+  introv. forwards: toplike_dec A.
+  indTypSize (size_typ A).
+  forwards* [?| (?&?&?) ]: ord_or_spl A.
+  all: destruct* H.
+  - forwards: IH x... elia.
+    forwards: IH x0... elia.
+Qed.
+
+#[local] Hint Resolve sub_refl sub_bot : core.
+
+Fixpoint term_eq_dec (l1 l2 : label) : {l1 = l2} + {l1 <> l2}.
+Proof.
+  repeat decide equality.
+Defined.
+
+Theorem disjoint_completeness: forall A B,
     disjointSpec A B -> disjoint A B.
 Proof.
-  introv HD. unfold disjointSpec in HD.
-  induction* A.
-  - assert (toplike B).
-    applys* HD. Search (sub typ_bot _).
-    induction* B.
-                                   *)
+  intros A B.
+  unfold disjointSpec.
+  - gen B.
+    induction A;
+      introv H; auto.
+    all: induction B; auto.
+    + (* arr arr *)
+      forwards* [?|?]: toplike_dec A2.
+      forwards* [?|?]: toplike_dec B2.
+      applys* D_ArrArr. applys* IHA2.
+      intros.
+      forwards: H (typ_arrow (typ_and A1 B1) C).
+      1-2: applys* sub_fun.
+      inverts~ H2.
+    + (* rcd rcd *)
+      case_eq (term_eq_dec l l0); intros; auto; subst.
+      apply D_rcdEq. apply IHA. introv s1 s2.
+      assert (TL: toplike (typ_rcd l0 C) ). {
+        apply~ H.
+      }
+      inverts~ TL.
+Qed.
+
 
 Lemma cosub_well_typed : forall E t1 A B t2 At,
     cosub t1 A B t2 -> target_typing E t1 At -> subTarget At |[A]| ->
@@ -461,7 +596,7 @@ intuition eauto using target_typing_wf_1, target_typing_wf_2,
     lets (?&?&Eq): lookup_ST_sub (|| (typ_arrow A1 A2) ||) ST.
     (* lets* (?&?&?&?&?): flex_typing_property3 (|| (typ_arrow A1 A2) ||) HT. *)
     rewrite ttyp_trans_ord_ntop_arrow. 2: eauto. simpl. case_if...
-    applys check_toplike_false. applys* cosub_not_toplike.
+    applys check_toplike_false_2. applys* cosub_not_toplike.
 
     forwards (?&?&?&?&?&?&?): ST_arrow_inv Eq. subst.
 
