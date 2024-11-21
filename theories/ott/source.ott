@@ -718,7 +718,7 @@ DistributiveApplication :: '' ::=
   -------------------------------------------- :: Arrow
   t1 : A -> B ; t2 : C ~~> (t1.|A->B|) t3 : B
 
-  not toplike C
+  not toplike A&B
   t1 : A ; t2 : C ~~> t3 : A' 
   t1 : B ; t2 : C ~~> t4 : B'
   ----------------------------------------- :: And

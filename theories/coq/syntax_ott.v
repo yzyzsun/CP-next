@@ -1479,7 +1479,7 @@ Inductive distapp : texp -> typ -> texp -> typ -> texp -> typ -> Prop :=    (* d
      cosub t2 C A t3 ->
      distapp t1 (typ_arrow A B) t2 C (texp_app  (texp_proj t1 (ti_list (styp2tindex (typ_arrow A B) )) )  t3) B
  | A_And : forall (t1:texp) (A B:typ) (t2:texp) (C:typ) (t3 t4:texp) (A' B':typ),
-      not ( toplike C )  ->
+      not ( toplike (typ_and A B) )  ->
      distapp t1 A t2 C t3 A' ->
      distapp t1 B t2 C t4 B' ->
      distapp t1 (typ_and A B) t2 C (texp_concat t3 t4) (typ_and A' B').
