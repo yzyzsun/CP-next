@@ -594,7 +594,6 @@ TermErasedCoSubtyping :: '' ::=
   split B B1 B2
   A <<: B1
   A <<: B2
-  B1 |> B <| B2
   -------------------------------- :: Split
   A <<: B
 
