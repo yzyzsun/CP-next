@@ -1353,10 +1353,10 @@ Inductive cosub : texp -> typ -> typ -> texp -> Prop :=    (* defn cosub *)
  | S_Base : forall (t:texp),
      lc_texp t ->
      cosub t typ_base typ_base  (texp_cons (ti_list (styp2tindex typ_base ))    (texp_proj t (ti_list (styp2tindex typ_base )) )  texp_nil)
- | S_Arrow : forall (L:vars) (t:texp) (A1 A2 B1 B2:typ) (t2 t1:texp),
+ | S_Arrow : forall (L:vars) (t:texp) (A1 A2 B1 B2:typ) (t2:texp),
      ord B2 ->
       not ( toplike B2 )  ->
-      ( forall x , x \notin  L  ->  ( cosub (texp_var_f x) B1 A1 t1  /\  cosub (texp_app  (texp_proj t (ti_list (styp2tindex (typ_arrow A1 A2) )) )  t1) A2 B2  ( open_texp_wrt_texp t2 (texp_var_f x) )  )  )  ->
+      ( forall x , x \notin  L  -> exists t1, ( cosub (texp_var_f x) B1 A1 t1  /\  cosub (texp_app  (texp_proj t (ti_list (styp2tindex (typ_arrow A1 A2) )) )  t1) A2 B2  ( open_texp_wrt_texp t2 (texp_var_f x) )  )  )  ->
      cosub t (typ_arrow A1 A2) (typ_arrow B1 B2)  (texp_cons (ti_list (styp2tindex (typ_arrow B1 B2) ))    (texp_abs t2)  texp_nil)
  | S_Rcd : forall (t:texp) (l:label) (A B:typ) (t2:texp),
      ord B ->

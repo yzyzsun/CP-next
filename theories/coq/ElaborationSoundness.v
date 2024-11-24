@@ -235,7 +235,7 @@ Proof.
   introv HC HT HTA. applys HT. clear HT. gen t1 t2.
   indTypSize (size_typ A + size_typ B).
   inverts HC. 1-7: inverts~ HTA.
-  - pick fresh x; try lets (?&?): H1 x; intuition eauto.
+  - pick fresh x; try lets (?&?&?): H1 x. intuition eauto.
     forwards*: IH H4. elia.
   - forwards*: IH H1. elia.
   - forwards*: IH H0. elia.
@@ -254,7 +254,7 @@ Proof with elia.
     indTypSize (size_typ A + size_typ B).
     destruct* H.
     + { pick fresh x.
-        forwards* (Hx1&Hx2): H1 x.
+        forwards* (?&Hx1&Hx2): H1 x.
         forwards: IH Hx1... forwards: IH Hx2... applys* ES_Arrow. }
     + { forwards: IH H1... eauto. }
     + { forwards: IH H0... eauto. }
@@ -296,6 +296,31 @@ Proof with elia.
   eauto using comerge_lc_texp.
 Qed.
 
+
+Notation "[ z ~~> u ] t" := (subst_texp u z t) (at level 0).
+Notation "[ x ~=> y ] t" := (subst_texp (texp_var_f y) x t) (at level 0).
+Notation "t ^-^ u"       := (open_texp_wrt_texp t u) (at level 67).
+Notation "t -^ x"        := (open_texp_wrt_texp t (texp_var_f x))(at level 67).
+
+Lemma cosub_rename : forall t1 t2 A B x y,
+    y `notin` ((fv_texp t1) `union` (fv_texp t2)) ->
+    cosub t1 A B t2 ->
+    cosub ([ x ~=> y ] t1) A B ([ x ~=> y ] t2).
+Proof.
+  introv Fr HC. gen t1 t2. indTypSize (size_typ A + size_typ B).
+  destruct HC.
+  4: { (*
+    applys* S_Arrow (L `union` (fv_texp t1) `union` (fv_texp t2)).
+    intros x0 Fr2.
+    forwards* (?&?): H1 x0. splits.
+    forwards: IH H3. elia. admit.
+    applys H2.
+    forwards*: IH H3. elia. admit.
+    simpl.
+    assert ( forall e l, ([x ~=> y] (texp_app (texp_proj t l) e) ) =  (texp_app (texp_proj ([x ~=> y] t) l) e)). simpl. *)
+Admitted.
+
+#[local] Hint Immediate cosub_lc_texp : core.
 Theorem esub_is_term_erased_cosub_2 : forall A B t1,
     esub A B -> lc_texp t1 -> (exists t2, cosub t1 A B t2).
 Proof with elia.
@@ -303,12 +328,29 @@ Proof with elia.
   indTypSize (size_typ A + size_typ B).
   destruct* HE.
     + exists. applys* S_Bot. pick fresh a. eauto.
-    + exists. applys* S_Arrow.
-      intros x Fr.
+    + pick fresh y.
+      forwards* (tt&HC1): IH HE1 (texp_var_f y)...
+      remember (|| typ_arrow A1 A2 ||) as l1.
+      forwards* (t2'&HC2): IH HE2 (texp_app (texp_proj t1 l1) tt)...
+      rewrite <- (open_texp_wrt_texp_close_texp_wrt_texp t2' y) in HC2.
+      clear HE1 HE2 SizeInd.
+      exists.
+      (*
+      applys* S_Arrow (union (fv_texp (texp_var_f y)) (fv_texp tt)).
+      intros x Frx. split.
+      * forwards*: cosub_rename y x HC1.
+        assert (Heq: [y ~=> x] (texp_var_f y) = texp_var_f x).
+        { default_simp. }
+        rewrite Heq in H1. applys H1.
+
+        autorewrite with lngen.
+        repeat simpl in H1.
+        eauto with lngen.
       forwards* (?&?): IH HE1 (texp_var_f x)...
       forwards: cosub_lc_texp H1.
       forwards* (?&?): IH HE2 (texp_app (texp_proj t1 (|| typ_arrow A1 A2 ||)) x0)...
-      admit.
+      splits. applys H1.
+      admit. *)
 Admitted.
 (*      split. apply H1.
 
@@ -591,7 +633,7 @@ intuition eauto using target_typing_wf_1, target_typing_wf_2,
     all: eauto...
   - (* arrow *)
     pick fresh y.
-    lets* (HS1 & HS2): H1 y.
+    lets* (? & HS1 & HS2): H1 y.
 
     lets (?&?&Eq): lookup_ST_sub (|| (typ_arrow A1 A2) ||) ST.
     (* lets* (?&?&?&?&?): flex_typing_property3 (|| (typ_arrow A1 A2) ||) HT. *)
