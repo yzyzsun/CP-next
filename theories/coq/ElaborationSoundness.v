@@ -247,7 +247,7 @@ Qed.
 (** *********************************** *)
 #[local] Hint Constructors esub : core.
 
-Theorem esub_is_term_erased_cosub_1 : forall A B,
+Lemma esub_is_term_erased_cosub_1 : forall A B,
     (exists t1 t2, cosub t1 A B t2) -> esub A B.
 Proof with elia.
   intros. destruct_conj. gen x x0.
@@ -563,7 +563,7 @@ Proof with try fsetdec; elia.
 Qed.
 
 #[local] Hint Immediate cosub_lc_texp : core.
-Theorem esub_is_term_erased_cosub_2 : forall A B t1,
+Lemma esub_is_term_erased_cosub_2 : forall A B t1,
     esub A B -> lc_texp t1 -> (exists t2, cosub t1 A B t2).
 Proof with try fsetdec; elia.
   introv HE HC. gen t1.
@@ -608,6 +608,13 @@ Proof with try fsetdec; elia.
     forwards* (?&?): spl_sound_to_comerge x x0 H.
 Qed.
 
+Theorem esub_is_term_erased_cosub : forall A B,
+    esub A B <-> (forall t1, lc_texp t1 -> exists t2, cosub t1 A B t2).
+Proof.
+  introv. split.
+  - intros. pose proof esub_is_term_erased_cosub_2. eauto.
+  - intros. pose proof esub_is_term_erased_cosub_1. eauto.
+Qed.
 
 (* topLike specification eqv *)
 Definition toplikeSpec A := esub typ_top A.
