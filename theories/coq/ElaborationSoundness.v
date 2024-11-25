@@ -262,8 +262,8 @@ Proof with elia.
     + { forwards: IH H0... forwards: IH H1... eauto. }
 Qed.
 
-Lemma comerge_lc_texp : forall t1 A t2 B C t3,
-    comerge t1 A t2 B C t3 -> lc_texp t3.
+Lemma comerge_lc_texp : forall t1 A B t2 C t3,
+    comerge t1 A B t2 C t3 -> lc_texp t3.
 Proof with elia.
   introv HC. gen t1 t2 t3 A B.
   indTypSize (size_typ C).
@@ -282,6 +282,35 @@ Proof with elia.
   - repeat econstructor; forwards~: IH HC...
 Qed.
 
+Lemma comerge_lc_texp_1 : forall t1 A t2 B C t3,
+    comerge t1 A B t2 C t3 -> lc_texp t1.
+Proof with elia.
+  introv HC. gen t1 t2 t3 A C.
+  indTypSize (size_typ B). inverts* HC.
+  - pick fresh x. instantiate_cofinites_with x.
+    forwards: IH H1... inverts H2. inverts ~H5.
+  - pick fresh x. instantiate_cofinites_with x.
+    forwards: IH H2... inverts H3. inverts ~H6.
+  - pick fresh x. instantiate_cofinites_with x.
+    forwards: IH H1... inverts~ H2.
+  - forwards: IH H2... inverts~ H3.
+Qed.
+
+Lemma comerge_lc_texp_2 : forall t1 A t2 B C t3,
+    comerge t1 A B t2 C t3 -> lc_texp t2.
+Proof with elia.
+  introv HC. gen t1 t2 t3 A C.
+  indTypSize (size_typ B). inverts* HC.
+  - pick fresh x. instantiate_cofinites_with x.
+    forwards: IH H1... inverts H2. inverts ~H5.
+  - pick fresh x. instantiate_cofinites_with x.
+    forwards: IH H2... inverts H3. inverts ~H6.
+  - pick fresh x. instantiate_cofinites_with x.
+    forwards: IH H1... inverts~ H2.
+  - forwards: IH H2... inverts~ H3.
+Qed.
+
+
 Lemma cosub_lc_texp : forall A B t1 t2,
     cosub t1 A B t2 -> lc_texp t2.
 Proof with elia.
@@ -296,11 +325,37 @@ Proof with elia.
   eauto using comerge_lc_texp.
 Qed.
 
+Lemma toplike_dec : forall A, { toplike A } + { ~ toplike A }.
+Proof.
+  introv.
+  remember (check_toplike A) as P. destruct P.
+  - left*. applys* check_toplike_sound_complete.
+  - right*. lets*: check_toplike_false A.
+Qed.
+
 
 Notation "[ z ~~> u ] t" := (subst_texp u z t) (at level 0).
 Notation "[ x ~=> y ] t" := (subst_texp (texp_var_f y) x t) (at level 0).
 Notation "t ^-^ u"       := (open_texp_wrt_texp t u) (at level 67).
 Notation "t -^ x"        := (open_texp_wrt_texp t (texp_var_f x))(at level 67).
+
+#[local] Hint Resolve subst_texp_lc_texp comerge_lc_texp comerge_lc_texp_1 comerge_lc_texp_2 : core.
+
+Lemma comerge_rename : forall t1 t2 t3 A B C x y,
+    y `notin` ((fv_texp t1) `union` (fv_texp t2)) ->
+    comerge t1 B A t2 C t3 ->
+    comerge ([ x ~=> y ] t1) B A ([ x ~=> y ] t2) C ([ x ~=> y ] t3).
+Proof with try solve_notin.
+  introv Fr HC. gen x y.
+  induction HC; intros.
+  1-2: default_simp.
+  5: {
+    applys~ M_RcdL.
+    forwards: IHHC x y...  }
+  3: {
+    applys* M_ArrowR ((L \u {{x}})).
+    intros z Fr_z.
+Admitted.
 
 Lemma cosub_rename : forall t1 t2 A B x y,
     y `notin` ((fv_texp t1) `union` (fv_texp t2)) ->
@@ -320,10 +375,118 @@ Proof.
     assert ( forall e l, ([x ~=> y] (texp_app (texp_proj t l) e) ) =  (texp_app (texp_proj ([x ~=> y] t) l) e)). simpl. *)
 Admitted.
 
+Theorem spl_sound_to_comerge : forall A B C t u,
+    spl A B C -> lc_texp t -> lc_texp u -> exists z, comerge t B A u C z.
+Proof with try fsetdec; elia.
+  introv HS HL1 HL2. gen t u. induction HS; intros.
+  - forwards* [?|?]: toplike_dec (typ_and A B).
+  - forwards* [?|?]: toplike_dec (typ_arrow A B1);
+      forwards* [?|?]: toplike_dec (typ_arrow A B2).
+    + destruct_conj. forwards*: split_toplike (typ_arrow A B).
+    + pick fresh y.
+      remember (|| typ_arrow A B2 ||) as l1.
+      forwards* (tt&HL): IHHS texp_nil (texp_app (texp_proj u l1) (texp_var_f y)).
+      rewrite <- (open_texp_wrt_texp_close_texp_wrt_texp tt y) in HL.
+      exists. applys* M_ArrowR ((fv_texp (texp_var_f y)) `union` (fv_texp tt) `union` (fv_texp t)`union` (fv_texp u) `union` (fv_texp tt)) (close_texp_wrt_texp y tt). inverts~ t0.
+      introv Fr_x.
+      forwards* HC: comerge_rename y x HL.
+      {
+        destruct_notin.
+        repeat applys AtomSetProperties.not_in_union...  auto.
+      }
+      rewrite <- Heql1.
+      rewrite~ subst_texp_open_texp_wrt_texp in HC.
+      assert (Heq: [y ~=> x] (texp_var_f y) = texp_var_f x).
+      { default_simp. }
+      rewrite Heq in HC.
+      assert (Heq': [y ~=> x] texp_nil = texp_nil).
+      { default_simp. }
+      rewrite Heq' in HC.
+      assert (Heq2: [y ~=> x] (texp_app (texp_proj u l1) (texp_var_f y)) = (texp_app (texp_proj u l1) (texp_var_f x))).
+      { default_simp. rewrite* subst_texp_fresh_eq. }
+      rewrite Heq2 in HC.
+      assert (Heq3: [y ~=> x] (close_texp_wrt_texp y tt) = (close_texp_wrt_texp y tt)). {
+        apply subst_texp_fresh_eq...
+        rewrite fv_texp_close_texp_wrt_texp. eauto.
+      }
+      rewrite Heq3 in HC. simpl in HC. now auto.
+    + pick fresh y.
+      remember (|| typ_arrow A B1 ||) as l1.
+      forwards* (tt&HL): IHHS (texp_app (texp_proj t l1) (texp_var_f y)) texp_nil .
+      rewrite <- (open_texp_wrt_texp_close_texp_wrt_texp tt y) in HL.
+      exists. applys* M_ArrowL ((fv_texp (texp_var_f y)) `union` (fv_texp tt) `union` (fv_texp t)`union` (fv_texp u) `union` (fv_texp tt)) (close_texp_wrt_texp y tt). inverts~ t0.
+      introv Fr_x.
+      forwards* HC: comerge_rename y x HL.
+      {
+        destruct_notin.
+        repeat applys AtomSetProperties.not_in_union...  auto.
+      }
+      rewrite <- Heql1.
+      rewrite~ subst_texp_open_texp_wrt_texp in HC.
+      assert (Heq: [y ~=> x] (texp_var_f y) = texp_var_f x).
+      { default_simp. }
+      rewrite Heq in HC.
+      assert (Heq': [y ~=> x] texp_nil = texp_nil).
+      { default_simp. }
+      rewrite Heq' in HC.
+      assert (Heq2: [y ~=> x] (texp_app (texp_proj t l1) (texp_var_f y)) = (texp_app (texp_proj t l1) (texp_var_f x))).
+      { default_simp. rewrite* subst_texp_fresh_eq. }
+      rewrite Heq2 in HC.
+      assert (Heq3: [y ~=> x] (close_texp_wrt_texp y tt) = (close_texp_wrt_texp y tt)). {
+        apply subst_texp_fresh_eq...
+        rewrite fv_texp_close_texp_wrt_texp. eauto.
+      }
+      rewrite Heq3 in HC. simpl in HC. now auto.
+    + pick fresh y.
+      remember (|| typ_arrow A B1 ||) as l1.
+      remember (|| typ_arrow A B2 ||) as l2.
+      forwards* (tt&HL): IHHS (texp_app (texp_proj t l1) (texp_var_f y)) (texp_app (texp_proj u l2) (texp_var_f y)) .
+      rewrite <- (open_texp_wrt_texp_close_texp_wrt_texp tt y) in HL.
+      exists. applys* M_Arrow ((fv_texp (texp_var_f y)) `union` (fv_texp tt) `union` (fv_texp t)`union` (fv_texp u) `union` (fv_texp tt)) (close_texp_wrt_texp y tt).
+      introv Fr_x.
+      forwards* HC: comerge_rename y x HL.
+      {
+        destruct_notin.
+        repeat applys AtomSetProperties.not_in_union... all: eauto.
+      }
+      rewrite <- Heql1. rewrite <- Heql2.
+      rewrite~ subst_texp_open_texp_wrt_texp in HC.
+      assert (Heq: [y ~=> x] (texp_var_f y) = texp_var_f x).
+      { default_simp. }
+      rewrite Heq in HC.
+      assert (Heq2: [y ~=> x] (texp_app (texp_proj t l1) (texp_var_f y)) = (texp_app (texp_proj t l1) (texp_var_f x))).
+      { default_simp. rewrite* subst_texp_fresh_eq. }
+      rewrite Heq2 in HC.
+      assert (Heq2': [y ~=> x] (texp_app (texp_proj u l2) (texp_var_f y)) = (texp_app (texp_proj u l2) (texp_var_f x))).
+      { default_simp. rewrite* subst_texp_fresh_eq. }
+      rewrite Heq2' in HC.
+      assert (Heq3: [y ~=> x] (close_texp_wrt_texp y tt) = (close_texp_wrt_texp y tt)). {
+        apply subst_texp_fresh_eq...
+        rewrite fv_texp_close_texp_wrt_texp. eauto.
+      }
+      rewrite Heq3 in HC. simpl in HC. now auto.
+  - forwards* [?|?]: toplike_dec (typ_rcd l B1);
+      forwards* [?|?]: toplike_dec (typ_rcd l B2).
+    + destruct_conj. forwards*: split_toplike (typ_rcd l B).
+    + remember (|| typ_rcd l B2 ||) as l2.
+      forwards~ (?&?): IHHS texp_nil (texp_proj u l2).
+      exists. applys~ M_RcdR. inverts~ t0.
+      rewrite <- Heql2. applys H.
+    + remember (|| typ_rcd l B1 ||) as l1.
+      forwards~ (?&?): IHHS (texp_proj t l1) texp_nil.
+      exists. applys~ M_RcdL. inverts~ t0.
+      rewrite <- Heql1. applys H.
+    + remember (|| typ_rcd l B1 ||) as l1.
+      remember (|| typ_rcd l B2 ||) as l2.
+      forwards~ (?&?): IHHS (texp_proj t l1) (texp_proj u l2).
+      exists. applys~ M_Rcd.
+      rewrite <- Heql1. rewrite <- Heql2. applys H.
+Qed.
+
 #[local] Hint Immediate cosub_lc_texp : core.
 Theorem esub_is_term_erased_cosub_2 : forall A B t1,
     esub A B -> lc_texp t1 -> (exists t2, cosub t1 A B t2).
-Proof with elia.
+Proof with try fsetdec; elia.
   introv HE HC. gen t1.
   indTypSize (size_typ A + size_typ B).
   destruct* HE.
@@ -335,34 +498,43 @@ Proof with elia.
       rewrite <- (open_texp_wrt_texp_close_texp_wrt_texp t2' y) in HC2.
       clear HE1 HE2 SizeInd.
       exists.
-      (*
-      applys* S_Arrow (union (fv_texp (texp_var_f y)) (fv_texp tt)).
-      intros x Frx. split.
-      * forwards*: cosub_rename y x HC1.
+      applys* S_Arrow ((fv_texp (texp_var_f y)) `union` (fv_texp tt) `union` (fv_texp t1) `union` (fv_texp t2')) (close_texp_wrt_texp y t2').
+      intros x Frx. rewrite <- Heql1. exists. split.
+      * forwards*: cosub_rename y x HC1...
         assert (Heq: [y ~=> x] (texp_var_f y) = texp_var_f x).
         { default_simp. }
         rewrite Heq in H1. applys H1.
+      * forwards*: cosub_rename y x HC2...
+        {
+          destruct_notin.
+          applys AtomSetProperties.not_in_union. solve_notin.
+          forwards Hneq: fv_texp_open_texp_wrt_texp_upper (close_texp_wrt_texp y t2') (texp_var_f y).
+          rewrite fv_texp_close_texp_wrt_texp in Hneq.
+          fsetdec. }
+        rewrite subst_texp_open_texp_wrt_texp in H1.
+        assert (Heq: [y ~=> x] (texp_var_f y) = texp_var_f x).
+        { default_simp. }
+        rewrite Heq in H1.
+        ** assert (Heq2: [y ~=> x] (texp_app (texp_proj t1 l1) tt) = (texp_app (texp_proj t1 l1) [y ~=> x] (tt))).
+           { default_simp. rewrite* subst_texp_fresh_eq. }
+           rewrite Heq2 in H1.
+           assert (Heq3: [y ~=> x] (close_texp_wrt_texp y t2') = (close_texp_wrt_texp y t2')). {
+             apply subst_texp_fresh_eq...
+             rewrite fv_texp_close_texp_wrt_texp. eauto.
+           }
+           rewrite Heq3 in H1. auto.
+        ** eauto.
+    + forwards (?&?): IH HE  (texp_proj t1 (|| typ_rcd l A ||))...
+      all: eauto.
+    + forwards (?&?): IH HE t1...
+      all: eauto.
+    + forwards (?&?): IH HE t1...
+      all: eauto.
+    + forwards* (?&?): IH HE1 t1...
+      forwards* (?&?): IH HE2 t1...
+      forwards* (?&?): spl_sound_to_comerge x x0 H.
+Qed.
 
-        autorewrite with lngen.
-        repeat simpl in H1.
-        eauto with lngen.
-      forwards* (?&?): IH HE1 (texp_var_f x)...
-      forwards: cosub_lc_texp H1.
-      forwards* (?&?): IH HE2 (texp_app (texp_proj t1 (|| typ_arrow A1 A2 ||)) x0)...
-      splits. applys H1.
-      admit. *)
-Admitted.
-(*      split. apply H1.
-
-      forwards* (?&?): IH HE1 (texp_var_f x)...
-      forwards: cosub_lc_texp H1.
-      forwards* (?&?): IH HE2 (texp_app (texp_proj t1 (|| typ_arrow A1 A2 ||)) x0)...
-
-    + destruct H1.
-    3: try solve [applys* IH; elia].
-    2: { applys IH. }
-    induction* H.
-*)
 
 (* topLike specification eqv *)
 Definition toplikeSpec A := esub typ_top A.
@@ -515,14 +687,6 @@ Qed.
 Lemma sub_l_andr : forall A B C, esub B C -> esub (typ_and A B) C.
 Proof.
   introv s. induction* s.
-Qed.
-
-Lemma toplike_dec : forall A, { toplike A } + { ~ toplike A }.
-Proof.
-  introv.
-  remember (check_toplike A) as P. destruct P.
-  - left*. applys* check_toplike_sound_complete.
-  - right*. lets*: check_toplike_false A.
 Qed.
 
 (* generalize S_arr *)
