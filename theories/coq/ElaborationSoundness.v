@@ -30,7 +30,7 @@ Proof with eauto using ttyp_trans_wf.
   introv HU. induction* G.
   simpl... destruct a... econstructor...
   inverts~ HU.
-  Qed.
+Qed.
 
 Open Scope list.
 
@@ -56,8 +56,8 @@ Qed.
 Lemma comerge_well_typed : forall E t1 A1 t B t2 A2 T1 T2,
     comerge t1 A1 B t2 A2 t ->
     target_typing E t1 T1 -> subTarget T1 |[A1]| -> subTarget |[A1]| T1 ->
-    target_typing E t2 T2 -> subTarget T2 |[A2]| -> subTarget |[A2]| T2 ->
-    exists T, target_typing E t T /\ subTarget T |[B]| /\ subTarget |[B]| T.
+                                                                     target_typing E t2 T2 -> subTarget T2 |[A2]| -> subTarget |[A2]| T2 ->
+                                                                                                                                      exists T, target_typing E t T /\ subTarget T |[B]| /\ subTarget |[B]| T.
 Proof with elia; try tassumption;
 intuition eauto using target_typing_wf_1, target_typing_wf_2,
   target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top,
@@ -66,7 +66,7 @@ intuition eauto using target_typing_wf_1, target_typing_wf_2,
   introv HC HTa Eqa Eqa' HTb Eqb Eqb'. gen E t1 t2 t B T1 T2.
   indTypSize (size_typ A1 + size_typ A2). inverts HC.
   - exists. splits;
-    try rewrite ttyp_trans_ord_top; try rewrite* <- check_toplike_sound_complete...
+      try rewrite ttyp_trans_ord_top; try rewrite* <- check_toplike_sound_complete...
   - forwards (?&?&?): ST_concat Eqa' Eqb'.
     applys* concat_source_intersection...
     1-4: auto... intuition eauto using target_typing_wf_typ.
@@ -251,15 +251,15 @@ Theorem esub_is_term_erased_cosub_1 : forall A B,
     (exists t1 t2, cosub t1 A B t2) -> esub A B.
 Proof with elia.
   intros. destruct_conj. gen x x0.
-    indTypSize (size_typ A + size_typ B).
-    destruct* H.
-    + { pick fresh x.
-        forwards* (?&Hx1&Hx2): H1 x.
-        forwards: IH Hx1... forwards: IH Hx2... applys* ES_Arrow. }
-    + { forwards: IH H1... eauto. }
-    + { forwards: IH H0... eauto. }
-    + { forwards: IH H0... eauto. }
-    + { forwards: IH H0... forwards: IH H1... eauto. }
+  indTypSize (size_typ A + size_typ B).
+  destruct* H.
+  + { pick fresh x.
+      forwards* (?&Hx1&Hx2): H1 x.
+      forwards: IH Hx1... forwards: IH Hx2... applys* ES_Arrow. }
+  + { forwards: IH H1... eauto. }
+  + { forwards: IH H0... eauto. }
+  + { forwards: IH H0... eauto. }
+  + { forwards: IH H0... forwards: IH H1... eauto. }
 Qed.
 
 Lemma comerge_lc_texp : forall t1 A B t2 C t3,
@@ -341,6 +341,14 @@ Notation "t -^ x"        := (open_texp_wrt_texp t (texp_var_f x))(at level 67).
 
 #[local] Hint Resolve subst_texp_lc_texp comerge_lc_texp comerge_lc_texp_1 comerge_lc_texp_2 : core.
 
+Ltac simp_eq Eq :=
+  let Heq := fresh "Heq" in
+  assert (Heq: Eq) by default_simp ; rewrite Heq.
+
+Ltac simp_eq_in Eq H :=
+  let Heq := fresh "Heq" in
+  assert (Heq: Eq) by default_simp ; rewrite Heq in H.
+
 Lemma comerge_rename : forall t1 t2 t3 A B C x y,
     y `notin` ((fv_texp t1) `union` (fv_texp t2)) ->
     comerge t1 B A t2 C t3 ->
@@ -352,10 +360,54 @@ Proof with try solve_notin.
   5: {
     applys~ M_RcdL.
     forwards: IHHC x y...  }
+  5: {
+    applys~ M_RcdR.
+    forwards: IHHC x y...  }
+  4: {
+    simp_eq ([x ~=> y] (texp_cons (|| typ_rcd l A ||) t texp_nil) = (texp_cons (|| typ_rcd l A ||) ([x ~=> y] t) texp_nil) ).
+    applys~ M_Rcd.
+    forwards: IHHC x y...
+  }
   3: {
-    applys* M_ArrowR ((L \u {{x}})).
+    remember (|| typ_arrow A B1 ||) as l1.
+    remember (|| typ_arrow A B2 ||) as l2.
+    remember (|| typ_arrow A B ||) as l.
+    simp_eq ([x ~=> y] (texp_cons l (texp_abs t) texp_nil) =  texp_cons l (texp_abs ([x ~=> y] t)) texp_nil).
+    rewrite Heql.
+    applys* M_ArrowR ((L \u {{x}} \u {{y}})).
     intros z Fr_z.
-Admitted.
+    forwards: H3 z x y...
+    rewrite~ subst_texp_open_texp_wrt_texp in H4.
+    simp_eq_in ([x ~=> y] (texp_var_f z) = texp_var_f z) H4.
+    rewrite <- Heql2. case_if*. { subst. solve_notin. }
+  }
+  2: {
+    remember (|| typ_arrow A B1 ||) as l1.
+    remember (|| typ_arrow A B2 ||) as l2.
+    remember (|| typ_arrow A B ||) as l.
+    simp_eq ([x ~=> y] (texp_cons l (texp_abs t) texp_nil) =  texp_cons l (texp_abs ([x ~=> y] t)) texp_nil).
+    rewrite Heql.
+    applys* M_ArrowL ((L \u {{x}} \u {{y}})).
+    intros z Fr_z.
+    forwards: H3 z x y...
+    rewrite~ subst_texp_open_texp_wrt_texp in H4.
+    simp_eq_in ([x ~=> y] (texp_var_f z) = texp_var_f z) H4.
+    rewrite <- Heql1. case_if*. { subst. solve_notin. }
+  }
+  1: {
+    remember (|| typ_arrow A B1 ||) as l1.
+    remember (|| typ_arrow A B2 ||) as l2.
+    remember (|| typ_arrow A B ||) as l.
+    simp_eq ([x ~=> y] (texp_cons l (texp_abs t) texp_nil) =  texp_cons l (texp_abs ([x ~=> y] t)) texp_nil).
+    rewrite Heql.
+    applys* M_Arrow ((L \u {{x}} \u {{y}})).
+    intros z Fr_z.
+    forwards: H2 z x y...
+    rewrite~ subst_texp_open_texp_wrt_texp in H3.
+    simp_eq_in ([x ~=> y] (texp_var_f z) = texp_var_f z) H3.
+    rewrite <- Heql1. rewrite <- Heql2. case_if*. { subst. solve_notin. }
+  }
+Qed.
 
 Lemma cosub_rename : forall t1 t2 A B x y,
     y `notin` ((fv_texp t1) `union` (fv_texp t2)) ->
@@ -490,49 +542,49 @@ Proof with try fsetdec; elia.
   introv HE HC. gen t1.
   indTypSize (size_typ A + size_typ B).
   destruct* HE.
-    + exists. applys* S_Bot. pick fresh a. eauto.
-    + pick fresh y.
-      forwards* (tt&HC1): IH HE1 (texp_var_f y)...
-      remember (|| typ_arrow A1 A2 ||) as l1.
-      forwards* (t2'&HC2): IH HE2 (texp_app (texp_proj t1 l1) tt)...
-      rewrite <- (open_texp_wrt_texp_close_texp_wrt_texp t2' y) in HC2.
-      clear HE1 HE2 SizeInd.
-      exists.
-      applys* S_Arrow ((fv_texp (texp_var_f y)) `union` (fv_texp tt) `union` (fv_texp t1) `union` (fv_texp t2')) (close_texp_wrt_texp y t2').
-      intros x Frx. rewrite <- Heql1. exists. split.
-      * forwards*: cosub_rename y x HC1...
-        assert (Heq: [y ~=> x] (texp_var_f y) = texp_var_f x).
-        { default_simp. }
-        rewrite Heq in H1. applys H1.
-      * forwards*: cosub_rename y x HC2...
-        {
-          destruct_notin.
-          applys AtomSetProperties.not_in_union. solve_notin.
-          forwards Hneq: fv_texp_open_texp_wrt_texp_upper (close_texp_wrt_texp y t2') (texp_var_f y).
-          rewrite fv_texp_close_texp_wrt_texp in Hneq.
-          fsetdec. }
-        rewrite subst_texp_open_texp_wrt_texp in H1.
-        assert (Heq: [y ~=> x] (texp_var_f y) = texp_var_f x).
-        { default_simp. }
-        rewrite Heq in H1.
-        ** assert (Heq2: [y ~=> x] (texp_app (texp_proj t1 l1) tt) = (texp_app (texp_proj t1 l1) [y ~=> x] (tt))).
-           { default_simp. rewrite* subst_texp_fresh_eq. }
-           rewrite Heq2 in H1.
-           assert (Heq3: [y ~=> x] (close_texp_wrt_texp y t2') = (close_texp_wrt_texp y t2')). {
-             apply subst_texp_fresh_eq...
-             rewrite fv_texp_close_texp_wrt_texp. eauto.
-           }
-           rewrite Heq3 in H1. auto.
-        ** eauto.
-    + forwards (?&?): IH HE  (texp_proj t1 (|| typ_rcd l A ||))...
-      all: eauto.
-    + forwards (?&?): IH HE t1...
-      all: eauto.
-    + forwards (?&?): IH HE t1...
-      all: eauto.
-    + forwards* (?&?): IH HE1 t1...
-      forwards* (?&?): IH HE2 t1...
-      forwards* (?&?): spl_sound_to_comerge x x0 H.
+  + exists. applys* S_Bot. pick fresh a. eauto.
+  + pick fresh y.
+    forwards* (tt&HC1): IH HE1 (texp_var_f y)...
+    remember (|| typ_arrow A1 A2 ||) as l1.
+    forwards* (t2'&HC2): IH HE2 (texp_app (texp_proj t1 l1) tt)...
+    rewrite <- (open_texp_wrt_texp_close_texp_wrt_texp t2' y) in HC2.
+    clear HE1 HE2 SizeInd.
+    exists.
+    applys* S_Arrow ((fv_texp (texp_var_f y)) `union` (fv_texp tt) `union` (fv_texp t1) `union` (fv_texp t2')) (close_texp_wrt_texp y t2').
+    intros x Frx. rewrite <- Heql1. exists. split.
+    * forwards*: cosub_rename y x HC1...
+      assert (Heq: [y ~=> x] (texp_var_f y) = texp_var_f x).
+      { default_simp. }
+      rewrite Heq in H1. applys H1.
+    * forwards*: cosub_rename y x HC2...
+      {
+        destruct_notin.
+        applys AtomSetProperties.not_in_union. solve_notin.
+        forwards Hneq: fv_texp_open_texp_wrt_texp_upper (close_texp_wrt_texp y t2') (texp_var_f y).
+        rewrite fv_texp_close_texp_wrt_texp in Hneq.
+        fsetdec. }
+      rewrite subst_texp_open_texp_wrt_texp in H1.
+      assert (Heq: [y ~=> x] (texp_var_f y) = texp_var_f x).
+      { default_simp. }
+      rewrite Heq in H1.
+      ** assert (Heq2: [y ~=> x] (texp_app (texp_proj t1 l1) tt) = (texp_app (texp_proj t1 l1) [y ~=> x] (tt))).
+         { default_simp. rewrite* subst_texp_fresh_eq. }
+         rewrite Heq2 in H1.
+         assert (Heq3: [y ~=> x] (close_texp_wrt_texp y t2') = (close_texp_wrt_texp y t2')). {
+           apply subst_texp_fresh_eq...
+           rewrite fv_texp_close_texp_wrt_texp. eauto.
+         }
+         rewrite Heq3 in H1. auto.
+      ** eauto.
+  + forwards (?&?): IH HE  (texp_proj t1 (|| typ_rcd l A ||))...
+    all: eauto.
+  + forwards (?&?): IH HE t1...
+    all: eauto.
+  + forwards (?&?): IH HE t1...
+    all: eauto.
+  + forwards* (?&?): IH HE1 t1...
+    forwards* (?&?): IH HE2 t1...
+    forwards* (?&?): spl_sound_to_comerge x x0 H.
 Qed.
 
 
@@ -628,13 +680,13 @@ Qed.
 
 Ltac split_unify :=
   repeat match goal with
-  | [ H1: spl ?A _ _ , H2: spl ?A _ _ |- _ ] =>
-           (progress forwards (?&?): split_unique H1 H2;
-            subst; clear H2)
-  | [ H: spl (typ_and _ _) _ _ |- _ ] => inverts H
-  | [ H: spl (typ_arrow _ _) _ _ |- _ ] => inverts H
-  | [ H: spl (typ_rcd _ _) _ _ |- _ ] => inverts H
-         end;
+    | [ H1: spl ?A _ _ , H2: spl ?A _ _ |- _ ] =>
+        (progress forwards (?&?): split_unique H1 H2;
+         subst; clear H2)
+    | [ H: spl (typ_and _ _) _ _ |- _ ] => inverts H
+    | [ H: spl (typ_arrow _ _) _ _ |- _ ] => inverts H
+    | [ H: spl (typ_rcd _ _) _ _ |- _ ] => inverts H
+    end;
   auto.
 
 
@@ -709,9 +761,9 @@ Proof with eauto using toplike_dec.
 Qed.
 
 #[export]
-Hint Immediate toplike_super_any : core.
+  Hint Immediate toplike_super_any : core.
 #[export]
-Hint Resolve sub_l_andl sub_l_andr sub_fun sub_rcd: core.
+  Hint Resolve sub_l_andl sub_l_andr sub_fun sub_rcd: core.
 
 
 Lemma sub_refl : forall A,
@@ -769,7 +821,7 @@ Qed.
 
 Lemma cosub_well_typed : forall E t1 A B t2 At,
     cosub t1 A B t2 -> target_typing E t1 At -> subTarget At |[A]| ->
-    exists Bt', target_typing E t2 Bt' /\ subTarget Bt' |[B]| /\ subTarget |[B]| Bt'.
+                                                                   exists Bt', target_typing E t2 Bt' /\ subTarget Bt' |[B]| /\ subTarget |[B]| Bt'.
 Proof with elia; try tassumption;
 intuition eauto using target_typing_wf_1, target_typing_wf_2,
   target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top, ST_rcd_2,
@@ -820,15 +872,15 @@ intuition eauto using target_typing_wf_1, target_typing_wf_2,
     auto...
     exists. splits. applys TTyping_RcdCons.
     4: econstructor...
-      3: {
-        pick fresh z and apply TTyping_Abs.
-        forwards* : subst_var_typing H8.
-        solve_notin.
-      }
-      3: eauto.
-      2: right*.
-      1: now eauto.
-      rewrite ttyp_trans_ord_ntop_arrow...
+    3: {
+      pick fresh z and apply TTyping_Abs.
+      forwards* : subst_var_typing H8.
+      solve_notin.
+    }
+    3: eauto.
+    2: right*.
+    1: now eauto.
+    rewrite ttyp_trans_ord_ntop_arrow...
     simpl. case_if*. {
       exfalso. applys H0. rewrite <- check_toplike_sound_complete in C.
       eauto using comerge_toplike_r.
@@ -911,19 +963,19 @@ Qed.
 Lemma distapp_well_typed_app : forall A B C G t1 t2 t3 A' B',
     distapp t1 A t2 B t3 C ->
     target_typing ||[ G ]|| t1 A' -> subTarget A' |[A]| ->
-    target_typing ||[ G ]|| t2 B' -> subTarget B' |[B]| ->
-    exists C', target_typing ||[ G ]|| t3 C' /\ subTarget C' |[C]| /\ subTarget |[C]| C'.
+                                                        target_typing ||[ G ]|| t2 B' -> subTarget B' |[B]| ->
+                                                                                                            exists C', target_typing ||[ G ]|| t3 C' /\ subTarget C' |[C]| /\ subTarget |[C]| C'.
 Proof with intuition eauto using target_typing_wf_1, target_typing_wf_2,
-  target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top, ST_rcd_2,
-  cosub_not_toplike, ttyp_trans_wf,
-  translate_to_record_types, subTarget_rec_typ.
+    target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top, ST_rcd_2,
+    cosub_not_toplike, ttyp_trans_wf,
+    translate_to_record_types, subTarget_rec_typ.
 
   introv HA HTa HEa HTb HEb. gen A' B'.
   inductions HA; intros.
   - rewrite* ttyp_trans_ord_top.
   - forwards* (?&?&?): cosub_well_typed H1.
     lets (?&?&?&?): lookup_ST_sub (|| (typ_arrow A B) ||) HEa.
-     simpl. case_if*.
+    simpl. case_if*.
     { apply check_toplike_sound_complete in C0. contradiction. }
     forwards(?&?&?&?&?&?&?): ST_arrow_inv H5. subst.
     exists. splits. applys TTyping_App.
@@ -940,10 +992,10 @@ Qed.
 Lemma distapp_well_typed_proj : forall A l t1 t3 C G A',
     proj t1 A l t3 C -> target_typing ||[ G ]|| t1 A' ->
     subTarget A' |[A]| ->
-    exists C', target_typing ||[ G ]|| t3 C' /\ subTarget C' |[C]| /\ subTarget |[C]| C'.
+                       exists C', target_typing ||[ G ]|| t3 C' /\ subTarget C' |[C]| /\ subTarget |[C]| C'.
 Proof with intuition eauto using target_typing_wf_1, target_typing_wf_2,
-  target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top, ST_rcd_2,
-  cosub_not_toplike,
+    target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top, ST_rcd_2,
+    cosub_not_toplike,
     translate_to_record_types, subTarget_rec_typ.
 
   introv HA HT HS. gen A'.
@@ -966,8 +1018,8 @@ Theorem elaboration_well_typed : forall G e dirflag A t,
     elaboration G e dirflag A t ->
     exists A', target_typing ||[ G ]|| t A' /\  subTarget A' |[A]| /\  subTarget |[A]| A'.
 Proof with intuition eauto using target_typing_wf_1, target_typing_wf_2,
-  target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top, ST_rcd_2,
-  cosub_not_toplike, ctx_trans_preserves_uniq, ttyp_trans_wf,
+    target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top, ST_rcd_2,
+    cosub_not_toplike, ctx_trans_preserves_uniq, ttyp_trans_wf,
     translate_to_record_types, subTarget_rec_typ,  elaboration_wf_ctx.
   introv HT.
   induction HT...
