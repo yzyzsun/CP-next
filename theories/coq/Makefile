@@ -18,7 +18,7 @@ quick:  $(COQMKFILENAME) $(VFILES)
 
 OTT_LOC  = ../ott
 
-syntax_ott.v: $(OTT_LOC)/source.ott $(OTT_LOC)/target.ott
+syntax_ott.v:
 	ott -i $(OTT_LOC)/source.ott -i $(OTT_LOC)/target.ott -o syntax_ott.v -coq_lngen true -coq_expand_list_types true
 	@if grep '<<no parses (' $@ >/dev/null 2>&1 && \
 	[ -z "$(DONTSTOP)" ]; then \
@@ -30,10 +30,10 @@ syntax_ott.v: $(OTT_LOC)/source.ott $(OTT_LOC)/target.ott
 	fi >&2
 
 
-source_inf.v: $(OTT_LOC)/source.ott
+source_inf.v:
 	lngen --coq source_inf.v --coq-ott syntax_ott $(OTT_LOC)/source.ott
 
-target_inf.v: $(OTT_LOC)/target.ott
+target_inf.v:
 	@echo "metavariables definition are uncommented in $(OTT_LOC)/target.ott to use lngen"
 	sed 's/^%//' $(OTT_LOC)/target.ott > $(OTT_LOC)/target_tmp.ott
 	lngen --coq target_inf.v --coq-ott syntax_ott $(OTT_LOC)/target_tmp.ott

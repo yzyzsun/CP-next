@@ -48,7 +48,7 @@ comparison/region_0.cp.mjs: 1.137s         # CP version of region^0
 ......
 ```
 
-For your reference, we also provide original data (in milliseconds) and gnuplot scripts in [plot/](./plot) that are used to draw Fig. 25 and Fig. 26 in the paper.
+For your reference, we also provide original data (in milliseconds) and gnuplot scripts in [plot/](./plot) that are used to draw Fig. 30 & 31 in the paper.
 
 ## Appendix
 

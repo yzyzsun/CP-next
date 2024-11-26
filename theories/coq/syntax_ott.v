@@ -1248,14 +1248,18 @@ Inductive ord : typ -> Prop :=    (* defn ord *)
      ord (typ_arrow A B)
  | O_rcd : forall (l:label) (B:typ),
      ord B ->
-     ord (typ_rcd l B).
+     ord (typ_rcd l B)
+ | O_bot :
+     ord typ_bot.
 
 (* defns Disjoint *)
 Inductive disjoint : typ -> typ -> Prop :=    (* defn disjoint *)
- | D_topL : forall (A:typ),
-     disjoint typ_top A
- | D_topR : forall (A:typ),
-     disjoint A typ_top
+ | D_topL : forall (A B:typ),
+     toplike A ->
+     disjoint A B
+ | D_topR : forall (B A:typ),
+     toplike A ->
+     disjoint B A
  | D_andL : forall (A1 A2 B:typ),
      disjoint A1 B ->
      disjoint A2 B ->
@@ -1349,10 +1353,10 @@ Inductive cosub : texp -> typ -> typ -> texp -> Prop :=    (* defn cosub *)
  | S_Base : forall (t:texp),
      lc_texp t ->
      cosub t typ_base typ_base  (texp_cons (ti_list (styp2tindex typ_base ))    (texp_proj t (ti_list (styp2tindex typ_base )) )  texp_nil)
- | S_Arrow : forall (L:vars) (t:texp) (A1 A2 B1 B2:typ) (t2 t1:texp),
+ | S_Arrow : forall (L:vars) (t:texp) (A1 A2 B1 B2:typ) (t2:texp),
      ord B2 ->
       not ( toplike B2 )  ->
-      ( forall x , x \notin  L  ->  ( cosub (texp_var_f x) B1 A1 t1  /\  cosub (texp_app  (texp_proj t (ti_list (styp2tindex (typ_arrow A1 A2) )) )  t1) A2 B2  ( open_texp_wrt_texp t2 (texp_var_f x) )  )  )  ->
+      ( forall x , x \notin  L  -> exists t1, ( cosub (texp_var_f x) B1 A1 t1  /\  cosub (texp_app  (texp_proj t (ti_list (styp2tindex (typ_arrow A1 A2) )) )  t1) A2 B2  ( open_texp_wrt_texp t2 (texp_var_f x) )  )  )  ->
      cosub t (typ_arrow A1 A2) (typ_arrow B1 B2)  (texp_cons (ti_list (styp2tindex (typ_arrow B1 B2) ))    (texp_abs t2)  texp_nil)
  | S_Rcd : forall (t:texp) (l:label) (A B:typ) (t2:texp),
      ord B ->
@@ -1374,7 +1378,44 @@ Inductive cosub : texp -> typ -> typ -> texp -> Prop :=    (* defn cosub *)
      comerge t1 B1 B t2 B2 t3 ->
      cosub t A B t3.
 
-(* defns Subtyping *)
+(* defns TermErasedCoSubtyping *)
+Inductive esub : typ -> typ -> Prop :=    (* defn esub *)
+| ES_Top : forall (A B:typ),
+    ord B ->
+    toplike B ->
+    esub A B
+| ES_Bot : forall (B:typ),
+    ord B ->
+    not ( toplike B )  ->
+    esub typ_bot B
+| ES_Base :
+    esub typ_base typ_base
+| ES_Arrow : forall (A1 A2 B1 B2:typ),
+    ord B2 ->
+    not ( toplike B2 )  ->
+    esub B1 A1 ->
+    esub A2 B2 ->
+    esub (typ_arrow A1 A2) (typ_arrow B1 B2)
+| ES_Rcd : forall (l:label) (A B:typ),
+    ord B ->
+    not ( toplike B )  ->
+    esub A B ->
+    esub (typ_rcd l A) (typ_rcd l B)
+| ES_AndL : forall (A B C:typ),
+    ord C ->
+    esub A C ->
+    esub (typ_and A B) C
+| ES_AndR : forall (A B C:typ),
+    ord C ->
+    esub B C ->
+    esub (typ_and A B) C
+| ES_Split : forall (A B B1 B2:typ),
+    spl B B1 B2 ->
+    esub A B1 ->
+    esub A B2 ->
+    esub A B.
+
+(* defns WidthSubtyping *)
 Inductive sub : typ -> typ -> Prop :=    (* defn sub *)
  | S_z :
      sub typ_base typ_base
@@ -1420,6 +1461,7 @@ Inductive proj : texp -> typ -> label -> texp -> typ -> Prop :=    (* defn proj 
       l1  <>  l2  ->
      proj t (typ_rcd l1 A) l2 texp_nil typ_top
  | P_And : forall (t1:texp) (A B:typ) (l:label) (t3 t4:texp) (A' B':typ),
+      not ( toplike (typ_and A B) )  ->
      proj t1 A l t3 A' ->
      proj t1 B l t4 B' ->
      proj t1 (typ_and A B) l (texp_concat t3 t4) (typ_and A' B').
@@ -1437,6 +1479,7 @@ Inductive distapp : texp -> typ -> texp -> typ -> texp -> typ -> Prop :=    (* d
      cosub t2 C A t3 ->
      distapp t1 (typ_arrow A B) t2 C (texp_app  (texp_proj t1 (ti_list (styp2tindex (typ_arrow A B) )) )  t3) B
  | A_And : forall (t1:texp) (A B:typ) (t2:texp) (C:typ) (t3 t4:texp) (A' B':typ),
+      not ( toplike (typ_and A B) )  ->
      distapp t1 A t2 C t3 A' ->
      distapp t1 B t2 C t4 B' ->
      distapp t1 (typ_and A B) t2 C (texp_concat t3 t4) (typ_and A' B').
@@ -1566,7 +1609,7 @@ Inductive rec_typ : ttyp -> Prop :=    (* defn rec_typ *)
      rec_typ Bt ->
      rec_typ (ttyp_rcd ll At Bt).
 
-
+(* defns TargetWidthSubtyping *)
 Inductive subTarget : ttyp -> ttyp -> Prop :=
  | ST_refl : forall At,
      subTarget At At
@@ -1625,26 +1668,6 @@ Inductive wf_ctx : tctx -> Prop :=    (* defn wf_ctx *)
      wf_ctx Gt ->
      wf_ctx  (cons ( x , At )  Gt ) .
 
-(* defns TargetSubtype *)
-Inductive SubtypeTarget : ttyp -> ttyp -> Prop :=    (* defn SubtypeTarget *)
- | TS_top : forall (At:ttyp),
-     wf_typ At ->
-     SubtypeTarget At ttyp_top
- | TS_refl : forall (At:ttyp),
-     wf_typ At ->
-     SubtypeTarget At At
- | TS_arrow : forall (At1 Bt1 At2 Bt2:ttyp),
-     SubtypeTarget At1 At2 ->
-     SubtypeTarget Bt1 Bt2 ->
-     SubtypeTarget (ttyp_arrow At1 Bt1) (ttyp_arrow At2 Bt2)
- | TS_rcd : forall (Ct:ttyp) (ll:tindex) (At Ct' Bt At':ttyp),
-     rec_typ Ct' ->
-      Tlookup  ll   Ct  = Some  Bt  ->
-     SubtypeTarget Bt At ->
-      (   (  Tlookup  ll   Ct'  = Some  At'   /\   subTarget  At'   At  /\ subTarget  At   At'  )    \/   Tlookup  ll   Ct'  = None  )  ->
-     SubtypeTarget Ct Ct' ->
-     SubtypeTarget Ct (ttyp_rcd ll At Ct').
-
 (* defns TargetTyping *)
 Inductive target_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target_typing *)
  | TTyping_Base : forall (Gt:tctx) (b:lit),
@@ -1692,4 +1715,4 @@ Inductive target_typing : tctx -> texp -> ttyp -> Prop :=    (* defn target_typi
 
 
 (** infrastructure *)
-Hint Constructors toplike spl ord disjoint comerge cosub sub proj distapp elaboration value target_step rec_typ concat_typ contained_by_rec_typ wf_typ wf_ctx SubtypeTarget target_typing lc_texp lc_exp : core.
+Hint Constructors toplike spl ord disjoint comerge cosub sub proj distapp elaboration value target_step rec_typ concat_typ contained_by_rec_typ wf_typ wf_ctx target_typing lc_texp lc_exp : core.

@@ -371,6 +371,10 @@ OrdinaryType :: '' ::=
   ordinary {l:B}
 
 
+  ---------------- :: bot
+  ordinary Bot
+
+
 
 defns
 Disjoint :: '' ::=
@@ -379,13 +383,14 @@ Disjoint :: '' ::=
   {{ com Type Disjointness (Algorithmic) }}
   by
 
-
+  toplike A
   --------------- :: topL
-  Top * A
+  A * B
 
 
+  toplike A
   ------------------ :: topR
-  A * Top
+  B * A
 
 
   A1 * B
@@ -544,6 +549,55 @@ CoSubtyping :: '' ::=
   t : A <: B ~~> t3
 
 defns
+TermErasedCoSubtyping :: '' ::=
+
+  defn
+  A <<: B :: :: esub :: ES_
+  {{ com subtyping }}
+  by
+
+  ordinary B
+  toplike B
+  -------------------------- :: Top
+  A <<: B
+
+  ordinary B
+  not toplike B
+  ------------------------------------- :: Bot
+  Bot <<: B
+
+  ------------------------------------ :: Base
+  Base <<: Base
+
+  ordinary B2
+  not toplike B2
+  A1 <<: B1 and A2 <<: B2
+  -------------------------------------------------------------------- :: Arrow
+  A1 -> A2 <<: B1 -> B2
+
+  ordinary B
+  not toplike B
+  A <<: B
+  ---------------------------------------------- :: Rcd
+  {l:A} <<: {l:B}
+
+  ordinary C
+  A <<: C
+  ------------------------ :: AndL
+  A & B <<: C
+
+  ordinary C
+  B <<: C
+  ------------------------ :: AndR
+  A & B <<: C
+
+  split B B1 B2
+  A <<: B1
+  A <<: B2
+  -------------------------------- :: Split
+  A <<: B
+
+defns
 Subtyping :: '' ::=
 
    defn
@@ -641,6 +695,7 @@ Projection :: '' ::=
   -------------------------------------------- :: RcdNeq
   t : {l1 : A} ; { l2 } ~~> { } : Top
 
+  not toplike A&B
   t1 : A ; { l } ~~> t3 : A' 
   t1 : B ; { l } ~~> t4 : B'
   ----------------------------------------- :: And
@@ -663,6 +718,7 @@ DistributiveApplication :: '' ::=
   -------------------------------------------- :: Arrow
   t1 : A -> B ; t2 : C ~~> (t1.|A->B|) t3 : B
 
+  not toplike A&B
   t1 : A ; t2 : C ~~> t3 : A' 
   t1 : B ; t2 : C ~~> t4 : B'
   ----------------------------------------- :: And
