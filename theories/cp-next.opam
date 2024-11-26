@@ -1,0 +1,16 @@
+opam-version: "2.0"
+maintainer: "xsnow@outlook.com"
+version: "dev"
+
+synopsis: "CP compilation scheme"
+authors: "Xuejing Huang"
+homepage: "https://github.com/yzyzsun/CP-next"
+bug-reports: "https://github.com/yzyzsun/CP-next/issues"
+
+build: [ make "-j%{jobs}%" "-C" "coq" ]
+depends: [
+  "coq" { = "8.16.1" }
+  "coq-ott"
+  "coq-metalib"
+  "coq-struct-tact"
+]
