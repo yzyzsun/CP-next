@@ -64,15 +64,19 @@ We apologize that we have not automated the modifications so far.
 
 ## Correspondence Guide
 
-| Theorem in Paper                                           | File                      | Name in Coq                                                                                          |   |
-|------------------------------------------------------------|---------------------------|------------------------------------------------------------------------------------------------------|---|
-| Lemma 5.1 (Equivalent types in lookups)                    | `TargetTypeSafety.v`      | `lookup_ST_eq_some` / `lookup_eq`                                                                    |   |
-| Theorem 5.2 (Progress)                                     | `TargetTypeSafety.v`      | `progress`                                                                                           |   |
-| Lemma 5.3 (Substitution preserves typing)                  | `TargetTypeSafety.v`      | `substitution_preserves_typing_relax`                                                                |   |
-| Theorem 5.4 (Type preservation)                            | `TargetTypeSafety.v`      | `preservation`                                                                                       |   |
-| Theorem 5.5 (Top-like types respects the specification)    | `ElaborationSoundness.v`  | `toplike_spec_sound_and_complete`                                                                    |   |
-| Theorem 5.6 (Type disjointness respects the specification) | `ElaborationSoundness.v`` | `disjoint_soundness` / `disjoint_completeness`                                                       |   |
-| Lemma 5.7 (Translation)                                    | `Translation.v`           | `st_eq_arrow` / `st_eq_rcd`                                                                          |   |
-| Lemma 5.8 (Equivalent types)                               | `Translation.v`           | `lookup_sub` / `eqIndTyp_sound_alt_gen` / `sub_source2target`                                        |   |
-| Lemma 5.9 (Well-formedness of translated types)            | `Translation.v`           | `ttyp_trans_wf`                                                                                      |   |
-| Theorem 5.10 (Elaboration soundness)                       | `ElaborationSoundness.v`  | `cosub_well_typed` / `distapp_well_typed_app` / `distapp_well_typed_proj` / `elaboration_well_typed` |   |
+| Theorem in Paper                                           | File                     | Name in Coq                                                                                          |
+|------------------------------------------------------------|--------------------------|------------------------------------------------------------------------------------------------------|
+| Lemma 5.1 (Lookup on Equivalent types)                     | `TargetTypeSafety.v`     | `lookup_ST_eq_some` / `lookup_eq`                                                                    |
+| Theorem 5.2 (Progress)                                     | `TargetTypeSafety.v`     | `progress`                                                                                           |
+| Lemma 5.3 (Substitution preserves typing)                  | `TargetTypeSafety.v`     | `substitution_preserves_typing_relax`                                                                |
+| Theorem 5.4 (Type preservation)                            | `TargetTypeSafety.v`     | `preservation`                                                                                       |
+| Theorem 5.5 (Coercion-erased subtyping)                    | `ElaborationSoundness.v` | `esub_is_term_erased_cosub`                                                                          |
+| Theorem 5.6 (Top-like types respect the specification)     | `ElaborationSoundness.v` | `toplike_spec_sound_and_complete`                                                                    |
+| Theorem 5.7 (Type disjointness respects the specification) | `ElaborationSoundness.v` | `disjoint_soundness` / `disjoint_completeness`                                                       |
+| Lemma 5.8 (Translation)                                    | `Translation.v`          | `st_eq_arrow` / `st_eq_rcd`                                                                          |
+| Lemma 5.9 (Equivalent types)                               | `Translation.v`          | `lookup_sub` / `eqIndTyp_sound_alt_gen` / `sub_source2target`                                        |
+| Lemma 5.10 (Well-formedness of translated types)           | `Translation.v`          | `ttyp_trans_wf`                                                                                      |
+| Theorem 5.11 (Elaboration soundness)                       | `ElaborationSoundness.v` | `cosub_well_typed` / `distapp_well_typed_app` / `distapp_well_typed_proj` / `elaboration_well_typed` |
+
+Theorems 5.12 - 5.15 restate the coherence results in NeColus.
+Please refer to [*The Essence of Nested Composition (Artifact)*](https://doi.org/10.4230/DARTS.4.3.5) for the proofs.

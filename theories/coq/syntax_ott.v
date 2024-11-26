@@ -1609,7 +1609,7 @@ Inductive rec_typ : ttyp -> Prop :=    (* defn rec_typ *)
      rec_typ Bt ->
      rec_typ (ttyp_rcd ll At Bt).
 
-(* defns Target Width Subtyping *)
+(* defns TargetWidthSubtyping *)
 Inductive subTarget : ttyp -> ttyp -> Prop :=
  | ST_refl : forall At,
      subTarget At At

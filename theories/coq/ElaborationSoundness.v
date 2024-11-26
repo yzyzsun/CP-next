@@ -56,8 +56,8 @@ Qed.
 Lemma comerge_well_typed : forall E t1 A1 t B t2 A2 T1 T2,
     comerge t1 A1 B t2 A2 t ->
     target_typing E t1 T1 -> subTarget T1 |[A1]| -> subTarget |[A1]| T1 ->
-                                                                     target_typing E t2 T2 -> subTarget T2 |[A2]| -> subTarget |[A2]| T2 ->
-                                                                                                                                      exists T, target_typing E t T /\ subTarget T |[B]| /\ subTarget |[B]| T.
+    target_typing E t2 T2 -> subTarget T2 |[A2]| -> subTarget |[A2]| T2 ->
+    exists T, target_typing E t T /\ subTarget T |[B]| /\ subTarget |[B]| T.
 Proof with elia; try tassumption;
 intuition eauto using target_typing_wf_1, target_typing_wf_2,
   target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top,
@@ -849,7 +849,7 @@ Qed.
 
 Lemma cosub_well_typed : forall E t1 A B t2 At,
     cosub t1 A B t2 -> target_typing E t1 At -> subTarget At |[A]| ->
-                                                                   exists Bt', target_typing E t2 Bt' /\ subTarget Bt' |[B]| /\ subTarget |[B]| Bt'.
+    exists Bt', target_typing E t2 Bt' /\ subTarget Bt' |[B]| /\ subTarget |[B]| Bt'.
 Proof with elia; try tassumption;
 intuition eauto using target_typing_wf_1, target_typing_wf_2,
   target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top, ST_rcd_2,
@@ -991,8 +991,8 @@ Qed.
 Lemma distapp_well_typed_app : forall A B C G t1 t2 t3 A' B',
     distapp t1 A t2 B t3 C ->
     target_typing ||[ G ]|| t1 A' -> subTarget A' |[A]| ->
-                                                        target_typing ||[ G ]|| t2 B' -> subTarget B' |[B]| ->
-                                                                                                            exists C', target_typing ||[ G ]|| t3 C' /\ subTarget C' |[C]| /\ subTarget |[C]| C'.
+    target_typing ||[ G ]|| t2 B' -> subTarget B' |[B]| ->
+    exists C', target_typing ||[ G ]|| t3 C' /\ subTarget C' |[C]| /\ subTarget |[C]| C'.
 Proof with intuition eauto using target_typing_wf_1, target_typing_wf_2,
     target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top, ST_rcd_2,
     cosub_not_toplike, ttyp_trans_wf,
@@ -1020,7 +1020,7 @@ Qed.
 Lemma distapp_well_typed_proj : forall A l t1 t3 C G A',
     proj t1 A l t3 C -> target_typing ||[ G ]|| t1 A' ->
     subTarget A' |[A]| ->
-                       exists C', target_typing ||[ G ]|| t3 C' /\ subTarget C' |[C]| /\ subTarget |[C]| C'.
+    exists C', target_typing ||[ G ]|| t3 C' /\ subTarget C' |[C]| /\ subTarget |[C]| C'.
 Proof with intuition eauto using target_typing_wf_1, target_typing_wf_2,
     target_typing_wf_typ, ST_refl, ST_trans, ST_toplike, ST_top, ST_rcd_2,
     cosub_not_toplike,
