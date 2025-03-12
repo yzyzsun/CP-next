@@ -101,10 +101,10 @@ fexpr e = do
   pure $ (if isCtor then TmNew else identity) (foldl (#) f args)
 
 excludexpr :: SParser Tm -> SParser Tm
-excludexpr e = renamexpr e >>= \e' ->
-  TmExclude e' <$ symbol "\\\\" <*> bty ty <|>
-  TmRemoval e' <$ symbol "\\" <*> identifier <|>
-  pure e'
+excludexpr e = renamexpr e >>= \e' -> do
+  excludes <- many $ try (flip TmRemoval <$ symbol "\\" <*> identifier) <|>
+                     flip TmExclude <$ symbol "\\\\" <*> bty ty
+  pure $ foldl (#) e' excludes
 
 renamexpr :: SParser Tm -> SParser Tm
 renamexpr e = dotexpr e >>= \e' -> option e' $ try $ brackets do

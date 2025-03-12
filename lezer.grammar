@@ -89,7 +89,7 @@ lexpr {
 
 fexpr { excludexpr (excludexpr | typeArg)* }
 
-excludexpr { renamexpr ("\\\\" btype | "\\" Label)? }
+excludexpr { renamexpr ("\\\\" btype | "\\" Label)* }
 
 renamexpr { dotexpr ~conflict ("[" Label "<-" LabelDecl "]")? }
 
