@@ -382,7 +382,7 @@ ty = fix \t -> buildExprParser toperators $ cty t
 
 cty :: SParser Ty -> SParser Ty
 cty t = foldl TyApp <$> bty t <*> many (bty t) <|>
-        forallTy <|> muTy <|> refTy <|> traitTy <|> absTy
+        forallTy <|> fixTy <|> refTy <|> traitTy <|> absTy
 
 bty :: SParser Ty -> SParser Ty
 bty t = foldl TyApp <$> aty t <*> many (sortTy t)
@@ -415,9 +415,9 @@ forallTy = do
   t <- ty
   pure $ TyForall xs t
 
-muTy :: SParser Ty
-muTy = do
-  reserved "mu"
+fixTy :: SParser Ty
+fixTy = do
+  reserved "fix"
   x <- upperIdentifier
   symbol "."
   t <- ty
@@ -506,7 +506,7 @@ langDef = LanguageDef (unGenLanguageDef haskellStyle) { reservedNames =
   [ "true", "false", "undefined", "if", "then", "else", "toString", "fix"
   , "trait", "implements", "inherits", "override", "new", "fold", "unfold"
   , "let", "letrec", "open", "in", "with", "ref", "switch", "as", "case"
-  , "type", "interface", "extends", "forall", "mu"
+  , "type", "interface", "extends", "forall"
   , "Int", "Double", "String", "Bool", "Top", "Bot", "Trait", "Ref"
   ]
 }

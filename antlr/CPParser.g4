@@ -32,7 +32,7 @@ type
     |   <assoc=left> type Backslash type
     |   <assoc=right> type Arrow type
     |   ForAll typeParam+ Dot type
-    |   Mu typeNameDecl Dot type
+    |   Fix typeNameDecl Dot type
     |   TraitType Less type (FatArrow type)? Greater
     |   RefType btype
     |   btype btype*

@@ -1,6 +1,6 @@
 --> true
 
-type Exp = mu Exp. {
+type Exp = fix Exp. {
   eval: Int;
   dbl:  Exp;
   eq:   Exp -> Bool;

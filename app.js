@@ -22,7 +22,7 @@ export const cp = new LanguageSupport(LRLanguage.define({
       }),
       styleTags({
         'type interface extends let letrec trait implements inherits': t.definitionKeyword,
-        'if then else new fix open in with toString fold unfold ref forall mu Int Double Bool String Top Bot Trait Ref': t.keyword,
+        'if then else new fix open in with toString fold unfold ref forall Int Double Bool String Top Bot Trait Ref': t.keyword,
         'override': t.modifier,
         'true false undefined': t.atom,
         Unit: t.unit,

@@ -38,7 +38,7 @@ type {
   type !diff TypeOp<"\\"> type |
   type !intersect TypeOp<"&"> type |
   kw<"forall"> typeParam+ "." type |
-  kw<"mu"> TypeNameDecl "." type |
+  kw<"fix"> TypeNameDecl "." type |
   kW<"Trait"> angles<sort> |
   kW<"Ref"> btype |
   btype btype*

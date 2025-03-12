@@ -51,10 +51,6 @@ ForAll
     :   'forall'
     ;
 
-Mu
-    :   'mu'
-    ;
-
 Int
     :   'Int'
     ;
