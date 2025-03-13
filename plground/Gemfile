@@ -45,3 +45,15 @@ gem 'pg', group: :production
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
+
+# bigdecimal and mutex_m were loaded from the standard library, but are not part of the default gems starting from Ruby 3.4
+gem 'bigdecimal'
+gem 'mutex_m'
+
+# benchmark and logger were loaded from the standard library, but are not part of the default gems starting from Ruby 3.5
+gem 'benchmark'
+gem 'logger'
+
+# ActiveSupport's logger fails to initialize since concurrent-ruby 1.3.5
+# https://github.com/rails/rails/issues/54272
+gem 'concurrent-ruby', '1.3.4'
