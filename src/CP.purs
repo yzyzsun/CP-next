@@ -46,8 +46,8 @@ inferType code = case runParser code (whiteSpace *> expr <* eof) of
     pure $ show t
 
 importDefs :: String -> Checking Unit
-importDefs code = case runParser code (whiteSpace *> program <* eof) of
-  Left err -> throwCheckError $ showParseError err code
+importDefs code = case parse code of
+  Left err -> throwCheckError err
   Right prog -> do
     let prog' = desugarProg prog
     _ <- checkProg prog'
@@ -78,15 +78,26 @@ evalProg prog = do
 
 -- Source code interpretation used by REPL
 interpret :: String -> Checking String
-interpret code = case runParser code (whiteSpace *> program <* eof) of
-  Left err -> throwCheckError $ showParseError err code
+interpret code = case parse code of
+  Left err -> throwCheckError err
   Right prog -> evalProg prog
 
--- Big-step evaluation used after ANTLR parsing
-evaluate :: S.Prog -> Effect String
-evaluate prog = case runChecking (evalProg prog) initState of
+-- evaluate CP source code
+evaluateCP :: String -> Effect String
+evaluateCP code = case parse code of
+  Left err -> throw err
+  Right prog -> evaluateAST prog
+
+-- evaluate ASTs (after ANTLR / purescript-parsing)
+evaluateAST :: S.Prog -> Effect String
+evaluateAST prog = case runChecking (evalProg prog) initState of
   Left err -> throw $ show err
   Right (output /\ _) -> pure output
+
+parse :: String -> Either String S.Prog
+parse code = case runParser code (whiteSpace *> program <* eof) of
+  Left err -> Left $ showParseError err code
+  Right prog -> Right prog
 
 showParseError :: ParseError -> String -> String
 showParseError (ParseError _ (Position { line: l, column: c })) source =
@@ -105,8 +116,8 @@ type JSProgram = String
 type CPHeader = String
 
 compile :: String -> FilePath -> REPLState -> Either String (JSProgram /\ CPHeader)
-compile code f st = case runParser code (whiteSpace *> program <* eof) of
-  Left err -> left $ showParseError err code
+compile code f st = case parse code of
+  Left err -> left err
   Right prog -> case runChecking (elaborateProg (desugarProg prog)) st of
     Left err -> left $ show err
     Right (e /\ st') -> do

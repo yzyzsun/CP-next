@@ -9,7 +9,7 @@
     "test": "spago test",
     "vscode": "cd vscode && vsce package",
     "antlr": "antlr -visitor -no-listener antlr/*.g4",
-    "build": "npm run antlr && spago build && webpack",
+    "build": "spago build && webpack",
     "server": "cd plground && rails server"
   },
   "repository": "git://github.com/yzyzsun/CP-next.git",

@@ -80,11 +80,10 @@ export function editorView(state, parent) {
 }
 
 
-/* PureScript & ANTLR */
+/* PureScript interpreter */
 
-import { evaluate } from './output/Language.CP/index.js';
-import { parse } from './antlr/index.js';
+import { evaluateCP } from './output/Language.CP/index.js';
 
 export function interpret(input) {
-  return evaluate(parse(input))();
+  return evaluateCP(input)();
 }
