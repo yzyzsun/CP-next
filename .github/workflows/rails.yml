@@ -1,0 +1,27 @@
+name: Ruby on Rails CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+      - run: npm install
+      - run: npm run build
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4' # Not needed with a .ruby-version, .tool-versions or mise.toml
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+          working-directory: ./plground
+      - name: Rails server test
+        run: bin/test
+        working-directory: ./plground
