@@ -1,4 +1,5 @@
 @precedence {
+  case @right
   index @left
   times @left
   plus @left
@@ -11,6 +12,7 @@
   assign @right
   seq @left
   intersect @left
+  union @left
   diff @left
   arrow @right
 }
@@ -37,6 +39,7 @@ type {
   type !arrow TypeOp<"->"> type |
   type !diff TypeOp<"\\"> type |
   type !intersect TypeOp<"&"> type |
+  type !union TypeOp<"|"> type |
   kw<"forall"> typeParam+ "." type |
   kw<"fix"> TypeNameDecl "." type |
   kW<"Trait"> angles<sort> |
@@ -84,7 +87,8 @@ lexpr {
   New { kw<"new"> opexpr } | ToString { kw<"toString"> dotexpr } |
   Fix { kw<"fix"> TermNameDecl ":" type "." opexpr } |
   Fold { kw<"fold"> typeArg dotexpr } | UnFold { kw<"unfold"> typeArg dotexpr } |
-  Ref { kw<"ref"> dotexpr }
+  Ref { kw<"ref"> dotexpr } |
+  Switch { kw<"switch"> expression (kw<"as"> TermNameDecl)? (!case kw<"case"> type "=>" expression)+ }
 }
 
 fexpr { excludexpr (excludexpr | typeArg)* }
