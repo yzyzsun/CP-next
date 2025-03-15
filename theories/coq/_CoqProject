@@ -1,9 +1,0 @@
--R . Top
-ElaborationSoundness.v
-Infrastructure.v
-LibTactics.v
-TargetTypeSafety.v
-Translation.v
-source_inf.v
-syntax_ott.v
-target_inf.v
