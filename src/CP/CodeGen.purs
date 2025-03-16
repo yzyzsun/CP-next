@@ -10,7 +10,7 @@ import Data.Array as A
 import Data.Bifunctor (bimap, lmap, rmap)
 import Data.Either (Either)
 import Data.Int (toNumber)
-import Data.List (List(..), elemIndex, (:))
+import Data.List (List(..), elemIndex, foldM, reverse, (:))
 import Data.Map (Map, empty, fromFoldable, insert, lookup)
 import Data.Maybe (Maybe(..), isJust)
 import Data.String (Pattern(..), Replacement(..), joinWith, replaceAll, stripPrefix, stripSuffix, toLower)
@@ -64,16 +64,47 @@ prelude = """function copyProp(dst, src, prop) {
 function copyObj(dst, src) {
     for (const prop in src) copyProp(dst, src, prop);
 }
-function primitive(tt) {
+function primitive(e) {
     var pt = ['int', 'double', 'string', 'bool'];
-    if (tt.length === 1 && pt.includes(tt[0])) return tt[0];
-    else return null;
+    var keys = Object.keys(e);
+    if (keys.length === 1 && pt.includes(keys[0])) return e[keys[0]];
 }
 function toIndex(tt) {
     var ts = tt.sort().filter((t, i) => t === 0 || t !== tt[i-1]);
     if (ts.length === 1) return ts[0];
     else return '(' + ts.join('&') + ')';
+}
+function match(e, tt) {
+    if (tt.length === 0) {
+        return {};
+    } else if (tt.length === 1) {
+        var t = tt[0];
+        if (t === 'int') {
+            if (typeof e === 'number') return e;
+            else return e.int;
+        } else if (t === 'double') {
+            if (typeof e === 'number') return e;
+            else return e.double;
+        } else if (t === 'string') {
+            if (typeof e === 'string') return e;
+            else return e.string;
+        } else if (t === 'bool') {
+            if (typeof e === 'boolean') return e;
+            else return e.bool;
+        } else if (Object.hasOwn(e, t)) {
+            return { [t]: e[t] };
+        }
+    } else {
+        var res = {};
+        for (const t of tt) {
+            if (Object.hasOwn(e, t)) copyProp(res, e, t);
+            else return undefined;
+        }
+        return res;
+    }
 }"""
+-- TODO (match): 1. distinguish int and double at run time
+--               2. handle union types in `tt`
 
 type AST = Array JS
 type InferResult = { ast :: AST, typ :: C.Ty, var :: Name }
@@ -346,6 +377,20 @@ infer (C.TmMerge e1 e2) (DstVar z) = do
   { ast: j1, typ: t1 } <- infer e1 (DstVar z)
   { ast: j2, typ: t2 } <- infer e2 (DstVar z)
   pure { ast: j1 <> j2, typ: C.TyAnd t1 t2, var: z }
+infer (C.TmSwitch e0 alias cases) dst = do
+  { ast: j0, var: y } <- infer e0 DstNil
+  let j1 = [ JSVariableIntroduction (variable alias) $ Just $ JSVar y ]
+  typ /\ ifElse <- foldM match (C.TyUnit /\ \ _ -> JSRawCode "") (reverse cases)
+  case dst of DstVar z -> pure { ast: j0 <> j1 <> [ ifElse Nothing ], typ, var: z }
+              _ -> do z <- freshVarName
+                      pure { ast: j0 <> j1 <> [ JSVariableIntroduction z Nothing, ifElse (Just z) ], typ, var: z }
+  where match (_ /\ ifElse) (t /\ e) = do
+          { ast, typ, var } <- addTmBind alias t $ infer e dst
+          pure $ typ /\ \mz -> JSIfElse (JSBinary NotEqualTo (JSApp (JSVar "match") [JSVar (variable alias), toIndices t])
+                                                             (JSVar "undefined"))
+                                        (JSBlock (case mz of Nothing -> ast
+                                                             Just z -> ast <> [JSAssignment (JSVar z) (JSVar var)]))
+                                        (Just (ifElse mz))
 infer (C.TmAnno e typ) dst = do
   { ast, var } <- check (skipAnno e) typ dst
   pure { ast, typ, var }
@@ -408,7 +453,7 @@ infer e DstNil = do
   { ast: j1, var } <- dstNil
   { ast: j2, typ } <- infer e (DstVar var)
   pure { ast: j1 <> j2, typ, var }
-infer e _ = unsafeCrashWith $ "FIXME: infer" <+> show e
+infer e _ = unsafeCrashWith $ "FIXME: CP.CodeGen.infer:" <+> show e
 
 check :: C.Tm -> C.Ty -> Destination -> CodeGen CheckResult
 check e t dst = do
@@ -424,7 +469,7 @@ check e t dst = do
                            DstOpt z -> JSVariableIntroduction y $ Just $ JSBinary Or (JSVar z) (JSObjectLiteral [])
                            DstNil -> initialize y ]
     j3 <- subtype typ t var y true
-    j4 <- convertPrimitive t y
+    j4 <- convertPrimitive y
     pure { ast: [ JSVariableIntroduction x Nothing ] <> j1 <> j2 <> j3 <> j4, var: y }
 
 data Arg = TmArg Name C.Ty | TyArg C.Ty
@@ -435,7 +480,7 @@ distapp x t@(C.TyArrow targ tret _) (TmArg y t') dst | not (isTopLike tret) = do
   y' /\ j1 <- if targ .=. t' then pure $ y /\ []
               else do y' <- freshVarName
                       j <- subtype t' targ y y' true
-                      j' <- convertPrimitive targ y'
+                      j' <- convertPrimitive y'
                       pure $ y' /\ ([ initialize y' ] <> j <> j')
   let app m1 m2 = let f1 = case m1 of Nothing -> identity
                                       Just z -> JSVariableIntroduction z <<< Just
@@ -510,6 +555,11 @@ subtype ta tb x z b | Just (tb1 /\ tb2) <- split tb =
           j1 <- subtype ta tb1 x y1 b
           j2 <- subtype ta tb2 x y2 b
           pure $ j0 <> j1 <> j2 <> j3
+subtype (C.TyOr ta tb) tc x y _ = do
+  j1 <- subtype ta tc x y true
+  j2 <- subtype tb tc x y true
+  pure $ j1 <> j2
+subtype ta (C.TyOr tb tc) x y b = subtype ta tb x y b <|> subtype ta tc x y b
 subtype ta@(C.TyArrow ta1 ta2 _) tb@(C.TyArrow tb1 tb2 _) x y _ = do
   x1 <- freshVarName
   y1 <- freshVarName
@@ -517,8 +567,8 @@ subtype ta@(C.TyArrow ta1 ta2 _) tb@(C.TyArrow tb1 tb2 _) x y _ = do
   y2 <- freshVarName
   j1 <- subtype tb1 ta1 x1 y1 true
   j2 <- subtype ta2 tb2 x2 y2 true
-  j1' <- convertPrimitive ta1 y1
-  j2' <- convertPrimitive tb2 y2
+  j1' <- convertPrimitive y1
+  j2' <- convertPrimitive y2
   let block = [ initialize y1 ] <> j1 <> j1'
            <> [ JSVariableIntroduction x2 $ Just $ JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar y1] ]
            <> [ JSAssignment (JSVar y2) (JSBinary Or (JSVar y2) (JSObjectLiteral [])) ] <> j2 <> j2'
@@ -529,7 +579,7 @@ subtype ta@(C.TyForall a _ ta2) tb@(C.TyForall b _ tb2) x y _ = do
   y0 <- freshVarName
   let tb2' = C.tySubst b (C.TyVar a) tb2
   j <- subtype ta2 tb2' x0 y0 true
-  j' <- convertPrimitive tb2' y0
+  j' <- convertPrimitive y0
   let block = [ JSVariableIntroduction x0 $ Just $ JSApp (JSIndexer (toIndex ta) (JSVar x)) [JSVar (variable a)] ]
            <> [ JSAssignment (JSVar y0) (JSBinary Or (JSVar y0) (JSObjectLiteral [])) ] <> j <> j'
            <> [ JSReturn $ JSVar y0 ]
@@ -539,7 +589,7 @@ subtype r1@(C.TyRcd l1 t1) r2@(C.TyRcd l2 t2) x y _ | l1 == l2 = do
   x0 <- freshVarName
   y0 <- freshVarName
   j <- subtype t1 t2 x0 y0 true
-  j' <- convertPrimitive t2 y0
+  j' <- convertPrimitive y0
   let block = [ JSVariableIntroduction x0 $ Just $ JSIndexer (toIndex r1) (JSVar x), initialize y0 ] <> j <> j'
   order <- asks (_.evalOrder)
   case order of
@@ -563,7 +613,7 @@ subtype (C.TyVar a) (C.TyVar a') x y _ | a == a' = do
 subtype ta tb x y notSplit
   | ta == tb = let f = if notSplit && isPrimitive tb then identity else JSIndexer (toIndex ta) in
                pure [ addProp (JSVar y) (toIndex tb) (f (JSVar x)) ]
-  | otherwise = throwError $ show ta <> " is not a subtype of " <> show tb <> ". "
+  | otherwise = throwError $ show ta <+> "is not a subtype of" <+> show tb
 
 unsplit :: { z :: Name, tx :: C.Ty, ty :: C.Ty, tz :: C.Ty } -> CodeGen { ast :: AST, x :: Name, y :: Name }
 unsplit { z, tx: _, ty: _, tz: C.TyAnd _ _ } = pure { ast: [], x: z, y: z }
@@ -630,6 +680,7 @@ toIndex = JSTemplateLiteral <<< fst <<< go Nil
                                                 ([] /\ false) (flatten t) in
       if b then ("${toIndex(" <> print1 (JSArrayLiteral (transformVar <$> ts)) <> ")}") /\ true
       else (if length ts == 1 then unsafeFromJust (ts !! 0) else "(" <> joinWith "&" ts <> ")") /\ false
+    -- TODO: handle union types
     go _ t = unsafeCrashWith $ "cannot use as an index: " <> show t
     -- a dirty string manipulation:
     transformVar :: String -> JS
@@ -707,7 +758,6 @@ initialize x = JSVariableIntroduction x $ Just $ JSObjectLiteral []
 thunk :: Array JS -> JS
 thunk = JSFunction Nothing [] <<< JSBlock
 
--- TODO: replace `typeof o === 'object'` with `primitive(a)`; see `convertPrimitive` below
 copyObj :: Name -> JS -> C.Ty -> JS
 copyObj z arg typ =
   case typ of C.TyVar a -> let els = addPropForIndex (first (JSVar (variable a))) in
@@ -743,12 +793,10 @@ isPrimitive C.TyString = true
 isPrimitive C.TyBool = true
 isPrimitive _ = false
 
-convertPrimitive :: C.Ty -> Name -> CodeGen AST
-convertPrimitive (C.TyVar a) z = do
-  t <- freshVarName
-  pure [ JSVariableIntroduction t $ Just $ JSApp (JSVar "primitive") [JSVar (variable a)]
-       , JSIfElse (JSVar t) (JSBlock [ JSAssignment (JSVar z) (JSIndexer (JSVar t) (JSVar z)) ]) Nothing
+convertPrimitive :: Name -> CodeGen AST
+convertPrimitive z = do
+  v <- freshVarName
+  pure [ JSVariableIntroduction v $ Just $ JSApp (JSVar "primitive") [JSVar z]
+       , JSIfElse (JSBinary NotEqualTo (JSVar v) (JSVar "undefined"))
+                  (JSBlock [ JSAssignment (JSVar z) (JSVar v) ]) Nothing
        ]
-convertPrimitive t z
-  | isPrimitive t = pure [ JSAssignment (JSVar z) (JSIndexer (toIndex t) (JSVar z)) ]
-  | otherwise = pure []
