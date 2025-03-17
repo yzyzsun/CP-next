@@ -202,13 +202,6 @@ infer (S.TmRcd (S.RcdField _ l Nil (Left e) : Nil)) = do
   pure $ C.TmRcd l t e' /\ C.TyRcd l t
 infer (S.TmRcd xs) =
   infer $ foldl1 (S.TmMerge S.Neutral) (xs <#> \x -> S.TmRcd (singleton (desugarField x)))
-  where
-    desugarField :: S.RcdField -> S.RcdField
-    -- TODO: override inner traits instead of outer ones
-    desugarField (S.RcdField o l p f) =
-      S.RcdField o l Nil $ Left $ S.TmAbs p $ either identity desugarMP f
-    -- desugaring of default patterns is done in `inferFromSig`
-    desugarField def@(S.DefaultPattern _) = def
 infer (S.TmPrj e l) = do
   e' /\ t <- infer e
   let r /\ tr = case t of C.TyRec _ _ -> C.TmUnfold t e' /\ C.unfold t
@@ -306,8 +299,6 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
     inferFromSig s@(S.TyRec _ ty) e = S.TmFold s <$> inferFromSig ty e
     inferFromSig s (S.TmPos p e) = S.TmPos p <$> inferFromSig s e
     inferFromSig s (S.TmOpen e1 e2) = S.TmOpen e1 <$> inferFromSig s e2
-    inferFromSig s (S.TmMerge bias e1 e2) =
-      S.TmMerge bias <$> inferFromSig s e1 <*> inferFromSig s e2
     inferFromSig (S.TyRcd xs) r@(S.TmRcd (S.RcdField o l Nil (Left e) : Nil)) =
       case last $ filterRcd (_ == l) xs of
         Just (S.RcdTy _ ty _) -> do
@@ -326,10 +317,14 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
             patternsFromRcd :: S.Tm -> Label -> Array Label
             patternsFromRcd (S.TmPos _ e) l = patternsFromRcd e l
             patternsFromRcd (S.TmOpen _ e) l = patternsFromRcd e l
-            patternsFromRcd (S.TmMerge _ e1 e2) l =
-              patternsFromRcd e1 l <> patternsFromRcd e2 l
             patternsFromRcd (S.TmRcd (S.RcdField _ l' _ (Left e) : Nil)) l =
               if innerLabel e == l then [l'] else []
+            patternsFromRcd (S.TmRcd (S.DefaultPattern _ : Nil)) _ = []
+            patternsFromRcd (S.TmRcd fields) l =
+              foldl (\acc x -> acc <> patternsFromRcd (S.TmRcd (singleton (desugarField x))) l)
+                    [] fields
+            patternsFromRcd (S.TmMerge _ e1 e2) l =
+              patternsFromRcd e1 l <> patternsFromRcd e2 l
             patternsFromRcd _ _ = []
             innerLabel :: S.Tm -> Label
             innerLabel (S.TmPos _ e) = innerLabel e
@@ -343,6 +338,11 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
               let params /\ ty = paramsAndInnerTy tret in
               (S.TmParam "_" (Just targ) : params) /\ ty
             paramsAndInnerTy ty = Nil /\ ty
+    inferFromSig s@(S.TyRcd _) (S.TmRcd xs) =
+      inferFromSig s (foldl1 (S.TmMerge S.Neutral)
+                             (xs <#> \x -> S.TmRcd (singleton (desugarField x))))
+    inferFromSig s (S.TmMerge bias e1 e2) =
+      S.TmMerge bias <$> inferFromSig s e1 <*> inferFromSig s e2
     inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.TmParam x mt : Nil) e) =
       S.TmAbs (singleton (S.TmParam x (mt <|> Just targ))) <$> inferFromSig tret e
     inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.WildCard defaults : Nil) e) =
@@ -360,15 +360,20 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
                               switch = S.TmSwitch (S.TmPrj wildcardVar l) (Just l) cases in
                           S.TmLet l Nil Nil switch acc
               else S.TmLet l Nil Nil (S.TmPrj wildcardVar l) acc
+    inferFromSig s (S.TmAbs xs e) =
+      inferFromSig s (foldr (\x acc -> S.TmAbs (singleton x) acc) e xs)
     inferFromSig (S.TyTrait ti to) (S.TmTrait (Just (self' /\ mt)) sig' e1 e2) = do
-      let t' = fromMaybe (fromMaybe S.TyTop ti) mt
       e1' <- traverse (inferFromSig to) e1
       e2' <- inferFromSig to e2
-      pure $ S.TmTrait (Just (self' /\ Just t')) sig' e1' e2'
+      pure $ S.TmTrait (Just (self' /\ (mt <|> ti))) sig' e1' e2'
+    inferFromSig s@(S.TyTrait _ _) (S.TmTrait Nothing sig' e1 e2) =
+      inferFromSig s (S.TmTrait (Just ("$self" /\ Nothing)) sig' e1 e2)
     inferFromSig (S.TyForall ((a /\ td) : as) ty) (S.TmTAbs ((a' /\ td') : Nil) e) =
       S.TmTAbs (singleton (a' /\ (td' <|> td))) <$> inferFromSig ty' e
       where ty' = (if as == Nil then identity else S.TyForall as)
                   (S.tySubst a (S.TyVar a') ty)
+    inferFromSig s (S.TmTAbs xs e) =
+      inferFromSig s (foldr (\x acc -> S.TmTAbs (singleton x) acc) e xs)
     inferFromSig _ e = pure e
     combineRcd :: S.Ty -> S.RcdTyList
     combineRcd (S.TyAnd (S.TyRcd xs) (S.TyRcd ys)) = xs <> ys
@@ -669,6 +674,13 @@ trait x e targ tret = C.TmAbs x e targ tret false isTrait /\ C.TyArrow targ tret
 desugarMP :: S.MethodPattern -> S.Tm
 desugarMP (S.MethodPattern self l p e) =
   S.TmTrait self Nothing Nothing (S.TmRcd (singleton (S.RcdField false l p (Left e))))
+
+desugarField :: S.RcdField -> S.RcdField
+-- TODO: override inner traits instead of outer ones
+desugarField (S.RcdField o l p f) =
+  S.RcdField o l Nil $ Left $ S.TmAbs p $ either identity desugarMP f
+-- desugaring of default patterns is done in `inferFromSig`
+desugarField def@(S.DefaultPattern _) = def
 
 transformTyRec :: S.Ty -> Typing C.Ty
 transformTyRec t = do
