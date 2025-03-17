@@ -20,7 +20,6 @@ import Effect (Effect)
 import Effect.Exception (throw)
 import Language.CP.CodeGen (fromState, runCodeGen)
 import Language.CP.Context (Checking, Mode(..), REPLState, TmBindings, Typing, emptyCtx, initState, runChecking, runTyping, throwCheckError, throwTypeError)
-import Language.CP.Desugar (desugar, desugarProg)
 import Language.CP.Parser (SParser, expr, lowerIdentifier, program, symbol, ty, upperIdentifier, whiteSpace)
 import Language.CP.Semantics.HOAS as HOAS
 import Language.CP.Semantics.NaturalClosure as Closure
@@ -41,32 +40,24 @@ import Parsing.String (eof)
 inferType :: String -> Typing String
 inferType code = case runParser code (whiteSpace *> expr <* eof) of
   Left err -> throwTypeError $ showParseError err code
-  Right e -> do
-    _ /\ t <- infer $ desugar e
-    pure $ show t
+  Right e -> show <<< snd <$> infer e
 
 importDefs :: String -> Checking Unit
 importDefs code = case parse code of
   Left err -> throwCheckError err
-  Right prog -> do
-    let prog' = desugarProg prog
-    _ <- checkProg prog'
-    pure unit
+  Right prog -> checkProg prog $> unit
 
 wrapUp :: C.Tm -> TmBindings -> C.Tm
 wrapUp e b = foldl (#) e $ snd <<< snd <$> b
 
 evalProg :: S.Prog -> Checking String
 evalProg prog = do
-  let prog'@(S.Prog _ e') = desugarProg prog
-  e <- elaborateProg prog'
+  e <- elaborateProg prog
   mode <- gets (_.mode)
   pure $ case mode of
     SmallStep -> show (SmallStep.eval e)
-    StepTrace -> let _ /\ s = StepTrace.eval e in
-      show prog <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> s ""
-    Elaborate ->
-      show prog <> "\n⇣ Desugar\n" <> show e' <> "\n↯ Elaborate\n" <> show e
+    StepTrace -> let _ /\ s = StepTrace.eval e in show prog <> "\n↯ Elaborate\n" <> s ""
+    Elaborate -> show prog <> "\n↯ Elaborate\n" <> show e
     BigStep -> show (BigStep.eval e)
     HOAS -> show (HOAS.eval e)
     Closure -> show (Closure.eval e)
@@ -118,7 +109,7 @@ type CPHeader = String
 compile :: String -> FilePath -> REPLState -> Either String (JSProgram /\ CPHeader)
 compile code f st = case parse code of
   Left err -> left err
-  Right prog -> case runChecking (elaborateProg (desugarProg prog)) st of
+  Right prog -> case runChecking (elaborateProg prog) st of
     Left err -> left $ show err
     Right (e /\ st') -> do
       js <- runCodeGen e (fromState st)

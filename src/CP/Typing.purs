@@ -6,7 +6,8 @@ import Control.Alt ((<|>))
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.State (gets, modify_)
 import Data.Array (all, elem, head, notElem, null, unzip)
-import Data.Either (Either(..))
+import Data.Bifunctor (rmap)
+import Data.Either (Either(..), either)
 import Data.Foldable (foldl, foldr, lookup, traverse_)
 import Data.List (List(..), filter, last, singleton, sort, (:))
 import Data.Maybe (Maybe(..), fromMaybe, isJust, maybe)
@@ -15,7 +16,6 @@ import Data.Traversable (for, traverse)
 import Data.Tuple (fst, snd, uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
 import Language.CP.Context (Checking, Pos(..), TypeError(..), Typing, addSort, addTmBind, addTyBind, fromState, localPos, lookupTmBind, lookupTyBind, runTyping, throwTypeError)
-import Language.CP.Desugar (deMP, desugar)
 import Language.CP.Subtyping (isTopLike, (<:), (===))
 import Language.CP.Syntax.Common (BinOp(..), CompOp(..), Label, Name, UnOp(..))
 import Language.CP.Syntax.Core as C
@@ -141,6 +141,7 @@ infer (S.TmAbs (S.TmParam x Nothing : Nil) _) = throwTypeError $
   "lambda parameter" <+> show x <+> "should be annotated with a type"
 infer (S.TmAbs (S.WildCard _ : Nil) _) = throwTypeError $
   "record wildcards should only occur in traits with interfaces implemented"
+infer (S.TmAbs xs e) = infer $ foldr (\x s -> S.TmAbs (singleton x) s) e xs
 infer (S.TmFix x e t) = do
   t' <- transform t
   e' /\ t'' <- addTmBind x t' $ infer e
@@ -199,6 +200,15 @@ infer (S.TmRcd Nil) = pure $ C.TmTop /\ C.TyTop
 infer (S.TmRcd (S.RcdField _ l Nil (Left e) : Nil)) = do
   e' /\ t <- infer e
   pure $ C.TmRcd l t e' /\ C.TyRcd l t
+infer (S.TmRcd xs) =
+  infer $ foldl1 (S.TmMerge S.Neutral) (xs <#> \x -> S.TmRcd (singleton (desugarField x)))
+  where
+    desugarField :: S.RcdField -> S.RcdField
+    -- TODO: override inner traits instead of outer ones
+    desugarField (S.RcdField o l p f) =
+      S.RcdField o l Nil $ Left $ S.TmAbs p $ either identity desugarMP f
+    -- desugaring of default patterns is done in `inferFromSig`
+    desugarField def@(S.DefaultPattern _) = def
 infer (S.TmPrj e l) = do
   e' /\ t <- infer e
   let r /\ tr = case t of C.TyRec _ _ -> C.TmUnfold t e' /\ C.unfold t
@@ -215,14 +225,25 @@ infer (S.TmTAbs ((a /\ Just td) : Nil) e) = do
   td' <- transform td
   e' /\ t <- addTyBind a td' $ infer e
   pure $ C.TmTAbs a td' e' t false /\ C.TyForall a td' t
+infer (S.TmTAbs xs e) =
+  infer $ foldr (\x s -> S.TmTAbs (singleton (rmap disjointness x)) s) e xs
+  where disjointness t = Just (fromMaybe S.TyTop t)
 infer (S.TmLet x Nil Nil e1 e2) = do
   e1' /\ t1 <- infer e1
   e2' /\ t2 <- addTmBind x t1 $ infer e2
   pure $ letIn x e1' t1 e2' t2 /\ t2
+infer (S.TmLet x tyParams tmParams e1 e2) =
+  infer $ S.TmLet x Nil Nil (S.TmTAbs tyParams (S.TmAbs tmParams e1)) e2
 infer (S.TmLetrec x Nil Nil t e1 e2) = do
   e1' /\ t1 <- inferRec x e1 t
   e2' /\ t2 <- addTmBind x t1 $ infer e2
   pure $ letIn x (C.TmFix x e1' t1) t1 e2' t2 /\ t2
+infer (S.TmLetrec x tyParams tmParams t e1 e2) =
+  infer $ S.TmLetrec x Nil Nil t' (S.TmTAbs tyParams (S.TmAbs tmParams e1)) e2
+  where t' = S.TyForall tyParams (foldr S.TyArrow t (tyOf <$> tmParams))
+        tyOf = case _ of S.TmParam _ (Just ty) -> ty
+                         S.TmParam _ Nothing -> S.TyBot
+                         S.WildCard _ -> S.TyBot
 -- TODO: find a more efficient algorithm
 infer (S.TmOpen e1 e2) = do
   e1' /\ t1 <- infer e1
@@ -295,10 +316,10 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
         _ -> pure r
     inferFromSig (S.TyRcd xs)
         (S.TmRcd (S.DefaultPattern pat@(S.MethodPattern _ label _ _) : Nil)) =
-      desugar <<< S.TmRcd <$> for (filterRcd (_ `notElem` patterns label) xs)
+      S.TmRcd <$> for (filterRcd (_ `notElem` patterns label) xs)
         \(S.RcdTy l ty _) -> do
           let params /\ ty' = paramsAndInnerTy ty
-          e <- inferFromSig ty' (desugar (deMP pat))
+          e <- inferFromSig ty' (desugarMP pat)
           pure $ S.RcdField false l params (Left e)
       where patterns :: Label -> Array Label
             patterns l = patternsFromRcd (S.TmMerge S.Neutral (fromMaybe S.TmUnit me1) ne2) l
@@ -386,6 +407,10 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
             labels' = foldr (\(S.RcdTy l _ opt) s -> if opt then l : s else s) Nil rcd
 infer (S.TmTrait (Just (self /\ Nothing)) sig e1 e2) =
   infer $ S.TmTrait (Just (self /\ Just S.TyTop)) sig e1 e2
+infer (S.TmTrait self sig e1 e2) =
+  let xt = case self of Just (x /\ t) -> x /\ (t <|> sig)
+                        Nothing -> "$self" /\ Nothing in
+  infer $ S.TmTrait (Just xt) (sig <|> Just S.TyTop) e1 e2
 infer (S.TmNew e) = do
   e' /\ t <- infer e
   case t of
@@ -512,7 +537,6 @@ infer (S.TmDoc doc) = localPos f $ infer doc
 infer (S.TmPos p e) = localPos f $ infer e
   where f (Pos _ _ inDoc) = Pos p e inDoc
         f UnknownPos = Pos p e false
-infer e = throwTypeError $ "expected a desugared term, but got" <+> show e
 
 inferRec :: Name -> S.Tm -> S.Ty -> Typing (C.Tm /\ C.Ty)
 inferRec x e t = do
@@ -573,7 +597,14 @@ checkDef (S.TmDef x Nil Nil mt e) = do
         let e1 = if isJust mt then C.TmFix x e' t' else e'
             f e2 = C.TmDef x e1 e2 in
         modify_ \st -> st { tmBindings = (x /\ t' /\ f) : st.tmBindings }
-checkDef d = throwError $ TypeError ("expected a desugared def, but got" <+> show d) UnknownPos
+checkDef (S.TmDef x tyParams tmParams Nothing e) =
+  checkDef $ S.TmDef x Nil Nil Nothing (S.TmTAbs tyParams (S.TmAbs tmParams e))
+checkDef (S.TmDef x tyParams tmParams (Just t) e) =
+  checkDef $ S.TmDef x Nil Nil (Just t') (S.TmTAbs tyParams (S.TmAbs tmParams e))
+  where t' = S.TyForall tyParams (foldr S.TyArrow t (tyOf <$> tmParams))
+        tyOf = case _ of S.TmParam _ (Just ty) -> ty
+                         S.TmParam _ Nothing -> S.TyBot
+                         S.WildCard _ -> S.TyBot
 
 checkProg :: S.Prog -> Checking (C.Tm /\ C.Ty)
 checkProg (S.Prog defs e) = do
@@ -634,6 +665,10 @@ letIn x e1 t1 e2 t2 = C.TmApp (C.TmAbs x e2 t1 t2 false false) e1 false
 trait :: Name -> C.Tm -> C.Ty -> C.Ty -> C.Tm /\ C.Ty
 trait x e targ tret = C.TmAbs x e targ tret false isTrait /\ C.TyArrow targ tret true
   where isTrait = not $ isTopLike targ  -- skip traits whose self-type is top-like 
+
+desugarMP :: S.MethodPattern -> S.Tm
+desugarMP (S.MethodPattern self l p e) =
+  S.TmTrait self Nothing Nothing (S.TmRcd (singleton (S.RcdField false l p (Left e))))
 
 transformTyRec :: S.Ty -> Typing C.Ty
 transformTyRec t = do
