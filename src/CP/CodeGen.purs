@@ -680,7 +680,10 @@ toIndex = JSTemplateLiteral <<< fst <<< go Nil
                                               ([] /\ false) (flatten t) in
       if b then ("${toIndex(" <> print1 (JSArrayLiteral (transformVar <$> ts)) <> ")}") /\ true
       else (if length ts == 1 then unsafeFromJust (ts !! 0) else "(" <> joinWith "&" ts <> ")") /\ false
-    -- TODO: handle union types
+    -- TODO: think more about union types
+    go as (TyOr t1 t2) = let s1 /\ b1 = go as t1
+                             s2 /\ b2 = go as t2 in
+      ("(" <> s1 <> "|" <> s2 <> ")") /\ (b1 || b2)
     go _ t = unsafeCrashWith $ "cannot use as an index: " <> show t
     -- a dirty string manipulation:
     transformVar :: String -> JS
