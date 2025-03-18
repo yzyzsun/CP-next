@@ -14,7 +14,7 @@ import Data.String.CodeUnits as SCU
 import Data.String.Regex.Flags (noFlags)
 import Data.Tuple (Tuple(..))
 import Language.CP.Syntax.Common (ArithOp(..), BinOp(..), CompOp(..), LogicOp(..), UnOp(..))
-import Language.CP.Syntax.Source (Bias(..), Def(..), MethodPattern(..), Prog(..), RcdField(..), RcdTy(..), SelfAnno, Tm(..), TmParam(..), Ty(..), TyParam, TypeDef(..))
+import Language.CP.Syntax.Source (Bias(..), Def(..), MethodPattern(..), NamedField(..), Prog(..), RcdField(..), RcdTy(..), SelfAnno, Tm(..), TmParam(..), Ty(..), TyParam, TypeDef(..))
 import Language.CP.Util (foldl1, isCapitalized)
 import Parsing (Parser, fail, position)
 import Parsing.Combinators (between, choice, endBy, option, sepEndBy, sepEndBy1, try)
@@ -479,9 +479,9 @@ tyParams us = Tuple <$> id <*> pure Nothing <|>
   where id = if us then underscore <|> upperIdentifier else upperIdentifier
 
 tmParams :: SParser TmParam
-tmParams = choice [ parensNameColonType
-                  , TmParam <$> id <@> Nothing
-                  , WildCard <$> braces (endBySemi defaultField <* symbol "..")
+tmParams = choice [ TmParam <$> id <@> Nothing
+                  , parensNameColonType
+                  , bracesNamedParams
                   ]
   where id = lowerIdentifier <|> underscore
         parensNameColonType = parens do
@@ -489,11 +489,15 @@ tmParams = choice [ parensNameColonType
           symbol ":"
           t <- ty
           pure $ TmParam x (Just t)
-        defaultField = do
+        bracesNamedParams = braces do
+          fields <- sepEndBySemi namedField
+          wildcard <- isJust <$> optional (symbol "..")
+          pure $ NamedParams fields wildcard
+        namedField = do
           x <- lowerIdentifier
-          symbol "="
-          e <- expr
-          pure $ Tuple x e
+          choice [ RequiredField x <$> (symbol ":" *> ty)
+                 , OptionalField x <$> (symbol "=" *> expr)
+                 ]
 
 selfAnno :: SParser SelfAnno
 selfAnno = optional $ brackets $

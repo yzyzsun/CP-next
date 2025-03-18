@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Bifunctor (rmap)
 import Data.Either (Either(..))
-import Data.Foldable (class Foldable, any, foldMap, intercalate, null)
+import Data.Foldable (class Foldable, any, intercalate, null)
 import Data.List (List)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple (fst, snd)
@@ -109,19 +109,6 @@ data Tm = TmInt Int
         | TmArray (Array Tm)
         | TmDoc Tm
         | TmPos Position Tm
-
-data Bias = Neutral | Leftist | Rightist
-derive instance Eq Bias
-
-instance Show Bias where
-  show Neutral  = ","
-  show Leftist  = "+,"
-  show Rightist = ",+"
-
--- TODO: add type parameters and support recursion
-data RcdField = RcdField Boolean Label TmParamList (Either Tm MethodPattern)
-              | DefaultPattern MethodPattern
-data MethodPattern = MethodPattern SelfAnno Label TmParamList Tm
 
 instance Show Tm where
   show (TmInt i)    = show i
@@ -256,15 +243,18 @@ showTyParams params = intercalate' " " $ params <#> \param ->
 
 type TmParamList = List TmParam
 data TmParam = TmParam Name (Maybe Ty)
-             | WildCard DefaultFields
-type DefaultFields = List (Label /\ Tm)
+             | NamedParams (List NamedField) Boolean
+data NamedField = RequiredField Label Ty
+                | OptionalField Label Tm
 
 showTmParams :: TmParamList -> String
 showTmParams params = intercalate' " " $ params <#> case _ of
   TmParam x (Just t) -> parens $ x <+> ":" <+> show t
   TmParam x Nothing -> x
-  WildCard defaults -> "{" <> foldMap showField defaults <> "..}"
-  where showField (x /\ e) = x <+> "=" <+> show e <> "; "
+  NamedParams fields wildcard -> braces $ intercalate "; " (showField <$> fields) <>
+                                          if wildcard then "; .." else ""
+  where showField (RequiredField x t) = x <+> ":" <+> show t <> "; "
+        showField (OptionalField x e) = x <+> "=" <+> show e <> "; "
 
 type RcdTyList = List RcdTy
 data RcdTy = RcdTy Label Ty Boolean
@@ -273,6 +263,11 @@ derive instance Eq RcdTy
 showRcdTy :: RcdTyList -> String
 showRcdTy xs = intercalate "; " $ xs <#> \(RcdTy l t opt) ->
   l <> (if opt then "?" else "") <+> ":" <+> show t
+
+-- TODO: add type parameters and support recursion
+data RcdField = RcdField Boolean Label TmParamList (Either Tm MethodPattern)
+              | DefaultPattern MethodPattern
+data MethodPattern = MethodPattern SelfAnno Label TmParamList Tm
 
 showRcdTm :: List RcdField -> String
 showRcdTm xs = intercalate "; " $ xs <#> case _ of
@@ -293,3 +288,11 @@ showSelfAnno :: SelfAnno -> Maybe String
 showSelfAnno = map \(x /\ mt) -> brackets $ case mt of
   Just t  -> x <+> ":" <+> show t
   Nothing -> x
+
+data Bias = Neutral | Leftist | Rightist
+derive instance Eq Bias
+
+instance Show Bias where
+  show Neutral  = ","
+  show Leftist  = "+,"
+  show Rightist = ",+"

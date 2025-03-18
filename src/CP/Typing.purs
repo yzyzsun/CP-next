@@ -5,11 +5,11 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.State (gets, modify_)
-import Data.Array (all, elem, head, notElem, null, unzip)
+import Data.Array (head, null, unzip)
 import Data.Bifunctor (rmap)
 import Data.Either (Either(..), either)
-import Data.Foldable (foldl, foldr, lookup, traverse_)
-import Data.List (List(..), filter, last, singleton, sort, (:))
+import Data.Foldable (all, elem, foldM, foldl, foldr, lookup, notElem, traverse_)
+import Data.List (List(..), filter, last, singleton, (:))
 import Data.Maybe (Maybe(..), fromMaybe, isJust, maybe)
 import Data.Set as Set
 import Data.Traversable (for, traverse)
@@ -139,8 +139,25 @@ infer (S.TmAbs (S.TmParam x (Just targ) : Nil) e) = do
   pure $ C.TmAbs x e' targ' tret false false /\ C.TyArrow targ' tret false
 infer (S.TmAbs (S.TmParam x Nothing : Nil) _) = throwTypeError $
   "lambda parameter" <+> show x <+> "should be annotated with a type"
-infer (S.TmAbs (S.WildCard _ : Nil) _) = throwTypeError $
-  "record wildcards should only occur in traits with interfaces implemented"
+infer (S.TmAbs (S.NamedParams _ true : Nil) _) = throwTypeError $
+  "wildcards in named arguments should only occur in traits with interfaces"
+infer (S.TmAbs (S.NamedParams fields false : Nil) e) = do
+  targ /\ letins /\ tbinds <- foldM collect (C.TyTop /\ Nil /\ Nil) fields
+  e' /\ tret <- foldr (uncurry addTmBind) (infer e) tbinds
+  pure $ C.TmAbs "$args" (foldl (\body f -> f body tret) e' letins) targ tret false false
+      /\ C.TyArrow targ tret false
+  where collect (targ /\ letins /\ tbinds) (S.RequiredField l t) = do
+          t' <- transform t
+          pure $ C.TyAnd targ (C.TyRcd l t')
+              /\ (letIn l (C.TmPrj (C.TmVar "$args") l) t' : letins)
+              /\ ((l /\ t') : tbinds)
+        collect (targ /\ letins /\ tbinds) (S.OptionalField l default) = do
+          default' /\ t <- infer default
+          let cases = (t /\ C.TmVar l) : (C.TyUnit /\ default') : Nil
+              switch = C.TmSwitch (C.TmPrj (C.TmVar "$args") l) l cases
+          pure $ C.TyAnd targ (C.TyRcd l (C.TyOr t C.TyUnit))
+              /\ (letIn l switch t : letins)
+              /\ ((l /\ t) : tbinds)
 infer (S.TmAbs xs e) = infer $ foldr (\x s -> S.TmAbs (singleton x) s) e xs
 infer (S.TmFix x e t) = do
   t' <- transform t
@@ -233,10 +250,7 @@ infer (S.TmLetrec x Nil Nil t e1 e2) = do
   pure $ letIn x (C.TmFix x e1' t1) t1 e2' t2 /\ t2
 infer (S.TmLetrec x tyParams tmParams t e1 e2) =
   infer $ S.TmLetrec x Nil Nil t' (S.TmTAbs tyParams (S.TmAbs tmParams e1)) e2
-  where t' = S.TyForall tyParams (foldr S.TyArrow t (tyOf <$> tmParams))
-        tyOf = case _ of S.TmParam _ (Just ty) -> ty
-                         S.TmParam _ Nothing -> S.TyBot
-                         S.WildCard _ -> S.TyBot
+  where t' = tyOfParams tyParams tmParams t
 -- TODO: find a more efficient algorithm
 infer (S.TmOpen e1 e2) = do
   e1' /\ t1 <- infer e1
@@ -246,9 +260,8 @@ infer (S.TmOpen e1 e2) = do
                 Nil (collectLabels tr)
   e2' /\ t2 <- foldr (uncurry addTmBind) (infer e2) b
   -- `open` is the only construct that elaborates to a lazy definition
-  let open (l /\ t) e = letIn l (C.TmPrj (C.TmVar opened) l) t e t2
-  pure $ letIn opened r tr (foldr open e2' b) t2 /\ t2
-  where opened = "$open"
+  let open (l /\ t) e = letIn l (C.TmPrj (C.TmVar "$open") l) t e t2
+  pure $ letIn "$open" r tr (foldr open e2' b) t2 /\ t2
 infer (S.TmUpdate rcd fields) = do
   rcd' /\ t <- infer rcd
   fields' <- for fields \(l /\ e) -> do
@@ -345,21 +358,21 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
       S.TmMerge bias <$> inferFromSig s e1 <*> inferFromSig s e2
     inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.TmParam x mt : Nil) e) =
       S.TmAbs (singleton (S.TmParam x (mt <|> Just targ))) <$> inferFromSig tret e
-    inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.WildCard defaults : Nil) e) =
-      let fields = combineRcd targ in
-      if defaults `matchOptional` fields then do
-        e' <- inferFromSig tret e
-        pure $ S.TmAbs (singleton (S.TmParam wildcardName (Just targ))) (open fields e')
-      else throwTypeError $ "default arguments do not match optional parameters"
-      where wildcardName = "$wildcard"
-            wildcardVar = S.TmVar wildcardName
-            open fields body = foldr letFieldIn body fields
-            letFieldIn (S.RcdTy l tl opt) acc =
-              if opt then let default = unsafeFromJust $ lookup l defaults
-                              cases = (tl /\ S.TmVar l) : (S.TyUnit /\ default) : Nil
-                              switch = S.TmSwitch (S.TmPrj wildcardVar l) (Just l) cases in
-                          S.TmLet l Nil Nil switch acc
-              else S.TmLet l Nil Nil (S.TmPrj wildcardVar l) acc
+    inferFromSig (S.TyArrow targ tret) (S.TmAbs (S.NamedParams fields true : Nil) e) = do
+      e' <- inferFromSig tret e
+      fields' <- expandWildcard (combineRcd targ) (getLabel <$> fields)
+      pure $ S.TmAbs (singleton (S.NamedParams (fields <> fields') false)) e'
+      where getLabel :: S.NamedField -> Label
+            getLabel (S.RequiredField l _) = l
+            getLabel (S.OptionalField l _) = l
+            expandWildcard :: S.RcdTyList -> List Label -> Typing (List S.NamedField)
+            expandWildcard Nil _ = pure Nil
+            expandWildcard (S.RcdTy l ty opt : ts) ls = do
+              fs <- expandWildcard ts ls
+              if l `elem` ls then pure fs
+              else if not opt then pure $ S.RequiredField l ty : fs
+              else throwTypeError $ "default value for optional argument" <+>
+                                    show l <+> "not found"
     inferFromSig s (S.TmAbs xs e) =
       inferFromSig s (foldr (\x acc -> S.TmAbs (singleton x) acc) e xs)
     inferFromSig (S.TyTrait ti to) (S.TmTrait (Just (self' /\ mt)) sig' e1 e2) = do
@@ -406,10 +419,6 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
                 _,       _       -> C.TyAnd t1' t2'
             removeOverride (C.TyRcd l _) ls | l `elem` ls = C.TyTop
             removeOverride typ _ = typ
-    matchOptional :: S.DefaultFields -> S.RcdTyList -> Boolean
-    matchOptional def rcd = sort labels == sort labels' -- identical up to permutation
-      where labels = fst <$> def
-            labels' = foldr (\(S.RcdTy l _ opt) s -> if opt then l : s else s) Nil rcd
 infer (S.TmTrait (Just (self /\ Nothing)) sig e1 e2) =
   infer $ S.TmTrait (Just (self /\ Just S.TyTop)) sig e1 e2
 infer (S.TmTrait self sig e1 e2) =
@@ -606,10 +615,7 @@ checkDef (S.TmDef x tyParams tmParams Nothing e) =
   checkDef $ S.TmDef x Nil Nil Nothing (S.TmTAbs tyParams (S.TmAbs tmParams e))
 checkDef (S.TmDef x tyParams tmParams (Just t) e) =
   checkDef $ S.TmDef x Nil Nil (Just t') (S.TmTAbs tyParams (S.TmAbs tmParams e))
-  where t' = S.TyForall tyParams (foldr S.TyArrow t (tyOf <$> tmParams))
-        tyOf = case _ of S.TmParam _ (Just ty) -> ty
-                         S.TmParam _ Nothing -> S.TyBot
-                         S.WildCard _ -> S.TyBot
+  where t' = tyOfParams tyParams tmParams t
 
 checkProg :: S.Prog -> Checking (C.Tm /\ C.Ty)
 checkProg (S.Prog defs e) = do
@@ -681,6 +687,20 @@ desugarField (S.RcdField o l p f) =
   S.RcdField o l Nil $ Left $ S.TmAbs p $ either identity desugarMP f
 -- desugaring of default patterns is done in `inferFromSig`
 desugarField def@(S.DefaultPattern _) = def
+
+tyOfParams :: S.TyParamList -> S.TmParamList -> S.Ty -> S.Ty
+tyOfParams tyParams tmParams retTy =
+  S.TyForall tyParams (foldr S.TyArrow retTy (tyOfParam <$> tmParams))
+  where tyOfParam :: S.TmParam -> S.Ty
+        tyOfParam (S.TmParam _ (Just ty)) = ty
+        tyOfParam (S.TmParam _ Nothing) = S.TyTop  -- unsupported type inference
+        tyOfParam (S.NamedParams fields false) = S.TyRcd (tyOfField <$> fields)
+        tyOfParam (S.NamedParams _ true) = S.TyTop -- unsupported type inference
+        tyOfField :: S.NamedField -> S.RcdTy
+        tyOfField (S.RequiredField l t) = S.RcdTy l t false
+        -- TODO: infer the type of the default value `e`
+        -- This cannot be done now because `infer` returns `C.Ty` instead of `S.Ty`
+        tyOfField (S.OptionalField l _) = S.RcdTy l S.TyBot true
 
 transformTyRec :: S.Ty -> Typing C.Ty
 transformTyRec t = do
