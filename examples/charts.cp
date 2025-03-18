@@ -95,8 +95,8 @@ baseChart (data : [Data]) = trait implements Base => open factory in open config
     in `\Text{ x = 50; y = 10 }[\(caption' 0)]`;
 };
 
-lineStrategy = trait [self : Base] implements Render => open factory in open config in {
-  render = open self in letrec lines' (n:Int) (i:Int) : HTML =
+lineStrategy = trait [self : Base] implements Render => open factory in open config in open self in {
+  render = letrec lines' (n:Int) (i:Int) : HTML =
     if n == #data_ then `` else let c = (data_!!n).color in let d = (data_!!n).d in
     if i == #d - 1 then `\lines'(n+1)(0)` else
     let p1 = (d!!i).price in let p2 = (d!!(i+1)).price in `
@@ -111,8 +111,8 @@ lineStrategy = trait [self : Base] implements Render => open factory in open con
     ` in let lines = lines' 0 0 in `\xAxis \yAxis \lines \caption`
 };
 
-barStrategy = trait [self : Base] implements Render => open factory in open config in {
-  render = open self in letrec bars' (n:Int) (i:Int) : HTML =
+barStrategy = trait [self : Base] implements Render => open factory in open config in open self in {
+  render = letrec bars' (n:Int) (i:Int) : HTML =
     if n == #data_ then `` else let c = (data_!!n).color in let d = (data_!!n).d in
     if i == #d then `\bars'(n+1)(0)` else let price = (d!!i).price in `
       \Rect{
