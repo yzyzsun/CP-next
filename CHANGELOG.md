@@ -1,4 +1,10 @@
-## 0.2.0
+## 0.2.1 (March 2025)
+
+- [Experimental] union types (`T1 | T2`) and type-based switch expressions (`switch e0 case T1 => e1 case T2 => e2`). Fully supported in the interpreter and partially in the compiler.
+- Named arguments can be declared to be optional; see the [example](examples/optional.cp). This feature is based on union types.
+- The keyword `mu` is removed; now `fix` is reused for recursive types.
+
+## 0.2.0 (June 2024)
 
 - [New] a compiler targeting JavaScript; try `:compile` in the REPL or `npm run compiler` in a terminal.
 - [New] an alternative ANTLR parser, which is faster than purescript-parsing.
@@ -12,7 +18,7 @@
 - Change the notation of record updates from `{ rcd | x = 1 }` (Elm-style) to `{ rcd with x = 1 }` (OCaml-style).
 - If a self-reference is declared without a type annotation, e.g. `trait [self] implements Sig`, the type of `self` defaults to `Sig` instead of `Top`.
 
-## 0.1.3
+## 0.1.3 (October 2021)
 
 - [Experimental] iso-recursive types with nominal unfoldings; see examples [here](examples/isorecursive.cp) for implicit foldings and [there](examples/mutype.cp) for explicit ones.
 - [New] polymorphic record updates, e.g. `{ rcd | x = 1; y = 2 }`.
@@ -20,7 +26,7 @@
 - Implicit self-type annotations (introduced in 0.1.2) are removed. Instead, self-references can be declared without type annotations, e.g. `[self]`, whose type will be inferred.
 - An uppercase variable should be prefixed with `$`, or it is regarded as a constructor invocation with `new` inserted.
 
-## 0.1.2
+## 0.1.2 (July 2021)
 
 - [New] default patterns, e.g. `_.method = ……`.
 - [New] record wildcards for method patterns, e.g. `(Ctor {..}).method = ……`.
@@ -29,7 +35,7 @@
 - `[self : In & Out]` is implicitly added to method patterns if a trait family implements `Sig<In => Out>` (suggested by an anonymous reviewer from TOPLAS).
 - The delimiter for input/output parts in trait types and sorts is changed from `%` to `=>` (suggested by @JimmyZJX).
 
-## 0.1.1
+## 0.1.1 (January 2021)
 
 - [New] an embedded document DSL, e.g. `"""Zor\Emph[doc]"""`.
 - [New] open directives (currently implemented as C-style `#include`), e.g. `open lib;`.

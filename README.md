@@ -1,28 +1,31 @@
 # CP - The Next Generation
 
-CP is a *compositional* programming language, founded on a core calculus named *Fi+*. The next-gen CP is shipped with more features and implemented in [PureScript](https://www.purescript.org) (a Haskell-like language that compiles to JavaScript).
+CP is a *compositional programming* language, founded on a core calculus named *Fi+*. The next-gen CP is shipped with more features and implemented in [PureScript](https://www.purescript.org) (a Haskell-like language that compiles to JavaScript).
 
 ## Language Features
 
-- A typed lambda calculus with five base types (`Int` `Double` `String` `Bool` `()`), built-in arrays (`[1; 2; 3] : [Int]`), and some built-in operations over them;
+- A typed lambda calculus with five base types (`Int` `Double` `String` `Bool` `()`), built-in arrays (`[1; 2; 3] : [Int]`), and references[^Ref];
 - The merge operator[^Merge], disjoint intersection types[^λi] and disjoint polymorphism[^Fi];
-- Generalized record operations with type difference[^TypeDiff];
-- Iso-recursive types with nominal unfoldings[^IsoRec];
-- Nested composition and distributive subtyping[^NeColus];
+- Distributive intersection subtyping and nested composition[^NeColus];
 - Compositional programming[^CP] with first-class traits[^SEDEL];
+- Iso-recursive types with nominal unfolding[^IsoRec];
+- Generalized record operations with type difference[^TypeDiff];
+- Named and optional arguments via a blend of intersection and union types[^IU];
 - Type-directed operational semantics for *Fi+*[^Fi+] with {HOAS,substitution,closure}-based {big,small}-step variants;
 - A compositionally embedded DSL for document authoring called ExT[^ExT].
 
-[^Merge]: Jana Dunfield. [Elaborating Intersection and Union Types](https://research.cs.queensu.ca/home/jana/papers/intcomp-jfp/Dunfield14_elaboration.pdf). In *JFP 2014*.  
-[^λi]: Bruno C. d. S. Oliveira, Zhiyuan Shi, and João Alpuim. [Disjoint Intersection Types](https://i.cs.hku.hk/~bruno/papers/icfp2016.pdf). In *ICFP 2016*.  
-[^Fi]: João Alpuim, Bruno C. d. S. Oliveira, and Zhiyuan Shi. [Disjoint Polymorphism](https://i.cs.hku.hk/~bruno/papers/ESOP2017.pdf). In *ESOP 2017*.  
-[^SEDEL]: Xuan Bi and Bruno C. d. S. Oliveira. [Typed First-Class Traits](https://i.cs.hku.hk/~bruno/papers/traits.pdf). In *ECOOP 2018*.  
-[^NeColus]: Xuan Bi, Bruno C. d. S. Oliveira, and Tom Schrijvers. [The Essence of Nested Composition](https://i.cs.hku.hk/~bruno/papers/nested.pdf). In *ECOOP 2018*.  
-[^CP]: Weixin Zhang, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Compositional Programming](https://i.cs.hku.hk/~bruno/papers/toplas2021.pdf). In *TOPLAS 2021*.  
-[^Fi+]: Andong Fan, Xuejing Huang, Han Xu, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Direct Foundations for Compositional Programming](https://i.cs.hku.hk/~bruno/papers/ecoop22direct_extended.pdf). In *ECOOP 2022*.  
-[^IsoRec]: Yaoda Zhou, Jinxu Zhao and Bruno C. d. S. Oliveira. [Revisiting Iso-Recursive Subtyping](https://i.cs.hku.hk/~bruno/papers/toplas2022.pdf). In *TOPLAS 2022*.  
-[^ExT]: Yaozhu Sun, Utkarsh Dhandhania, and Bruno C. d. S. Oliveira. [Compositional Embeddings of Domain-Specific Languages](https://i.cs.hku.hk/~bruno/papers/oopsla22extended.pdf). In *OOPSLA 2022*.  
-[^TypeDiff]: Han Xu, Xuejing Huang, and Bruno C. d. S. Oliveira. [Making a Type Difference](https://i.cs.hku.hk/~bruno/papers/popl23making.pdf). In *POPL 2023*.  
+[^Merge]: Jana Dunfield. [Elaborating Intersection and Union Types](https://research.cs.queensu.ca/home/jana/papers/intcomp-jfp/Dunfield14_elaboration.pdf). *JFP 2014*.  
+[^λi]: Bruno C. d. S. Oliveira, Zhiyuan Shi, and João Alpuim. [Disjoint Intersection Types](https://i.cs.hku.hk/~bruno/papers/icfp2016.pdf). *ICFP 2016*.  
+[^Fi]: João Alpuim, Bruno C. d. S. Oliveira, and Zhiyuan Shi. [Disjoint Polymorphism](https://i.cs.hku.hk/~bruno/papers/ESOP2017.pdf). *ESOP 2017*.  
+[^SEDEL]: Xuan Bi and Bruno C. d. S. Oliveira. [Typed First-Class Traits](https://i.cs.hku.hk/~bruno/papers/traits.pdf). *ECOOP 2018*.  
+[^NeColus]: Xuan Bi, Bruno C. d. S. Oliveira, and Tom Schrijvers. [The Essence of Nested Composition](https://i.cs.hku.hk/~bruno/papers/nested.pdf). *ECOOP 2018*.  
+[^CP]: Weixin Zhang, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Compositional Programming](https://i.cs.hku.hk/~bruno/papers/toplas2021.pdf). *TOPLAS 2021*.  
+[^Fi+]: Andong Fan, Xuejing Huang, Han Xu, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Direct Foundations for Compositional Programming](https://i.cs.hku.hk/~bruno/papers/ecoop22direct_extended.pdf). *ECOOP 2022*.  
+[^IsoRec]: Yaoda Zhou, Bruno C. d. S. Oliveira, and Andong Fan. [A Calculus with Recursive Types, Record Concatenation and Subtyping](https://i.cs.hku.hk/~bruno/papers/aplas22recursive.pdf). *APLAS 2022*.  
+[^ExT]: Yaozhu Sun, Utkarsh Dhandhania, and Bruno C. d. S. Oliveira. [Compositional Embeddings of Domain-Specific Languages](https://i.cs.hku.hk/~bruno/papers/oopsla22extended.pdf). *OOPSLA 2022*.  
+[^TypeDiff]: Han Xu, Xuejing Huang, and Bruno C. d. S. Oliveira. [Making a Type Difference](https://i.cs.hku.hk/~bruno/papers/popl23making.pdf). *POPL 2023*.  
+[^Ref]: Wenjia Ye, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Imperative Compositional Programming](https://i.cs.hku.hk/~bruno/papers/oopsla24_imperative.pdf). *OOPSLA 2024*.  
+[^IU]: Yaozhu Sun and Bruno C. d. S. Oliveira. [Named Arguments as Intersections, Optional Arguments as Unions](https://i.cs.hku.hk/~bruno/papers/esop25named.pdf). *ESOP 2025*.  
 
 ## Online Demo
 
@@ -36,7 +39,7 @@ If you want to run CP programs locally using a CLI, you can follow the procedure
 
 - First of all, you need to install [Node.js](https://nodejs.org).
 - Then execute `npm install` to get all of the dev dependencies.
-- After installation, you can choose either of the following npm scripts:
+- After installation, you can choose one of the following npm scripts:
   - `npm start` to run a REPL;
   - `npm run compiler "*.cp"` to compile CP files to JavaScript;
   - `npm test` to run a test suite checking `examples/*.cp`.
@@ -76,10 +79,10 @@ Time: 1.024s
 
 There are currently four different copies of the CP grammar. If you want to modify the grammar, please remember to change them all:
 
-1. PureScript parser based on parser combinators, used in REPL ([see the code here](./src/CP/Parser.purs)).
-2. ANTLR-generated LL(*) parser, used in PLGround ([see this directory](./antlr/)).
+1. PureScript parser based on parser combinators, the default parser ([see the code here](./src/CP/Parser.purs)).
+2. ANTLR-generated LL(*) parser, the alternative parser ([see this directory](./antlr/)).
 3. Lezer-generated incremental parser for the CodeMirror 6 code editor ([see the grammar file](./lezer.grammar)).
-4. TextMate grammar specification for VS Code, mainly keyword highlighting ([see the JSON file](./vscode/CP.tmLanguage.json)).
+4. TextMate grammar specification for VS Code highlighting ([see the JSON file](./vscode/CP.tmLanguage.json)).
 
 ## VS Code Extension
 
