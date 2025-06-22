@@ -2,6 +2,8 @@
 
 CP is a *compositional programming* language, founded on a core calculus named *Fi+*. The next-gen CP is shipped with more features and implemented in [PureScript](https://www.purescript.org) (a Haskell-like language that compiles to JavaScript).
 
+A crash course in CP can be found in Chapter 3 of Yaozhu Sun's PhD thesis [*Compositional Programming in Action*](https://github.com/yzyzsun/PhD-thesis/blob/main/Thesis.pdf).
+
 ## Language Features
 
 - A typed lambda calculus with five base types (`Int` `Double` `String` `Bool` `()`), built-in arrays (`[1; 2; 3] : [Int]`), and references[^Ref];
@@ -12,6 +14,7 @@ CP is a *compositional programming* language, founded on a core calculus named *
 - Generalized record operations with type difference[^TypeDiff];
 - Named and optional arguments via a blend of intersection and union types[^IU];
 - Type-directed operational semantics for *Fi+*[^Fi+] with {HOAS,substitution,closure}-based {big,small}-step variants;
+- A compiler targeting JavaScript, which features type-safe compilation of dynamic inheritance[^Comp];
 - A compositionally embedded DSL for document authoring called ExT[^ExT].
 
 [^Merge]: Jana Dunfield. [Elaborating Intersection and Union Types](https://research.cs.queensu.ca/home/jana/papers/intcomp-jfp/Dunfield14_elaboration.pdf). *JFP 2014*.  
@@ -26,6 +29,7 @@ CP is a *compositional programming* language, founded on a core calculus named *
 [^TypeDiff]: Han Xu, Xuejing Huang, and Bruno C. d. S. Oliveira. [Making a Type Difference](https://i.cs.hku.hk/~bruno/papers/popl23making.pdf). *POPL 2023*.  
 [^Ref]: Wenjia Ye, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Imperative Compositional Programming](https://i.cs.hku.hk/~bruno/papers/oopsla24_imperative.pdf). *OOPSLA 2024*.  
 [^IU]: Yaozhu Sun and Bruno C. d. S. Oliveira. [Named Arguments as Intersections, Optional Arguments as Unions](https://i.cs.hku.hk/~bruno/papers/esop25named.pdf). *ESOP 2025*.  
+[^Comp]: Yaozhu Sun, Xuejing Huang, and Bruno C. d. S. Oliveira. [Type-Safe Compilation of Dynamic Inheritance via Merging](https://yzsun.me/files/CPC-draft.pdf). Unpublished.
 
 ## Online Demo
 
