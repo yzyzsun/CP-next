@@ -2,7 +2,7 @@
 
 CP is a *compositional programming* language, founded on a core calculus named *Fi+*. The next-gen CP is shipped with more features and implemented in [PureScript](https://www.purescript.org) (a Haskell-like language that compiles to JavaScript).
 
-A crash course in CP can be found in Chapter 3 of Yaozhu Sun's PhD thesis [*Compositional Programming in Action*](https://github.com/yzyzsun/PhD-thesis/blob/main/Thesis.pdf).
+A crash course in CP can be found in Chapter 3 of Yaozhu Sun's PhD thesis: [*Compositional Programming in Action*](https://github.com/yzyzsun/PhD-thesis/blob/main/Thesis.pdf).
 
 ## Language Features
 
@@ -29,7 +29,7 @@ A crash course in CP can be found in Chapter 3 of Yaozhu Sun's PhD thesis [*Comp
 [^TypeDiff]: Han Xu, Xuejing Huang, and Bruno C. d. S. Oliveira. [Making a Type Difference](https://i.cs.hku.hk/~bruno/papers/popl23making.pdf). *POPL 2023*.  
 [^Ref]: Wenjia Ye, Yaozhu Sun, and Bruno C. d. S. Oliveira. [Imperative Compositional Programming](https://i.cs.hku.hk/~bruno/papers/oopsla24_imperative.pdf). *OOPSLA 2024*.  
 [^IU]: Yaozhu Sun and Bruno C. d. S. Oliveira. [Named Arguments as Intersections, Optional Arguments as Unions](https://i.cs.hku.hk/~bruno/papers/esop25named.pdf). *ESOP 2025*.  
-[^Comp]: Yaozhu Sun, Xuejing Huang, and Bruno C. d. S. Oliveira. [Type-Safe Compilation of Dynamic Inheritance via Merging](https://yzsun.me/files/CPC-draft.pdf). Unpublished.
+[^Comp]: Yaozhu Sun, Xuejing Huang, and Bruno C. d. S. Oliveira. [Type-Safe Compilation of Dynamic Inheritance via Merging](https://i.cs.hku.hk/~bruno/papers/TOPLAS25.pdf). *TOPLAS 2025*.
 
 ## Online Demo
 
