@@ -21,7 +21,7 @@
     "codemirror": "^6.0.1",
     "lezer-loader": "^0.3.0",
     "purescript": "^0.15.0",
-    "spago": "^0.21.0",
+    "spago": "^1.0.4",
     "webpack": "^5.0.0",
     "webpack-cli": "^6.0.0",
     "antlr4": "^4.10.1"
