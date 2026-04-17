@@ -405,7 +405,9 @@ infer (S.TmTrait (Just (self /\ Just t)) (Just sig) me1 ne2) = do
             selectOverride (S.TmOpen _ e0) = selectOverride e0
             selectOverride (S.TmMerge _ e1 e2) = selectOverride e1 <> selectOverride e2
             -- TODO: only override the inner field if it's a method pattern
-            selectOverride (S.TmRcd (S.RcdField true l _ _ : Nil)) = [l]
+            selectOverride (S.TmRcd fields) = foldl addLabel [] fields
+              where addLabel ls (S.RcdField true l _ _) = ls <> [l]
+                    addLabel ls _ = ls
             selectOverride _ = []
             -- TODO: make sure every field overrides some field in super-trait
             removeOverride :: C.Ty -> Array Label -> C.Ty
