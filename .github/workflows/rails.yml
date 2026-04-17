@@ -11,15 +11,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
       - run: npm install
       - run: npm run build
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.4' # Not needed with a .ruby-version, .tool-versions or mise.toml
+          ruby-version: '4.0' # Not needed with a .ruby-version, .tool-versions or mise.toml
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           working-directory: ./plground
       - name: Rails server test
