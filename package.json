@@ -18,13 +18,14 @@
   "homepage": "https://plground.org",
   "devDependencies": {
     "@vscode/vsce": "^3.0.0",
+    "antlr4": "^4.10.1",
     "codemirror": "^6.0.1",
     "lezer-loader": "^0.3.0",
+    "minimizer-webpack-plugin": "^5.14.0",
     "purescript": "^0.15.0",
     "spago": "^1.0.4",
     "webpack": "^5.0.0",
-    "webpack-cli": "^6.0.0",
-    "antlr4": "^4.10.1"
+    "webpack-cli": "^6.0.0"
   },
   "allowScripts": {
     "@vscode/vsce-sign@2.1.1": true,
