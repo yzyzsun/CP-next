@@ -58,4 +58,4 @@ workspace:
       git: https://github.com/paluh/purescript-pattern-arrows.git
       ref: master
   packageSet:
-    registry: 76.0.0
+    registry: 82.3.0
