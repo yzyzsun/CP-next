@@ -4,6 +4,8 @@ CP is a *compositional programming* language, founded on a core calculus named *
 
 A crash course in CP can be found in Chapter 3 of Yaozhu Sun's PhD thesis: [*Compositional Programming in Action*](https://github.com/yzyzsun/PhD-thesis/blob/main/Thesis.pdf).
 
+⚠️ CP-next will no longer be actively maintained since version 0.2.1.
+
 ## Language Features
 
 - A typed lambda calculus with five base types (`Int` `Double` `String` `Bool` `()`), built-in arrays (`[1; 2; 3] : [Int]`), and references[^Ref];
